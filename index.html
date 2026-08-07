@@ -215,31 +215,51 @@
   .modal-card h3{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 14px; }
   .modal-hint{ font-size: 12px; color: var(--muted); margin: -8px 0 14px; }
 
-  /* ---------- Motor (Slice 4) ---------- */
-  .motor-intro{ font-size: 13.5px; color: var(--muted); margin: 4px 0 18px; line-height: 1.5; }
+  /* ---------- Configuración (Slice 4) ---------- */
+  .motor-intro{ font-size: 14px; color: var(--ink); margin: 4px 0 14px; line-height: 1.55; }
   .motor-block{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
-  .motor-block h3{ font-family: var(--font-display); font-size: 17px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
-  .motor-block-hint{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  .motor-block h3{ font-family: var(--font-display); font-size: 17px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
+  .motor-step{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background: var(--pitch); color: var(--chalk); font-family: var(--font-mono); font-size: 13px; font-weight:700; flex-shrink:0; }
+  .motor-block-hint{ font-size: 12.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+
+  /* tarjetas de estrategia (elección tipo radio) */
+  .estrategia-card{ display:flex; gap: 12px; align-items:flex-start; border: 1.5px solid var(--paper-line); border-radius: 8px; padding: 13px 15px; margin-bottom: 10px; cursor:pointer; transition: border-color .15s ease, background .15s ease; }
+  .estrategia-card:last-child{ margin-bottom:0; }
+  .estrategia-card:hover{ border-color: var(--pitch-light); }
+  .estrategia-card.selected{ border-color: var(--pitch); background: #eef3ec; }
+  .estrategia-radio{ width:18px; height:18px; border-radius:50%; border:2px solid var(--paper-line); flex-shrink:0; margin-top:2px; position:relative; }
+  .estrategia-card.selected .estrategia-radio{ border-color: var(--pitch); }
+  .estrategia-card.selected .estrategia-radio::after{ content:''; position:absolute; inset:3px; border-radius:50%; background: var(--pitch); }
+  .estrategia-name{ font-weight: 700; font-size: 14.5px; }
+  .estrategia-desc{ font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
 
   .rules-list{ display:flex; flex-direction:column; gap: 10px; }
-  .rule-card{ border: 1px dashed var(--paper-line); border-radius: 8px; padding: 12px 14px; background: var(--paper); transition: opacity .15s ease; }
-  .rule-card.off{ opacity: 0.55; }
-  .rule-card.na{ background: repeating-linear-gradient(135deg, var(--paper), var(--paper) 8px, rgba(0,0,0,0.03) 8px, rgba(0,0,0,0.03) 16px); opacity: 0.7; }
-  .rule-na-note{ font-family: var(--font-mono); font-size: 10.5px; color: var(--clay); margin-top: 5px; letter-spacing: 0.02em; }
-  .rule-top{ display:flex; align-items:center; gap: 10px; }
-  .rule-order{ display:flex; flex-direction:column; gap: 2px; flex-shrink:0; }
+  .rule-card{ border: 1px solid var(--paper-line); border-radius: 8px; padding: 13px 15px; background: var(--paper); transition: opacity .15s ease; }
+  .rule-card.off{ background: var(--chalk); }
+  /* Regla fija: no lleva switch. Se distingue con borde izquierdo, fondo propio y candado. */
+  .rule-card.fixed{ border-color: var(--pitch-light); border-left: 4px solid var(--pitch); background: #eef3ec; }
+  .rule-fixed-tag{ font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing:0.04em; color: var(--pitch); border:1px solid var(--pitch-light); border-radius:4px; padding:1px 6px; margin-left:7px; white-space:nowrap; vertical-align: middle; }
+  .rule-locked{ display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; color: var(--pitch); cursor: help; padding-top:2px; }
+  .rule-locked svg{ width:17px; height:17px; }
+  .rule-locked span{ font-family: var(--font-mono); font-size: 9px; letter-spacing:0.04em; text-transform:uppercase; }
+  .rule-top{ display:flex; align-items:flex-start; gap: 10px; }
+  .rule-order{ display:flex; flex-direction:column; gap: 2px; flex-shrink:0; margin-top:2px; }
   .rule-order button{ background:none; border:1px solid var(--paper-line); border-radius:4px; cursor:pointer; color: var(--muted); width:22px; height:16px; line-height:1; display:flex; align-items:center; justify-content:center; font-size:10px; padding:0; }
   .rule-order button:hover:not(:disabled){ border-color: var(--pitch); color: var(--pitch); }
   .rule-order button:disabled{ opacity:0.3; cursor:not-allowed; }
-  .rule-prio{ font-family: var(--font-mono); font-size: 11px; font-weight:700; color: var(--muted); width: 20px; text-align:center; flex-shrink:0; }
   .rule-main{ flex: 1 1 auto; min-width:0; }
-  .rule-name{ font-weight: 600; font-size: 14.5px; }
-  .rule-desc{ font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
-  .rule-scope{ font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing:0.04em; color: var(--muted); border:1px solid var(--paper-line); border-radius:4px; padding:1px 6px; margin-left:6px; white-space:nowrap; }
-  .rule-params{ margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--paper-line); display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
-  .rule-param{ display:flex; align-items:center; gap:8px; font-size: 12.5px; color: var(--ink); }
-  .rule-param label{ font-family: var(--font-mono); font-size: 11px; letter-spacing:0.03em; text-transform:uppercase; color: var(--muted); }
-  .rule-param input[type=number]{ width: 58px; padding: 5px 6px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--chalk); font-family: var(--font-mono); font-size: 13px; text-align:center; }
+  .rule-name{ font-weight: 700; font-size: 14.5px; }
+  .rule-desc{ font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+  .rule-switch-wrap{ display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; }
+  .rule-switch-label{ font-family: var(--font-mono); font-size: 9px; letter-spacing:0.04em; text-transform:uppercase; color: var(--muted); }
+  .rule-extra{ margin: 10px 0 0 32px; }
+  .rule-params-title{ font-family: var(--font-mono); font-size: 9.5px; letter-spacing:0.05em; text-transform:uppercase; color: var(--muted); margin-bottom: 6px; }
+  .rule-params{ border-left: 2px solid var(--paper-line); padding: 2px 0 2px 12px; display:flex; flex-direction:column; gap:8px; }
+  .rule-param-row{ display:flex; align-items:center; gap:8px; font-size: 13px; color: var(--ink); cursor:pointer; }
+  .rule-param-row input[type=checkbox]{ width:16px; height:16px; accent-color: var(--pitch); cursor:pointer; flex-shrink:0; }
+  .rule-num{ width: 56px; padding: 5px 6px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--chalk); font-family: var(--font-mono); font-size: 13px; text-align:center; }
+  .rule-unit{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+  .rule-off-hint{ font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
 
   @media (max-width: 480px){
     .scores-grid{ grid-template-columns: repeat(2, 1fr); }
@@ -363,32 +383,25 @@
     </div>
   </div>
 
-  <!-- ================= TAB MOTOR (Slice 4) ================= -->
+  <!-- ================= TAB CONFIGURACIÓN (Slice 4) ================= -->
   <div class="tab-panel" id="panelMotor">
     <div class="motor-intro">
-      Configuración global del motor de generación. Estos ajustes se aplican cada vez que generás o regenerás equipos en cualquier partido.
+      Acá definís <b>cómo el sistema arma los dos equipos</b> de forma automática. Lo que cambies vale para todos los partidos.
     </div>
 
     <div class="motor-block">
-      <h3>Estrategia por defecto</h3>
-      <div class="motor-block-hint">Se usa al crear un partido nuevo. En cada partido podés cambiarla después desde su sección de equipos.</div>
-      <div class="field" style="max-width:360px;">
-        <label>Estrategia
-          <span class="info-icon" tabindex="0" onclick="this.classList.toggle('show-tip')" onblur="this.classList.remove('show-tip')">?
-            <span class="info-tip" id="motorEstrategiaTip"></span>
-          </span>
-        </label>
-        <select id="motorEstrategia"></select>
-      </div>
+      <h3><span class="motor-step">1</span>Estrategia de armado de equipos</h3>
+      <div class="motor-block-hint">Elegí el método principal. Queda como opción por defecto al crear un partido nuevo; después, en cada partido, lo podés cambiar.</div>
+      <div id="estrategiaCards"></div>
     </div>
 
     <div class="motor-block">
-      <h3>Reglas del motor</h3>
-      <div class="motor-block-hint">Se ejecutan de arriba hacia abajo según su prioridad. Podés activarlas, desactivarlas, reordenarlas y ajustar sus parámetros.</div>
+      <h3><span class="motor-step">2</span>Reglas de la estrategia</h3>
+      <div class="motor-block-hint" id="rulesHint"></div>
       <div class="rules-list" id="rulesList"></div>
     </div>
 
-    <div class="footnote">La configuración del motor se guarda automáticamente.</div>
+    <div class="footnote">Las reglas marcadas como fijas son parte del funcionamiento del motor y no se pueden apagar. Todo se guarda solo.</div>
   </div>
 
   <div class="footnote" id="footPartidos">Los titulares y suplentes se recalculan solos según el orden de convocatoria.</div>
@@ -513,12 +526,14 @@
   };
   const ESTRATEGIAS = {
     estrategia1: {
-      label: 'Balance por puntaje promedio',
-      descripcion: 'Evalúa a cada jugador únicamente por su puntaje promedio. No tiene en cuenta las posiciones. Es la forma más simple y rápida de armar dos equipos parejos en puntaje.'
+      label: 'Solo por puntaje',
+      resumen: 'reparte buscando que los dos equipos sumen un puntaje parecido, sin mirar posiciones',
+      descripcion: 'Mira solo el puntaje promedio de cada jugador y arma dos equipos que sumen parecido. No tiene en cuenta las posiciones. Es la más simple y rápida.'
     },
     estrategia2: {
-      label: 'Balance por posiciones',
-      descripcion: 'Distribuye a los jugadores según su posición (arquero, defensor, volante, delantero), buscando equipos parejos en cantidad de jugadores por posición y en puntaje. Puede usar la posición secundaria de un jugador si eso mejora el equilibrio.'
+      label: 'Por posición y puntaje',
+      resumen: 'reparte parejo por puesto (arquero, defensor, volante, delantero) y dentro de eso empareja el puntaje',
+      descripcion: 'Primero reparte por puesto (arquero, defensor, volante, delantero) para que queden parejos en cada posición, y dentro de eso empareja el puntaje. Puede mover a un jugador a una posición secundaria si mejora el equilibrio.'
     }
   };
   /* ================= CONFIGURACIÓN DEL MOTOR (Slice 4) ================= */
@@ -528,31 +543,49 @@
   // por eso no figura como regla en este catálogo ni en la sección Configuración.
   const REGLAS_CATALOGO = {
     posiciones: {
-      label: 'Balancear posiciones',
-      descripcion: 'Distribuye defensores, volantes y delanteros de forma pareja entre los dos equipos.',
-      scope: 'Estrategia 2',
+      label: 'Repartir parejo por puesto',
+      descripcion: 'Reparte defensores, volantes y delanteros de forma pareja entre los dos equipos.',
+      siOff: 'Si la apagás, no importa el puesto: reparte a todos juntos mirando solo el puntaje.',
+      soloEn: 'estrategia2', // esta regla solo tiene efecto con la estrategia por posición
+      // Es el núcleo de la estrategia por posición: con esa estrategia no se puede apagar.
+      nucleoDe: 'estrategia2',
+      resumen: 'reparte parejo por puesto',
       params: {
-        usarSecundarias: { tipo: 'bool', label: 'Usar posiciones secundarias', default: true,
-          ayuda: 'Permite mover un jugador a una posición secundaria cuando corrige un desbalance impar.' }
+        usarSecundarias: { tipo: 'bool', label: 'Permitir mover a una posición secundaria', default: true,
+          ayuda: 'Si un puesto queda impar, deja mover a un jugador a una de sus posiciones secundarias para emparejar.' }
       }
     },
     puntaje: {
-      label: 'Balancear puntaje',
-      descripcion: 'Minimiza la diferencia de puntaje total entre ambos equipos.',
-      scope: 'Ambas estrategias',
+      label: 'Emparejar el puntaje',
+      descripcion: 'Busca que los dos equipos sumen un puntaje lo más parecido posible.',
+      siOff: 'Si la apagás, solo empareja la cantidad de jugadores, sin mirar el puntaje.',
+      // Es el núcleo de la estrategia por puntaje: con esa estrategia no se puede apagar.
+      nucleoDe: 'estrategia1',
+      resumen: 'empareja el puntaje',
       params: {
-        diferenciaMaxima: { tipo: 'number', label: 'Diferencia objetivo', default: null, min: 0, max: 50,
-          ayuda: 'Diferencia de puntaje que se considera aceptable. Si el resultado la supera, el resumen lo marca. Vacío = sin objetivo.' }
+        diferenciaMaxima: { tipo: 'number', label: 'Diferencia aceptable', unidad: 'pts', default: null, min: 0, max: 50,
+          ayuda: 'Diferencia de puntaje que te parece aceptable. Si el armado la supera, el resumen del partido lo avisa. Dejalo vacío si no querés un objetivo.' }
       }
     },
     sinPuntaje: {
-      label: 'Balancear jugadores sin puntaje',
-      descripcion: 'No usa a los jugadores sin puntaje para calcular el total del equipo, pero los reparte lo más parejo posible.',
-      scope: 'Ambas estrategias',
+      label: 'Repartir a los jugadores sin puntaje',
+      descripcion: 'A los jugadores que todavía no tienen puntaje los reparte lo más parejo posible entre los equipos, sin contarlos en el total.',
+      siOff: 'Si la apagás, se mezclan con el resto en el orden normal.',
+      resumen: 'reparte parejo a los que no tienen puntaje',
       params: {}
     }
   };
   const REGLAS_ORDEN_DEFAULT = ['posiciones', 'puntaje', 'sinPuntaje'];
+
+  // Invariantes: reglas que el motor aplica siempre y no forman parte de la config editable.
+  // Se muestran en la sección Configuración (solo lectura) para que quede claro qué hace el motor.
+  const REGLAS_INVARIANTES = [
+    {
+      key: 'arqueros',
+      label: 'Un arquero por equipo',
+      descripcion: 'Si hay arqueros, va uno por equipo. Si hay uno solo, el equipo sin arquero fijo se compensa con jugadores de mayor puntaje (rotan el arco). Si no hay arqueros, se arma con lo que hay y rotan todos. Los arqueros que sobran pasan a su mejor posición secundaria (o a delantero si no tienen).'
+    }
+  ];
 
   function defaultMotorConfig(){
     return {
@@ -988,23 +1021,72 @@
     return JSON.stringify(current) !== JSON.stringify(snapshot);
   }
 
-  /* Estrategia 1 — Balance por puntaje promedio (la más simple: no optimiza posiciones) */
+  /* --- INVARIANTE de arqueros (aplica a TODAS las estrategias) ---
+     - Si hay arqueros disponibles, va uno por equipo (nunca dos).
+     - Si hay uno solo, el equipo sin arquero fijo se compensa en puntaje (sus jugadores rotan en el arco).
+     - Si no hay arqueros, se arma con lo que hay: todos rotan.
+     - Los arqueros excedentes pasan a su mejor posición secundaria; si no tienen, a Delantero. */
+  function mejorPosicionAlternativa(p){
+    const secs = (p.secundarias || []).filter(s => s !== 'Arquero');
+    if(secs.length === 0) return 'Delantero';
+    return secs.reduce((best, s) => puntajeEnPosicion(p, s) > puntajeEnPosicion(p, best) ? s : best, secs[0]);
+  }
+
+  // Elige qué arqueros ocupan el arco y devuelve la info para ubicarlos.
+  function resolverArqueros(arqueros, sonBloqueados, prevTeamOf){
+    const bloqueados = arqueros.filter(sonBloqueados);
+    const libres = [...arqueros.filter(p => !sonBloqueados(p))]
+      .sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
+    const slotBlancoLibre = bloqueados.filter(p => prevTeamOf[p.id] === 'blanco').length === 0;
+    const slotNegroLibre  = bloqueados.filter(p => prevTeamOf[p.id] === 'negro').length === 0;
+    let i = 0;
+    const titularBlanco = (slotBlancoLibre && libres[i]) ? libres[i++] : null;
+    const titularNegro  = (slotNegroLibre  && libres[i]) ? libres[i++] : null;
+    const excedentes = libres.slice(i);
+    return { bloqueados, titularBlanco, titularNegro, excedentes, total: arqueros.length };
+  }
+
+  /* Estrategia 1 — Balance por puntaje promedio (no optimiza posiciones, pero sí respeta el invariante de arqueros) */
   function generarEquiposEstrategia1(titularesPlayers, bloqueados, prevTeamOf){
     const bloqueadosSet = new Set(bloqueados || []);
     let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
     const usaPuntaje = reglaEnabled('puntaje');
     const separaSinPuntaje = reglaEnabled('sinPuntaje');
+    const valorDe = p => { const avg = computeAvg(p.scores); return avg === null ? 0 : avg; };
 
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
     titularesPlayers.forEach(p => {
       if(!sonBloqueados(p)) return;
-      const avg = computeAvg(p.scores);
-      const valor = avg === null ? 0 : avg;
-      if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
-      else{ negro.push(p.id); sumaNegro += valor; }
+      if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valorDe(p); }
+      else{ negro.push(p.id); sumaNegro += valorDe(p); }
     });
 
-    const libres = titularesPlayers.filter(p => !sonBloqueados(p));
+    // Invariante de arqueros: uno por equipo como máximo, aun sin balance por posiciones.
+    const posicionOverride = {};
+    const arquerosExcedentes = [];
+    const arqueros = titularesPlayers.filter(p => p.principal === 'Arquero');
+    const arq = resolverArqueros(arqueros, sonBloqueados, prevTeamOf || {});
+    const yaUbicados = new Set([...blanco, ...negro]);
+    if(arq.titularBlanco){ blanco.push(arq.titularBlanco.id); sumaBlanco += valorDe(arq.titularBlanco); yaUbicados.add(arq.titularBlanco.id); }
+    if(arq.titularNegro){ negro.push(arq.titularNegro.id); sumaNegro += valorDe(arq.titularNegro); yaUbicados.add(arq.titularNegro.id); }
+    arq.excedentes.forEach(p => {
+      const nueva = mejorPosicionAlternativa(p);
+      posicionOverride[p.id] = nueva; // deja de figurar como arquero
+      arquerosExcedentes.push({ playerId: p.id, pos: nueva });
+    });
+    const arquerosEnArco = (arq.titularBlanco?1:0) + (arq.titularNegro?1:0) + arq.bloqueados.length;
+    // Compensación: si hay un solo arquero fijo, el equipo sin arquero recibe jugadores más fuertes.
+    // Se implementa como un crédito virtual (solo para comparar) igual al puntaje del arquero.
+    let compensacion = 0, equipoCompensado = null;
+    if(arquerosEnArco === 1){
+      const unico = arq.titularBlanco || arq.titularNegro || arq.bloqueados[0];
+      const equipoConArquero = arq.titularBlanco ? 'blanco' : (arq.titularNegro ? 'negro' : prevTeamOf[unico.id]);
+      equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
+      compensacion = valorDe(unico);
+    }
+    const arquerosInfo = { total: arq.total, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
+
+    const libres = titularesPlayers.filter(p => !sonBloqueados(p) && !yaUbicados.has(p.id));
     const conPuntaje = libres.filter(p => computeAvg(p.scores) !== null);
     const sinPuntaje = libres.filter(p => computeAvg(p.scores) === null);
     if(usaPuntaje) conPuntaje.sort((a,b) => computeAvg(b.scores) - computeAvg(a.scores));
@@ -1021,35 +1103,42 @@
     const cupoNegro = Math.floor(n / 2);
 
     ordenados.forEach(p => {
-      const avg = computeAvg(p.scores);
-      const valor = avg === null ? 0 : avg;
+      const valor = valorDe(p);
       const blancoLleno = blanco.length >= cupoBlanco;
       const negroLleno = negro.length >= cupoNegro;
+      // el equipo compensado "aparenta" tener menos puntaje, así se lleva a los jugadores más fuertes
+      const ajustadoBlanco = sumaBlanco - (equipoCompensado === 'blanco' ? compensacion : 0);
+      const ajustadoNegro  = sumaNegro  - (equipoCompensado === 'negro'  ? compensacion : 0);
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
-      else if(usaPuntaje) vaABlanco = sumaBlanco <= sumaNegro;
+      else if(usaPuntaje) vaABlanco = ajustadoBlanco <= ajustadoNegro;
       else vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: sólo empareja las cantidades
 
       if(vaABlanco){ blanco.push(p.id); sumaBlanco += valor; }
       else{ negro.push(p.id); sumaNegro += valor; }
     });
 
-    return { blanco, negro, sumaBlanco, sumaNegro };
+    return { blanco, negro, sumaBlanco, sumaNegro, posicionOverride, arquerosInfo, arquerosExcedentes };
   }
 
   /* Estrategia 2 — Balance por posiciones */
-  function repartirBucketBalanceado(jugadoresConValor, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje){
+  function repartirBucketBalanceado(jugadoresConValor, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, comp){
     // jugadoresConValor: [{id, valor}], ordenados desc por valor antes de llamar (si usaPuntaje)
+    // comp: { equipoCompensado, compensacion } — crédito virtual para el equipo sin arquero fijo
+    const equipoCompensado = comp && comp.equipoCompensado;
+    const compensacion = (comp && comp.compensacion) || 0;
     let enEsteBucketBlanco = 0, enEsteBucketNegro = 0;
     jugadoresConValor.forEach(({id, valor}) => {
       const blancoLleno = enEsteBucketBlanco >= cupoBlanco;
       const negroLleno = enEsteBucketNegro >= cupoNegro;
+      const ajustadoBlanco = sumaBlanco - (equipoCompensado === 'blanco' ? compensacion : 0);
+      const ajustadoNegro  = sumaNegro  - (equipoCompensado === 'negro'  ? compensacion : 0);
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
       else if(usaPuntaje === false) vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: empareja cantidades
-      else vaABlanco = sumaBlanco <= sumaNegro;
+      else vaABlanco = ajustadoBlanco <= ajustadoNegro;
       if(vaABlanco){ blanco.push(id); sumaBlanco += valor; enEsteBucketBlanco++; }
       else{ negro.push(id); sumaNegro += valor; enEsteBucketNegro++; }
     });
@@ -1092,37 +1181,31 @@
     const arquerosExcedentes = [];
 
     // Paso 2: arqueros — INVARIANTE (siempre se aplica): máximo un arquero por equipo.
+    let compensacion = 0, equipoCompensado = null;
     {
       const arqueros = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
-      const arquerosBloqueados = arqueros.filter(sonBloqueados);
-      const arquerosLibres = arqueros.filter(p => !sonBloqueados(p));
-      arquerosBloqueados.forEach(p => {
+      const arq = resolverArqueros(arqueros, sonBloqueados, prevTeamOf || {});
+      arq.bloqueados.forEach(p => {
         const valor = puntajeEnPosicion(p, 'Arquero');
         if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
         else{ negro.push(p.id); sumaNegro += valor; }
       });
-      const slotBlancoLibre = arquerosBloqueados.filter(p => prevTeamOf[p.id] === 'blanco').length === 0;
-      const slotNegroLibre = arquerosBloqueados.filter(p => prevTeamOf[p.id] === 'negro').length === 0;
-      const arquerosLibresOrdenados = [...arquerosLibres].sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
-      let idxArq = 0;
-      arquerosInfo = { total: arqueros.length, compensado: arqueros.length === 1 };
-      if(slotBlancoLibre && arquerosLibresOrdenados[idxArq]){
-        const p = arquerosLibresOrdenados[idxArq++]; blanco.push(p.id); sumaBlanco += puntajeEnPosicion(p,'Arquero');
-      }
-      if(slotNegroLibre && arquerosLibresOrdenados[idxArq]){
-        const p = arquerosLibresOrdenados[idxArq++]; negro.push(p.id); sumaNegro += puntajeEnPosicion(p,'Arquero');
-      }
-      // Los arqueros excedentes (más de uno por equipo) se reubican en su mejor posición secundaria;
-      // si no tienen secundarias, van a Delantero.
-      arquerosLibresOrdenados.slice(idxArq).forEach(p => {
-        const secs = (p.secundarias || []).filter(s => s !== 'Arquero');
-        let nuevaPos = 'Delantero';
-        if(secs.length > 0){
-          nuevaPos = secs.reduce((best, s) => puntajeEnPosicion(p, s) > puntajeEnPosicion(p, best) ? s : best, secs[0]);
-        }
+      if(arq.titularBlanco){ blanco.push(arq.titularBlanco.id); sumaBlanco += puntajeEnPosicion(arq.titularBlanco,'Arquero'); }
+      if(arq.titularNegro){ negro.push(arq.titularNegro.id); sumaNegro += puntajeEnPosicion(arq.titularNegro,'Arquero'); }
+      // Los arqueros excedentes se reubican en su mejor posición secundaria; si no tienen, a Delantero.
+      arq.excedentes.forEach(p => {
+        const nuevaPos = mejorPosicionAlternativa(p);
         posicionAsignada[p.id] = nuevaPos;
         arquerosExcedentes.push({ playerId: p.id, pos: nuevaPos });
       });
+      const arquerosEnArco = (arq.titularBlanco?1:0) + (arq.titularNegro?1:0) + arq.bloqueados.length;
+      if(arquerosEnArco === 1){
+        const unico = arq.titularBlanco || arq.titularNegro || arq.bloqueados[0];
+        const equipoConArquero = arq.titularBlanco ? 'blanco' : (arq.titularNegro ? 'negro' : prevTeamOf[unico.id]);
+        equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
+        compensacion = puntajeEnPosicion(unico, 'Arquero');
+      }
+      arquerosInfo = { total: arq.total, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
     }
 
     // Paso 3: repartir el resto (los que no quedaron ya ubicados como arquero)
@@ -1157,7 +1240,7 @@
         if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
         else jugadores.sort((a,b) => b.valor - a.valor);
       }
-      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje);
+      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado, compensacion });
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
     }
@@ -1221,6 +1304,7 @@
       sumaBlanco, sumaNegro,
       cambios, esPrimeraGeneracion,
       posicionAsignada: resultado.posicionAsignada || null,
+      posicionOverride: resultado.posicionOverride || null, // solo display (arqueros excedentes en Estrategia 1)
       swaps: resultado.swaps || [],
       arquerosInfo: resultado.arquerosInfo || null,
       arquerosExcedentes: resultado.arquerosExcedentes || []
@@ -1283,7 +1367,9 @@
   }
 
   function renderTeamPlayerRow(p, m){
-    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id]) || p.principal;
+    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
+      || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
+      || p.principal;
     const esSecundaria = posAsignada !== p.principal;
     const scoreEnPos = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : null;
     const avg = computeAvg(p.scores);
@@ -1411,7 +1497,9 @@
     const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
     const ordenPosicion = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
     function posDeJugador(p){
-      return (eq.posicionAsignada && eq.posicionAsignada[p.id]) || p.principal;
+      return (eq.posicionAsignada && eq.posicionAsignada[p.id])
+        || (eq.posicionOverride && eq.posicionOverride[p.id])
+        || p.principal;
     }
     function ordenarPorPosicion(lista){
       return [...lista].sort((a, b) => (ordenPosicion[posDeJugador(a)] ?? 99) - (ordenPosicion[posDeJugador(b)] ?? 99));
@@ -1446,14 +1534,20 @@
         const p = players.find(pl => pl.id === s.playerId);
         if(p) explicaciones.push(`Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
       });
-      if(eq.arquerosInfo && eq.arquerosInfo.compensado){
-        explicaciones.push('El único arquero disponible fue compensado equilibrando el resto del equipo.');
-      }
-      (eq.arquerosExcedentes || []).forEach(s => {
-        const p = players.find(pl => pl.id === s.playerId);
-        if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} por exceso de arqueros disponibles.`);
-      });
     }
+    // El invariante de arqueros aplica a ambas estrategias
+    if(eq.arquerosInfo){
+      if(eq.arquerosInfo.total === 0){
+        explicaciones.push('No hay arqueros entre los titulares: se armó con lo que hay y el arco lo rotan los jugadores de ambos equipos.');
+      }else if(eq.arquerosInfo.compensado){
+        const eqComp = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro';
+        explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se lo compensó con jugadores de mayor puntaje.`);
+      }
+    }
+    (eq.arquerosExcedentes || []).forEach(s => {
+      const p = players.find(pl => pl.id === s.playerId);
+      if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} porque cada equipo lleva un solo arquero.`);
+    });
     bloqueados.forEach(id => {
       const p = players.find(pl => pl.id === id);
       const equipo = eq.blanco.includes(id) ? 'Blanco' : (eq.negro.includes(id) ? 'Negro' : null);
@@ -1469,8 +1563,8 @@
     }
     // reglas desactivadas que aplicaban a esta estrategia
     const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled).filter(r => {
-      const scope = REGLAS_CATALOGO[r.key].scope;
-      return scope === 'Ambas estrategias' || (esEstrategia2 && scope === 'Estrategia 2');
+      const soloEn = REGLAS_CATALOGO[r.key].soloEn;
+      return !soloEn || (esEstrategia2 && soloEn === 'estrategia2');
     });
     if(reglasApagadas.length > 0){
       explicaciones.push(`Reglas desactivadas en el motor: ${reglasApagadas.map(r => REGLAS_CATALOGO[r.key].label).join(', ')}.`);
@@ -1849,47 +1943,96 @@
     renderPlayersTab();
   });
 
-  /* ================= MOTOR (Slice 4): configuración ================= */
+  /* ================= CONFIGURACIÓN (Slice 4) ================= */
+  // Una regla marcada con "soloEn" únicamente tiene efecto con esa estrategia.
+  function reglaAplicaAEstrategia(key, estrategia){
+    const soloEn = REGLAS_CATALOGO[key].soloEn;
+    return !soloEn || soloEn === estrategia;
+  }
+
+  // Una regla es "núcleo" de la estrategia elegida: define lo que hace la estrategia, así que no se puede apagar.
+  function reglaEsNucleo(key, estrategia){
+    return REGLAS_CATALOGO[key].nucleoDe === estrategia;
+  }
+
   function renderMotorTab(){
-    const sel = el('motorEstrategia');
-    if(sel){
-      sel.innerHTML = Object.entries(ESTRATEGIAS).map(([k,e]) => `<option value="${k}" ${k===motorConfig.estrategia?'selected':''}>${e.label}</option>`).join('');
-      el('motorEstrategiaTip').textContent = ESTRATEGIAS[motorConfig.estrategia].descripcion;
+    const cards = el('estrategiaCards');
+    if(cards){
+      cards.innerHTML = Object.entries(ESTRATEGIAS).map(([k, e]) => `
+        <div class="estrategia-card ${k===motorConfig.estrategia?'selected':''}" onclick="window.__setEstrategiaDefault('${k}')">
+          <div class="estrategia-radio"></div>
+          <div>
+            <div class="estrategia-name">${e.label}</div>
+            <div class="estrategia-desc">${e.descripcion}</div>
+          </div>
+        </div>`).join('');
     }
+
     const cont = el('rulesList');
     if(!cont) return;
-    const reglas = reglasOrdenadas();
-    const estrLabel = ESTRATEGIAS[motorConfig.estrategia].label;
-    cont.innerHTML = reglas.map((r, i) => {
+    const estrategia = motorConfig.estrategia;
+    // Solo se muestran las reglas que aplican a la estrategia elegida.
+    const reglas = reglasOrdenadas().filter(r => reglaAplicaAEstrategia(r.key, estrategia));
+
+    const hint = el('rulesHint');
+    if(hint){
+      hint.innerHTML = `Aplican a la estrategia <b>“${ESTRATEGIAS[estrategia].label}”</b>. Prendé o apagá cada una; el orden (▲▼) decide cuál se resuelve primero.`;
+    }
+
+    // Invariantes primero: el motor los resuelve antes que las reglas configurables.
+    const invariantes = REGLAS_INVARIANTES.filter(inv => !inv.soloEn || inv.soloEn === estrategia);
+    const invariantesHtml = invariantes.map(inv => `
+      <div class="rule-card fixed">
+        <div class="rule-top">
+          <div class="rule-main">
+            <div class="rule-name">${inv.label}<span class="rule-fixed-tag">Siempre se aplica</span></div>
+            <div class="rule-desc">${inv.descripcion}</div>
+          </div>
+          <div class="rule-locked" title="Esta regla es parte del funcionamiento del motor: no se puede apagar ni reordenar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            <span>Fija</span>
+          </div>
+        </div>
+      </div>`).join('');
+
+    if(reglas.length === 0 && invariantes.length === 0){
+      cont.innerHTML = `<div class="empty-state"><p>Esta estrategia no tiene reglas configurables.</p></div>`;
+      return;
+    }
+
+    cont.innerHTML = invariantesHtml + reglas.map((r, i) => {
       const meta = REGLAS_CATALOGO[r.key];
-      const aplica = reglaAplicaAEstrategia(r.key, motorConfig.estrategia);
+      const fija = reglaEsNucleo(r.key, estrategia);
+      const params = renderRuleParams(r, meta);
+      let extra = '';
+      if(r.enabled && params) extra = `<div class="rule-extra">${params}</div>`;
+      else if(!r.enabled && meta.siOff) extra = `<div class="rule-extra"><div class="rule-off-hint">Apagado: ${meta.siOff.replace(/^Si la apagás,\s*/i,'')}</div></div>`;
+      const switchHtml = fija
+        ? `<div class="rule-locked" title="Esta regla define la estrategia elegida: no se puede apagar">
+             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+             <span>Fija</span>
+           </div>`
+        : `<div class="rule-switch-wrap">
+             <button class="switch ${r.enabled ? 'on' : ''}" title="${r.enabled?'Apagar':'Prender'}" onclick="window.__toggleRule('${r.key}')"></button>
+             <span class="rule-switch-label">${r.enabled?'Activado':'Apagado'}</span>
+           </div>`;
       return `
-        <div class="rule-card ${r.enabled ? '' : 'off'} ${aplica ? '' : 'na'}">
+        <div class="rule-card ${r.enabled ? '' : 'off'} ${fija ? 'fixed' : ''}">
           <div class="rule-top">
             <div class="rule-order">
-              <button title="Subir prioridad" onclick="window.__moveRule('${r.key}',-1)" ${i===0?'disabled':''}>▲</button>
-              <button title="Bajar prioridad" onclick="window.__moveRule('${r.key}',1)" ${i===reglas.length-1?'disabled':''}>▼</button>
+              <button title="Que se resuelva antes" onclick="window.__moveRule('${r.key}',-1)" ${i===0?'disabled':''}>▲</button>
+              <button title="Que se resuelva después" onclick="window.__moveRule('${r.key}',1)" ${i===reglas.length-1?'disabled':''}>▼</button>
             </div>
-            <div class="rule-prio">${r.prioridad}</div>
             <div class="rule-main">
-              <div class="rule-name">${meta.label}<span class="rule-scope">${meta.scope}</span></div>
+              <div class="rule-name">${meta.label}${fija ? '<span class="rule-fixed-tag">Parte de la estrategia</span>' : ''}</div>
               <div class="rule-desc">${meta.descripcion}</div>
-              ${aplica ? '' : `<div class="rule-na-note">No aplica a la estrategia por defecto seleccionada (${estrLabel}).</div>`}
             </div>
-            <button class="switch ${r.enabled ? 'on' : ''}" title="${r.enabled?'Desactivar regla':'Activar regla'}" onclick="window.__toggleRule('${r.key}')"></button>
+            ${switchHtml}
           </div>
-          ${renderRuleParams(r, meta)}
+          ${extra}
         </div>`;
     }).join('');
     bindRuleParamInputs();
-  }
-
-  // Una regla de scope "Estrategia 2" no tiene efecto con la Estrategia 1 (que ignora posiciones/arqueros).
-  function reglaAplicaAEstrategia(key, estrategia){
-    const scope = REGLAS_CATALOGO[key].scope;
-    if(scope === 'Ambas estrategias') return true;
-    if(scope === 'Estrategia 2') return estrategia === 'estrategia2';
-    return true;
   }
 
   function renderRuleParams(r, meta){
@@ -1899,24 +2042,26 @@
       const pdef = meta.params[pk];
       const val = r.params[pk];
       if(pdef.tipo === 'bool'){
-        return `<div class="rule-param" title="${pdef.ayuda||''}">
-          <button class="switch ${val ? 'on':''}" onclick="window.__setRuleParamBool('${r.key}','${pk}',${!val})"></button>
-          <span style="font-size:12.5px;">${pdef.label}</span>
-        </div>`;
+        return `<label class="rule-param-row" title="${pdef.ayuda||''}">
+          <input type="checkbox" data-rule="${r.key}" data-param="${pk}" ${val?'checked':''}>
+          <span>${pdef.label}</span>
+        </label>`;
       }
       if(pdef.tipo === 'number'){
-        return `<div class="rule-param" title="${pdef.ayuda||''}">
-          <label>${pdef.label}</label>
-          <input type="number" data-rule="${r.key}" data-param="${pk}" ${pdef.min!==undefined?`min="${pdef.min}"`:''} ${pdef.max!==undefined?`max="${pdef.max}"`:''} value="${val===null||val===undefined?'':val}" placeholder="—">
+        return `<div class="rule-param-row" title="${pdef.ayuda||''}">
+          <span>${pdef.label}:</span>
+          <input type="number" class="rule-num" data-rule="${r.key}" data-param="${pk}" ${pdef.min!==undefined?`min="${pdef.min}"`:''} ${pdef.max!==undefined?`max="${pdef.max}"`:''} value="${val===null||val===undefined?'':val}" placeholder="—">
+          ${pdef.unidad?`<span class="rule-unit">${pdef.unidad}</span>`:''}
         </div>`;
       }
       return '';
     }).join('');
-    return `<div class="rule-params">${inner}</div>`;
+    return `<div class="rule-params"><div class="rule-params-title">Ajuste</div>${inner}</div>`;
   }
 
   function bindRuleParamInputs(){
-    el('rulesList').querySelectorAll('input[type=number][data-rule]').forEach(inp => {
+    const cont = el('rulesList');
+    cont.querySelectorAll('input[type=number][data-rule]').forEach(inp => {
       inp.addEventListener('input', () => {
         const r = reglaCfg(inp.dataset.rule);
         if(!r) return;
@@ -1929,13 +2074,31 @@
         } else if(Number.isNaN(v)) { v = null; }
         r.params[pk] = v;
         saveMotorConfig();
-        renderMatchesTab(); // refleja objetivo/stale si hay un partido abierto
+        renderMatchesTab();
+      });
+    });
+    cont.querySelectorAll('input[type=checkbox][data-rule]').forEach(chk => {
+      chk.addEventListener('change', () => {
+        const r = reglaCfg(chk.dataset.rule);
+        if(!r) return;
+        r.params[chk.dataset.param] = chk.checked;
+        saveMotorConfig();
+        renderMotorTab();
+        renderMatchesTab();
       });
     });
   }
 
+  window.__setEstrategiaDefault = function(key){
+    if(!ESTRATEGIAS[key]) return;
+    motorConfig.estrategia = key;
+    saveMotorConfig();
+    renderMotorTab();
+    renderMatchesTab();
+  };
   window.__moveRule = function(key, dir){
-    const reglas = reglasOrdenadas();
+    // se reordena dentro de las reglas visibles (las que aplican a la estrategia elegida)
+    const reglas = reglasOrdenadas().filter(r => reglaAplicaAEstrategia(r.key, motorConfig.estrategia));
     const idx = reglas.findIndex(r => r.key === key);
     const swapIdx = idx + dir;
     if(idx < 0 || swapIdx < 0 || swapIdx >= reglas.length) return;
@@ -1953,20 +2116,6 @@
     renderMotorTab();
     renderMatchesTab();
   };
-  window.__setRuleParamBool = function(key, pk, val){
-    const r = reglaCfg(key);
-    if(!r) return;
-    r.params[pk] = val;
-    saveMotorConfig();
-    renderMotorTab();
-    renderMatchesTab();
-  };
-
-  el('motorEstrategia').addEventListener('change', (e) => {
-    motorConfig.estrategia = e.target.value;
-    saveMotorConfig();
-    renderMotorTab(); // re-dibuja para atenuar las reglas que no aplican a la estrategia elegida
-  });
 
   await loadAll();
 })();
