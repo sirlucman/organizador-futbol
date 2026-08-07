@@ -95,7 +95,7 @@ Se asume que cualquier persona con acceso a la aplicación actuará como adminis
 
 Cada jugador deberá tener:
 
-- Nombre y apellido (único).  
+- Nombre y apellido (único). El Apellido no es campo obligatorio.
 - Estado.  
 - Posición principal.  
 - Posiciones secundarias.  
@@ -192,8 +192,7 @@ Cada partido deberá almacenar:
 - Cancha.  
 - Estado.  
 - Inscripción cerrada (sí/no).  
-- Titulares.  
-- Suplentes.  
+- Titulares.    
 - Equipos generados.  
 - Resultado (goles y asistencias por jugador).
 
@@ -252,7 +251,7 @@ Una vez cerrada la inscripción, el administrador podrá cargar, junto a cada ju
 
 Reglas:
 
-- Solo podrán cargarse goles y asistencias para jugadores que integren alguno de los dos equipos generados (es decir, titulares).  
+- Solo podrán cargarse goles y asistencias para jugadores que integren alguno de los dos equipos generados (es decir, titulares). Si un equipo no hizo goles no se deben poder cargar asistencias.  
 - El resultado total del partido (goles de cada equipo) se calculará automáticamente sumando los goles cargados de los jugadores de cada equipo. No se ingresa como un dato aparte.  
 - La carga de resultado deberá poder modificarse libremente mientras el partido no esté Finalizado.  
 - El sistema no deberá exigir que se complete el resultado para poder finalizar el partido (se puede finalizar con datos parciales o en cero).
@@ -318,7 +317,7 @@ El administrador podrá:
 - cargar goles y asistencias por jugador;  
 - finalizar un partido.
 
-Los jugadores deberán seleccionarse mediante un buscador con autocompletado.
+Los jugadores deberán seleccionarse mediante un buscador con autocompletado. Que se pueda mediante la función TAB cargar el autocompletado que se está generando al escribir para acelerar la carga.
 
 Si un jugador no existe, el administrador deberá poder crearlo sin abandonar el flujo de inscripción.
 
@@ -419,7 +418,12 @@ Si solamente existe un arquero:
 
 - el algoritmo deberá compensar esa ventaja equilibrando el resto del equipo.
 
-**Regla para más de dos arqueros (agregado post-v1):** cada equipo puede tener como máximo un arquero. Si hay más de dos arqueros entre los titulares, los dos con mejor puntaje de arquero ocupan esos lugares (uno por equipo) y el resto pasa a jugar de Delantero para el resto del cálculo — dejan de contar como arqueros por completo, incluida su posición mostrada en el listado de equipos.
+**Máximo un arquero por equipo — invariante (actualizado post-v1):** ningún equipo puede tener más de un arquero, en ninguna circunstancia. Esta restricción es un invariante del motor: se cumple siempre y **no es configurable**, por lo que no aparece como regla en la sección Configuración (a diferencia de las reglas de las secciones siguientes, que sí pueden activarse y desactivarse).
+
+- Si existen dos o más arqueros naturales entre los titulares, los dos con mejor puntaje de arquero ocupan un lugar por equipo.
+- Los arqueros excedentes (más allá de uno por equipo) se reubican en la posición **secundaria** en la que tengan mejor puntaje; si no tienen posiciones secundarias asignadas, pasan a jugar de **Delantero**. En cualquier caso dejan de contar como arqueros, incluida la posición mostrada en el listado de equipos.
+- Si solamente existe un arquero, ocupa el arco de un equipo y el otro se compensa equilibrando el resto (ese equipo no tiene arquero fijo y rotará el puesto).
+- Si no hay arqueros, no se asigna a nadie al arco en ningún equipo.
 
 ---
 
@@ -480,6 +484,24 @@ El administrador podrá:
 - seleccionar la estrategia utilizada.
 
 La arquitectura deberá permitir agregar nuevas reglas sin modificar el resto del sistema.
+
+**Nombre de la sección en la interfaz (agregado post-v1):** en la interfaz esta sección se muestra con el nombre **Configuración**.
+
+**Alcance de la configuración (agregado post-v1):** la configuración del motor (reglas, prioridades, parámetros) es **global**: se aplica a todos los partidos. La estrategia se elige por partido; la sección Configuración define únicamente la estrategia **por defecto** que se asigna al crear un partido nuevo.
+
+**Reglas configurables (agregado post-v1):** en la sección Configuración se listan únicamente las reglas que pueden activarse o desactivarse: *Balancear posiciones* (con parámetro `usarSecundarias`), *Balancear puntaje* (con parámetro `diferenciaMaxima`) y *Balancear jugadores sin puntaje*. El máximo de un arquero por equipo es un invariante (ver sección 11) y por eso no figura como regla configurable.
+
+Efecto de desactivar cada regla:
+
+- *Balancear posiciones* (off): no se separa por posición; todos los jugadores se reparten en un solo grupo balanceando cantidad y puntaje. Parámetro `usarSecundarias` (default sí): si se apaga, no se usan posiciones secundarias para corregir imparidades.
+- *Balancear puntaje* (off): los equipos se emparejan solo por cantidad de jugadores, sin mirar el puntaje. Parámetro `diferenciaMaxima` (default vacío): diferencia de puntaje considerada aceptable; si el resultado la supera, el resumen de la generación la marca.
+- *Balancear jugadores sin puntaje* (off): los jugadores sin puntaje se mezclan en el orden general en vez de repartirse al final.
+
+**Prioridad de reglas (agregado post-v1):** el orden de prioridad determina la secuencia en que se aplican y explican las reglas. Al igual que en la sección 15, la optimización por prioridad es acotada: no se hace una búsqueda exhaustiva del óptimo global.
+
+**Reglas que no aplican a la estrategia elegida (agregado post-v1):** si la estrategia por defecto seleccionada es la Estrategia 1 (que ignora posiciones), las reglas de scope "Estrategia 2" se muestran atenuadas con una nota, ya que no tienen efecto con esa estrategia. Siguen siendo configurables porque la configuración es global y sí aplican cuando un partido usa la Estrategia 2.
+
+**Detección de cambios de configuración (agregado post-v1):** si se modifica la configuración del motor después de haber generado los equipos de un partido, ese partido avisa que los equipos pueden no reflejar la configuración actual y ofrece regenerarlos (mismo comportamiento que ante un cambio de convocatoria o de estrategia).
 
 ---
 
