@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -214,6 +215,32 @@
   .modal-card h3{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 14px; }
   .modal-hint{ font-size: 12px; color: var(--muted); margin: -8px 0 14px; }
 
+  /* ---------- Motor (Slice 4) ---------- */
+  .motor-intro{ font-size: 13.5px; color: var(--muted); margin: 4px 0 18px; line-height: 1.5; }
+  .motor-block{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+  .motor-block h3{ font-family: var(--font-display); font-size: 17px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
+  .motor-block-hint{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+
+  .rules-list{ display:flex; flex-direction:column; gap: 10px; }
+  .rule-card{ border: 1px dashed var(--paper-line); border-radius: 8px; padding: 12px 14px; background: var(--paper); transition: opacity .15s ease; }
+  .rule-card.off{ opacity: 0.55; }
+  .rule-card.na{ background: repeating-linear-gradient(135deg, var(--paper), var(--paper) 8px, rgba(0,0,0,0.03) 8px, rgba(0,0,0,0.03) 16px); opacity: 0.7; }
+  .rule-na-note{ font-family: var(--font-mono); font-size: 10.5px; color: var(--clay); margin-top: 5px; letter-spacing: 0.02em; }
+  .rule-top{ display:flex; align-items:center; gap: 10px; }
+  .rule-order{ display:flex; flex-direction:column; gap: 2px; flex-shrink:0; }
+  .rule-order button{ background:none; border:1px solid var(--paper-line); border-radius:4px; cursor:pointer; color: var(--muted); width:22px; height:16px; line-height:1; display:flex; align-items:center; justify-content:center; font-size:10px; padding:0; }
+  .rule-order button:hover:not(:disabled){ border-color: var(--pitch); color: var(--pitch); }
+  .rule-order button:disabled{ opacity:0.3; cursor:not-allowed; }
+  .rule-prio{ font-family: var(--font-mono); font-size: 11px; font-weight:700; color: var(--muted); width: 20px; text-align:center; flex-shrink:0; }
+  .rule-main{ flex: 1 1 auto; min-width:0; }
+  .rule-name{ font-weight: 600; font-size: 14.5px; }
+  .rule-desc{ font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.4; }
+  .rule-scope{ font-family: var(--font-mono); font-size: 9.5px; text-transform: uppercase; letter-spacing:0.04em; color: var(--muted); border:1px solid var(--paper-line); border-radius:4px; padding:1px 6px; margin-left:6px; white-space:nowrap; }
+  .rule-params{ margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--paper-line); display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+  .rule-param{ display:flex; align-items:center; gap:8px; font-size: 12.5px; color: var(--ink); }
+  .rule-param label{ font-family: var(--font-mono); font-size: 11px; letter-spacing:0.03em; text-transform:uppercase; color: var(--muted); }
+  .rule-param input[type=number]{ width: 58px; padding: 5px 6px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--chalk); font-family: var(--font-mono); font-size: 13px; text-align:center; }
+
   @media (max-width: 480px){
     .scores-grid{ grid-template-columns: repeat(2, 1fr); }
     .row-tags{ display: none; }
@@ -226,13 +253,12 @@
 <div class="wrap">
   <div class="clip"></div>
   <header>
-    <div class="eyebrow">Fútbol 8 · Organización de partidos</div>
-    <h1>Organizador</h1>
-    <div class="subtitle">Slice 1, 2 y 3 — Jugadores, Partidos y Motor de generación</div>
+    <h1>Organizador de Partidos</h1>
+    <div class="subtitle">Slices 1–4 — Jugadores, Partidos, Generación y Configuración del motor</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn" data-tab="partidos">Partidos</button>
-      <button class="tab-btn disabled" title="Próximo slice" disabled>Motor</button>
+      <button class="tab-btn" data-tab="motor">Configuración</button>
       <button class="tab-btn disabled" title="Próximo slice" disabled>Historial</button>
     </div>
   </header>
@@ -262,7 +288,7 @@
 
         <div class="field-row">
           <div class="field"><label>Nombre</label><input type="text" id="fNombre" placeholder="Ej: Juan"></div>
-          <div class="field"><label>Apellido</label><input type="text" id="fApellido" placeholder="Ej: Pérez"></div>
+          <div class="field"><label>Apellido (opcional)</label><input type="text" id="fApellido" placeholder="Ej: Pérez"></div>
         </div>
         <div class="field-row">
           <div class="field">
@@ -291,7 +317,7 @@
     </div>
 
     <div class="roster" id="roster"></div>
-    <div class="footnote">Los datos se guardan automáticamente. Los jugadores nunca se eliminan, solo se desactivan.</div>
+    <div class="footnote">Los datos se guardan automáticamente. Podés desactivar un jugador (reversible, conserva su historial) o eliminarlo del plantel de forma permanente.</div>
   </div>
 
   <!-- ================= TAB PARTIDOS ================= -->
@@ -337,7 +363,35 @@
     </div>
   </div>
 
-  <div class="footnote">Los titulares y suplentes se recalculan solos según el orden de convocatoria.</div>
+  <!-- ================= TAB MOTOR (Slice 4) ================= -->
+  <div class="tab-panel" id="panelMotor">
+    <div class="motor-intro">
+      Configuración global del motor de generación. Estos ajustes se aplican cada vez que generás o regenerás equipos en cualquier partido.
+    </div>
+
+    <div class="motor-block">
+      <h3>Estrategia por defecto</h3>
+      <div class="motor-block-hint">Se usa al crear un partido nuevo. En cada partido podés cambiarla después desde su sección de equipos.</div>
+      <div class="field" style="max-width:360px;">
+        <label>Estrategia
+          <span class="info-icon" tabindex="0" onclick="this.classList.toggle('show-tip')" onblur="this.classList.remove('show-tip')">?
+            <span class="info-tip" id="motorEstrategiaTip"></span>
+          </span>
+        </label>
+        <select id="motorEstrategia"></select>
+      </div>
+    </div>
+
+    <div class="motor-block">
+      <h3>Reglas del motor</h3>
+      <div class="motor-block-hint">Se ejecutan de arriba hacia abajo según su prioridad. Podés activarlas, desactivarlas, reordenarlas y ajustar sus parámetros.</div>
+      <div class="rules-list" id="rulesList"></div>
+    </div>
+
+    <div class="footnote">La configuración del motor se guarda automáticamente.</div>
+  </div>
+
+  <div class="footnote" id="footPartidos">Los titulares y suplentes se recalculan solos según el orden de convocatoria.</div>
 </div>
 
 <!-- Modal: confirmación genérica (para acciones destructivas) -->
@@ -359,7 +413,7 @@
     <div class="modal-hint">Se agrega al plantel y se convoca a este partido al guardar.</div>
     <div class="field-row">
       <div class="field"><label>Nombre</label><input type="text" id="qNombre" placeholder="Ej: Juan"></div>
-      <div class="field"><label>Apellido</label><input type="text" id="qApellido" placeholder="Ej: Pérez"></div>
+      <div class="field"><label>Apellido (opcional)</label><input type="text" id="qApellido" placeholder="Ej: Pérez"></div>
     </div>
     <div class="field-row">
       <div class="field">
@@ -430,6 +484,84 @@
       descripcion: 'Distribuye a los jugadores según su posición (arquero, defensor, volante, delantero), buscando equipos parejos en cantidad de jugadores por posición y en puntaje. Puede usar la posición secundaria de un jugador si eso mejora el equilibrio.'
     }
   };
+  /* ================= CONFIGURACIÓN DEL MOTOR (Slice 4) ================= */
+  // Catálogo de reglas: metadatos estáticos. La config viva (enabled/prioridad/params) va en motorConfig.
+  // Para agregar una regla nueva basta sumarla acá y leerla en el motor — el resto del sistema no cambia.
+  // Nota: "máximo un arquero por equipo" es un invariante del motor (siempre se cumple, no es configurable),
+  // por eso no figura como regla en este catálogo ni en la sección Configuración.
+  const REGLAS_CATALOGO = {
+    posiciones: {
+      label: 'Balancear posiciones',
+      descripcion: 'Distribuye defensores, volantes y delanteros de forma pareja entre los dos equipos.',
+      scope: 'Estrategia 2',
+      params: {
+        usarSecundarias: { tipo: 'bool', label: 'Usar posiciones secundarias', default: true,
+          ayuda: 'Permite mover un jugador a una posición secundaria cuando corrige un desbalance impar.' }
+      }
+    },
+    puntaje: {
+      label: 'Balancear puntaje',
+      descripcion: 'Minimiza la diferencia de puntaje total entre ambos equipos.',
+      scope: 'Ambas estrategias',
+      params: {
+        diferenciaMaxima: { tipo: 'number', label: 'Diferencia objetivo', default: null, min: 0, max: 50,
+          ayuda: 'Diferencia de puntaje que se considera aceptable. Si el resultado la supera, el resumen lo marca. Vacío = sin objetivo.' }
+      }
+    },
+    sinPuntaje: {
+      label: 'Balancear jugadores sin puntaje',
+      descripcion: 'No usa a los jugadores sin puntaje para calcular el total del equipo, pero los reparte lo más parejo posible.',
+      scope: 'Ambas estrategias',
+      params: {}
+    }
+  };
+  const REGLAS_ORDEN_DEFAULT = ['posiciones', 'puntaje', 'sinPuntaje'];
+
+  function defaultMotorConfig(){
+    return {
+      estrategia: 'estrategia1',
+      reglas: REGLAS_ORDEN_DEFAULT.map((key, i) => {
+        const params = {};
+        Object.entries(REGLAS_CATALOGO[key].params).forEach(([pk, pdef]) => { params[pk] = pdef.default; });
+        return { key, enabled: true, prioridad: i + 1, params };
+      })
+    };
+  }
+
+  let motorConfig = defaultMotorConfig();
+
+  // Repara/migra una config guardada para que siempre tenga todas las reglas del catálogo actual.
+  function normalizeMotorConfig(cfg){
+    const base = defaultMotorConfig();
+    if(!cfg || typeof cfg !== 'object') return base;
+    const out = { estrategia: ESTRATEGIAS[cfg.estrategia] ? cfg.estrategia : base.estrategia, reglas: [] };
+    const guardadas = Array.isArray(cfg.reglas) ? cfg.reglas : [];
+    // conserva el orden guardado, luego agrega las que falten (reglas nuevas del catálogo)
+    const orden = [];
+    guardadas.forEach(r => { if(REGLAS_CATALOGO[r.key] && !orden.includes(r.key)) orden.push(r.key); });
+    REGLAS_ORDEN_DEFAULT.forEach(k => { if(!orden.includes(k)) orden.push(k); });
+    out.reglas = orden.map((key, i) => {
+      const g = guardadas.find(r => r.key === key) || {};
+      const params = {};
+      Object.entries(REGLAS_CATALOGO[key].params).forEach(([pk, pdef]) => {
+        params[pk] = (g.params && g.params[pk] !== undefined) ? g.params[pk] : pdef.default;
+      });
+      return { key, enabled: g.enabled !== undefined ? !!g.enabled : true, prioridad: i + 1, params };
+    });
+    return out;
+  }
+
+  function reglaCfg(key){ return motorConfig.reglas.find(r => r.key === key) || null; }
+  function reglaEnabled(key){ const r = reglaCfg(key); return r ? r.enabled : false; }
+  function reglaParam(key, pk){
+    const r = reglaCfg(key);
+    if(r && r.params && r.params[pk] !== undefined) return r.params[pk];
+    const pdef = REGLAS_CATALOGO[key] && REGLAS_CATALOGO[key].params[pk];
+    return pdef ? pdef.default : undefined;
+  }
+  // Orden de reglas por prioridad (para aplicar y para explicar)
+  function reglasOrdenadas(){ return [...motorConfig.reglas].sort((a,b) => a.prioridad - b.prioridad); }
+
   function titularesRequeridos(m){
     const cancha = CANCHAS[m.cancha] || CANCHAS.futbol8; // fallback para partidos creados antes de esta regla
     return cancha.jugadoresPorEquipo * 2;
@@ -460,6 +592,7 @@
   const el = (id) => document.getElementById(id);
   const uid = (p) => (p||'id') + '_' + Date.now() + '_' + Math.floor(Math.random()*10000);
   const normalize = (s) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const fullName = (p) => ((p.nombre || '') + ' ' + (p.apellido || '')).trim(); // el apellido es opcional
 
   function computeAvg(scores){
     const vals = POSITIONS.map(p => scores[p]).filter(v => v !== null && v !== undefined && v !== '');
@@ -483,11 +616,15 @@
     catch(e){ players = []; }
     try{ const res2 = await window.storage.get('partidos', false); matches = res2 && res2.value ? JSON.parse(res2.value) : []; }
     catch(e){ matches = []; }
+    try{ const res3 = await window.storage.get('motorConfig', false); motorConfig = normalizeMotorConfig(res3 && res3.value ? JSON.parse(res3.value) : null); }
+    catch(e){ motorConfig = defaultMotorConfig(); }
     renderPlayersTab();
     renderMatchesTab();
+    renderMotorTab();
   }
   async function savePlayers(){ try{ await window.storage.set('players', JSON.stringify(players), false); }catch(e){ console.error(e); } }
   async function saveMatches(){ try{ await window.storage.set('partidos', JSON.stringify(matches), false); }catch(e){ console.error(e); } }
+  async function saveMotorConfig(){ try{ await window.storage.set('motorConfig', JSON.stringify(motorConfig), false); }catch(e){ console.error(e); } }
 
   function loadTestPlayers(){
     // Utilidad SOLO para probar el prototipo — no forma parte de la spec.
@@ -538,7 +675,11 @@
       btn.classList.add('active');
       const tab = btn.dataset.tab;
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-      el(tab === 'jugadores' ? 'panelJugadores' : 'panelPartidos').classList.add('active');
+      const panelId = tab === 'jugadores' ? 'panelJugadores' : (tab === 'motor' ? 'panelMotor' : 'panelPartidos');
+      el(panelId).classList.add('active');
+      // la nota al pie de partidos no aplica al tab Motor
+      const foot = el('footPartidos');
+      if(foot) foot.style.display = (tab === 'motor') ? 'none' : '';
     });
   });
 
@@ -644,7 +785,7 @@
     const scores = {...scoresState[kind]};
     const errorEl = el(isMain ? 'formError' : 'quickError');
 
-    if(!nombre || !apellido){ errorEl.textContent = 'Nombre y apellido son obligatorios.'; return null; }
+    if(!nombre){ errorEl.textContent = 'El nombre es obligatorio.'; return null; }
     if(!principal){ errorEl.textContent = 'Elegí una posición principal.'; return null; }
     for(const p of POSITIONS){
       const v = scores[p];
@@ -705,7 +846,7 @@
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}">
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
           <div class="row-main">
-            <div class="row-name">${p.nombre} ${p.apellido}</div>
+            <div class="row-name">${fullName(p)}</div>
             <div class="row-tags">${tags}</div>
           </div>
           <div class="avg-chip">${avg !== null ? avg : '—'}</div>
@@ -736,7 +877,7 @@
     const p = players.find(pl => pl.id === id);
     if(!p) return;
     openConfirm(
-      `¿Eliminar permanentemente a ${p.nombre} ${p.apellido} del plantel? Esta acción no se puede deshacer. Los partidos donde participó conservan sus goles, asistencias y equipos tal como están — el jugador solo deja de aparecer en el plantel.`,
+      `¿Eliminar permanentemente a ${fullName(p)} del plantel? Esta acción no se puede deshacer. Los partidos donde participó conservan sus goles, asistencias y equipos tal como están — el jugador solo deja de aparecer en el plantel.`,
       () => {
         players = players.filter(pl => pl.id !== id);
         savePlayers();
@@ -795,9 +936,15 @@
     return m.convocados.slice(0, titularesRequeridos(m));
   }
 
+  function motorConfigHash(){
+    // huella de la config que afecta la generación (reglas por prioridad + estrategia irrelevante acá)
+    return JSON.stringify(reglasOrdenadas().map(r => ({ k:r.key, e:r.enabled, p:r.prioridad, pa:r.params })));
+  }
+
   function equiposStale(m){
     if(!m.equipos) return false;
     if(m.equipos.estrategiaKey !== (m.estrategia || 'estrategia1')) return true;
+    if((m.equipos.configHash || null) !== motorConfigHash()) return true; // cambió la config del motor
     const current = [...getTitularIds(m)].sort();
     const snapshot = [...m.equipos.titularesSnapshot].sort();
     if(current.length !== snapshot.length) return true;
@@ -808,6 +955,8 @@
   function generarEquiposEstrategia1(titularesPlayers, bloqueados, prevTeamOf){
     const bloqueadosSet = new Set(bloqueados || []);
     let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
+    const usaPuntaje = reglaEnabled('puntaje');
+    const separaSinPuntaje = reglaEnabled('sinPuntaje');
 
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
     titularesPlayers.forEach(p => {
@@ -819,10 +968,16 @@
     });
 
     const libres = titularesPlayers.filter(p => !sonBloqueados(p));
-    const conPuntaje = libres.filter(p => computeAvg(p.scores) !== null)
-      .sort((a,b) => computeAvg(b.scores) - computeAvg(a.scores));
+    const conPuntaje = libres.filter(p => computeAvg(p.scores) !== null);
     const sinPuntaje = libres.filter(p => computeAvg(p.scores) === null);
-    const ordenados = [...conPuntaje, ...sinPuntaje];
+    if(usaPuntaje) conPuntaje.sort((a,b) => computeAvg(b.scores) - computeAvg(a.scores));
+    // Con la regla "sin puntaje" activa, esos jugadores se reparten al final para no distorsionar el orden por puntaje.
+    // Sin ella, se mezclan en el orden general.
+    let ordenados;
+    if(separaSinPuntaje) ordenados = [...conPuntaje, ...sinPuntaje];
+    else ordenados = usaPuntaje
+      ? [...libres].sort((a,b) => (computeAvg(b.scores) || 0) - (computeAvg(a.scores) || 0))
+      : [...libres];
 
     const n = titularesPlayers.length;
     const cupoBlanco = Math.ceil(n / 2);
@@ -836,7 +991,8 @@
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
-      else vaABlanco = sumaBlanco <= sumaNegro;
+      else if(usaPuntaje) vaABlanco = sumaBlanco <= sumaNegro;
+      else vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: sólo empareja las cantidades
 
       if(vaABlanco){ blanco.push(p.id); sumaBlanco += valor; }
       else{ negro.push(p.id); sumaNegro += valor; }
@@ -846,8 +1002,8 @@
   }
 
   /* Estrategia 2 — Balance por posiciones */
-  function repartirBucketBalanceado(jugadoresConValor, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro){
-    // jugadoresConValor: [{id, valor}], ordenados desc por valor antes de llamar
+  function repartirBucketBalanceado(jugadoresConValor, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje){
+    // jugadoresConValor: [{id, valor}], ordenados desc por valor antes de llamar (si usaPuntaje)
     let enEsteBucketBlanco = 0, enEsteBucketNegro = 0;
     jugadoresConValor.forEach(({id, valor}) => {
       const blancoLleno = enEsteBucketBlanco >= cupoBlanco;
@@ -855,6 +1011,7 @@
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
+      else if(usaPuntaje === false) vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: empareja cantidades
       else vaABlanco = sumaBlanco <= sumaNegro;
       if(vaABlanco){ blanco.push(id); sumaBlanco += valor; enEsteBucketBlanco++; }
       else{ negro.push(id); sumaNegro += valor; enEsteBucketNegro++; }
@@ -864,6 +1021,11 @@
 
   function generarEquiposEstrategia2(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada){
     const bloqueadosSet = new Set(bloqueados || []);
+    const usaPosiciones = reglaEnabled('posiciones');
+    const usaSecundarias = usaPosiciones && !!reglaParam('posiciones', 'usarSecundarias');
+    const usaPuntaje = reglaEnabled('puntaje');
+    const separaSinPuntaje = reglaEnabled('sinPuntaje');
+
     const posicionAsignada = {};
     const swaps = [];
     titularesPlayers.forEach(p => {
@@ -872,87 +1034,107 @@
         : p.principal;
     });
 
-    // Paso 1: detectar posiciones (no arquero) con cantidad impar, y corregirlas con secundarias — nunca tocando a un bloqueado
     const OUTFIELD = ['Defensor','Volante','Delantero'];
-    OUTFIELD.forEach(pos => {
-      let enEstaPosicion = titularesPlayers.filter(p => posicionAsignada[p.id] === pos);
-      if(enEstaPosicion.length % 2 === 0) return;
-      const candidato = enEstaPosicion.find(p => !bloqueadosSet.has(p.id) && p.secundarias.some(s => OUTFIELD.includes(s) && s !== pos));
-      if(!candidato) return;
-      const nuevaPos = candidato.secundarias.find(s => OUTFIELD.includes(s) && s !== pos);
-      posicionAsignada[candidato.id] = nuevaPos;
-      swaps.push({ playerId: candidato.id, desde: pos, hacia: nuevaPos });
-    });
-
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
 
-    // Paso 2: arqueros — los bloqueados van directo a su equipo previo, el resto compite por los 1-2 lugares que queden
-    const arqueros = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
+    // Paso 1: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el parámetro lo permiten, nunca a un bloqueado
+    if(usaSecundarias){
+      OUTFIELD.forEach(pos => {
+        let enEstaPosicion = titularesPlayers.filter(p => posicionAsignada[p.id] === pos);
+        if(enEstaPosicion.length % 2 === 0) return;
+        const candidato = enEstaPosicion.find(p => !bloqueadosSet.has(p.id) && p.secundarias.some(s => OUTFIELD.includes(s) && s !== pos));
+        if(!candidato) return;
+        const nuevaPos = candidato.secundarias.find(s => OUTFIELD.includes(s) && s !== pos);
+        posicionAsignada[candidato.id] = nuevaPos;
+        swaps.push({ playerId: candidato.id, desde: pos, hacia: nuevaPos });
+      });
+    }
+
     let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
-    const arquerosBloqueados = arqueros.filter(sonBloqueados);
-    const arquerosLibres = arqueros.filter(p => !sonBloqueados(p));
-    arquerosBloqueados.forEach(p => {
-      const valor = puntajeEnPosicion(p, 'Arquero');
-      if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
-      else{ negro.push(p.id); sumaNegro += valor; }
-    });
-    const slotBlancoLibre = arquerosBloqueados.filter(p => prevTeamOf[p.id] === 'blanco').length === 0;
-    const slotNegroLibre = arquerosBloqueados.filter(p => prevTeamOf[p.id] === 'negro').length === 0;
-    const arquerosLibresOrdenados = [...arquerosLibres].sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
-    let idxArq = 0, extraArqueros = [];
-    let arquerosInfo = { total: arqueros.length, compensado: arqueros.length === 1 };
-    if(slotBlancoLibre && arquerosLibresOrdenados[idxArq]){
-      const p = arquerosLibresOrdenados[idxArq++]; blanco.push(p.id); sumaBlanco += puntajeEnPosicion(p,'Arquero');
-    }
-    if(slotNegroLibre && arquerosLibresOrdenados[idxArq]){
-      const p = arquerosLibresOrdenados[idxArq++]; negro.push(p.id); sumaNegro += puntajeEnPosicion(p,'Arquero');
-    }
-    extraArqueros = arquerosLibresOrdenados.slice(idxArq);
+    let arquerosInfo = null;
     const arquerosExcedentes = [];
-    extraArqueros.forEach(p => {
-      posicionAsignada[p.id] = 'Delantero'; // ya no puede seguir figurando como Arquero: en cada equipo solo puede haber uno
-      arquerosExcedentes.push({ playerId: p.id });
-    });
 
-    // Paso 3: buckets de posiciones de cancha, sembrando primero a los bloqueados en su equipo previo
-    const outfieldPlayers = titularesPlayers.filter(p => posicionAsignada[p.id] !== 'Arquero');
-    const buckets = { Defensor: [], Volante: [], Delantero: [] };
-    outfieldPlayers.forEach(p => { buckets[posicionAsignada[p.id]].push(p); });
-    // (los arqueros excedentes ya quedan incluidos en outfieldPlayers/buckets porque se les reasignó posicionAsignada arriba)
-
-    OUTFIELD.forEach(pos => {
-      const todos = buckets[pos];
-      const bloqueadosDeEste = todos.filter(sonBloqueados);
-      const libresDeEste = todos.filter(p => !sonBloqueados(p));
-
-      bloqueadosDeEste.forEach(p => {
-        const valor = puntajeEnPosicion(p, pos);
+    // Paso 2: arqueros — INVARIANTE (siempre se aplica): máximo un arquero por equipo.
+    {
+      const arqueros = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
+      const arquerosBloqueados = arqueros.filter(sonBloqueados);
+      const arquerosLibres = arqueros.filter(p => !sonBloqueados(p));
+      arquerosBloqueados.forEach(p => {
+        const valor = puntajeEnPosicion(p, 'Arquero');
         if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
         else{ negro.push(p.id); sumaNegro += valor; }
       });
+      const slotBlancoLibre = arquerosBloqueados.filter(p => prevTeamOf[p.id] === 'blanco').length === 0;
+      const slotNegroLibre = arquerosBloqueados.filter(p => prevTeamOf[p.id] === 'negro').length === 0;
+      const arquerosLibresOrdenados = [...arquerosLibres].sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
+      let idxArq = 0;
+      arquerosInfo = { total: arqueros.length, compensado: arqueros.length === 1 };
+      if(slotBlancoLibre && arquerosLibresOrdenados[idxArq]){
+        const p = arquerosLibresOrdenados[idxArq++]; blanco.push(p.id); sumaBlanco += puntajeEnPosicion(p,'Arquero');
+      }
+      if(slotNegroLibre && arquerosLibresOrdenados[idxArq]){
+        const p = arquerosLibresOrdenados[idxArq++]; negro.push(p.id); sumaNegro += puntajeEnPosicion(p,'Arquero');
+      }
+      // Los arqueros excedentes (más de uno por equipo) se reubican en su mejor posición secundaria;
+      // si no tienen secundarias, van a Delantero.
+      arquerosLibresOrdenados.slice(idxArq).forEach(p => {
+        const secs = (p.secundarias || []).filter(s => s !== 'Arquero');
+        let nuevaPos = 'Delantero';
+        if(secs.length > 0){
+          nuevaPos = secs.reduce((best, s) => puntajeEnPosicion(p, s) > puntajeEnPosicion(p, best) ? s : best, secs[0]);
+        }
+        posicionAsignada[p.id] = nuevaPos;
+        arquerosExcedentes.push({ playerId: p.id, pos: nuevaPos });
+      });
+    }
 
-      const total = todos.length;
+    // Paso 3: repartir el resto (los que no quedaron ya ubicados como arquero)
+    const yaUbicados = new Set([...blanco, ...negro]);
+    const restantes = titularesPlayers.filter(p => !yaUbicados.has(p.id));
+
+    // Reparte una lista de jugadores balanceando cantidad y, si la regla de puntaje está activa, puntaje.
+    function repartir(lista){
+      const bloqueadosDeEste = lista.filter(sonBloqueados);
+      const libresDeEste = lista.filter(p => !sonBloqueados(p));
+      bloqueadosDeEste.forEach(p => {
+        const valor = puntajeEnPosicion(p, posicionAsignada[p.id]);
+        if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
+        else{ negro.push(p.id); sumaNegro += valor; }
+      });
+      const total = lista.length;
       const base = Math.floor(total / 2);
       const extra = total % 2;
       let targetBlanco = base, targetNegro = base;
-      if(extra === 1){
-        // el jugador "impar" del bucket va al equipo que hoy tiene menos jugadores en total (no siempre al mismo lado)
-        if(blanco.length <= negro.length) targetBlanco += 1; else targetNegro += 1;
-      }
+      if(extra === 1){ if(blanco.length <= negro.length) targetBlanco += 1; else targetNegro += 1; }
       const yaBlanco = bloqueadosDeEste.filter(p => prevTeamOf[p.id] === 'blanco').length;
       const yaNegro = bloqueadosDeEste.filter(p => prevTeamOf[p.id] === 'negro').length;
       const cupoBlancoLibres = Math.max(0, targetBlanco - yaBlanco);
       const cupoNegroLibres = Math.max(0, targetNegro - yaNegro);
 
-      const jugadores = libresDeEste.map(p => {
+      let jugadores = libresDeEste.map(p => {
+        const pos = posicionAsignada[p.id];
         const valor = puntajeEnPosicion(p, pos);
         return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[pos] === 0) };
-      }).sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
-
-      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro);
+      });
+      if(usaPuntaje){
+        if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
+        else jugadores.sort((a,b) => b.valor - a.valor);
+      }
+      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje);
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
-    });
+    }
+
+    if(usaPosiciones){
+      // separar por posición de cancha (los arqueros ya quedaron ubicados uno por equipo)
+      const posiciones = OUTFIELD;
+      const buckets = {}; posiciones.forEach(pos => buckets[pos] = []);
+      restantes.forEach(p => { const pos = posicionAsignada[p.id]; if(buckets[pos]) buckets[pos].push(p); });
+      posiciones.forEach(pos => repartir(buckets[pos]));
+    } else {
+      // sin balance por posición: un solo grupo, balanceando cantidad + puntaje
+      repartir(restantes);
+    }
 
     return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes };
   }
@@ -998,6 +1180,7 @@
       estrategia: ESTRATEGIAS[estrategiaKey].label,
       blanco, negro,
       titularesSnapshot: titularIds,
+      configHash: motorConfigHash(),
       sumaBlanco, sumaNegro,
       cambios, esPrimeraGeneracion,
       posicionAsignada: resultado.posicionAsignada || null,
@@ -1079,12 +1262,17 @@
     }else if(cerrada){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
       const g = draft ? draft.goles : 0;
-      const a = draft ? draft.asistencias : 0;
+      // Un equipo que no hizo goles no puede tener asistencias cargadas (spec sección 5, Resultado).
+      const equipoDeP = m.equipos.blanco.includes(p.id) ? 'blanco' : 'negro';
+      const golesEquipo = (resultadoDraft && resultadoDraft.matchId === m.id)
+        ? m.equipos[equipoDeP].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0) : 0;
+      const asisHabil = golesEquipo > 0;
+      const a = (draft && asisHabil) ? draft.asistencias : 0;
       statsHtml = `
         <span class="team-stat-label">G</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
         <span class="team-stat-label">A</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="Asistencias">`;
+        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>`;
     }
     const valorMostrado = m.equipos.posicionAsignada ? (scoreEnPos > 0 ? scoreEnPos : 'sin puntaje') : (avg !== null ? avg : 'sin puntaje');
     const lockBtn = editable ? `
@@ -1096,7 +1284,7 @@
     return `
       <div class="team-player-row" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${p.id}')"` : ''}>
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
-        <span style="flex:1 1 auto;">${p.nombre} ${p.apellido}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
+        <span style="flex:1 1 auto;">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
         <span class="team-avg">${valorMostrado}</span>
         ${statsHtml}
         ${lockBtn}
@@ -1207,6 +1395,9 @@
     const sinPuntajeNegro = sinPuntajeCount(negroPlayers);
     const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
     const bloqueados = m.bloqueados || [];
+    // objetivo de diferencia (parámetro de la regla "Balancear puntaje")
+    const diffObjetivo = reglaEnabled('puntaje') ? reglaParam('puntaje', 'diferenciaMaxima') : null;
+    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && diferencia > Number(diffObjetivo));
 
     const explicaciones = [];
     const totalSinPuntaje = sinPuntajeBlanco + sinPuntajeNegro;
@@ -1216,25 +1407,36 @@
     if(esEstrategia2){
       (eq.swaps || []).forEach(s => {
         const p = players.find(pl => pl.id === s.playerId);
-        if(p) explicaciones.push(`Se utilizó la posición secundaria de ${p.nombre} ${p.apellido} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
+        if(p) explicaciones.push(`Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
       });
       if(eq.arquerosInfo && eq.arquerosInfo.compensado){
         explicaciones.push('El único arquero disponible fue compensado equilibrando el resto del equipo.');
       }
       (eq.arquerosExcedentes || []).forEach(s => {
         const p = players.find(pl => pl.id === s.playerId);
-        if(p) explicaciones.push(`${p.nombre} ${p.apellido} jugaba de arquero pero se ubicó como Delantero por exceso de arqueros disponibles.`);
+        if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} por exceso de arqueros disponibles.`);
       });
     }
     bloqueados.forEach(id => {
       const p = players.find(pl => pl.id === id);
       const equipo = eq.blanco.includes(id) ? 'Blanco' : (eq.negro.includes(id) ? 'Negro' : null);
-      if(p && equipo) explicaciones.push(`${p.nombre} ${p.apellido} permaneció en el Equipo ${equipo} porque estaba bloqueado.`);
+      if(p && equipo) explicaciones.push(`${fullName(p)} permaneció en el Equipo ${equipo} porque estaba bloqueado.`);
     });
     if(!eq.esPrimeraGeneracion){
       explicaciones.push(eq.cambios === 0
         ? 'No hubo cambios de equipo respecto de la generación anterior.'
         : `Se mantuvieron ${titularIds.length - eq.cambios} asignaciones de la generación anterior; ${eq.cambios} jugador${eq.cambios===1?'':'es'} cambiaron de equipo.`);
+    }
+    if(superaObjetivo){
+      explicaciones.push(`La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
+    }
+    // reglas desactivadas que aplicaban a esta estrategia
+    const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled).filter(r => {
+      const scope = REGLAS_CATALOGO[r.key].scope;
+      return scope === 'Ambas estrategias' || (esEstrategia2 && scope === 'Estrategia 2');
+    });
+    if(reglasApagadas.length > 0){
+      explicaciones.push(`Reglas desactivadas en el motor: ${reglasApagadas.map(r => REGLAS_CATALOGO[r.key].label).join(', ')}.`);
     }
 
     let balancePosicionesHtml = '';
@@ -1261,7 +1463,7 @@
       <div class="teams-subtitle">Estrategia utilizada en la última generación: ${eq.estrategia}${!locked ? ' · arrastrá un jugador a otro equipo, o usá el candado para bloquearlo' : ''}</div>
       ${(stale && !locked) ? `
         <div class="stale-banner">
-          <span>La convocatoria o la estrategia cambiaron desde la última generación. Estos equipos pueden no reflejar la configuración actual.</span>
+          <span>La convocatoria, la estrategia o la configuración del motor cambiaron desde la última generación. Estos equipos pueden no reflejar la configuración actual.</span>
           <button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')" style="white-space:nowrap;">Regenerar equipos</button>
         </div>` : ''}
       <div class="teams-wrap">
@@ -1275,7 +1477,7 @@
         </div>
       </div>
       <div class="conv-summary">
-        <div class="stat">Diferencia de puntaje: <b>${diferencia}</b></div>
+        <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(objetivo ≤ ${diffObjetivo})</span>` : ''}</div>
         <div class="stat">Sin puntaje — Blanco: <b>${sinPuntajeBlanco}</b></div>
         <div class="stat">Sin puntaje — Negro: <b>${sinPuntajeNegro}</b></div>
         <div class="stat">Jugadores bloqueados: <b>${bloqueados.length}</b></div>
@@ -1302,6 +1504,23 @@
         const val = inp.value === '' ? 0 : Math.max(0, parseInt(inp.value, 10) || 0);
         resultadoDraft.stats[pid][tipo] = val;
         updateTeamTotalsDisplay(m);
+        if(tipo === 'goles') actualizarAsistenciasHabilitadas(m, section); // habilita/deshabilita asistencias según goles del equipo
+      });
+    });
+  }
+
+  // Recalcula, sin re-render completo, qué inputs de asistencias quedan habilitados según los goles de cada equipo.
+  function actualizarAsistenciasHabilitadas(m, section){
+    if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
+    ['blanco','negro'].forEach(team => {
+      const goles = m.equipos[team].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0);
+      const habil = goles > 0;
+      m.equipos[team].forEach(id => {
+        const inp = section.querySelector(`.team-stat-input[data-player="${id}"][data-tipo="asistencias"]`);
+        if(!inp) return;
+        inp.disabled = !habil;
+        inp.title = habil ? 'Asistencias' : 'El equipo no hizo goles: no se pueden cargar asistencias';
+        if(!habil){ inp.value = 0; if(resultadoDraft.stats[id]) resultadoDraft.stats[id].asistencias = 0; }
       });
     });
   }
@@ -1459,7 +1678,7 @@
           <span class="conv-num">${idx+1}</span>
           <span class="conv-badge-role ${isTitular ? 'titular' : 'suplente'}">${isTitular ? 'Titular' : 'Suplente'}</span>
           <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
-          <div class="conv-name">${p.nombre} ${p.apellido}</div>
+          <div class="conv-name">${fullName(p)}</div>
           ${locked ? '' : `
           <button class="icon-btn" title="Quitar del partido" onclick="window.__removeFromMatch('${m.id}','${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -1483,10 +1702,10 @@
     if(results.length === 0){
       html = `<div class="ac-empty">No encontramos jugadores activos que coincidan con "${term}". Podés usar "+ Crear jugador nuevo" debajo.</div>`;
     }else{
-      html = results.map(p => `
-        <div class="ac-item" onclick="window.__addToMatch('${m.id}','${p.id}')">
+      html = results.map((p, i) => `
+        <div class="ac-item" data-id="${p.id}" onclick="window.__addToMatch('${m.id}','${p.id}')">
           <span class="ac-pos-dot" style="background:${POS_COLOR[p.principal] || 'var(--muted)'}"></span>
-          ${p.nombre} ${p.apellido}
+          ${fullName(p)}${i === 0 ? ' <span class="tag" style="margin-left:auto;">TAB</span>' : ''}
         </div>`).join('');
     }
     dropdown.innerHTML = html;
@@ -1515,6 +1734,17 @@
     matchSearchTerm = e.target.value;
     const m = matches.find(mm => mm.id === currentMatchId);
     if(m) renderAutocomplete(m);
+  });
+  // TAB convoca al primer resultado del autocompletado, para cargar más rápido (spec sección 7)
+  el('matchSearchInput').addEventListener('keydown', (e) => {
+    if(e.key !== 'Tab' || e.shiftKey) return;
+    const dropdown = el('autocompleteList');
+    if(dropdown.style.display === 'none') return;
+    const first = dropdown.querySelector('.ac-item[data-id]');
+    if(!first) return;
+    e.preventDefault();
+    const m = matches.find(mm => mm.id === currentMatchId);
+    if(m) window.__addToMatch(m.id, first.dataset.id);
   });
 
   el('btnVolverPartidos').addEventListener('click', () => {
@@ -1546,7 +1776,7 @@
     const fecha = el('mFecha').value;
     const cancha = el('mCancha').value;
     if(!fecha){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
-    const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: 'estrategia1', bloqueados: [] };
+    const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [] };
     matches.push(nuevo);
     saveMatches();
     el('newMatchModal').classList.remove('open');
@@ -1580,6 +1810,125 @@
     window.__addToMatch(pendingQuickMatchId, nuevo.id);
     el('quickModal').classList.remove('open');
     renderPlayersTab();
+  });
+
+  /* ================= MOTOR (Slice 4): configuración ================= */
+  function renderMotorTab(){
+    const sel = el('motorEstrategia');
+    if(sel){
+      sel.innerHTML = Object.entries(ESTRATEGIAS).map(([k,e]) => `<option value="${k}" ${k===motorConfig.estrategia?'selected':''}>${e.label}</option>`).join('');
+      el('motorEstrategiaTip').textContent = ESTRATEGIAS[motorConfig.estrategia].descripcion;
+    }
+    const cont = el('rulesList');
+    if(!cont) return;
+    const reglas = reglasOrdenadas();
+    const estrLabel = ESTRATEGIAS[motorConfig.estrategia].label;
+    cont.innerHTML = reglas.map((r, i) => {
+      const meta = REGLAS_CATALOGO[r.key];
+      const aplica = reglaAplicaAEstrategia(r.key, motorConfig.estrategia);
+      return `
+        <div class="rule-card ${r.enabled ? '' : 'off'} ${aplica ? '' : 'na'}">
+          <div class="rule-top">
+            <div class="rule-order">
+              <button title="Subir prioridad" onclick="window.__moveRule('${r.key}',-1)" ${i===0?'disabled':''}>▲</button>
+              <button title="Bajar prioridad" onclick="window.__moveRule('${r.key}',1)" ${i===reglas.length-1?'disabled':''}>▼</button>
+            </div>
+            <div class="rule-prio">${r.prioridad}</div>
+            <div class="rule-main">
+              <div class="rule-name">${meta.label}<span class="rule-scope">${meta.scope}</span></div>
+              <div class="rule-desc">${meta.descripcion}</div>
+              ${aplica ? '' : `<div class="rule-na-note">No aplica a la estrategia por defecto seleccionada (${estrLabel}).</div>`}
+            </div>
+            <button class="switch ${r.enabled ? 'on' : ''}" title="${r.enabled?'Desactivar regla':'Activar regla'}" onclick="window.__toggleRule('${r.key}')"></button>
+          </div>
+          ${renderRuleParams(r, meta)}
+        </div>`;
+    }).join('');
+    bindRuleParamInputs();
+  }
+
+  // Una regla de scope "Estrategia 2" no tiene efecto con la Estrategia 1 (que ignora posiciones/arqueros).
+  function reglaAplicaAEstrategia(key, estrategia){
+    const scope = REGLAS_CATALOGO[key].scope;
+    if(scope === 'Ambas estrategias') return true;
+    if(scope === 'Estrategia 2') return estrategia === 'estrategia2';
+    return true;
+  }
+
+  function renderRuleParams(r, meta){
+    const keys = Object.keys(meta.params);
+    if(keys.length === 0) return '';
+    const inner = keys.map(pk => {
+      const pdef = meta.params[pk];
+      const val = r.params[pk];
+      if(pdef.tipo === 'bool'){
+        return `<div class="rule-param" title="${pdef.ayuda||''}">
+          <button class="switch ${val ? 'on':''}" onclick="window.__setRuleParamBool('${r.key}','${pk}',${!val})"></button>
+          <span style="font-size:12.5px;">${pdef.label}</span>
+        </div>`;
+      }
+      if(pdef.tipo === 'number'){
+        return `<div class="rule-param" title="${pdef.ayuda||''}">
+          <label>${pdef.label}</label>
+          <input type="number" data-rule="${r.key}" data-param="${pk}" ${pdef.min!==undefined?`min="${pdef.min}"`:''} ${pdef.max!==undefined?`max="${pdef.max}"`:''} value="${val===null||val===undefined?'':val}" placeholder="—">
+        </div>`;
+      }
+      return '';
+    }).join('');
+    return `<div class="rule-params">${inner}</div>`;
+  }
+
+  function bindRuleParamInputs(){
+    el('rulesList').querySelectorAll('input[type=number][data-rule]').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const r = reglaCfg(inp.dataset.rule);
+        if(!r) return;
+        const pk = inp.dataset.param;
+        const pdef = REGLAS_CATALOGO[inp.dataset.rule].params[pk];
+        let v = inp.value === '' ? null : Number(inp.value);
+        if(v !== null && !Number.isNaN(v)){
+          if(pdef.min !== undefined && v < pdef.min) v = pdef.min;
+          if(pdef.max !== undefined && v > pdef.max) v = pdef.max;
+        } else if(Number.isNaN(v)) { v = null; }
+        r.params[pk] = v;
+        saveMotorConfig();
+        renderMatchesTab(); // refleja objetivo/stale si hay un partido abierto
+      });
+    });
+  }
+
+  window.__moveRule = function(key, dir){
+    const reglas = reglasOrdenadas();
+    const idx = reglas.findIndex(r => r.key === key);
+    const swapIdx = idx + dir;
+    if(idx < 0 || swapIdx < 0 || swapIdx >= reglas.length) return;
+    const a = reglas[idx], b = reglas[swapIdx];
+    const tmp = a.prioridad; a.prioridad = b.prioridad; b.prioridad = tmp;
+    saveMotorConfig();
+    renderMotorTab();
+    renderMatchesTab();
+  };
+  window.__toggleRule = function(key){
+    const r = reglaCfg(key);
+    if(!r) return;
+    r.enabled = !r.enabled;
+    saveMotorConfig();
+    renderMotorTab();
+    renderMatchesTab();
+  };
+  window.__setRuleParamBool = function(key, pk, val){
+    const r = reglaCfg(key);
+    if(!r) return;
+    r.params[pk] = val;
+    saveMotorConfig();
+    renderMotorTab();
+    renderMatchesTab();
+  };
+
+  el('motorEstrategia').addEventListener('change', (e) => {
+    motorConfig.estrategia = e.target.value;
+    saveMotorConfig();
+    renderMotorTab(); // re-dibuja para atenuar las reglas que no aplican a la estrategia elegida
   });
 
   loadAll();
