@@ -588,6 +588,12 @@ La aplicación deberá persistir:
 
 Toda la información deberá mantenerse entre sesiones.
 
+**Persistencia centralizada y compartida (agregado post-v1):** la persistencia no es local a cada dispositivo. Todos los datos se guardan en una base de datos externa compartida (Cloud Firestore); cualquier persona que acceda a la URL de la app ve y modifica exactamente los mismos datos. No se usa almacenamiento local del navegador (localStorage/sessionStorage). En consecuencia:
+
+- Los datos sobreviven entre sesiones y entre dispositivos/usuarios.
+- Al no existir autenticación (sección 4), la base queda con lectura/escritura pública: se asume que cualquiera con la URL actúa como administrador. Si dos personas editan a la vez, gana el último que guarda (sin resolución de conflictos en esta versión).
+- La capa de persistencia está desacoplada de la lógica de negocio (sección 20): el resto del código usa una interfaz simple de guardar/leer, hoy implementada sobre Firestore y reemplazable a futuro sin tocar la lógica.
+
 ---
 
 # 19\. Requisitos de interfaz
@@ -646,5 +652,7 @@ La arquitectura deberá facilitar incorporar posteriormente funcionalidades como
 - múltiples grupos de jugadores;  
 - autenticación;  
 - múltiples administradores;  
-- estado "Suspendido" para partidos, como alternativa a la eliminación física, preservando el partido en el historial.
+- estado "Suspendido" para partidos, como alternativa a la eliminación física, preservando el partido en el historial;  
+- sincronización en vivo entre usuarios y resolución de conflictos de edición concurrente (hoy la persistencia compartida usa "gana el último que guarda", ver sección 18);  
+- autenticación y control de acceso sobre la base de datos compartida.
 
