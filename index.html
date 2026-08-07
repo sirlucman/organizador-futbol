@@ -464,8 +464,37 @@
   </div>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore.js"></script>
 <script>
-(function(){
+(async function(){
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyCL8i-_EjkbVUehawTgj4TTM6szn5cFobg",
+    authDomain: "organizador-futbol.firebaseapp.com",
+    projectId: "organizador-futbol",
+    storageBucket: "organizador-futbol.firebasestorage.app",
+    messagingSenderId: "603962428156",
+    appId: "1:603962428156:web:d782f91842a696f0b2a579"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Wrapper para persistencia en Firestore (reemplaza window.storage)
+  window.storage = {
+    get: async (key) => {
+      try{
+        const doc = await db.collection('data').doc(key).get();
+        return doc.exists ? { value: doc.data().value } : { value: null };
+      }catch(e){ console.error('Firestore get error:', e); return { value: null }; }
+    },
+    set: async (key, value) => {
+      try{
+        await db.collection('data').doc(key).set({ value });
+      }catch(e){ console.error('Firestore set error:', e); }
+    }
+  };
+
   const POSITIONS = ['Arquero','Defensor','Volante','Delantero'];
   const POS_COLOR = { Arquero: '#C23B2E', Defensor: '#D9791F', Volante: '#E0B400', Delantero: '#3D7A3E' }; // Rojo, Naranja, Amarillo, Verde
   function posTextColor(pos){ return pos === 'Volante' ? 'var(--ink)' : 'var(--chalk)'; } // el amarillo necesita texto oscuro para que se lea
@@ -1931,8 +1960,9 @@
     renderMotorTab(); // re-dibuja para atenuar las reglas que no aplican a la estrategia elegida
   });
 
-  loadAll();
+  await loadAll();
 })();
+
 </script>
 </body>
 </html>
