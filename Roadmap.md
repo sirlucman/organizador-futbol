@@ -55,9 +55,10 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 - Múltiples grupos de jugadores.
 
 ### Cuentas y acceso
-- Autenticación.
+- Login y perfiles de usuario (autenticación), más allá del acceso libre actual donde cualquiera con la URL actúa como admin.
 - Múltiples administradores.
 - Control de acceso sobre la base de datos compartida.
+- Restringir la visibilidad del puntaje de los jugadores solo a los administradores. *(depende de que existan perfiles no-admin — hoy solo hay un rol, ver sección 4 del Spec)*
 
 ### Datos y colaboración
 - Estado "Suspendido" para partidos, en vez de eliminación física (preserva historial).
