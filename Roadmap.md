@@ -30,11 +30,7 @@ A partir de ahora, `Spec.md` es la fuente de verdad — este Roadmap es donde vi
 
 Estas son cosas que el spec no define hoy con precisión. Antes de seguir agregando funcionalidades nuevas, conviene decidir estas y volcarlas al `Spec.md`.
 
-- [ ] **Validaciones y mensajes de error**: ¿qué ve el usuario si intenta crear un jugador con nombre+apellido duplicado? ¿Y en otros casos de error (puntaje fuera de rango, cancha sin seleccionar, etc.)?
-- [ ] **Búsqueda de jugadores** (listado general, sección 6): ¿solo por texto (nombre/apellido) o también filtros por posición/estado?
-- [ ] **Drag & drop táctil**: ya está marcado como pendiente en el spec (sección 14) — decidir si se resuelve en v1 o se pasa a futuro.
-- [ ] **Volumen esperado**: tamaño aproximado del plantel y cantidad de partidos históricos, para no sobre-diseñar ni quedarse corto.
-- [ ] **Parámetro `diferenciaMaxima`** (sección 13): qué pasa concretamente cuando se supera — ¿solo se marca en el resumen o bloquea algo?
+_(sin pendientes por ahora — las zonas grises originales quedaron resueltas y documentadas en Spec.md)_
 
 ---
 
@@ -68,7 +64,8 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 - Sincronización en vivo entre usuarios + resolución de conflictos de edición concurrente (hoy es "gana el último que guarda").
 
 ### Mejoras de UX
-- Simplificar el copy del combo de cancha: hoy muestra la cantidad de jugadores entre paréntesis (ej. "Fútbol 8 (8 jugadores por equipo)"); se propone dejar solo el nombre de la cancha (ej. "Fútbol 8"), ya que la cantidad es un dato implícito que no aporta al elegir.
+- Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
+- Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en Spec.md sección 18).
 
 ---
 

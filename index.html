@@ -274,7 +274,6 @@
   <div class="clip"></div>
   <header>
     <h1>Organizador de Partidos</h1>
-    <div class="subtitle">Slices 1–4 — Jugadores, Partidos, Generación y Configuración del motor</div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn" data-tab="partidos">Partidos</button>
@@ -294,8 +293,15 @@
       </div>
       <div class="filters" id="filters">
         <button class="chip-btn active" data-filter="todos">Todos</button>
-        <button class="chip-btn" data-filter="activo">Activos</button>
-        <button class="chip-btn" data-filter="inactivo">Inactivos</button>
+        <button class="chip-btn" data-filter="Arquero">Arquero</button>
+        <button class="chip-btn" data-filter="Defensor">Defensor</button>
+        <button class="chip-btn" data-filter="Volante">Volante</button>
+        <button class="chip-btn" data-filter="Delantero">Delantero</button>
+      </div>
+      <div class="filters" id="filtersEstado">
+        <button class="chip-btn active" data-filter="todos">Todos</button>
+        <button class="chip-btn" data-filter="Activo">Activos</button>
+        <button class="chip-btn" data-filter="Inactivo">Inactivos</button>
       </div>
       <button class="btn-ghost" id="btnCargarPrueba" title="Solo para probar el prototipo, no es parte de la spec">+ Jugadores de prueba</button>
       <button class="btn-primary" id="btnNuevo">+ Nuevo jugador</button>
@@ -652,6 +658,7 @@
   let matches = [];
   let editingId = null;
   let currentFilter = 'todos';
+  let currentEstadoFilter = 'todos';
   let searchTerm = '';
 
   let currentMatchId = null;
@@ -875,8 +882,8 @@
   /* ================= JUGADORES: listado y alta/edición normal ================= */
   function getFiltered(){
     return players.filter(p => {
-      if(currentFilter === 'activo' && p.estado !== 'Activo') return false;
-      if(currentFilter === 'inactivo' && p.estado !== 'Inactivo') return false;
+      if(currentFilter !== 'todos' && p.principal !== currentFilter) return false;
+      if(currentEstadoFilter !== 'todos' && p.estado !== currentEstadoFilter) return false;
       if(searchTerm){
         const full = normalize(p.nombre + ' ' + p.apellido);
         if(!full.includes(normalize(searchTerm))) return false;
@@ -998,6 +1005,14 @@
       document.querySelectorAll('#filters .chip-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       currentFilter = btn.dataset.filter;
+      renderPlayersTab();
+    });
+  });
+  document.querySelectorAll('#filtersEstado .chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#filtersEstado .chip-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentEstadoFilter = btn.dataset.filter;
       renderPlayersTab();
     });
   });
