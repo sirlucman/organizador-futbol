@@ -287,6 +287,29 @@ No podrán existir dos jugadores con el mismo nombre y apellido.
 
 ---
 
+## Validaciones al crear/editar un jugador (agregado post-v1)
+
+El formulario de alta/edición de jugador deberá validar, mostrando el mensaje indicado:
+
+- Nombre vacío → "El nombre es obligatorio."
+- Sin posición principal seleccionada → "Elegí una posición principal."
+- Puntaje fuera del rango 1-10 → "El puntaje de {posición} debe estar entre 1 y 10."
+- Nombre y apellido ya utilizados por otro jugador → "Ya existe un jugador con ese nombre y apellido."
+
+---
+
+## Búsqueda y filtro de jugadores (agregado post-v1)
+
+El listado de jugadores (sección 6) permite:
+
+- buscar por texto, filtrando por nombre y/o apellido;
+- filtrar por posición principal (Todos, Arquero, Defensor, Volante, Delantero);
+- filtrar por estado (Todos, Activos, Inactivos).
+
+Los tres filtros son independientes entre sí y se combinan: por ejemplo, se puede buscar "Juan" + filtrar por Defensor + filtrar por Activos al mismo tiempo, y el listado muestra únicamente los jugadores que cumplen las tres condiciones a la vez.
+
+---
+
 ## Eliminación permanente de jugadores (agregado post-v1)
 
 A diferencia de desactivar (reversible, conserva historial), eliminar un jugador es una acción **permanente e irreversible** sobre el plantel.
@@ -320,6 +343,13 @@ El administrador podrá:
 Los jugadores deberán seleccionarse mediante un buscador con autocompletado. Que se pueda mediante la función TAB cargar el autocompletado que se está generando al escribir para acelerar la carga.
 
 Si un jugador no existe, el administrador deberá poder crearlo sin abandonar el flujo de inscripción.
+
+---
+
+## Validaciones al crear un partido (agregado post-v1)
+
+- Sin fecha seleccionada → "Elegí una fecha para el partido."
+- Cancha: no requiere validación explícita, ya que el selector siempre tiene un valor por defecto y no puede quedar vacío.
 
 ---
 
@@ -494,7 +524,14 @@ La arquitectura deberá permitir agregar nuevas reglas sin modificar el resto de
 Efecto de desactivar cada regla:
 
 - *Balancear posiciones* (off): no se separa por posición; todos los jugadores se reparten en un solo grupo balanceando cantidad y puntaje. Parámetro `usarSecundarias` (default sí): si se apaga, no se usan posiciones secundarias para corregir imparidades.
-- *Balancear puntaje* (off): los equipos se emparejan solo por cantidad de jugadores, sin mirar el puntaje. Parámetro `diferenciaMaxima` (default vacío): diferencia de puntaje considerada aceptable; si el resultado la supera, el resumen de la generación la marca.
+- *Balancear puntaje* (off): los equipos se emparejan solo por cantidad de jugadores, sin mirar el puntaje. Parámetro `diferenciaMaxima` (default vacío): diferencia de puntaje considerada aceptable.
+
+**Comportamiento de `diferenciaMaxima` (agregado post-v1):** si el parámetro queda vacío, no se aplica ningún objetivo. Si tiene un valor y la diferencia de puntaje entre equipos lo supera tras generar:
+
+- en el resumen de generación (sección 17), la métrica "Diferencia de puntaje" se resalta visualmente (borde y texto en rojo) junto al objetivo configurado;
+- se agrega una explicación automática sugiriendo bloquear jugadores clave y regenerar, o revisar la configuración del motor.
+
+Superar el objetivo es solo una advertencia: no bloquea la generación ni ninguna otra acción sobre el partido.
 - *Balancear jugadores sin puntaje* (off): los jugadores sin puntaje se mezclan en el orden general en vez de repartirse al final.
 
 **Prioridad de reglas (agregado post-v1):** el orden de prioridad determina la secuencia en que se aplican y explican las reglas. Al igual que en la sección 15, la optimización por prioridad es acotada: no se hace una búsqueda exhaustiva del óptimo global.
@@ -518,7 +555,7 @@ Los jugadores bloqueados nunca deberán cambiar de equipo durante una regeneraci
 
 El algoritmo únicamente podrá reorganizar el resto de los jugadores.
 
-**Nota de implementación (agregado post-v1):** el drag & drop está implementado con la API nativa del navegador, que funciona con mouse en computadoras. En dispositivos táctiles (celular/tablet) puede no responder igual — queda pendiente evaluar si hace falta una alternativa táctil (por ejemplo, tocar para seleccionar y tocar el equipo destino) en una futura iteración, dado que la spec pide que la aplicación funcione en dispositivos móviles (sección 19).
+**Limitación conocida (agregado post-v1):** el drag & drop está implementado con la API nativa del navegador, que funciona con mouse en computadoras. En dispositivos táctiles (celular/tablet) no responde igual, ya que esta versión no incluye una alternativa táctil (por ejemplo, tocar para seleccionar y tocar el equipo destino). Se acepta esta limitación para v1: en celular, la edición manual de equipos vía drag & drop puede ser incómoda o no funcionar. Queda planificado para una futura versión (ver sección 21 y Roadmap.md).
 
 ---
 
@@ -594,6 +631,8 @@ Toda la información deberá mantenerse entre sesiones.
 - Al no existir autenticación (sección 4), la base queda con lectura/escritura pública: se asume que cualquiera con la URL actúa como administrador. Si dos personas editan a la vez, gana el último que guarda (sin resolución de conflictos en esta versión).
 - La capa de persistencia está desacoplada de la lógica de negocio (sección 20): el resto del código usa una interfaz simple de guardar/leer, hoy implementada sobre Firestore y reemplazable a futuro sin tocar la lógica.
 
+**Volumen esperado (agregado post-v1):** esta versión está pensada para un plantel y un historial de partidos de hasta aproximadamente 500 jugadores y 500 partidos. No existe ningún límite técnico que bloquee superar ese número — es una expectativa de diseño, no una restricción impuesta en el código. Los listados no están optimizados para volúmenes mayores (no hay paginación ni carga por lotes: se lee y muestra todo lo que exista). Si el volumen real crece significativamente por encima de esa expectativa, van a hacer falta cambios de performance (ver Roadmap.md).
+
 ---
 
 # 19\. Requisitos de interfaz
@@ -654,5 +693,6 @@ La arquitectura deberá facilitar incorporar posteriormente funcionalidades como
 - múltiples administradores;  
 - estado "Suspendido" para partidos, como alternativa a la eliminación física, preservando el partido en el historial;  
 - sincronización en vivo entre usuarios y resolución de conflictos de edición concurrente (hoy la persistencia compartida usa "gana el último que guarda", ver sección 18);  
-- autenticación y control de acceso sobre la base de datos compartida.
+- autenticación y control de acceso sobre la base de datos compartida;  
+- alternativa táctil para la edición manual de equipos (tocar para seleccionar y tocar el equipo destino), dado que el drag & drop nativo no responde igual en celular/tablet (ver sección 14).
 
