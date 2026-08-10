@@ -13,9 +13,11 @@ A partir de ahora, `Spec.md` es la fuente de verdad — este Roadmap es donde vi
 ## 1. Lo que ya existe (v1)
 
 - Administración de jugadores (crear, editar, buscar, activar/desactivar, eliminar permanente).
+- Búsqueda de jugadores por texto + filtro por posición + filtro por estado, combinables entre sí.
+- Validaciones con mensaje claro en alta/edición de jugador y de partido (campos obligatorios, rango de puntaje, duplicados).
 - Posiciones fijas (Arquero, Defensor, Volante, Delantero) con color asignado.
 - Puntajes por posición + puntaje promedio automático.
-- Administración de partidos (crear, eliminar, cancha, cierre/reapertura de inscripción).
+- Administración de partidos (crear, eliminar, cancha con nombre simplificado en el combo, cierre/reapertura de inscripción).
 - Convocatoria con buscador autocompletado (+ TAB) y alta de jugador sin salir del flujo.
 - Titulares/suplentes automáticos según cupo de cancha, con reemplazo automático al bajarse un titular.
 - Motor de generación configurable (2 estrategias, reglas con prioridad/parámetros).
