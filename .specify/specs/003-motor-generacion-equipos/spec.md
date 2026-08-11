@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-11
 
-**Status**: Partially implemented (migrado desde `Spec.md` monolítico v1). El invariante "Balancear puntaje" (FR-004/FR-010) todavía no está implementado como tal en el código: sigue existiendo un toggle que lo desactiva cuando la estrategia activa es Estrategia 2 — ver `Roadmap.md`, sección "Pendientes de v1".
+**Status**: Implemented (migrado desde `Spec.md` monolítico v1). El gap del invariante "Balancear puntaje" (FR-004/FR-010) se cerró — ver [tasks.md](tasks.md).
 
 **Input**: Migración del contenido ya vigente de `Spec.md` (secciones 9 a 17, más el orden de listado de equipos y la explicación de estrategia de la sección 19) a la estructura nativa de spec-kit. Durante la migración se corrigió una inconsistencia de la sección 13 de `Spec.md`: "Balancear puntaje" pasa a ser un invariante no configurable (igual que "máximo un arquero por equipo"), en vez de una regla que se podía desactivar para emparejar equipos solo por cantidad de jugadores ignorando el puntaje — ese comportamiento contradecía el propósito mismo de la estrategia.
 

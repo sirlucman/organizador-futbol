@@ -566,8 +566,8 @@
       label: 'Emparejar el puntaje',
       descripcion: 'Busca que los dos equipos sumen un puntaje lo más parecido posible.',
       siOff: 'Si la apagás, solo empareja la cantidad de jugadores, sin mirar el puntaje.',
-      // Es el núcleo de la estrategia por puntaje: con esa estrategia no se puede apagar.
-      nucleoDe: 'estrategia1',
+      // Invariante del motor: balancear puntaje nunca se puede apagar, con ninguna estrategia.
+      siempreFija: true,
       resumen: 'empareja el puntaje',
       params: {
         diferenciaMaxima: { tipo: 'number', label: 'Diferencia aceptable', unidad: 'pts', default: null, min: 0, max: 50,
@@ -623,13 +623,20 @@
       Object.entries(REGLAS_CATALOGO[key].params).forEach(([pk, pdef]) => {
         params[pk] = (g.params && g.params[pk] !== undefined) ? g.params[pk] : pdef.default;
       });
-      return { key, enabled: g.enabled !== undefined ? !!g.enabled : true, prioridad: i + 1, params };
+      // Las reglas siempre fijas (invariantes) quedan enabled:true sin importar lo persistido,
+      // por si vienen de una config guardada antes de que "puntaje" pasara a ser invariante.
+      const enabled = REGLAS_CATALOGO[key].siempreFija ? true : (g.enabled !== undefined ? !!g.enabled : true);
+      return { key, enabled, prioridad: i + 1, params };
     });
     return out;
   }
 
   function reglaCfg(key){ return motorConfig.reglas.find(r => r.key === key) || null; }
-  function reglaEnabled(key){ const r = reglaCfg(key); return r ? r.enabled : false; }
+  function reglaEnabled(key){
+    // Invariante: "puntaje" siempre está activo, aunque haya quedado persistido como apagado antes de este fix.
+    if(REGLAS_CATALOGO[key] && REGLAS_CATALOGO[key].siempreFija) return true;
+    const r = reglaCfg(key); return r ? r.enabled : false;
+  }
   function reglaParam(key, pk){
     const r = reglaCfg(key);
     if(r && r.params && r.params[pk] !== undefined) return r.params[pk];
@@ -1577,8 +1584,8 @@
     if(superaObjetivo){
       explicaciones.push(`La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
     }
-    // reglas desactivadas que aplicaban a esta estrategia
-    const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled).filter(r => {
+    // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
+    const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
       const soloEn = REGLAS_CATALOGO[r.key].soloEn;
       return !soloEn || (esEstrategia2 && soloEn === 'estrategia2');
     });
@@ -1966,9 +1973,10 @@
     return !soloEn || soloEn === estrategia;
   }
 
-  // Una regla es "núcleo" de la estrategia elegida: define lo que hace la estrategia, así que no se puede apagar.
+  // Una regla es "núcleo" de la estrategia elegida (o siempre fija, sin importar la estrategia): no se puede apagar.
   function reglaEsNucleo(key, estrategia){
-    return REGLAS_CATALOGO[key].nucleoDe === estrategia;
+    const meta = REGLAS_CATALOGO[key];
+    return !!meta.siempreFija || meta.nucleoDe === estrategia;
   }
 
   function renderMotorTab(){
@@ -2125,6 +2133,8 @@
     renderMatchesTab();
   };
   window.__toggleRule = function(key){
+    // Defensa en profundidad: una regla siempre fija nunca se apaga, aunque se invoque directo.
+    if(REGLAS_CATALOGO[key] && REGLAS_CATALOGO[key].siempreFija) return;
     const r = reglaCfg(key);
     if(!r) return;
     r.enabled = !r.enabled;
