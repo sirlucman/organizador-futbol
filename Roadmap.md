@@ -2,11 +2,11 @@
 
 Este documento ordena el trabajo en tres bloques:
 
-1. **Lo que ya existe** en la v1 (según `Spec.md`).
-2. **Pendientes versión actual**: zonas grises del spec actual que conviene cerrar antes de seguir sumando features.
+1. **Lo que ya existe** en la v1 (según los specs de feature en `.specify/specs/`).
+2. **Pendientes versión actual**: zonas grises de los specs actuales que conviene cerrar antes de seguir sumando features.
 3. **Lo que viene lo que viene**: ideas para versiones posteriores.
 
-A partir de ahora, `Spec.md` es la fuente de verdad — este Roadmap es donde vive la conversación de "qué falta definir" y "qué viene después", antes de que algo se promueva al spec.
+El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`README.md`](README.md) para el índice y `.specify/memory/constitution.md` para las restricciones transversales) — este Roadmap es donde vive la conversación de "qué falta definir" y "qué viene después", antes de que algo se promueva a un spec.
 
 ---
 
@@ -30,9 +30,9 @@ A partir de ahora, `Spec.md` es la fuente de verdad — este Roadmap es donde vi
 
 ## 2. Pendientes de v1 (zonas grises a cerrar)
 
-Estas son cosas que el spec no define hoy con precisión. Antes de seguir agregando funcionalidades nuevas, conviene decidir estas y volcarlas al `Spec.md`.
+Estas son cosas que los specs no definen hoy con precisión. Antes de seguir agregando funcionalidades nuevas, conviene decidir estas y volcarlas al spec de la feature correspondiente.
 
-_(sin pendientes por ahora — las zonas grises originales quedaron resueltas y documentadas en Spec.md)_
+_(sin pendientes por ahora — las zonas grises originales quedaron resueltas y documentadas en los specs de feature)_
 
 ---
 
@@ -64,13 +64,13 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 
 ### Mejoras de UX
 - Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
-- Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en Spec.md sección 18).
+- Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `.specify/memory/constitution.md`, sección "Restricciones Técnicas y de Alcance").
 - Nueva forma de presentación de equipos donde se muestre la estrategia: 3-2-2, 3-1-3 etc.
 
 ---
 
 ## Cómo usar este documento
 
-- Idea nueva → se agrega acá, en la sección que corresponda (no directo al Spec).
-- Cuando una idea de "Futuro" se decide encarar → se mueve a un apartado de "Próxima versión" (a crear cuando arranque) y se detalla como haría falta para el Spec.
-- Cuando un "Pendiente de v1" se resuelve → la decisión se redacta en `Spec.md` y se tacha/borra de acá.
+- Idea nueva → se agrega acá, en la sección que corresponda (no directo a un spec).
+- Cuando una idea de "Futuro" se decide encarar → se mueve a un apartado de "Próxima versión" (a crear cuando arranque) y se detalla en el spec de la feature correspondiente vía `/speckit-specify` (feature nueva o existente en `.specify/specs/`).
+- Cuando un "Pendiente de v1" se resuelve → la decisión se redacta en el spec de la feature correspondiente y se tacha/borra de acá.
