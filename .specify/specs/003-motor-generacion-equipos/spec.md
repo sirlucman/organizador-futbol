@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-11
 
-**Status**: Implemented (migrado desde `Spec.md` monolítico v1)
+**Status**: Partially implemented (migrado desde `Spec.md` monolítico v1). El invariante "Balancear puntaje" (FR-004/FR-010) todavía no está implementado como tal en el código: sigue existiendo un toggle que lo desactiva cuando la estrategia activa es Estrategia 2 — ver `Roadmap.md`, sección "Pendientes de v1".
 
 **Input**: Migración del contenido ya vigente de `Spec.md` (secciones 9 a 17, más el orden de listado de equipos y la explicación de estrategia de la sección 19) a la estructura nativa de spec-kit. Durante la migración se corrigió una inconsistencia de la sección 13 de `Spec.md`: "Balancear puntaje" pasa a ser un invariante no configurable (igual que "máximo un arquero por equipo"), en vez de una regla que se podía desactivar para emparejar equipos solo por cantidad de jugadores ignorando el puntaje — ese comportamiento contradecía el propósito mismo de la estrategia.
 
@@ -45,6 +45,7 @@ Después de cada generación, el administrador ve una explicación en lenguaje c
 3. **Given** cualquier generación, **When** se muestra el resumen, **Then** incluye como mínimo: estrategia utilizada, puntaje total de cada equipo, diferencia de puntaje, cantidad de jugadores sin puntaje por equipo, cantidad de jugadores bloqueados y cantidad de jugadores que cambiaron de equipo respecto de la generación anterior.
 4. **Given** una generación con Estrategia 2, **When** se muestra el resumen, **Then** además incluye balance de posiciones y balance de arqueros; con Estrategia 1 esas dos métricas no se muestran.
 5. **Given** una explicación generada, **When** se revisa su contenido, **Then** únicamente refleja decisiones que realmente ocurrieron durante esa ejecución, nunca genéricas o hipotéticas.
+6. **Given** una o más reglas configurables deshabilitadas al momento de generar, **When** se muestra la explicación, **Then** incluye una mención listando qué reglas estaban desactivadas para esa generación.
 
 ---
 
@@ -119,6 +120,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-007**: El sistema MUST mostrar, dentro de cada equipo, a los jugadores ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero).
 - **FR-008**: El sistema MUST generar, después de cada ejecución, una explicación en lenguaje claro de las decisiones relevantes tomadas, reflejando únicamente decisiones que ocurrieron efectivamente.
 - **FR-009**: El sistema MUST mostrar, después de cada generación, un resumen con estrategia utilizada, puntaje total por equipo, diferencia de puntaje, jugadores sin puntaje por equipo, jugadores bloqueados y jugadores que cambiaron de equipo respecto de la generación anterior; MUST agregar balance de posiciones y balance de arqueros únicamente cuando se usa la Estrategia 2.
+- **FR-009b**: Cuando alguna regla configurable esté deshabilitada al momento de generar, la explicación (FR-008) MUST incluir una mención listando qué reglas estaban desactivadas para esa generación.
 - **FR-010**: El sistema MUST permitir visualizar, reordenar por prioridad, habilitar, deshabilitar y parametrizar las reglas configurables (Balancear posiciones con `usarSecundarias`, Balancear jugadores sin puntaje), y MUST permitir ajustar el parámetro `diferenciaMaxima` del invariante de balancear puntaje, sin exponer ninguno de los dos invariantes (arqueros, puntaje) como regla que se pueda deshabilitar.
 - **FR-011**: El sistema MUST permitir elegir una estrategia por defecto global, aplicada al crear partidos nuevos, sin impedir elegir una estrategia distinta por partido.
 - **FR-012**: Cuando la diferencia de puntaje entre equipos supere el `diferenciaMaxima` configurado, el sistema MUST resaltar esa métrica en el resumen y MUST agregar una explicación automática sugiriendo acciones correctivas, sin bloquear ninguna acción sobre el partido.

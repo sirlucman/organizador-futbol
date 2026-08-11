@@ -30,9 +30,10 @@ El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`READM
 
 ## 2. Pendientes de v1 (zonas grises a cerrar)
 
-Estas son cosas que los specs no definen hoy con precisión. Antes de seguir agregando funcionalidades nuevas, conviene decidir estas y volcarlas al spec de la feature correspondiente.
+Estas son cosas que los specs no definen hoy con precisión, o casos donde el código todavía no implementa lo que el spec de la feature ya decidió. Antes de seguir agregando funcionalidades nuevas, conviene cerrar esto.
 
-_(sin pendientes por ahora — las zonas grises originales quedaron resueltas y documentadas en los specs de feature)_
+- **Motor de generación — "Balancear puntaje" no es invariante todavía en el código** (spec `003-motor-generacion-equipos`, FR-004/FR-010). El spec ya define que esta regla no debería poder desactivarse (igual que "máximo un arquero por equipo"), pero el código actual solo bloquea el toggle cuando la estrategia activa es Estrategia 1; con Estrategia 2 se puede apagar, y si después se vuelve a Estrategia 1 la UI muestra el candado sin avisar que en realidad sigue apagada (bug de UI adicional). Falta: hacer el invariante real en el código para ambas estrategias, y corregir el candado.
+- **Gestión de jugadores — goles/asistencias acumulados por jugador no está implementado** (spec `002-gestion-jugadores`, FR-014). Hoy el resultado (goles/asistencias) solo se guarda por partido; nunca se propaga como acumulado al jugador. Falta: agregar el campo acumulado al jugador y la lógica que lo actualiza al finalizar un partido (sin mostrarlo todavía en la pantalla de jugadores, según ya define el spec).
 
 ---
 
