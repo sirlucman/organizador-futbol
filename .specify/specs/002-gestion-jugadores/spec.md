@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-11
 
-**Status**: Partially implemented (migrado desde `Spec.md` monolítico v1). FR-014 (goles/asistencias acumulados por jugador) todavía no está implementado en el código — ver `Roadmap.md`, sección "Pendientes de v1".
+**Status**: Implemented (migrado desde `Spec.md` monolítico v1). FR-014 (goles/asistencias acumulados por jugador) se implementó — ver [tasks.md](tasks.md).
 
 **Input**: Migración del contenido ya vigente de `Spec.md` (secciones 5-Jugador/Posiciones/Puntajes/Puntaje promedio, 6) a la estructura nativa de spec-kit.
 

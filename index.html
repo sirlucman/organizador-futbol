@@ -1363,7 +1363,16 @@
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
         m.resultado = { statsPorJugador: {...resultadoDraft.stats}, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
+        // Acumular goles/asistencias de este partido en cada jugador (FR-014).
+        // No se muestra todavía en ninguna pantalla: queda reservado para una futura sección de Estadísticas.
+        Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
+          const p = players.find(pl => pl.id === playerId);
+          if(!p) return;
+          p.golesTotales = (p.golesTotales || 0) + (st.goles || 0);
+          p.asistenciasTotales = (p.asistenciasTotales || 0) + (st.asistencias || 0);
+        });
         saveMatches();
+        savePlayers();
         resultadoDraft = null;
         renderMatchesTab();
       },
