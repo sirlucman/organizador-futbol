@@ -3,8 +3,8 @@
 Este documento ordena el trabajo en tres bloques:
 
 1. **Lo que ya existe** en la v1 (según `Spec.md`).
-2. **Pendientes de v1**: zonas grises del spec actual que conviene cerrar antes de seguir sumando features.
-3. **Futuro**: ideas para versiones posteriores.
+2. **Pendientes versión actual**: zonas grises del spec actual que conviene cerrar antes de seguir sumando features.
+3. **Lo que viene lo que viene**: ideas para versiones posteriores.
 
 A partir de ahora, `Spec.md` es la fuente de verdad — este Roadmap es donde vive la conversación de "qué falta definir" y "qué viene después", antes de que algo se promueva al spec.
 
@@ -36,25 +36,18 @@ _(sin pendientes por ahora — las zonas grises originales quedaron resueltas y 
 
 ---
 
-## 3. Futuro (post-v1)
+## 3. Lo que viene lo que viene
 
 Reorganizado desde la sección 21 del spec, agrupado por tema.
 
 ### Estadísticas e historial
 - Estadísticas por jugador (análisis de goles/asistencias ya capturados).
 - Historial de resultados.
-- MVP.
 - Ranking de jugadores.
-
-### Gestión en vivo del partido
-- Administración del partido en tiempo real.
-- Cronómetro.
-- Gestión de cambios.
-- Rotaciones de jugadores.
 
 ### Convocatoria y jugadores
 - Disponibilidad de jugadores (marcar de antemano quién puede jugar).
-- Múltiples grupos de jugadores.
+- Múltiples grupos de jugadores. Crear grupo de amigos. Invitar amigos.
 
 ### Cuentas y acceso
 - Login y perfiles de usuario (autenticación), más allá del acceso libre actual donde cualquiera con la URL actúa como admin.
@@ -63,12 +56,16 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 - Restringir la visibilidad del puntaje de los jugadores solo a los administradores. *(depende de que existan perfiles no-admin — hoy solo hay un rol, ver sección 4 del Spec)*
 
 ### Datos y colaboración
-- Estado "Suspendido" para partidos, en vez de eliminación física (preserva historial).
 - Sincronización en vivo entre usuarios + resolución de conflictos de edición concurrente (hoy es "gana el último que guarda").
+
+### Estrategias adicionales
+- que se predefina esquema táctico para el armado de equipos. Ej: 1 arquero, 3 defensores, 2 volantes, 2 delanteros
+- que en base a los jugadores disponibles sugiera la mejor estrategia
 
 ### Mejoras de UX
 - Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
 - Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en Spec.md sección 18).
+- Nueva forma de presentación de equipos donde se muestre la estrategia: 3-2-2, 3-1-3 etc.
 
 ---
 
