@@ -130,6 +130,7 @@
   .row-name{ font-weight: 600; font-size: 15px; }
   .row-tags{ display:flex; gap:5px; margin-top: 3px; flex-wrap: wrap; }
   .tag{ font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--paper); color: var(--muted); border: 1px solid var(--paper-line); }
+  .row-stats{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
   .avg-chip{ font-family: var(--font-mono); font-size: 13px; font-weight: 700; min-width: 38px; text-align:center; padding: 4px 6px; border-radius: 6px; background: var(--paper); border: 1px solid var(--paper-line); flex-shrink:0; }
 
   .switch{ width: 38px; height: 20px; border-radius: 20px; background: var(--paper-line); position: relative; cursor: pointer; flex-shrink:0; transition: background .15s ease; border: none; padding: 0; }
@@ -887,12 +888,15 @@
     roster.innerHTML = list.map(p => {
       const avg = computeAvg(p.scores);
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
+      // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
+      const statsText = p.partidosJugados ? `${p.partidosJugados} PJ · ${p.golesTotales || 0}G · ${p.asistenciasTotales || 0}A` : '—';
       return `
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}">
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
           <div class="row-main">
             <div class="row-name">${fullName(p)}</div>
             <div class="row-tags">${tags}</div>
+            <div class="row-stats">${statsText}</div>
           </div>
           <div class="avg-chip">${avg !== null ? avg : '—'}</div>
           <button class="switch ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
@@ -1323,11 +1327,11 @@
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
         m.resultado = { statsPorJugador: {...resultadoDraft.stats}, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
-        // Acumular goles/asistencias de este partido en cada jugador (FR-014).
-        // No se muestra todavía en ninguna pantalla: queda reservado para una futura sección de Estadísticas.
+        // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
         Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
           const p = players.find(pl => pl.id === playerId);
           if(!p) return;
+          p.partidosJugados = (p.partidosJugados || 0) + 1;
           p.golesTotales = (p.golesTotales || 0) + (st.goles || 0);
           p.asistenciasTotales = (p.asistenciasTotales || 0) + (st.asistencias || 0);
         });
