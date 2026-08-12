@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Organizador · Fútbol 8</title>
+<title>Organizador - Fútbol</title>
 <style>
   :root{
     --paper: #ECE7D8;
@@ -590,7 +590,7 @@
     {
       key: 'arqueros',
       label: 'Un arquero por equipo',
-      descripcion: 'Si hay arqueros, va uno por equipo. Si hay uno solo, el equipo sin arquero fijo se compensa con jugadores de mayor puntaje (rotan el arco). Si no hay arqueros, se arma con lo que hay y rotan todos. Los arqueros que sobran pasan a su mejor posición secundaria (o a delantero si no tienen).'
+      descripcion: 'Primero busca entre los arqueros naturales (posición principal): si hay dos o más, van los de mejor puntaje, uno por equipo. Solo si algún equipo queda sin arquero después de agotar los naturales, busca entre quienes tienen Arquero como posición secundaria para cubrir ese lugar (por mejor puntaje) — un natural nunca es desplazado por un secundario. Si queda un solo arquero entre ambos niveles, el equipo sin arquero fijo se compensa con jugadores de mayor puntaje (rotan el arco). Si no hay ningún candidato en ningún nivel, se arma con lo que hay y rotan todos. Los arqueros naturales que no ganan el arco pasan a su mejor posición secundaria (o a delantero si no tienen); los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición habitual.'
     }
   ];
 
@@ -1045,10 +1045,17 @@
   }
 
   /* --- INVARIANTE de arqueros (aplica a TODAS las estrategias) ---
-     - Si hay arqueros disponibles, va uno por equipo (nunca dos).
-     - Si hay uno solo, el equipo sin arquero fijo se compensa en puntaje (sus jugadores rotan en el arco).
-     - Si no hay arqueros, se arma con lo que hay: todos rotan.
-     - Los arqueros excedentes pasan a su mejor posición secundaria; si no tienen, a Delantero. */
+     - Búsqueda por NIVELES, no un pool único: primero se agotan los arqueros naturales (posición principal).
+       Un natural NUNCA es desplazado por un candidato de posición secundaria, sin importar el puntaje de
+       cada uno — el puntaje solo decide entre candidatos del mismo nivel.
+     - Si hay dos o más naturales, van los de mejor puntaje, uno por equipo (los excedentes se reubican).
+     - Si algún equipo queda sin arquero después de agotar los naturales (0 o 1 natural), se busca entre los
+       candidatos de posición secundaria (el de mejor puntaje) para cubrir ÚNICAMENTE ese lugar faltante.
+     - Si tras ambos niveles queda un solo arquero, el equipo sin arquero fijo se compensa en puntaje (sus
+       jugadores rotan en el arco). Si no queda ninguno, se arma con lo que hay: todos rotan.
+     - Los arqueros NATURALES que no ganan el arco pasan a su mejor posición secundaria; si no tienen, a Delantero.
+       Los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición
+       principal habitual, sin relocación especial. */
   function mejorPosicionAlternativa(p){
     const secs = (p.secundarias || []).filter(s => s !== 'Arquero');
     if(secs.length === 0) return 'Delantero';
@@ -1085,29 +1092,44 @@
     });
 
     // Invariante de arqueros: uno por equipo como máximo, aun sin balance por posiciones.
+    // Búsqueda por niveles: primero se agotan los arqueros naturales (posición principal); solo si algún
+    // equipo queda sin arquero después de eso, se busca entre los candidatos por posición secundaria para
+    // cubrir ESE slot (por mejor puntaje en Arquero). Un natural nunca es desplazado por un secundario.
     const posicionOverride = {};
     const arquerosExcedentes = [];
-    const arqueros = titularesPlayers.filter(p => p.principal === 'Arquero');
-    const arq = resolverArqueros(arqueros, sonBloqueados, prevTeamOf || {});
+    const arquerosPorSecundaria = [];
+    const naturalPool = titularesPlayers.filter(p => p.principal === 'Arquero');
+    const secundarioPool = titularesPlayers.filter(p => p.principal !== 'Arquero' && !sonBloqueados(p) && (p.secundarias || []).includes('Arquero'))
+      .sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
+    const arq = resolverArqueros(naturalPool, sonBloqueados, prevTeamOf || {});
+    let titularBlancoArq = arq.titularBlanco, titularNegroArq = arq.titularNegro;
+    let iSec = 0;
+    if(!titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
+    if(!titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
+    if(titularBlancoArq) posicionOverride[titularBlancoArq.id] = 'Arquero'; // sin efecto si ya es su principal
+    if(titularNegroArq)  posicionOverride[titularNegroArq.id]  = 'Arquero';
     const yaUbicados = new Set([...blanco, ...negro]);
-    if(arq.titularBlanco){ blanco.push(arq.titularBlanco.id); sumaBlanco += valorDe(arq.titularBlanco); yaUbicados.add(arq.titularBlanco.id); }
-    if(arq.titularNegro){ negro.push(arq.titularNegro.id); sumaNegro += valorDe(arq.titularNegro); yaUbicados.add(arq.titularNegro.id); }
+    if(titularBlancoArq){ blanco.push(titularBlancoArq.id); sumaBlanco += valorDe(titularBlancoArq); yaUbicados.add(titularBlancoArq.id); }
+    if(titularNegroArq){ negro.push(titularNegroArq.id); sumaNegro += valorDe(titularNegroArq); yaUbicados.add(titularNegroArq.id); }
+    // Los naturales excedentes (no ganaron un slot entre los naturales) se reubican en su mejor posición
+    // secundaria; si no tienen, a Delantero. Los candidatos por secundaria que no ganan el arco ni se
+    // consideraron (porque ya se llenaron los 2 slots entre naturales) simplemente no se tocan.
     arq.excedentes.forEach(p => {
       const nueva = mejorPosicionAlternativa(p);
       posicionOverride[p.id] = nueva; // deja de figurar como arquero
       arquerosExcedentes.push({ playerId: p.id, pos: nueva });
     });
-    const arquerosEnArco = (arq.titularBlanco?1:0) + (arq.titularNegro?1:0) + arq.bloqueados.length;
+    const arquerosEnArco = (titularBlancoArq?1:0) + (titularNegroArq?1:0) + arq.bloqueados.length;
     // Compensación: si hay un solo arquero fijo, el equipo sin arquero recibe jugadores más fuertes.
     // Se implementa como un crédito virtual (solo para comparar) igual al puntaje del arquero.
     let compensacion = 0, equipoCompensado = null;
     if(arquerosEnArco === 1){
-      const unico = arq.titularBlanco || arq.titularNegro || arq.bloqueados[0];
-      const equipoConArquero = arq.titularBlanco ? 'blanco' : (arq.titularNegro ? 'negro' : prevTeamOf[unico.id]);
+      const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
+      const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
       equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
       compensacion = valorDe(unico);
     }
-    const arquerosInfo = { total: arq.total, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
+    const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
 
     const libres = titularesPlayers.filter(p => !sonBloqueados(p) && !yaUbicados.has(p.id));
     const conPuntaje = libres.filter(p => computeAvg(p.scores) !== null);
@@ -1142,7 +1164,7 @@
       else{ negro.push(p.id); sumaNegro += valor; }
     });
 
-    return { blanco, negro, sumaBlanco, sumaNegro, posicionOverride, arquerosInfo, arquerosExcedentes };
+    return { blanco, negro, sumaBlanco, sumaNegro, posicionOverride, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
   }
 
   /* Estrategia 2 — Balance por posiciones */
@@ -1186,10 +1208,58 @@
     const OUTFIELD = ['Defensor','Volante','Delantero'];
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
 
-    // Paso 1: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el parámetro lo permiten, nunca a un bloqueado
+    let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
+    let arquerosInfo = null;
+    const arquerosExcedentes = [];
+    const arquerosPorSecundaria = [];
+
+    // Paso 1: arqueros — INVARIANTE (siempre se aplica): máximo un arquero por equipo.
+    // Búsqueda por niveles: primero se agotan los arqueros naturales (posición principal, o persistida como
+    // Arquero si el titular está bloqueado); solo si algún equipo queda sin arquero después de eso, se busca
+    // entre los candidatos por posición secundaria (no bloqueados) para cubrir ESE slot, por mejor puntaje en
+    // Arquero. Un natural nunca es desplazado por un secundario. Corre antes que la corrección de posiciones
+    // (Paso 2) para que esa corrección vea la población real que queda en cada posición de cancha después de
+    // sacar a quien terminó atajando.
+    let compensacion = 0, equipoCompensado = null;
+    {
+      const naturalPool = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
+      const secundarioPool = titularesPlayers.filter(p => posicionAsignada[p.id] !== 'Arquero' && !sonBloqueados(p) && (p.secundarias || []).includes('Arquero'))
+        .sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
+      const arq = resolverArqueros(naturalPool, sonBloqueados, prevTeamOf || {});
+      let titularBlancoArq = arq.titularBlanco, titularNegroArq = arq.titularNegro;
+      let iSec = 0;
+      if(!titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
+      if(!titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
+      arq.bloqueados.forEach(p => {
+        const valor = puntajeEnPosicion(p, 'Arquero');
+        if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
+        else{ negro.push(p.id); sumaNegro += valor; }
+      });
+      if(titularBlancoArq){ posicionAsignada[titularBlancoArq.id] = 'Arquero'; blanco.push(titularBlancoArq.id); sumaBlanco += puntajeEnPosicion(titularBlancoArq,'Arquero'); }
+      if(titularNegroArq){ posicionAsignada[titularNegroArq.id] = 'Arquero'; negro.push(titularNegroArq.id); sumaNegro += puntajeEnPosicion(titularNegroArq,'Arquero'); }
+      // Los naturales excedentes (no ganaron un slot entre los naturales) se reubican en su mejor posición
+      // secundaria; si no tienen, a Delantero.
+      arq.excedentes.forEach(p => {
+        const nuevaPos = mejorPosicionAlternativa(p);
+        posicionAsignada[p.id] = nuevaPos;
+        arquerosExcedentes.push({ playerId: p.id, pos: nuevaPos });
+      });
+      const arquerosEnArco = (titularBlancoArq?1:0) + (titularNegroArq?1:0) + arq.bloqueados.length;
+      if(arquerosEnArco === 1){
+        const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
+        const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
+        equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
+        compensacion = puntajeEnPosicion(unico, 'Arquero');
+      }
+      arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
+    }
+
+    // Paso 2: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el
+    // parámetro lo permiten, nunca a un bloqueado ni a quien ya quedó ubicado como arquero en el Paso 1.
     if(usaSecundarias){
+      const yaArquero = new Set([...blanco, ...negro]);
       OUTFIELD.forEach(pos => {
-        let enEstaPosicion = titularesPlayers.filter(p => posicionAsignada[p.id] === pos);
+        let enEstaPosicion = titularesPlayers.filter(p => !yaArquero.has(p.id) && posicionAsignada[p.id] === pos);
         if(enEstaPosicion.length % 2 === 0) return;
         const candidato = enEstaPosicion.find(p => !bloqueadosSet.has(p.id) && p.secundarias.some(s => OUTFIELD.includes(s) && s !== pos));
         if(!candidato) return;
@@ -1197,38 +1267,6 @@
         posicionAsignada[candidato.id] = nuevaPos;
         swaps.push({ playerId: candidato.id, desde: pos, hacia: nuevaPos });
       });
-    }
-
-    let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
-    let arquerosInfo = null;
-    const arquerosExcedentes = [];
-
-    // Paso 2: arqueros — INVARIANTE (siempre se aplica): máximo un arquero por equipo.
-    let compensacion = 0, equipoCompensado = null;
-    {
-      const arqueros = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
-      const arq = resolverArqueros(arqueros, sonBloqueados, prevTeamOf || {});
-      arq.bloqueados.forEach(p => {
-        const valor = puntajeEnPosicion(p, 'Arquero');
-        if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
-        else{ negro.push(p.id); sumaNegro += valor; }
-      });
-      if(arq.titularBlanco){ blanco.push(arq.titularBlanco.id); sumaBlanco += puntajeEnPosicion(arq.titularBlanco,'Arquero'); }
-      if(arq.titularNegro){ negro.push(arq.titularNegro.id); sumaNegro += puntajeEnPosicion(arq.titularNegro,'Arquero'); }
-      // Los arqueros excedentes se reubican en su mejor posición secundaria; si no tienen, a Delantero.
-      arq.excedentes.forEach(p => {
-        const nuevaPos = mejorPosicionAlternativa(p);
-        posicionAsignada[p.id] = nuevaPos;
-        arquerosExcedentes.push({ playerId: p.id, pos: nuevaPos });
-      });
-      const arquerosEnArco = (arq.titularBlanco?1:0) + (arq.titularNegro?1:0) + arq.bloqueados.length;
-      if(arquerosEnArco === 1){
-        const unico = arq.titularBlanco || arq.titularNegro || arq.bloqueados[0];
-        const equipoConArquero = arq.titularBlanco ? 'blanco' : (arq.titularNegro ? 'negro' : prevTeamOf[unico.id]);
-        equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
-        compensacion = puntajeEnPosicion(unico, 'Arquero');
-      }
-      arquerosInfo = { total: arq.total, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
     }
 
     // Paso 3: repartir el resto (los que no quedaron ya ubicados como arquero)
@@ -1279,7 +1317,7 @@
       repartir(restantes);
     }
 
-    return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes };
+    return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
   }
 
   window.__generarEquipos = function(matchId){
@@ -1327,10 +1365,11 @@
       sumaBlanco, sumaNegro,
       cambios, esPrimeraGeneracion,
       posicionAsignada: resultado.posicionAsignada || null,
-      posicionOverride: resultado.posicionOverride || null, // solo display (arqueros excedentes en Estrategia 1)
+      posicionOverride: resultado.posicionOverride || null, // solo display (arqueros excedentes/por secundaria en Estrategia 1)
       swaps: resultado.swaps || [],
       arquerosInfo: resultado.arquerosInfo || null,
-      arquerosExcedentes: resultado.arquerosExcedentes || []
+      arquerosExcedentes: resultado.arquerosExcedentes || [],
+      arquerosPorSecundaria: resultado.arquerosPorSecundaria || []
     };
     m.estado = 'Equipos generados';
     saveMatches();
@@ -1579,6 +1618,10 @@
     (eq.arquerosExcedentes || []).forEach(s => {
       const p = players.find(pl => pl.id === s.playerId);
       if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} porque cada equipo lleva un solo arquero.`);
+    });
+    (eq.arquerosPorSecundaria || []).forEach(s => {
+      const p = players.find(pl => pl.id === s.playerId);
+      if(p) explicaciones.push(`${fullName(p)} ocupó el arco por su posición secundaria.`);
     });
     bloqueados.forEach(id => {
       const p = players.find(pl => pl.id === id);
