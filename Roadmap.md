@@ -66,6 +66,7 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 - Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
 - Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `.specify/memory/constitution.md`, sección "Restricciones Técnicas y de Alcance").
 - Nueva forma de presentación de equipos donde se muestre la estrategia: 3-2-2, 3-1-3 etc.
+- Eliminar "+Crear jugador nuevo" de la sección "Partidos".
 
 ---
 
