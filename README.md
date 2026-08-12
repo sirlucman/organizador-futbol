@@ -1,4 +1,4 @@
-# Organizador de Fútbol 8
+# Organizador de Fútbol
 
 ## Objetivo
 
