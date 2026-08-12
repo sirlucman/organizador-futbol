@@ -50,7 +50,8 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 - Múltiples grupos de jugadores. Crear grupo de amigos. Invitar amigos.
 
 ### Cuentas y acceso
-- Login y perfiles de usuario (autenticación), más allá del acceso libre actual donde cualquiera con la URL actúa como admin.
+- Perfiles de usuario con distintos niveles de permiso, más allá del acceso de administrador único actual. *(la versión básica de login con un único usuario "admin" hardcodeado ya está implementada, ver `.specify/specs/005-login-basico/`)*
+- Registro de usuarios.
 - Múltiples administradores.
 - Control de acceso sobre la base de datos compartida.
 - Restringir la visibilidad del puntaje de los jugadores solo a los administradores. *(depende de que existan perfiles no-admin — hoy solo hay un rol, ver sección 4 del Spec)*
