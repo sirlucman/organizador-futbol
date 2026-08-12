@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-11
 
-**Status**: Implemented (migrado desde `Spec.md` monolítico v1). El gap del invariante "Balancear puntaje" (FR-004/FR-010) se cerró — ver [tasks.md](tasks.md).
+**Status**: Implemented (migrado desde `Spec.md` monolítico v1). El gap del invariante "Balancear puntaje" (FR-004/FR-010) se cerró — ver [tasks.md](tasks.md). El gap del pool de candidatos a arquero (AC3/AC4/AC5, FR-005) también se cerró: el motor ahora elige entre titulares con Arquero como principal o como secundaria, priorizando siempre el mejor puntaje en esa posición sin importar el origen.
 
 **Input**: Migración del contenido ya vigente de `Spec.md` (secciones 9 a 17, más el orden de listado de equipos y la explicación de estrategia de la sección 19) a la estructura nativa de spec-kit. Durante la migración se corrigió una inconsistencia de la sección 13 de `Spec.md`: "Balancear puntaje" pasa a ser un invariante no configurable (igual que "máximo un arquero por equipo"), en vez de una regla que se podía desactivar para emparejar equipos solo por cantidad de jugadores ignorando el puntaje — ese comportamiento contradecía el propósito mismo de la estrategia.
 
@@ -22,11 +22,12 @@ El administrador elige una estrategia de generación y el motor arma dos equipos
 
 1. **Given** un partido con titulares definidos y la Estrategia 1 (balance por puntaje promedio) seleccionada, **When** se generan los equipos, **Then** cada jugador se evalúa exclusivamente por su puntaje promedio, sin optimizar posiciones, y el listado igual muestra la posición principal de cada jugador a modo informativo.
 2. **Given** un partido con titulares definidos y la Estrategia 2 (balance por posiciones) seleccionada, **When** se generan los equipos, **Then** el motor determina la mejor posición para cada jugador priorizando siempre la posición principal, usa una posición secundaria únicamente cuando la cantidad de titulares de la posición principal es impar y la secundaria corrige esa imparidad, y calcula el puntaje con el correspondiente a la posición asignada.
-3. **Given** dos o más arqueros naturales entre los titulares, **When** se generan los equipos, **Then** cada equipo recibe exactamente un arquero (los dos con mejor puntaje de arquero), y los arqueros excedentes se reubican en su mejor posición secundaria o, si no tienen, como Delantero, dejando de contar como arqueros en el listado.
-4. **Given** un único arquero natural entre los titulares, **When** se generan los equipos, **Then** ese arquero ocupa el arco de un equipo y el otro equipo compensa esa ventaja equilibrando el resto de sus jugadores, sin arquero fijo.
-5. **Given** ningún arquero natural entre los titulares, **When** se generan los equipos, **Then** no se asigna a nadie al arco en ningún equipo.
-6. **Given** jugadores sin puntaje entre los titulares, **When** se generan los equipos, **Then** esos jugadores no se usan para calcular el puntaje total del equipo, pero se distribuyen de la forma más equilibrada posible entre ambos.
-7. **Given** equipos ya generados, **When** se visualiza el listado de cada equipo, **Then** los jugadores aparecen siempre ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero), usando la posición asignada con Estrategia 2 o la principal con Estrategia 1.
+3. **Given** dos o más titulares elegibles para el arco (con Arquero como posición principal o como posición secundaria) entre los titulares, **When** se generan los equipos, **Then** cada equipo recibe exactamente un arquero: los dos elegibles con mejor puntaje en la posición Arquero, sin importar si llegaron por posición principal o secundaria; los arqueros naturales que no resultan elegidos se reubican en su mejor posición secundaria o, si no tienen, como Delantero, mientras que los candidatos que solo eran elegibles por posición secundaria y no resultan elegidos simplemente juegan su posición principal habitual, sin relocación especial.
+4. **Given** un único titular elegible para el arco (con Arquero como principal o como secundaria) entre los titulares, **When** se generan los equipos, **Then** ese jugador ocupa el arco de un equipo y el otro equipo compensa esa ventaja equilibrando el resto de sus jugadores, sin arquero fijo.
+5. **Given** un titular con Arquero como posición principal y al menos otro titular con Arquero como posición secundaria, **When** se generan los equipos, **Then** ambos se consideran candidatos al arco por igual: si el de posición secundaria tiene mejor puntaje en Arquero que el natural, es él quien ataja; el criterio de elegibilidad es únicamente el puntaje en la posición Arquero, nunca el origen (principal o secundaria).
+6. **Given** ningún titular con Arquero ni como posición principal ni como secundaria, **When** se generan los equipos, **Then** no se asigna a nadie al arco en ningún equipo.
+7. **Given** jugadores sin puntaje entre los titulares, **When** se generan los equipos, **Then** esos jugadores no se usan para calcular el puntaje total del equipo, pero se distribuyen de la forma más equilibrada posible entre ambos.
+8. **Given** equipos ya generados, **When** se visualiza el listado de cada equipo, **Then** los jugadores aparecen siempre ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero), usando la posición asignada con Estrategia 2 o la principal con Estrategia 1.
 
 ---
 
@@ -46,6 +47,7 @@ Después de cada generación, el administrador ve una explicación en lenguaje c
 4. **Given** una generación con Estrategia 2, **When** se muestra el resumen, **Then** además incluye balance de posiciones y balance de arqueros; con Estrategia 1 esas dos métricas no se muestran.
 5. **Given** una explicación generada, **When** se revisa su contenido, **Then** únicamente refleja decisiones que realmente ocurrieron durante esa ejecución, nunca genéricas o hipotéticas.
 6. **Given** una o más reglas configurables deshabilitadas al momento de generar, **When** se muestra la explicación, **Then** incluye una mención listando qué reglas estaban desactivadas para esa generación.
+7. **Given** una generación donde el arco se cubrió, total o parcialmente, con la posición secundaria de uno o más jugadores, **When** se muestra la explicación, **Then** incluye una mención específica a esa decisión (por ejemplo, "Nilo ocupó el arco por su posición secundaria").
 
 ---
 
@@ -106,6 +108,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - `diferenciaMaxima` vacío: no se aplica ningún umbral de advertencia, pero el invariante de balancear puntaje sigue intentando minimizar la diferencia igual.
 - Todos los titulares bloqueados: la regeneración no tiene margen de reubicación; el resultado es idéntico a la generación anterior.
 - Minimizar cambios entre jugadores no bloqueados no es un objetivo que el algoritmo optimice activamente hoy: solo recalcula el balance óptimo entre los libres, lo que puede mover más jugadores de lo estrictamente necesario.
+- Un arquero natural con puntaje más bajo en la posición Arquero que un candidato por posición secundaria: el criterio de elegibilidad es únicamente el puntaje en esa posición, así que puede terminar en el banco de excedentes (reubicado en su mejor posición secundaria o como Delantero) mientras el candidato por secundaria ataja.
 
 ## Requirements *(mandatory)*
 
@@ -115,7 +118,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-002**: La Estrategia 1 MUST evaluar a cada jugador exclusivamente por su puntaje promedio, sin optimizar posiciones, mostrando igualmente la posición principal a modo informativo.
 - **FR-003**: La Estrategia 2 MUST determinar la mejor posición para cada jugador priorizando la posición principal, MUST usar una posición secundaria únicamente cuando corrija una imparidad de titulares en esa posición, y MUST calcular el puntaje con el de la posición asignada.
 - **FR-004**: El sistema MUST garantizar, como invariantes no configurables: (a) que ningún equipo tenga más de un arquero, y (b) que el motor siempre intente minimizar la diferencia de puntaje entre ambos equipos. Ninguno de los dos MUST aparecer como regla que se pueda deshabilitar en la sección Configuración.
-- **FR-005**: El sistema MUST reubicar a los arqueros excedentes en su mejor posición secundaria o, en su defecto, como Delantero, y MUST compensar equilibrando el resto del equipo cuando exista un único arquero natural o ninguno.
+- **FR-005**: El sistema MUST elegir a los arqueros de cada equipo entre todos los titulares elegibles para el arco (Arquero como posición principal o como posición secundaria), tomando a los de mejor puntaje en la posición Arquero sin priorizar el origen (principal o secundaria) por sobre ese puntaje; si no hay ningún titular elegible, no asigna a nadie al arco. El sistema MUST reubicar en su mejor posición secundaria (o, en su defecto, como Delantero) a los arqueros naturales que no resulten elegidos; los candidatos elegibles solo por posición secundaria que no resulten elegidos MUST seguir jugando su posición principal habitual, sin relocación especial. El sistema MUST compensar equilibrando el resto del equipo únicamente cuando exista un único titular elegido para el arco (natural o por posición secundaria) y el otro equipo quede sin arquero fijo.
 - **FR-006**: El sistema MUST excluir a los jugadores sin puntaje del cálculo de puntaje total del equipo, distribuyéndolos de la forma más equilibrada posible.
 - **FR-007**: El sistema MUST mostrar, dentro de cada equipo, a los jugadores ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero).
 - **FR-008**: El sistema MUST generar, después de cada ejecución, una explicación en lenguaje claro de las decisiones relevantes tomadas, reflejando únicamente decisiones que ocurrieron efectivamente.
