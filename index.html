@@ -130,6 +130,7 @@
   .row-name{ font-weight: 600; font-size: 15px; }
   .row-tags{ display:flex; gap:5px; margin-top: 3px; flex-wrap: wrap; }
   .tag{ font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--paper); color: var(--muted); border: 1px solid var(--paper-line); }
+  .row-stats{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
   .avg-chip{ font-family: var(--font-mono); font-size: 13px; font-weight: 700; min-width: 38px; text-align:center; padding: 4px 6px; border-radius: 6px; background: var(--paper); border: 1px solid var(--paper-line); flex-shrink:0; }
 
   .switch{ width: 38px; height: 20px; border-radius: 20px; background: var(--paper-line); position: relative; cursor: pointer; flex-shrink:0; transition: background .15s ease; border: none; padding: 0; }
@@ -379,7 +380,6 @@
         <div class="autocomplete-list" id="autocompleteList" style="display:none;"></div>
       </div>
       <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn-ghost" id="btnCrearRapido" type="button">+ Crear jugador nuevo</button>
         <button class="btn-ghost" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
       </div>
 
@@ -422,41 +422,6 @@
     <div class="card-actions">
       <button class="btn-ghost" id="btnConfirmCancel">Cancelar</button>
       <button class="btn-primary" id="btnConfirmOk" style="background:var(--brick);">Eliminar</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal: alta rápida — mismos campos que la ficha de jugador -->
-<div class="modal-overlay" id="quickModal">
-  <div class="modal-card">
-    <h3>Nuevo jugador</h3>
-    <div class="modal-hint">Se agrega al plantel y se convoca a este partido al guardar.</div>
-    <div class="field-row">
-      <div class="field"><label>Nombre</label><input type="text" id="qNombre" placeholder="Ej: Juan"></div>
-      <div class="field"><label>Apellido (opcional)</label><input type="text" id="qApellido" placeholder="Ej: Pérez"></div>
-    </div>
-    <div class="field-row">
-      <div class="field">
-        <label>Posición principal</label>
-        <select id="qPrincipal">
-          <option value="">Elegir...</option>
-          <option value="Arquero">Arquero</option>
-          <option value="Defensor">Defensor</option>
-          <option value="Volante">Volante</option>
-          <option value="Delantero">Delantero</option>
-        </select>
-      </div>
-      <div class="field"><label>Posiciones secundarias</label><div class="pos-badges" id="qSecBadges"></div></div>
-    </div>
-    <div class="field">
-      <label>Puntajes por posición (1 a 10, opcional)</label>
-      <div class="scores-grid" id="qScoresGrid"></div>
-    </div>
-    <div class="avg-preview">Puntaje promedio (automático): <b id="qAvgPreview">—</b></div>
-    <div class="error-msg" id="quickError"></div>
-    <div class="card-actions">
-      <button class="btn-ghost" id="btnQuickCancel">Cancelar</button>
-      <button class="btn-primary" id="btnQuickSave">Crear y convocar</button>
     </div>
   </div>
 </div>
@@ -654,12 +619,10 @@
     return (CANCHAS[m.cancha] || CANCHAS.futbol8).label;
   }
 
-  // ids del formulario, según sea el alta normal ("main") o la alta rápida ("quick")
   const FORM_IDS = {
-    main:  { principal:'fPrincipal', secBadges:'fSecBadges', scoresGrid:'fScoresGrid', avgPreview:'fAvgPreview' },
-    quick: { principal:'qPrincipal', secBadges:'qSecBadges', scoresGrid:'qScoresGrid', avgPreview:'qAvgPreview' }
+    main: { principal:'fPrincipal', secBadges:'fSecBadges', scoresGrid:'fScoresGrid', avgPreview:'fAvgPreview' }
   };
-  const scoresState = { main:{}, quick:{} };
+  const scoresState = { main:{} };
   const blankScores = () => ({ Arquero:null, Defensor:null, Volante:null, Delantero:null });
 
   let players = [];
@@ -671,7 +634,6 @@
 
   let currentMatchId = null;
   let matchSearchTerm = '';
-  let pendingQuickMatchId = null;
   let resultadoDraft = null; // { matchId, stats: { [playerId]: {goles, asistencias} } } — borrador en memoria hasta "Finalizar partido"
 
   const el = (id) => document.getElementById(id);
@@ -862,13 +824,12 @@
   }
 
   function validatePlayerForm(kind, excludeId){
-    const isMain = kind === 'main';
-    const nombre = el(isMain ? 'fNombre' : 'qNombre').value.trim();
-    const apellido = el(isMain ? 'fApellido' : 'qApellido').value.trim();
+    const nombre = el('fNombre').value.trim();
+    const apellido = el('fApellido').value.trim();
     const principal = el(FORM_IDS[kind].principal).value;
     const secundarias = el(FORM_IDS[kind].secBadges).__selected || [];
     const scores = {...scoresState[kind]};
-    const errorEl = el(isMain ? 'formError' : 'quickError');
+    const errorEl = el('formError');
 
     if(!nombre){ errorEl.textContent = 'El nombre es obligatorio.'; return null; }
     if(!principal){ errorEl.textContent = 'Elegí una posición principal.'; return null; }
@@ -927,12 +888,15 @@
     roster.innerHTML = list.map(p => {
       const avg = computeAvg(p.scores);
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
+      // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
+      const statsText = p.partidosJugados ? `${p.partidosJugados} PJ · ${p.golesTotales || 0}G · ${p.asistenciasTotales || 0}A` : '—';
       return `
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}">
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
           <div class="row-main">
             <div class="row-name">${fullName(p)}</div>
             <div class="row-tags">${tags}</div>
+            <div class="row-stats">${statsText}</div>
           </div>
           <div class="avg-chip">${avg !== null ? avg : '—'}</div>
           <button class="switch ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
@@ -1402,11 +1366,11 @@
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
         m.resultado = { statsPorJugador: {...resultadoDraft.stats}, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
-        // Acumular goles/asistencias de este partido en cada jugador (FR-014).
-        // No se muestra todavía en ninguna pantalla: queda reservado para una futura sección de Estadísticas.
+        // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
         Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
           const p = players.find(pl => pl.id === playerId);
           if(!p) return;
+          p.partidosJugados = (p.partidosJugados || 0) + 1;
           p.golesTotales = (p.golesTotales || 0) + (st.goles || 0);
           p.asistenciasTotales = (p.asistenciasTotales || 0) + (st.asistencias || 0);
         });
@@ -1848,7 +1812,6 @@
     }
     el('matchSearchInput').disabled = locked;
     el('matchSearchInput').placeholder = locked ? 'Inscripción cerrada' : 'Buscar jugador para convocar...';
-    el('btnCrearRapido').disabled = locked;
     const btnPrueba = el('btnCompletarPrueba');
     const faltanTitulares = req - m.convocados.length;
     btnPrueba.style.display = (!locked && faltanTitulares > 0) ? '' : 'none';
@@ -1906,7 +1869,7 @@
 
     let html = '';
     if(results.length === 0){
-      html = `<div class="ac-empty">No encontramos jugadores activos que coincidan con "${term}". Podés usar "+ Crear jugador nuevo" debajo.</div>`;
+      html = `<div class="ac-empty">No encontramos jugadores activos que coincidan con "${term}". Creá el jugador desde la sección "Jugadores".</div>`;
     }else{
       html = results.map((p, i) => `
         <div class="ac-item" data-id="${p.id}" onclick="window.__addToMatch('${m.id}','${p.id}')">
@@ -1957,9 +1920,6 @@
     currentMatchId = null;
     renderMatchesTab();
   });
-  el('btnCrearRapido').addEventListener('click', () => {
-    if(currentMatchId) window.__openQuickCreate(currentMatchId);
-  });
   el('btnCompletarPrueba').addEventListener('click', () => {
     if(currentMatchId) window.__loadTestTitulares(currentMatchId);
   });
@@ -1989,33 +1949,6 @@
     currentMatchId = nuevo.id;
     matchSearchTerm = '';
     renderMatchesTab();
-  });
-
-  /* ---- Alta rápida: MISMOS campos que el alta normal ---- */
-  window.__openQuickCreate = function(matchId){
-    pendingQuickMatchId = matchId;
-    el('qNombre').value = matchSearchTerm && matchSearchTerm.split(' ')[0] || '';
-    el('qApellido').value = matchSearchTerm && matchSearchTerm.split(' ').slice(1).join(' ') || '';
-    el('qPrincipal').value = '';
-    el('qSecBadges').__selected = [];
-    scoresState.quick = blankScores();
-    renderSecBadges('quick');
-    refreshScoresSection('quick');
-    el('quickError').textContent = '';
-    el('quickModal').classList.add('open');
-  };
-  el('btnQuickCancel').addEventListener('click', () => el('quickModal').classList.remove('open'));
-  el('qPrincipal').addEventListener('change', () => { renderSecBadges('quick'); refreshScoresSection('quick'); });
-
-  el('btnQuickSave').addEventListener('click', () => {
-    const data = validatePlayerForm('quick', null);
-    if(!data) return;
-    const nuevo = { id: uid('p'), estado:'Activo', ...data };
-    players.push(nuevo);
-    savePlayers();
-    window.__addToMatch(pendingQuickMatchId, nuevo.id);
-    el('quickModal').classList.remove('open');
-    renderPlayersTab();
   });
 
   /* ================= CONFIGURACIÓN (Slice 4) ================= */
