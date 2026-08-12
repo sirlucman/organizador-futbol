@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Aplicación web que permite administrar la organización de partidos de fútbol 8, facilitando la gestión de jugadores, la convocatoria de cada partido y la generación automática de equipos equilibrados.
+Aplicación web que permite administrar la organización de partidos de fútbol, facilitando la gestión de jugadores, la convocatoria de cada partido y la generación automática de equipos equilibrados.
 
 El objetivo principal es reducir al mínimo el tiempo que lleva organizar un partido, manteniendo siempre la posibilidad de intervención manual por parte del administrador.
 
