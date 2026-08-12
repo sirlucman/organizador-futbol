@@ -267,15 +267,57 @@
     .row-tags{ display: none; }
     h1{ font-size: 26px; }
   }
+
+  /* ---------- Login (Feature 005) ---------- */
+  .login-screen{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: url('assets/fondo-login.jpeg') center/cover no-repeat;
+    padding: 16px;
+  }
+  .login-card{
+    width: 100%;
+    max-width: 320px;
+    background: var(--chalk);
+    border: 1px solid var(--paper-line);
+    border-radius: 10px;
+    padding: 26px 22px 20px;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.25);
+  }
+  .login-card h2{ font-family: var(--font-display); font-size: 20px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 18px; text-align: center; }
+  .login-card .field{ margin-bottom: 14px; }
+  .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: 8px; background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
+  .login-card input:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
 </style>
 </head>
 <body>
 
-<div class="wrap">
+<div class="login-screen" id="loginScreen" style="display:none;">
+  <div class="login-card">
+    <h2>Organizador de Partidos</h2>
+    <div class="field">
+      <label>Usuario</label>
+      <input type="text" id="loginUsuario" autocomplete="username">
+    </div>
+    <div class="field">
+      <label>Contraseña</label>
+      <input type="password" id="loginPassword" autocomplete="current-password">
+    </div>
+    <div class="error-msg" id="loginError"></div>
+    <div class="card-actions">
+      <button class="btn-primary" id="btnLogin" style="width:100%;">Ingresar</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap" id="appRoot" style="display:none;">
   <div class="clip"></div>
   <header>
     <h1>Organizador de Partidos</h1>
     <div id="appVersion" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted);opacity:0.7;">v1.0.26</div>
+    <button class="btn-ghost" id="btnLogout" style="position:absolute; top:24px; right:24px;">Cerrar sesión</button>
     <div class="tabs">
       <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn" data-tab="partidos">Partidos</button>
@@ -451,6 +493,7 @@
 
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
 <script>
 (async function(){
   // Firebase config: producción (main, publicado en GitHub Pages) vs. staging
@@ -497,6 +540,33 @@
       try{
         await db.collection('data').doc(key).set({ value });
       }catch(e){ console.error('Firestore set error:', e); }
+    }
+  };
+
+  // Wrapper de autenticación sobre Firebase Auth. El resto de la app solo conoce
+  // login/logout/onAuthChange — no sabe que por debajo es Firebase (ver plan.md Principio IV).
+  // "admin" se mapea a un email fijo porque el proveedor Email/Password de Firebase lo requiere.
+  const ADMIN_EMAIL = 'admin@organizador-futbol.local';
+  let auth = null;
+  try{
+    auth = firebase.auth();
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+  }catch(e){
+    console.error('No se pudo inicializar Firebase Auth:', e);
+  }
+  window.auth = {
+    login: async (usuario, password) => {
+      if(!auth) throw new Error('Auth no disponible');
+      const email = (usuario || '').trim().toLowerCase() === 'admin' ? ADMIN_EMAIL : (usuario || '').trim();
+      await auth.signInWithEmailAndPassword(email, password);
+    },
+    logout: async () => {
+      if(!auth) return;
+      await auth.signOut();
+    },
+    onAuthChange: (callback) => {
+      if(!auth){ callback(null); return; }
+      auth.onAuthStateChanged(callback);
     }
   };
 
@@ -2140,7 +2210,47 @@
     renderMatchesTab();
   };
 
-  await loadAll();
+  /* ================= LOGIN / GATE (Feature 005) ================= */
+  const loginScreen = el('loginScreen');
+  const appRoot = el('appRoot');
+  const loginError = el('loginError');
+  let appLoaded = false; // evita volver a cargar los datos si onAuthChange dispara más de una vez
+
+  async function attemptLogin(){
+    const usuario = el('loginUsuario').value;
+    const password = el('loginPassword').value;
+    loginError.textContent = '';
+    if(!usuario.trim() || !password){
+      loginError.textContent = 'Completá usuario y contraseña.';
+      return;
+    }
+    try{
+      await window.auth.login(usuario, password);
+    }catch(e){
+      loginError.textContent = 'Usuario o contraseña incorrectos.';
+    }
+  }
+  el('btnLogin').addEventListener('click', attemptLogin);
+  el('loginPassword').addEventListener('keydown', (ev) => { if(ev.key === 'Enter') attemptLogin(); });
+  el('loginUsuario').addEventListener('keydown', (ev) => { if(ev.key === 'Enter') attemptLogin(); });
+  el('btnLogout').addEventListener('click', () => window.auth.logout());
+
+  window.auth.onAuthChange(async (user) => {
+    if(user){
+      loginScreen.style.display = 'none';
+      appRoot.style.display = '';
+      loginError.textContent = '';
+      el('loginUsuario').value = '';
+      el('loginPassword').value = '';
+      if(!appLoaded){
+        appLoaded = true;
+        await loadAll();
+      }
+    }else{
+      appRoot.style.display = 'none';
+      loginScreen.style.display = 'flex';
+    }
+  });
 })();
 
 </script>
