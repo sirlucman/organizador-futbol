@@ -45,3 +45,14 @@ Ideas para versiones futuras (estadísticas, disponibilidad de jugadores, login,
 ## Cómo se trabaja en este repo
 
 El spec de cada feature en `.specify/specs/` es la fuente de verdad sobre el comportamiento actual (ver `constitution.md`, Principio I). Cuando una idea de `Roadmap.md` se decide encarar, se crea o actualiza el spec de la feature correspondiente vía `/speckit-specify`, siguiendo el flujo Spec-Driven Development: `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
+
+## Entorno de pruebas (staging)
+
+La app tiene dos bases de datos Firestore: la real (`organizador-futbol`, usada por la versión publicada en `sirlucman.github.io`) y una de prueba (`organizador-futbol-staging`). `index.html` elige el proyecto según el hostname: cualquier origen que no sea `sirlucman.github.io` (correr el archivo local, en cualquier rama) usa staging automáticamente — no hace falta configurar nada.
+
+Flujo de trabajo para un desarrollo nuevo:
+
+1. Crear una rama a partir de `main`.
+2. (Opcional) Traer datos reales frescos a staging abriendo [`tools/sync-staging-data.html`](tools/sync-staging-data.html) y apretando el botón — copia `players`, `partidos` y `motorConfig` desde producción a staging. Solo lee de producción, nunca escribe ahí.
+3. Probar la rama abriendo `index.html` localmente (usa staging).
+4. Cuando funciona bien, mergear a `main` — se publica en GitHub Pages contra la base real, sin haberla tocado durante las pruebas.
