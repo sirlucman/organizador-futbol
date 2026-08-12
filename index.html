@@ -453,15 +453,27 @@
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 <script>
 (async function(){
-  // Firebase config
-  const firebaseConfig = {
+  // Firebase config: producción (main, publicado en GitHub Pages) vs. staging
+  // (cualquier otro origen: local, ramas de desarrollo). Así se prueba con el
+  // mismo mecanismo de guardado (Firestore) pero contra datos aislados.
+  const PROD_HOSTNAME = 'sirlucman.github.io';
+  const isProd = location.hostname === PROD_HOSTNAME;
+  const firebaseConfig = isProd ? {
     apiKey: "AIzaSyCL8i-_EjkbVUehawTgj4TTM6szn5cFobg",
     authDomain: "organizador-futbol.firebaseapp.com",
     projectId: "organizador-futbol",
     storageBucket: "organizador-futbol.firebasestorage.app",
     messagingSenderId: "603962428156",
     appId: "1:603962428156:web:d782f91842a696f0b2a579"
+  } : {
+    apiKey: "AIzaSyD43vH2kraPrPyU3YyhoZl-1H0oNzOTNUc",
+    authDomain: "organizador-futbol-staging.firebaseapp.com",
+    projectId: "organizador-futbol-staging",
+    storageBucket: "organizador-futbol-staging.firebasestorage.app",
+    messagingSenderId: "297847145657",
+    appId: "1:297847145657:web:363aec7820815e456ec768"
   };
+  if(!isProd) console.log('[organizador-futbol] usando base de datos de staging');
   let db = null;
   try{
     firebase.initializeApp(firebaseConfig);
