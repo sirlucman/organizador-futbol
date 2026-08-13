@@ -1,4 +1,4 @@
-# Roadmap - Organizador de Fútbol 8
+# Roadmap - Organizador de Fútbol
 
 Este documento ordena el trabajo en tres bloques:
 
@@ -31,7 +31,7 @@ El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`READM
 
 ---
 
-## 2. Pendientes de v1 (zonas grises a cerrar)
+## 2. Pendientes (zonas grises a cerrar)
 
 Estas son cosas que los specs no definen hoy con precisión, o casos donde el código todavía no implementa lo que el spec de la feature ya decidió. Antes de seguir agregando funcionalidades nuevas, conviene cerrar esto.
 
@@ -40,8 +40,6 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
 ---
 
 ## 3. Lo que viene lo que viene
-
-Reorganizado desde la sección 21 del spec, agrupado por tema.
 
 ### Estadísticas e historial
 - Historial de resultados.
