@@ -11,6 +11,9 @@
   button:disabled{ cursor: not-allowed; opacity: 0.6; }
   #log{ margin-top: 20px; background:#f4f4f4; border-radius: 6px; padding: 12px; font-family: monospace; font-size: 13px; white-space: pre-wrap; min-height: 80px; }
   .warn{ background:#fff3cd; border:1px solid #ffe69c; border-radius: 6px; padding: 12px; margin: 16px 0; }
+  label{ display:block; font-size: 13px; margin-bottom: 4px; }
+  .field{ margin-bottom: 14px; }
+  input{ font-size: 14px; padding: 8px 10px; width: 240px; }
 </style>
 </head>
 <body>
@@ -20,11 +23,25 @@
   <strong>sobrescribe</strong> los datos de la base de prueba (<code>organizador-futbol-staging</code>).
   Nunca escribe en producción. Usalo antes de probar algo nuevo, para tener datos realistas en staging.
 </div>
+<p>
+  Desde que la app tiene login (Firebase Auth + Security Rules), esta herramienta también necesita
+  iniciar sesión con el usuario administrador antes de leer/escribir — con el mismo usuario y
+  contraseña que usás para entrar a la app, en prod y en staging.
+</p>
+<div class="field">
+  <label for="authUsuario">Usuario</label>
+  <input type="text" id="authUsuario" autocomplete="username" placeholder="admin">
+</div>
+<div class="field">
+  <label for="authPassword">Contraseña</label>
+  <input type="password" id="authPassword" autocomplete="current-password">
+</div>
 <button id="btnSync">Copiar datos de producción a staging</button>
 <div id="log">Esperando...</div>
 
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
 <script>
   const prodConfig = {
     apiKey: "AIzaSyCL8i-_EjkbVUehawTgj4TTM6szn5cFobg",
@@ -47,18 +64,47 @@
   const stagingApp = firebase.initializeApp(stagingConfig, 'staging');
   const prodDb = prodApp.firestore();
   const stagingDb = stagingApp.firestore();
+  const prodAuth = prodApp.auth();
+  const stagingAuth = stagingApp.auth();
+
+  // Mismo mapeo "admin" → email fijo que usa index.html (ver research.md de 005-login-basico).
+  // Las Security Rules exigen sesión autenticada en ambos proyectos desde esa feature.
+  const ADMIN_EMAIL = 'admin@organizador-futbol.local';
 
   const DOC_IDS = ['players', 'partidos', 'motorConfig'];
   const logEl = document.getElementById('log');
   const btn = document.getElementById('btnSync');
+  const usuarioInput = document.getElementById('authUsuario');
+  const passwordInput = document.getElementById('authPassword');
 
   function log(msg){ logEl.textContent += '\n' + msg; }
 
   btn.addEventListener('click', async () => {
+    const usuario = usuarioInput.value.trim();
+    const password = passwordInput.value;
+    if(!usuario || !password){
+      logEl.textContent = 'Completá usuario y contraseña antes de copiar.';
+      return;
+    }
+
     const confirmed = confirm('¿Confirmás? Esto va a sobrescribir los datos actuales de STAGING con una copia de los de producción.');
     if(!confirmed) return;
 
     btn.disabled = true;
+    logEl.textContent = 'Iniciando sesión en prod y staging...';
+
+    const email = usuario.toLowerCase() === 'admin' ? ADMIN_EMAIL : usuario;
+    try{
+      await Promise.all([
+        prodAuth.signInWithEmailAndPassword(email, password),
+        stagingAuth.signInWithEmailAndPassword(email, password)
+      ]);
+    }catch(e){
+      logEl.textContent = 'No se pudo iniciar sesión: usuario o contraseña incorrectos.';
+      btn.disabled = false;
+      return;
+    }
+
     logEl.textContent = 'Copiando...';
 
     for(const id of DOC_IDS){
