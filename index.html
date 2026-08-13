@@ -40,6 +40,7 @@
   .clip::after{ content:''; position:absolute; inset: 6px 8px; border-radius: 3px; background: rgba(0,0,0,0.15); }
 
   header{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 26px 24px 16px; box-shadow: 0 6px 0 rgba(0,0,0,0.06); position: relative; }
+  .header-top{ display:flex; justify-content:space-between; align-items:flex-start; gap: 12px; flex-wrap: wrap; }
   .eyebrow{ font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
   h1{ font-family: var(--font-display); font-size: 32px; letter-spacing: 0.06em; text-transform: uppercase; margin: 4px 0 2px; font-weight: 700; }
   .subtitle{ font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
@@ -327,9 +328,13 @@
 <div class="wrap" id="appRoot" style="display:none;">
   <div class="clip"></div>
   <header>
-    <h1>Organizador de Partidos</h1>
-    <div id="appVersion" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted);opacity:0.7;">v1.0.29</div>
-    <button class="btn-ghost" id="btnLogout" style="position:absolute; top:24px; right:24px;">Cerrar sesión</button>
+    <div class="header-top">
+      <div>
+        <h1>Organizador de Partidos</h1>
+        <div id="appVersion" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted);opacity:0.7;">v1.0.29</div>
+      </div>
+      <button class="btn-ghost" id="btnLogout">Cerrar sesión</button>
+    </div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn" data-tab="partidos">Partidos</button>
