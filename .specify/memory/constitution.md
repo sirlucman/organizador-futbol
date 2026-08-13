@@ -1,14 +1,15 @@
 <!--
 Sync Impact Report
-- Version change: 2.0.0 → 2.0.1
-- Modified principles: I. Los specs de feature como fuente de verdad — se quita
-  el párrafo transitorio "Migración" (clarificación, no redefinición: el
-  `Spec.md` monolítico que ese párrafo describía como fuente de verdad
-  transitoria ya fue eliminado; el contenido fue reubicado a `README.md`
-  (Objetivo/Alcance/Contexto) y a los specs de feature en `.specify/specs/`)
-- Added sections: none
-- Removed sections: párrafo "Migración" del Principio I (obsoleto tras
-  completarse la migración y borrarse `Spec.md`)
+- Version change: 2.0.1 → 2.1.0
+- Added principles: V. Responsive por diseño — todo desarrollo debe funcionar
+  correctamente en cualquier tamaño de pantalla, incluyendo dispositivos
+  mobile, sin atarse a resoluciones fijas.
+- Modified principles: none (el principio V consolida y eleva a Core Principle
+  el requisito que antes vivía solo como bullet en "Restricciones Técnicas y
+  de Alcance")
+- Removed sections: bullet "La aplicación debe ser responsive y funcionar
+  correctamente en desktop y mobile" de "Restricciones Técnicas y de Alcance"
+  (movido/consolidado en el nuevo Principio V para evitar duplicación)
 - Deferred items: none
 - Templates requiring follow-up: none
 -->
@@ -81,10 +82,23 @@ estrategias y funcionalidades (estadísticas, disponibilidad, login, etc.) sin
 rediseñar el sistema. El acoplamiento temprano entre capas es la forma más común
 en que ese objetivo se rompe silenciosamente.
 
+### V. Responsive por diseño
+Todo desarrollo de interfaz debe funcionar correctamente en cualquier tamaño de
+pantalla, con foco explícito en que sea utilizable desde una app mobile. Está
+prohibido diseñar o implementar pantallas, componentes o flujos atados a
+resoluciones fijas (anchos/altos hardcodeados, layouts que solo se verifican en
+desktop, etc.). Esto aplica a toda funcionalidad nueva y a cualquier
+modificación de una pantalla existente, sin excepción por tratarse de una
+feature "chica" o de bajo tráfico.
+
+**Rationale**: El uso real de la aplicación ocurre mayormente desde dispositivos
+móviles (organizar partidos, ver formaciones, copiar información para compartir
+por WhatsApp, etc.), por lo que una funcionalidad que no se pueda operar
+cómodamente desde mobile no cumple su propósito, sin importar qué tan bien
+funcione en desktop.
+
 ## Restricciones Técnicas y de Alcance
 
-- La aplicación debe ser responsive y funcionar correctamente en desktop y
-  mobile.
 - Persistencia centralizada y compartida en Cloud Firestore, sin almacenamiento
   local del navegador (localStorage/sessionStorage) como fuente de datos.
 - El diseño está pensado para un volumen acotado de jugadores y partidos por
@@ -124,4 +138,4 @@ feature, se verifica que no viole ninguno de los Principios Core. Cualquier
 excepción (p. ej. una complejidad que rompe el Principio II) debe justificarse
 explícitamente en el plan de la feature, no asumirse en silencio.
 
-**Version**: 2.0.1 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-11
+**Version**: 2.1.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-13
