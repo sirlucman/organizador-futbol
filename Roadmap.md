@@ -10,7 +10,7 @@ El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`READM
 
 ---
 
-## 1. Lo que ya existe (v1)
+## 1. Lo que ya existe
 
 - Administración de jugadores (crear, editar, buscar, activar/desactivar, eliminar permanente).
 - Búsqueda de jugadores por texto + filtro por posición + filtro por estado, combinables entre sí.
@@ -24,7 +24,10 @@ El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`READM
 - Edición manual de equipos (drag & drop en desktop, bloqueo de jugadores).
 - Explicabilidad + resumen de métricas por generación.
 - Carga de resultado (goles/asistencias) y finalización de partido.
-- Persistencia compartida en Firestore, sin autenticación.
+- Estadísticas acumuladas por jugador (partidos jugados, goles, asistencias) visibles en el listado de jugadores.
+- Botón para copiar la formación de equipos generada, en formato listo para pegar en WhatsApp.
+- Login básico con un único usuario "admin" hardcodeado.
+- Persistencia compartida en Firestore.
 
 ---
 
@@ -41,7 +44,6 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
 Reorganizado desde la sección 21 del spec, agrupado por tema.
 
 ### Estadísticas e historial
-- Estadísticas por jugador (análisis de goles/asistencias ya capturados).
 - Historial de resultados.
 - Ranking de jugadores.
 
@@ -67,7 +69,7 @@ Reorganizado desde la sección 21 del spec, agrupado por tema.
 - Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
 - Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `.specify/memory/constitution.md`, sección "Restricciones Técnicas y de Alcance").
 - Nueva forma de presentación de equipos donde se muestre la estrategia: 3-2-2, 3-1-3 etc.
-- Eliminar "+Crear jugador nuevo" de la sección "Partidos".
+
 
 ---
 
