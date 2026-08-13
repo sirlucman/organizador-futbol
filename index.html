@@ -290,6 +290,18 @@
   .login-card .field{ margin-bottom: 14px; }
   .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: 8px; background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
   .login-card input:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
+
+  .toast{
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+    max-width: min(90vw, 360px);
+    background: var(--ink); color: var(--chalk);
+    padding: 12px 18px; border-radius: 8px;
+    font-family: var(--font-body); font-size: 13.5px; line-height: 1.4; text-align: center;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.28);
+    z-index: 80; opacity: 0; visibility: hidden; transition: opacity .18s ease, transform .18s ease;
+  }
+  .toast.show{ opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
+  .toast.toast--error{ background: var(--brick); }
 </style>
 </head>
 <body>
@@ -722,6 +734,52 @@
   const uid = (p) => (p||'id') + '_' + Date.now() + '_' + Math.floor(Math.random()*10000);
   const normalize = (s) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const fullName = (p) => ((p.nombre || '') + ' ' + (p.apellido || '')).trim(); // el apellido es opcional
+
+  let toastTimeoutId = null;
+  window.__showToast = function(mensaje, tipo){
+    let toast = el('appToast');
+    if(!toast){
+      toast = document.createElement('div');
+      toast.id = 'appToast';
+      toast.className = 'toast';
+      document.body.appendChild(toast);
+    }
+    toast.textContent = mensaje;
+    toast.classList.toggle('toast--error', tipo === 'error');
+    toast.classList.add('show');
+    if(toastTimeoutId) clearTimeout(toastTimeoutId);
+    toastTimeoutId = setTimeout(() => toast.classList.remove('show'), 3000);
+  };
+
+  // Texto plano de la formaci\u00f3n para copiar al portapapeles (contracts/texto-copiado.md de 006-copiar-formacion)
+  function formatearFormacionParaCopiar(m, allPlayers){
+    const bloques = [
+      { corto: 'Blanco', emoji: '\u2b1c\ufe0f', ids: m.equipos.blanco },
+      { corto: 'Negro', emoji: '\u2b1b\ufe0f', ids: m.equipos.negro },
+    ].map(({ corto, emoji, ids }) => {
+      const jugadores = ids.map(id => allPlayers.find(p => p.id === id)).filter(Boolean);
+      const lineas = [`*${corto}* ${emoji}`];
+      if(jugadores.length > 0){
+        lineas.push('');
+        jugadores.forEach((p, i) => lineas.push(`${i + 1}. ${fullName(p)}`));
+      }
+      return lineas.join('\n');
+    });
+    return bloques.join('\n\n');
+  }
+
+  window.__copiarFormacion = function(matchId){
+    const m = matches.find(x => x.id === matchId);
+    if(!m || !m.equipos) return;
+    const texto = formatearFormacionParaCopiar(m, players);
+    if(!navigator.clipboard || !navigator.clipboard.writeText){
+      window.__showToast('No se pudo copiar: tu navegador no permite acceder al portapapeles.', 'error');
+      return;
+    }
+    navigator.clipboard.writeText(texto)
+      .then(() => window.__showToast('\u00a1Formaci\u00f3n copiada al portapapeles!', 'ok'))
+      .catch(() => window.__showToast('No se pudo copiar la formaci\u00f3n. Intent\u00e1 de nuevo.', 'error'));
+  };
 
   function computeAvg(scores){
     const vals = POSITIONS.map(p => scores[p]).filter(v => v !== null && v !== undefined && v !== '');
@@ -1741,6 +1799,7 @@
           <ul>${explicaciones.map(e => `<li>${e}</li>`).join('')}</ul>
         </div>` : ''}
       <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+        <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
         ${!locked ? `<button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')">Regenerar equipos</button>` : ''}
         ${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? `<button class="btn-primary" onclick="window.__finalizarPartido('${m.id}')">Finalizar partido</button>` : ''}
       </div>
