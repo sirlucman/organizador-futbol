@@ -27,6 +27,7 @@ El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`READM
 - Estadísticas acumuladas por jugador (partidos jugados, goles, asistencias) visibles en el listado de jugadores.
 - Botón para copiar la formación de equipos generada, en formato listo para pegar en WhatsApp.
 - Login básico con un único usuario "admin" hardcodeado.
+- Permisos por perfil de usuario ("admin"/"jugador"): un perfil "jugador" no ve puntajes, estrategia de armado, diferencias/bloqueados/explicación, ni Configuración; no administra jugadores ni partidos; solo puede darse de baja a sí mismo de una convocatoria.
 - Persistencia compartida en Firestore.
 
 ---
@@ -50,11 +51,9 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
 - Múltiples grupos de jugadores. Crear grupo de amigos. Invitar amigos.
 
 ### Cuentas y acceso
-- Perfiles de usuario con distintos niveles de permiso, más allá del acceso de administrador único actual. *(la versión básica de login con un único usuario "admin" hardcodeado ya está implementada, ver `.specify/specs/005-login-basico/`)*
-- Registro de usuarios.
+- Registro de usuarios (hoy la asignación de perfil y cuenta se hace manualmente en Firebase, ver `.specify/specs/007-permisos-por-usuario/`).
 - Múltiples administradores.
-- Control de acceso sobre la base de datos compartida.
-- Restringir la visibilidad del puntaje de los jugadores solo a los administradores. *(depende de que existan perfiles no-admin — hoy solo hay un rol, ver sección 4 del Spec)*
+- Reglas de Firestore más finas para `data/partidos`: hoy la escritura de ese documento está abierta tanto a "admin" como a "jugador" (necesario para que "jugador" pueda darse de baja de una convocatoria), y la restricción de que "jugador" no toque equipos/estrategia/inscripción/resultado/bajas de otros se valida solo del lado de la aplicación, no en las reglas — ver la limitación aceptada en `.specify/specs/007-permisos-por-usuario/research.md` (sección 3). Migrar `partidos` a documentos estructurados por partido (campos nativos en vez de un blob JSON) permitiría reglas por campo y cerrar ese límite.
 
 ### Datos y colaboración
 - Sincronización en vivo entre usuarios + resolución de conflictos de edición concurrente (hoy es "gana el último que guarda").

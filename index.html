@@ -52,6 +52,10 @@
   .tab-panel{ display:none; }
   .tab-panel.active{ display:block; }
 
+  /* Permisos por perfil (007-permisos-por-usuario): oculta acciones/vistas exclusivas de "admin"
+     cuando la cuenta logueada es "jugador" (ver window.session en el script). */
+  body.role-jugador .admin-only{ display:none !important; }
+
   .stats{ display:flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
   .stat{ font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; border: 1px dashed var(--paper-line); border-radius: 6px; color: var(--ink); background: var(--paper); }
   .stat b{ color: var(--pitch); }
@@ -339,7 +343,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn" data-tab="partidos">Partidos</button>
-      <button class="tab-btn" data-tab="motor">Configuración</button>
+      <button class="tab-btn admin-only" data-tab="motor">Configuración</button>
       <button class="tab-btn disabled" title="Próximo slice" disabled>Historial</button>
     </div>
   </header>
@@ -365,8 +369,8 @@
         <button class="chip-btn" data-filter="Activo">Activos</button>
         <button class="chip-btn" data-filter="Inactivo">Inactivos</button>
       </div>
-      <button class="btn-ghost" id="btnCargarPrueba" title="Solo para probar el prototipo, no es parte de la spec">+ Jugadores de prueba</button>
-      <button class="btn-primary" id="btnNuevo">+ Nuevo jugador</button>
+      <button class="btn-ghost admin-only" id="btnCargarPrueba" title="Solo para probar el prototipo, no es parte de la spec">+ Jugadores de prueba</button>
+      <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
 
     <div class="card-pin-wrap" id="formWrap">
@@ -413,7 +417,7 @@
     <div id="matchesListView">
       <div class="controls">
         <div style="flex:1"></div>
-        <button class="btn-primary" id="btnNuevoPartido">+ Nuevo partido</button>
+        <button class="btn-primary admin-only" id="btnNuevoPartido">+ Nuevo partido</button>
       </div>
       <div class="match-list" id="matchList"></div>
     </div>
@@ -426,8 +430,8 @@
           <div class="match-meta" id="detailMeta"></div>
         </div>
         <span class="status-chip open" id="detailEstado"></span>
-        <button class="btn-ghost" id="btnToggleInscripcion" style="display:none;"></button>
-        <button class="icon-btn" id="btnDeleteMatch" title="Eliminar partido">
+        <button class="btn-ghost admin-only" id="btnToggleInscripcion" style="display:none;"></button>
+        <button class="icon-btn admin-only" id="btnDeleteMatch" title="Eliminar partido">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
         </button>
       </div>
@@ -440,7 +444,7 @@
         <div class="autocomplete-list" id="autocompleteList" style="display:none;"></div>
       </div>
       <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn-ghost" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
+        <button class="btn-ghost admin-only" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
       </div>
 
       <div class="convocados-list" id="convocadosList"></div>
@@ -587,6 +591,31 @@
       auth.onAuthStateChanged(callback);
     }
   };
+
+  // Rol de la cuenta logueada ("admin"/"jugador") y, si es "jugador", el Jugador vinculado
+  // a esa cuenta (ver data-model.md → Sesión de usuario, feature 007-permisos-por-usuario).
+  // Vive en una colección aparte de `data` (con campos nativos, no un blob JSON) porque las
+  // Firestore Security Rules necesitan leerlo para decidir qué puede leer/escribir cada cuenta
+  // (ver research.md #1 de esa feature).
+  window.session = { rol: 'jugador', jugadorId: null };
+  async function resolveSession(uid){
+    if(!db){ window.session = { rol: 'jugador', jugadorId: null }; return; }
+    try{
+      const doc = await db.collection('userRoles').doc(uid).get();
+      if(doc.exists && doc.data().rol === 'admin'){
+        window.session = { rol: 'admin', jugadorId: null };
+      }else if(doc.exists){
+        window.session = { rol: 'jugador', jugadorId: doc.data().jugadorId || null };
+      }else{
+        // Sin documento de rol: fail-closed, nunca se asume "admin" por defecto.
+        window.session = { rol: 'jugador', jugadorId: null };
+      }
+    }catch(e){
+      console.error('No se pudo resolver el rol de la cuenta:', e);
+      window.session = { rol: 'jugador', jugadorId: null };
+    }
+  }
+  function isAdmin(){ return window.session.rol === 'admin'; }
 
   const POSITIONS = ['Arquero','Defensor','Volante','Delantero'];
   const POS_COLOR = { Arquero: '#C23B2E', Defensor: '#D9791F', Volante: '#E0B400', Delantero: '#3D7A3E' }; // Rojo, Naranja, Amarillo, Verde
@@ -811,19 +840,73 @@
     catch(e){ players = []; }
     try{ const res2 = await window.storage.get('partidos', false); matches = res2 && res2.value ? JSON.parse(res2.value) : []; }
     catch(e){ matches = []; }
-    try{ const res3 = await window.storage.get('motorConfig', false); motorConfig = normalizeMotorConfig(res3 && res3.value ? JSON.parse(res3.value) : null); }
-    catch(e){ motorConfig = defaultMotorConfig(); }
+    if(isAdmin()){
+      try{ const res3 = await window.storage.get('motorConfig', false); motorConfig = normalizeMotorConfig(res3 && res3.value ? JSON.parse(res3.value) : null); }
+      catch(e){ motorConfig = defaultMotorConfig(); }
+    }else{
+      // "jugador" no puede ver la configuración del motor (FR-012); ni se solicita.
+      motorConfig = defaultMotorConfig();
+    }
+    // Puntaje ("scores") por jugador nunca falta en memoria (aunque esté vacío), para que
+    // computeAvg/puntajeEnPosicion sigan funcionando igual para "jugador" (que no lo carga —
+    // ver más abajo) que para un jugador real sin ningún puntaje cargado (FR-013).
+    players.forEach(p => { if(!p.scores) p.scores = {}; });
+
+    // El puntaje por jugador y los datos internos de armado de equipos (estrategia, sumas,
+    // swaps, etc.) viven en documentos aparte, legibles solo por "admin" — ver data-model.md
+    // y research.md de 007-permisos-por-usuario. Si la cuenta es "jugador" ni se solicitan: las
+    // reglas de Firestore los rechazarían igual, esto solo evita el pedido de red innecesario.
+    if(isAdmin()){
+      try{
+        const resScores = await window.storage.get('playerScores', false);
+        const scoresById = resScores && resScores.value ? JSON.parse(resScores.value) : {};
+        players.forEach(p => { if(scoresById[p.id]) p.scores = scoresById[p.id]; });
+      }catch(e){ console.error(e); }
+      try{
+        const resArmado = await window.storage.get('partidosArmado', false);
+        const armadoById = resArmado && resArmado.value ? JSON.parse(resArmado.value) : {};
+        matches.forEach(m => {
+          const armado = armadoById[m.id];
+          if(!armado) return;
+          if(m.equipos) Object.assign(m.equipos, armado.equipos || {});
+          m.bloqueados = armado.bloqueados || [];
+        });
+      }catch(e){ console.error(e); }
+    }
+
     // Migración única: los partidos finalizados antes de agregar ganados/empatados/perdidos no los tienen
     // acumulados. Se recalculan una sola vez a partir del historial guardado; de ahí en más el flujo normal
     // es que __finalizarPartido los sume incrementalmente al finalizar cada partido (FR-009/FR-010).
-    let migrado = false;
-    try{ const resM = await window.storage.get('statsGanadosEmpatadosPerdidosMigrado', false); migrado = !!(resM && resM.value); }
-    catch(e){ migrado = false; }
-    if(!migrado){
-      recomputeAllPlayerStatsFromMatches();
-      await savePlayers();
-      try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
+    // Solo "admin" necesita chequear/correr esta migración; "jugador" ni la pide (las reglas de
+    // Firestore restringen este documento a admin, ver contracts/firestore-rules.md).
+    if(isAdmin()){
+      let migrado = false;
+      try{ const resM = await window.storage.get('statsGanadosEmpatadosPerdidosMigrado', false); migrado = !!(resM && resM.value); }
+      catch(e){ migrado = false; }
+      if(!migrado){
+        recomputeAllPlayerStatsFromMatches();
+        await savePlayers();
+        try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
+      }
     }
+
+    // Migración única (007-permisos-por-usuario): separa puntaje y armado interno en sus propios
+    // documentos, para que las reglas de Firestore puedan restringirlos a "admin" sin tocar el
+    // resto de los datos (FR-014). Antes de esta migración, ambos vivían mezclados en `players`/
+    // `partidos`; savePlayers()/saveMatches() ya escriben en el formato separado, así que alcanza
+    // con volver a guardar una vez. Solo la corre "admin": es quien tiene el puntaje/armado en
+    // memoria para poder separarlo (una cuenta "jugador" nunca los llega a cargar).
+    if(isAdmin()){
+      let puntajeArmadoSeparado = false;
+      try{ const resSep = await window.storage.get('puntajeArmadoSeparadoMigrado', false); puntajeArmadoSeparado = !!(resSep && resSep.value); }
+      catch(e){ puntajeArmadoSeparado = false; }
+      if(!puntajeArmadoSeparado){
+        await savePlayers();
+        await saveMatches();
+        try{ await window.storage.set('puntajeArmadoSeparadoMigrado', 'true', false); }catch(e){ console.error(e); }
+      }
+    }
+
     renderPlayersTab();
     renderMatchesTab();
     renderMotorTab();
@@ -866,11 +949,50 @@
       p.partidosPerdidos = t.pe;
     });
   }
-  async function savePlayers(){ try{ await window.storage.set('players', JSON.stringify(players), false); }catch(e){ console.error(e); } }
-  async function saveMatches(){ try{ await window.storage.set('partidos', JSON.stringify(matches), false); }catch(e){ console.error(e); } }
+  // Separa el puntaje por posición (`p.scores`) del resto de los campos de Jugador antes de guardar:
+  // `players` (público) no lleva puntaje, `playerScores` (solo admin) sí — ver data-model.md → Jugador.
+  async function savePlayers(){
+    try{
+      const scoresById = {};
+      const publicPlayers = players.map(p => {
+        const { scores, ...rest } = p;
+        if(scores && Object.keys(scores).length > 0) scoresById[p.id] = scores;
+        return rest;
+      });
+      await window.storage.set('players', JSON.stringify(publicPlayers), false);
+      await window.storage.set('playerScores', JSON.stringify(scoresById), false);
+    }catch(e){ console.error(e); }
+  }
+  // Separa los datos internos de armado de equipos (estrategia utilizada, sumas de puntaje,
+  // swaps, info de arqueros, jugadores bloqueados) del resto de cada partido antes de guardar:
+  // `partidos` (público) conserva qué jugador quedó en qué equipo y su posición asignada,
+  // `partidosArmado` (solo admin) lleva el resto — ver data-model.md → Partido.
+  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria'];
+  async function saveMatches(){
+    try{
+      const armadoById = {};
+      const publicMatches = matches.map(m => {
+        const mPublic = { ...m };
+        delete mPublic.bloqueados;
+        if(m.equipos){
+          const equiposArmado = {};
+          const equiposPublic = { ...m.equipos };
+          CAMPOS_EQUIPOS_ARMADO.forEach(k => {
+            if(k in equiposPublic){ equiposArmado[k] = equiposPublic[k]; delete equiposPublic[k]; }
+          });
+          mPublic.equipos = equiposPublic;
+          armadoById[m.id] = { equipos: equiposArmado, bloqueados: m.bloqueados || [] };
+        }
+        return mPublic;
+      });
+      await window.storage.set('partidos', JSON.stringify(publicMatches), false);
+      await window.storage.set('partidosArmado', JSON.stringify(armadoById), false);
+    }catch(e){ console.error(e); }
+  }
   async function saveMotorConfig(){ try{ await window.storage.set('motorConfig', JSON.stringify(motorConfig), false); }catch(e){ console.error(e); } }
 
   function loadTestPlayers(){
+    if(!isAdmin()) return; // FR-003 — equivalente a crear jugadores
     // Utilidad SOLO para probar el prototipo — no forma parte de la spec.
     // Genera jugadores activos hasta cubrir el máximo de titulares que puede pedir cualquier cancha soportada.
     const maxTitulares = Math.max(...Object.values(CANCHAS).map(c => c.jugadoresPorEquipo * 2)); // hoy: 18 (Fútbol 9)
@@ -1074,7 +1196,7 @@
         <div class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
           <p>Aún no hay jugadores en el plantel.</p>
-          <button class="btn-primary" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>
+          ${isAdmin() ? `<button class="btn-primary" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
         </div>`;
       return;
     }
@@ -1089,6 +1211,8 @@
       const statsText = p.partidosJugados
         ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}⚽ · ${p.asistenciasTotales || 0}${BOOT_ICON}`
         : '—';
+      // "jugador" ve el listado completo (incluidos los jugadores sin puntaje) y las estadísticas
+      // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
       return `
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}">
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
@@ -1097,6 +1221,7 @@
             <div class="row-tags">${tags}</div>
             <div class="row-stats">${statsText}</div>
           </div>
+          ${isAdmin() ? `
           <div class="avg-chip">${avg !== null ? avg : '—'}</div>
           <button class="switch ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
           <button class="icon-btn" title="Editar" onclick="window.__editPlayer('${p.id}')">
@@ -1104,12 +1229,13 @@
           </button>
           <button class="icon-btn" title="Eliminar permanentemente" onclick="window.__deletePlayer('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>
+          </button>` : ''}
         </div>`;
     }).join('');
   }
 
   window.__toggleEstado = function(id){
+    if(!isAdmin()) return; // FR-003
     const p = players.find(pl => pl.id === id);
     if(!p) return;
     p.estado = p.estado === 'Activo' ? 'Inactivo' : 'Activo';
@@ -1117,11 +1243,13 @@
     renderPlayersTab();
   };
   window.__editPlayer = function(id){
+    if(!isAdmin()) return; // FR-003
     const p = players.find(pl => pl.id === id);
     if(p) openForm(p);
   };
 
   window.__deletePlayer = function(id){
+    if(!isAdmin()) return; // FR-003
     const p = players.find(pl => pl.id === id);
     if(!p) return;
     openConfirm(
@@ -1152,6 +1280,7 @@
   function closeForm(){ el('formWrap').classList.remove('open'); editingId = null; }
 
   function validateAndSave(){
+    if(!isAdmin()) return; // FR-003
     const data = validatePlayerForm('main', editingId);
     if(!data) return;
     if(editingId){
@@ -1484,6 +1613,7 @@
   }
 
   window.__generarEquipos = function(matchId){
+    if(!isAdmin()) return; // FR-008
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     const titularIds = getTitularIds(m);
@@ -1540,6 +1670,7 @@
   };
 
   window.__toggleInscripcion = function(matchId){
+    if(!isAdmin()) return; // FR-009
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !m.equipos || m.estado === 'Finalizado') return;
     m.inscripcionCerrada = !m.inscripcionCerrada;
@@ -1557,6 +1688,7 @@
   }
 
   window.__finalizarPartido = function(matchId){
+    if(!isAdmin()) return; // FR-009
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     openConfirm(
@@ -1594,8 +1726,9 @@
     );
   };
 
-  // Edición del resultado de un partido ya finalizado (solo para el administrador logueado — ver spec 005).
+  // Edición del resultado de un partido ya finalizado (solo para "admin" — FR-010).
   window.__editarResultadoFinalizado = function(matchId){
+    if(!isAdmin()) return;
     const m = matches.find(mm => mm.id === matchId);
     if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
     const stats = {};
@@ -1609,6 +1742,7 @@
   };
 
   window.__cancelarEdicionResultado = function(matchId){
+    if(!isAdmin()) return; // FR-010
     if(editandoResultadoFinalizado !== matchId) return;
     resultadoDraft = null;
     editandoResultadoFinalizado = null;
@@ -1616,6 +1750,7 @@
   };
 
   window.__guardarEdicionResultado = function(matchId){
+    if(!isAdmin()) return; // FR-010
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !resultadoDraft || resultadoDraft.matchId !== matchId) return;
     openConfirm(
@@ -1661,19 +1796,20 @@
       || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
       || p.principal;
     const esSecundaria = posAsignada !== p.principal;
-    const scoreEnPos = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : null;
-    const avg = computeAvg(p.scores);
     const finalizado = m.estado === 'Finalizado';
     const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
     const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
-    const editable = !cerrada && !finalizado;
+    // Cargar/editar el resultado de un partido es una acción administrativa (FR-010); "jugador"
+    // nunca ve los inputs de carga, solo el resultado ya finalizado (goles/asistencias son
+    // estadísticas visibles para todos, ver Clarifications).
+    const editable = isAdmin() && !cerrada && !finalizado;
     const bloqueado = (m.bloqueados || []).includes(p.id);
 
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
       const st = m.resultado.statsPorJugador[p.id] || {goles:0, asistencias:0};
       statsHtml = `<span class="team-stat-readonly">${st.goles}⚽ · ${st.asistencias}${BOOT_ICON}</span>`;
-    }else if(cerrada){
+    }else if(cerrada && isAdmin()){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
       const g = draft ? draft.goles : 0;
       // Un equipo que no hizo goles no puede tener asistencias cargadas (spec sección 5, Resultado).
@@ -1688,7 +1824,14 @@
         <span class="team-stat-label">${BOOT_ICON}</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>`;
     }
-    const valorMostrado = m.equipos.posicionAsignada ? (scoreEnPos > 0 ? scoreEnPos : 'sin puntaje') : (avg !== null ? avg : 'sin puntaje');
+    // Puntaje individual: nunca para "jugador" (FR-004/FR-013), sea propio o ajeno.
+    let puntajeHtml = '';
+    if(isAdmin()){
+      const scoreEnPos = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : null;
+      const avg = computeAvg(p.scores);
+      const valorMostrado = m.equipos.posicionAsignada ? (scoreEnPos > 0 ? scoreEnPos : 'sin puntaje') : (avg !== null ? avg : 'sin puntaje');
+      puntajeHtml = `<span class="team-avg">${valorMostrado}</span>`;
+    }
     const lockBtn = editable ? `
       <button class="icon-btn" title="${bloqueado ? 'Desbloquear' : 'Bloquear en este equipo'}" onclick="window.__toggleBloqueo('${m.id}','${p.id}')" style="${bloqueado?'color:var(--brick);':''}">
         ${bloqueado
@@ -1699,13 +1842,14 @@
       <div class="team-player-row" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${p.id}')"` : ''}>
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
         <span style="flex:1 1 auto;">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
-        <span class="team-avg">${valorMostrado}</span>
+        ${puntajeHtml}
         ${statsHtml}
         ${lockBtn}
       </div>`;
   }
 
   window.__toggleBloqueo = function(matchId, playerId){
+    if(!isAdmin()) return; // FR-006/FR-008: bloquear jugadores es parte del armado, exclusivo de admin.
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     m.bloqueados = m.bloqueados || [];
@@ -1716,16 +1860,19 @@
   };
 
   window.__dragStartJugador = function(e, playerId){
+    if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
     e.dataTransfer.setData('text/plain', playerId);
   };
 
   window.__dropOnTeam = function(e, matchId, targetTeam){
     e.preventDefault();
+    if(!isAdmin()) return; // FR-008
     const playerId = e.dataTransfer.getData('text/plain');
     if(playerId) window.__moverJugadorManual(matchId, playerId, targetTeam);
   };
 
   window.__moverJugadorManual = function(matchId, playerId, targetTeam){
+    if(!isAdmin()) return; // FR-008
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !m.equipos) return;
     const equipoActual = m.equipos.blanco.includes(playerId) ? 'blanco' : (m.equipos.negro.includes(playerId) ? 'negro' : null);
@@ -1758,7 +1905,8 @@
     const estrategiaActual = m.estrategia || 'estrategia1';
     const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
 
-    const selectorEstrategia = `
+    // Elegir/ver la estrategia de armado es exclusivo de "admin" (FR-005, FR-008).
+    const selectorEstrategia = isAdmin() ? `
       <div class="field" style="max-width:340px; margin-bottom:12px;">
         <label>Estrategia
           <span class="info-icon" tabindex="0" onclick="this.classList.toggle('show-tip')" onblur="this.classList.remove('show-tip')">?
@@ -1768,24 +1916,24 @@
         <select id="selectEstrategia" ${locked ? 'disabled' : ''}>
           ${Object.entries(ESTRATEGIAS).map(([key, e]) => `<option value="${key}" ${key===estrategiaActual?'selected':''}>${e.label}</option>`).join('')}
         </select>
-      </div>`;
+      </div>` : '';
 
     if(titularIds.length === 0){
       section.innerHTML = `<h3>Equipos</h3>${selectorEstrategia}<div class="empty-state"><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
-      bindSelectorEstrategia(m);
+      if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
 
     if(!m.equipos){
-      section.innerHTML = `<h3>Equipos</h3>${selectorEstrategia}<button class="btn-primary" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>`;
-      bindSelectorEstrategia(m);
+      section.innerHTML = isAdmin()
+        ? `<h3>Equipos</h3>${selectorEstrategia}<button class="btn-primary" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>`
+        : `<h3>Equipos</h3><div class="empty-state"><p>Todavía no se generaron los equipos de este partido.</p></div>`;
+      if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
 
     ensureResultadoDraft(m);
-    const stale = equiposStale(m);
     const eq = m.equipos;
-    const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
     const ordenPosicion = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
     function posDeJugador(p){
       return (eq.posicionAsignada && eq.posicionAsignada[p.id])
@@ -1797,6 +1945,38 @@
     }
     const blancoPlayers = ordenarPorPosicion(eq.blanco.map(id => players.find(p => p.id === id)).filter(Boolean));
     const negroPlayers = ordenarPorPosicion(eq.negro.map(id => players.find(p => p.id === id)).filter(Boolean));
+
+    if(!isAdmin()){
+      // "jugador" ve qué jugador quedó en qué equipo (con sus estadísticas, vía renderTeamPlayerRow),
+      // pero nunca estrategia, diferencia de puntaje, jugadores sin puntaje, bloqueados ni la
+      // explicación de armado (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
+      let golesBlanco = null, golesNegro = null;
+      if(m.estado === 'Finalizado' && m.resultado){
+        golesBlanco = eq.blanco.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
+        golesNegro = eq.negro.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
+      }
+      section.innerHTML = `
+        <h3>Equipos</h3>
+        <div class="teams-wrap">
+          <div class="team-panel blanco">
+            <h4>Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}</h4>
+            ${blancoPlayers.map(p => renderTeamPlayerRow(p, m)).join('')}
+          </div>
+          <div class="team-panel negro">
+            <h4>Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}</h4>
+            ${negroPlayers.map(p => renderTeamPlayerRow(p, m)).join('')}
+          </div>
+        </div>
+        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
+        </div>
+        ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
+      `;
+      return;
+    }
+
+    const stale = equiposStale(m);
+    const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
 
     function sinPuntajeCount(lista){
       return lista.filter(p => {
@@ -1988,15 +2168,16 @@
           </div>
           <div style="display:flex; align-items:center; gap:6px;">
             <span class="status-chip ${m.estado === 'Inscripción abierta' ? 'open' : ''}">${m.estado}</span>
-            <button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
+            ${isAdmin() ? `<button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>
+            </button>` : ''}
           </div>
         </div>`;
     }).join('');
   }
 
   function loadTestTitulares(matchId){
+    if(!isAdmin()) return; // puede crear jugadores nuevos — equivalente a FR-003
     // Utilidad SOLO para probar el prototipo — no forma parte de la spec.
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
@@ -2042,6 +2223,7 @@
   };
 
   window.__deleteMatch = function(id){
+    if(!isAdmin()) return; // FR-009b
     const m = matches.find(mm => mm.id === id);
     if(!m) return;
     openConfirm(`¿Eliminar el partido del ${formatFecha(m.fecha)}? Esta acción no se puede deshacer.`, () => {
@@ -2113,10 +2295,10 @@
           <span class="conv-badge-role ${isTitular ? 'titular' : 'suplente'}">${isTitular ? 'Titular' : 'Suplente'}</span>
           <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
           <div class="conv-name">${fullName(p)}</div>
-          ${locked ? '' : `
+          ${(!locked && (isAdmin() || p.id === window.session.jugadorId)) ? `
           <button class="icon-btn" title="Quitar del partido" onclick="window.__removeFromMatch('${m.id}','${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>`}
+          </button>` : ''}
         </div>`;
     }).join('');
   }
@@ -2157,6 +2339,8 @@
   };
 
   window.__removeFromMatch = function(matchId, playerId){
+    // "jugador" solo puede darse de baja a sí mismo; "admin" puede quitar a cualquiera (FR-011).
+    if(!isAdmin() && playerId !== window.session.jugadorId) return;
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     m.convocados = m.convocados.filter(id => id !== playerId);
@@ -2204,6 +2388,7 @@
   });
   el('btnMatchCancel').addEventListener('click', () => el('newMatchModal').classList.remove('open'));
   el('btnMatchSave').addEventListener('click', () => {
+    if(!isAdmin()) return; // FR-009b
     const fecha = el('mFecha').value;
     const cancha = el('mCancha').value;
     if(!fecha){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
@@ -2364,6 +2549,7 @@
   }
 
   window.__setEstrategiaDefault = function(key){
+    if(!isAdmin()) return; // FR-012: "jugador" no puede tocar la configuración del motor.
     if(!ESTRATEGIAS[key]) return;
     motorConfig.estrategia = key;
     saveMotorConfig();
@@ -2371,6 +2557,7 @@
     renderMatchesTab();
   };
   window.__moveRule = function(key, dir){
+    if(!isAdmin()) return; // FR-012
     // se reordena dentro de las reglas visibles (las que aplican a la estrategia elegida)
     const reglas = reglasOrdenadas().filter(r => reglaAplicaAEstrategia(r.key, motorConfig.estrategia));
     const idx = reglas.findIndex(r => r.key === key);
@@ -2383,6 +2570,7 @@
     renderMatchesTab();
   };
   window.__toggleRule = function(key){
+    if(!isAdmin()) return; // FR-012
     // Defensa en profundidad: una regla siempre fija nunca se apaga, aunque se invoque directo.
     if(REGLAS_CATALOGO[key] && REGLAS_CATALOGO[key].siempreFija) return;
     const r = reglaCfg(key);
@@ -2427,11 +2615,15 @@
       el('loginPassword').value = '';
       if(!appLoaded){
         appLoaded = true;
+        await resolveSession(user.uid);
+        document.body.classList.toggle('role-jugador', !isAdmin());
         await loadAll();
       }
     }else{
       appRoot.style.display = 'none';
       loginScreen.style.display = 'flex';
+      appLoaded = false; // permite recalcular el rol si se loguea otra cuenta distinta después
+      document.body.classList.remove('role-jugador');
     }
   });
 })();
