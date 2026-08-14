@@ -24,10 +24,10 @@ description: "Task list template for feature implementation"
 
 **Purpose**: Preparar Firestore (reglas + datos de prueba) antes de tocar código.
 
-**Nota**: T001-T004 son acciones manuales en la Consola de Firebase que requieren credenciales de acceso al proyecto — no se pudieron ejecutar como parte de la implementación en este entorno, pero se hicieron interactivamente en staging durante la validación. **Falta repetir T001 y T002 en `organizador-futbol` (prod)** antes de habilitar cuentas "jugador" ahí.
+**Nota**: T001-T004 son acciones manuales en la Consola de Firebase — se hicieron interactivamente durante la validación, en ambos proyectos.
 
-- [X] T001 Publicar las reglas de Firestore de [contracts/firestore-rules.md](./contracts/firestore-rules.md) en los proyectos `organizador-futbol-staging` y `organizador-futbol` (Consola de Firebase → Firestore Database → Rules → Publicar), reemplazando la regla única de `005-login-basico`. Hecho en staging (incluye los dos matches de flags de migración agregados durante la validación); **pendiente en prod**.
-- [X] T002 [P] Crear el documento `userRoles/{uid}` con `{ rol: "admin" }` para la cuenta admin ya existente, en `organizador-futbol-staging` y en `organizador-futbol` (Consola de Firebase → Firestore Database). Hecho en staging; **pendiente en prod**.
+- [X] T001 Publicar las reglas de Firestore de [contracts/firestore-rules.md](./contracts/firestore-rules.md) en los proyectos `organizador-futbol-staging` y `organizador-futbol` (Consola de Firebase → Firestore Database → Rules → Publicar), reemplazando la regla única de `005-login-basico`. Hecho en ambos proyectos (incluye los dos matches de flags de migración agregados durante la validación).
+- [X] T002 [P] Crear el documento `userRoles/{uid}` con `{ rol: "admin" }` para la cuenta admin ya existente, en `organizador-futbol-staging` y en `organizador-futbol` (Consola de Firebase → Firestore Database). Hecho en ambos proyectos.
 - [X] T003 [P] Crear una cuenta de Firebase Auth de prueba con rol "jugador" en `organizador-futbol-staging` (Authentication → Add user) y su documento `userRoles/{uid}` con `{ rol: "jugador", jugadorId: "<id de un jugador existente>" }`, según prerrequisitos de [quickstart.md](./quickstart.md).
 - [X] T004 [P] En `organizador-futbol-staging`, asegurar datos de prueba suficientes: al menos un jugador sin ningún puntaje cargado en `data/players`, y un partido con equipos ya generados donde el jugador de prueba esté anotado en la convocatoria junto a otro jugador (Consola de Firebase o la app logueada como admin).
 
