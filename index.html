@@ -203,6 +203,7 @@
   .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
   .team-panel.negro .team-stat-input{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); color: var(--chalk); }
   .team-stat-readonly{ font-family: var(--font-mono); font-size: 11px; opacity: 0.85; margin-left: 8px; flex-shrink:0; white-space: nowrap; }
+  .icon-boot{ vertical-align: -2px; margin-left: 1px; display: inline-block; }
   .explain-box{ background: var(--paper); border: 1px dashed var(--paper-line); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
@@ -734,6 +735,7 @@
   let currentMatchId = null;
   let matchSearchTerm = '';
   let resultadoDraft = null; // { matchId, stats: { [playerId]: {goles, asistencias} } } — borrador en memoria hasta "Finalizar partido"
+  let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
 
   const el = (id) => document.getElementById(id);
   const uid = (p) => (p||'id') + '_' + Date.now() + '_' + Math.floor(Math.random()*10000);
@@ -786,6 +788,7 @@
       .catch(() => window.__showToast('No se pudo copiar la formaci\u00f3n. Intent\u00e1 de nuevo.', 'error'));
   };
 
+  const BOOT_ICON = '<img class="icon-boot" src="assets/boot-icon.png" alt="Asistencias" width="14" height="13">';
   function computeAvg(scores){
     const vals = POSITIONS.map(p => scores[p]).filter(v => v !== null && v !== undefined && v !== '');
     if(vals.length === 0) return null;
@@ -810,9 +813,58 @@
     catch(e){ matches = []; }
     try{ const res3 = await window.storage.get('motorConfig', false); motorConfig = normalizeMotorConfig(res3 && res3.value ? JSON.parse(res3.value) : null); }
     catch(e){ motorConfig = defaultMotorConfig(); }
+    // Migración única: los partidos finalizados antes de agregar ganados/empatados/perdidos no los tienen
+    // acumulados. Se recalculan una sola vez a partir del historial guardado; de ahí en más el flujo normal
+    // es que __finalizarPartido los sume incrementalmente al finalizar cada partido (FR-009/FR-010).
+    let migrado = false;
+    try{ const resM = await window.storage.get('statsGanadosEmpatadosPerdidosMigrado', false); migrado = !!(resM && resM.value); }
+    catch(e){ migrado = false; }
+    if(!migrado){
+      recomputeAllPlayerStatsFromMatches();
+      await savePlayers();
+      try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
+    }
     renderPlayersTab();
     renderMatchesTab();
     renderMotorTab();
+  }
+
+  // Recalcula partidos jugados/ganados/empatados/perdidos/goles/asistencias de todos los jugadores
+  // desde cero, a partir del historial de partidos finalizados (fuente de verdad). Se usa como
+  // migración única (ver loadAll) y también al guardar la edición del resultado de un partido ya
+  // finalizado, para que las estadísticas acumuladas queden consistentes con el nuevo resultado.
+  function recomputeAllPlayerStatsFromMatches(){
+    const totales = {};
+    players.forEach(p => { totales[p.id] = { pj: 0, g: 0, e: 0, pe: 0, goles: 0, asistencias: 0 }; });
+    matches.forEach(m => {
+      if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos || !m.equipos.blanco || !m.equipos.negro) return;
+      const stats = m.resultado.statsPorJugador || {};
+      const golesPorEquipo = { blanco: 0, negro: 0 };
+      Object.entries(stats).forEach(([playerId, st]) => {
+        const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
+        golesPorEquipo[equipo] += (st.goles || 0);
+      });
+      Object.entries(stats).forEach(([playerId, st]) => {
+        if(!totales[playerId]) return;
+        const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
+        const rival = equipo === 'blanco' ? 'negro' : 'blanco';
+        totales[playerId].pj++;
+        totales[playerId].goles += (st.goles || 0);
+        totales[playerId].asistencias += (st.asistencias || 0);
+        if(golesPorEquipo[equipo] > golesPorEquipo[rival]) totales[playerId].g++;
+        else if(golesPorEquipo[equipo] < golesPorEquipo[rival]) totales[playerId].pe++;
+        else totales[playerId].e++;
+      });
+    });
+    players.forEach(p => {
+      const t = totales[p.id];
+      p.partidosJugados = t.pj;
+      p.golesTotales = t.goles;
+      p.asistenciasTotales = t.asistencias;
+      p.partidosGanados = t.g;
+      p.partidosEmpatados = t.e;
+      p.partidosPerdidos = t.pe;
+    });
   }
   async function savePlayers(){ try{ await window.storage.set('players', JSON.stringify(players), false); }catch(e){ console.error(e); } }
   async function saveMatches(){ try{ await window.storage.set('partidos', JSON.stringify(matches), false); }catch(e){ console.error(e); } }
@@ -1034,7 +1086,9 @@
       const avg = computeAvg(p.scores);
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
-      const statsText = p.partidosJugados ? `${p.partidosJugados} PJ · ${p.golesTotales || 0}G · ${p.asistenciasTotales || 0}A` : '—';
+      const statsText = p.partidosJugados
+        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}⚽ · ${p.asistenciasTotales || 0}${BOOT_ICON}`
+        : '—';
       return `
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}">
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
@@ -1512,29 +1566,85 @@
         m.resultado = { statsPorJugador: {...resultadoDraft.stats}, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
         // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
+        const golesPorEquipo = { blanco: 0, negro: 0 };
+        Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
+          const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
+          golesPorEquipo[equipo] += (st.goles || 0);
+        });
         Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
           const p = players.find(pl => pl.id === playerId);
           if(!p) return;
+          const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
+          const rival = equipo === 'blanco' ? 'negro' : 'blanco';
           p.partidosJugados = (p.partidosJugados || 0) + 1;
           p.golesTotales = (p.golesTotales || 0) + (st.goles || 0);
           p.asistenciasTotales = (p.asistenciasTotales || 0) + (st.asistencias || 0);
+          // Ganado/perdido/empatado según el resultado del equipo del jugador frente al rival (FR-009).
+          if(golesPorEquipo[equipo] > golesPorEquipo[rival]) p.partidosGanados = (p.partidosGanados || 0) + 1;
+          else if(golesPorEquipo[equipo] < golesPorEquipo[rival]) p.partidosPerdidos = (p.partidosPerdidos || 0) + 1;
+          else p.partidosEmpatados = (p.partidosEmpatados || 0) + 1;
         });
         saveMatches();
         savePlayers();
         resultadoDraft = null;
+        renderPlayersTab();
         renderMatchesTab();
       },
       { okLabel: 'Finalizar', okColor: 'var(--pitch)' }
     );
   };
 
+  // Edición del resultado de un partido ya finalizado (solo para el administrador logueado — ver spec 005).
+  window.__editarResultadoFinalizado = function(matchId){
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
+    const stats = {};
+    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
+      const st = m.resultado.statsPorJugador[id] || { goles: 0, asistencias: 0 };
+      stats[id] = { goles: st.goles || 0, asistencias: st.asistencias || 0 };
+    });
+    resultadoDraft = { matchId: m.id, stats };
+    editandoResultadoFinalizado = m.id;
+    renderMatchesTab();
+  };
+
+  window.__cancelarEdicionResultado = function(matchId){
+    if(editandoResultadoFinalizado !== matchId) return;
+    resultadoDraft = null;
+    editandoResultadoFinalizado = null;
+    renderMatchesTab();
+  };
+
+  window.__guardarEdicionResultado = function(matchId){
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !resultadoDraft || resultadoDraft.matchId !== matchId) return;
+    openConfirm(
+      '¿Guardar los cambios en el resultado? Se van a recalcular las estadísticas acumuladas de los jugadores convocados.',
+      () => {
+        if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
+        m.resultado.statsPorJugador = {...resultadoDraft.stats};
+        m.resultado.editadoEn = Date.now();
+        recomputeAllPlayerStatsFromMatches();
+        saveMatches();
+        savePlayers();
+        resultadoDraft = null;
+        editandoResultadoFinalizado = null;
+        renderPlayersTab();
+        renderMatchesTab();
+      },
+      { okLabel: 'Guardar', okColor: 'var(--pitch)' }
+    );
+  };
+
   function teamHeaderTotalText(ids, sumaPts, m){
     let text = `${Math.round(sumaPts*10)/10} pts`;
     let goles = null;
-    if(m.estado === 'Finalizado' && m.resultado){
-      goles = ids.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
-    }else if(m.inscripcionCerrada && resultadoDraft && resultadoDraft.matchId === m.id){
+    if(resultadoDraft && resultadoDraft.matchId === m.id){
+      // Mientras hay un borrador activo (carga inicial o edición de un resultado finalizado), el
+      // total del equipo tiene que reflejar lo que se está tipeando, no el resultado ya guardado.
       goles = ids.reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0);
+    }else if(m.estado === 'Finalizado' && m.resultado){
+      goles = ids.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
     }
     if(goles !== null) text += ` · ${goles} gol${goles===1?'':'es'}`;
     return text;
@@ -1554,14 +1664,15 @@
     const scoreEnPos = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : null;
     const avg = computeAvg(p.scores);
     const finalizado = m.estado === 'Finalizado';
-    const cerrada = m.inscripcionCerrada && !finalizado;
+    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
+    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
     const editable = !cerrada && !finalizado;
     const bloqueado = (m.bloqueados || []).includes(p.id);
 
     let statsHtml = '';
-    if(finalizado && m.resultado){
+    if(finalizado && m.resultado && !editandoFinalizado){
       const st = m.resultado.statsPorJugador[p.id] || {goles:0, asistencias:0};
-      statsHtml = `<span class="team-stat-readonly">${st.goles}G · ${st.asistencias}A</span>`;
+      statsHtml = `<span class="team-stat-readonly">${st.goles}⚽ · ${st.asistencias}${BOOT_ICON}</span>`;
     }else if(cerrada){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
       const g = draft ? draft.goles : 0;
@@ -1572,9 +1683,9 @@
       const asisHabil = golesEquipo > 0;
       const a = (draft && asisHabil) ? draft.asistencias : 0;
       statsHtml = `
-        <span class="team-stat-label">G</span>
+        <span class="team-stat-label">⚽</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
-        <span class="team-stat-label">A</span>
+        <span class="team-stat-label">${BOOT_ICON}</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>`;
     }
     const valorMostrado = m.equipos.posicionAsignada ? (scoreEnPos > 0 ? scoreEnPos : 'sin puntaje') : (avg !== null ? avg : 'sin puntaje');
@@ -1807,8 +1918,13 @@
         <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
         ${!locked ? `<button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')">Regenerar equipos</button>` : ''}
         ${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? `<button class="btn-primary" onclick="window.__finalizarPartido('${m.id}')">Finalizar partido</button>` : ''}
+        ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<button class="btn-ghost" onclick="window.__editarResultadoFinalizado('${m.id}')">Editar resultado</button>` : ''}
+        ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `
+          <button class="btn-primary" onclick="window.__guardarEdicionResultado('${m.id}')">Guardar cambios</button>
+          <button class="btn-ghost" onclick="window.__cancelarEdicionResultado('${m.id}')">Cancelar</button>` : ''}
       </div>
-      ${m.estado === 'Finalizado' ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados — cuando construyamos el Historial, se van a usar desde ahí.</div>` : ''}
+      ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados — cuando construyamos el Historial, se van a usar desde ahí.</div>` : ''}
+      ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `<div class="explain-box" style="margin-top:14px;">Editando el resultado de un partido finalizado. Al guardar, se van a recalcular los partidos jugados, ganados, empatados, perdidos, goles y asistencias de todos los jugadores convocados.</div>` : ''}
     `;
     bindSelectorEstrategia(m);
 
@@ -1919,6 +2035,9 @@
   window.__openMatch = function(id){
     currentMatchId = id;
     matchSearchTerm = '';
+    // No se toca resultadoDraft acá: si el partido tiene inscripción cerrada sin finalizar, puede haber
+    // un borrador de resultado sin guardar que hay que conservar al reabrir el mismo partido.
+    editandoResultadoFinalizado = null;
     renderMatchesTab();
   };
 
