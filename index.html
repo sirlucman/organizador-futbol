@@ -161,6 +161,7 @@
   .match-meta{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
   .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: 20px; background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
   .status-chip.open{ background: var(--pitch); color: var(--chalk); border-color: var(--pitch); }
+  .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--paper-line); }
   .match-result-team{ border-radius: 8px; padding: 10px 12px; text-align:center; }
@@ -442,7 +443,7 @@
           <h2 id="detailFecha"></h2>
           <div class="match-meta" id="detailMeta"></div>
         </div>
-        <span class="status-chip open" id="detailEstado"></span>
+        <span class="status-chip" id="detailEstado"></span>
         <button class="btn-ghost admin-only" id="btnToggleInscripcion" style="display:none;"></button>
         <button class="icon-btn admin-only" id="btnDeleteMatch" title="Eliminar partido">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
@@ -2156,6 +2157,15 @@
     else{ renderMatchList(); }
   }
 
+  // Clase de color del chip de estado del partido: verde para inscripción abierta, terracota
+  // para equipos ya generados (aún no finalizado), y el gris neutro por defecto para el resto
+  // (incluido "Finalizado", que ya se distingue por texto).
+  function statusChipClass(estado){
+    if(estado === 'Inscripción abierta') return 'open';
+    if(estado === 'Equipos generados') return 'teams-ready';
+    return '';
+  }
+
   function renderMatchList(){
     el('matchesListView').style.display = '';
     el('matchDetailView').style.display = 'none';
@@ -2181,7 +2191,7 @@
               <div class="match-meta">${canchaLabel(m)} · ${titulares}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span class="status-chip ${m.estado === 'Inscripción abierta' ? 'open' : ''}">${m.estado}</span>
+              <span class="status-chip ${statusChipClass(m.estado)}">${m.estado}</span>
               ${isAdmin() ? `<button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>` : ''}
@@ -2285,6 +2295,7 @@
 
     el('detailFecha').textContent = formatFecha(m.fecha);
     el('detailEstado').textContent = m.estado;
+    el('detailEstado').className = `status-chip ${statusChipClass(m.estado)}`;
     const req = titularesRequeridos(m);
     const titularesCount = Math.min(m.convocados.length, req);
     const suplentesCount = Math.max(0, m.convocados.length - req);
