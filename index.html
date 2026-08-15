@@ -154,12 +154,23 @@
   .footnote{ text-align:center; font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 18px; }
 
   .match-list{ display:flex; flex-direction:column; gap:10px; }
-  .match-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 16px 18px; display:flex; justify-content:space-between; align-items:center; cursor:pointer; transition: box-shadow .15s ease; gap: 10px; }
+  .match-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 16px 18px; display:flex; flex-direction:column; gap: 12px; cursor:pointer; transition: box-shadow .15s ease; }
   .match-card:hover{ box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .match-card-top{ display:flex; justify-content:space-between; align-items:center; gap: 10px; }
   .match-date{ font-family: var(--font-display); font-size: 17px; text-transform: capitalize; }
   .match-meta{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
   .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: 20px; background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
   .status-chip.open{ background: var(--pitch); color: var(--chalk); border-color: var(--pitch); }
+
+  .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--paper-line); }
+  .match-result-team{ border-radius: 8px; padding: 10px 12px; text-align:center; }
+  .match-result-team.blanco{ background: var(--paper); border: 1px solid var(--paper-line); }
+  .match-result-team.negro{ background: var(--ink); color: var(--chalk); }
+  .match-result-name{ font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
+  .match-result-goals{ font-family: var(--font-display); font-size: 26px; line-height: 1.3; }
+  .match-result-scorers{ font-family: var(--font-mono); font-size: 11px; margin-top: 6px; display:flex; flex-direction:column; gap: 2px; }
+  .match-result-scorers .scorer-empty{ opacity: 0.55; }
+  @media (max-width: 480px){ .match-result{ grid-template-columns: 1fr; } }
 
   .back-link{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); cursor: pointer; display:inline-flex; gap:6px; align-items:center; margin-bottom: 14px; background:none; border:none; padding:0; }
   .back-link:hover{ color: var(--ink); }
@@ -2164,18 +2175,48 @@
       const suplentes = Math.max(0, m.convocados.length - req);
       return `
         <div class="match-card" onclick="window.__openMatch('${m.id}')">
-          <div>
-            <div class="match-date">${formatFecha(m.fecha)}</div>
-            <div class="match-meta">${canchaLabel(m)} · ${titulares}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
+          <div class="match-card-top">
+            <div>
+              <div class="match-date">${formatFecha(m.fecha)}</div>
+              <div class="match-meta">${canchaLabel(m)} · ${titulares}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span class="status-chip ${m.estado === 'Inscripción abierta' ? 'open' : ''}">${m.estado}</span>
+              ${isAdmin() ? `<button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              </button>` : ''}
+            </div>
           </div>
-          <div style="display:flex; align-items:center; gap:6px;">
-            <span class="status-chip ${m.estado === 'Inscripción abierta' ? 'open' : ''}">${m.estado}</span>
-            ${isAdmin() ? `<button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-            </button>` : ''}
-          </div>
+          ${matchResultSummaryHtml(m)}
         </div>`;
     }).join('');
+  }
+
+  // Resumen del resultado (goles y goleadores por equipo) para la tarjeta del partido en la lista.
+  function matchResultSummaryHtml(m){
+    if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return '';
+    const stats = m.resultado.statsPorJugador || {};
+    function equipoHtml(ids, nombre, claseEquipo){
+      const goles = ids.reduce((s,id) => s + ((stats[id]||{}).goles||0), 0);
+      const goleadores = ids
+        .map(id => ({ p: players.find(pl => pl.id === id), goles: (stats[id]||{}).goles || 0 }))
+        .filter(x => x.p && x.goles > 0)
+        .sort((a,b) => b.goles - a.goles);
+      const scorersHtml = goleadores.length
+        ? goleadores.map(x => `<div>${fullName(x.p)} (${x.goles})</div>`).join('')
+        : `<div class="scorer-empty">Sin goleadores</div>`;
+      return `
+        <div class="match-result-team ${claseEquipo}">
+          <div class="match-result-name">${nombre}</div>
+          <div class="match-result-goals">${goles}</div>
+          <div class="match-result-scorers">${scorersHtml}</div>
+        </div>`;
+    }
+    return `
+      <div class="match-result" onclick="event.stopPropagation()">
+        ${equipoHtml(m.equipos.blanco, 'Equipo Blanco', 'blanco')}
+        ${equipoHtml(m.equipos.negro, 'Equipo Negro', 'negro')}
+      </div>`;
   }
 
   function loadTestTitulares(matchId){
