@@ -207,7 +207,9 @@
   .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
   .team-panel.negro .team-stat-input{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); color: var(--chalk); }
   .team-stat-readonly{ font-family: var(--font-mono); font-size: 11px; opacity: 0.85; margin-left: 8px; flex-shrink:0; white-space: nowrap; }
-  .icon-boot{ vertical-align: -2px; margin-left: 1px; display: inline-block; }
+  .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
+  .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
+  .stat-goal-icon{ margin-left: 3px; }
   .explain-box{ background: var(--paper); border: 1px dashed var(--paper-line); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
@@ -1209,7 +1211,7 @@
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
       const statsText = p.partidosJugados
-        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}⚽ · ${p.asistenciasTotales || 0}${BOOT_ICON}`
+        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">⚽</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
         : '—';
       // "jugador" ve el listado completo (incluidos los jugadores sin puntaje) y las estadísticas
       // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
@@ -1808,7 +1810,7 @@
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
       const st = m.resultado.statsPorJugador[p.id] || {goles:0, asistencias:0};
-      statsHtml = `<span class="team-stat-readonly">${st.goles}⚽ · ${st.asistencias}${BOOT_ICON}</span>`;
+      statsHtml = `<span class="team-stat-readonly">${st.goles}<span class="stat-goal-icon">⚽</span> · ${st.asistencias}${BOOT_ICON}</span>`;
     }else if(cerrada && isAdmin()){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
       const g = draft ? draft.goles : 0;
