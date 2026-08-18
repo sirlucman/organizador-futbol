@@ -146,6 +146,13 @@
   .icon-btn{ background: none; border:none; cursor:pointer; color: var(--muted); padding: 4px; flex-shrink:0; display:flex; align-items:center; }
   .icon-btn:hover{ color: var(--ink); }
   .icon-btn svg{ width:16px; height:16px; }
+  /* Ícono de dupla (dos camisetas): más ancho que alto, a diferencia del resto de los icon-btn
+     (16x16) — se mantiene su proporción real en vez de forzarlo a un cuadrado (quedaría ilegible). */
+  img.icon-dupla{ width:26px; height:20px; object-fit:contain; vertical-align:middle; flex-shrink:0; }
+  .icon-btn-dupla img.icon-dupla{ width:30px; height:23px; }
+  /* Mismo mecanismo que ya usa `.icon-boot`: sobre el panel oscuro de Equipo Negro, el ícono
+     (líneas oscuras sobre transparente) se invierte a blanco para seguir siendo visible. */
+  .team-panel.negro img.icon-dupla{ filter: brightness(0) invert(1); }
 
   .empty-state{ text-align:center; padding: 50px 20px; color: var(--muted); }
   .empty-state svg{ width: 40px; height:40px; opacity:0.35; margin-bottom: 10px; }
@@ -197,6 +204,14 @@
   .conv-name{ flex: 1 1 auto; font-size: 14.5px; font-weight: 600; }
   .conv-summary{ display:flex; gap:10px; margin-top: 14px; flex-wrap: wrap; }
 
+  /* Dupla de rotación agrupada en un mismo renglón: un integrante arriba, el otro abajo, dentro
+     de un único recuadro — se ve como una sola unidad, no como dos filas sueltas. */
+  .conv-row-dupla{ align-items: stretch; }
+  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px dashed var(--paper-line); border-radius:8px; padding:8px 10px; background: var(--paper); }
+  .conv-dupla-member{ display:flex; align-items:center; gap:10px; }
+  .conv-dupla-member .conv-pos-badge{ width:22px; height:22px; }
+  .conv-dupla-member .conv-name{ font-size: 14px; }
+
   /* ---------- Equipos (Slice 3) ---------- */
   .teams-section{ margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--paper-line); }
   .teams-section h3{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
@@ -219,6 +234,16 @@
   .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
   .team-panel.negro .team-stat-input{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); color: var(--chalk); }
   .team-stat-readonly{ font-family: var(--font-mono); font-size: 11px; opacity: 0.85; margin-left: 8px; flex-shrink:0; white-space: nowrap; }
+
+  /* Dupla de rotación agrupada en un mismo renglón dentro del equipo generado: un integrante
+     arriba, el otro abajo, comparten posición/candado pero cada uno con su propio puntaje y
+     carga de goles/asistencias (FR-013/FR-014). */
+  .team-player-row-dupla{ align-items: flex-start; padding-top: 8px; padding-bottom: 8px; }
+  .team-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .team-dupla-member{ display:flex; align-items:center; gap:4px; }
+  .team-dupla-name{ flex: 1 1 auto; min-width:0; }
+  .team-dupla-side{ display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; }
+  .team-dupla-marker{ opacity:0.65; display:flex; align-items:center; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
   .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
   .stat-goal-icon{ margin-left: 3px; }
@@ -527,6 +552,21 @@
   </div>
 </div>
 
+<!-- Modal: agregar rotación (dupla) -->
+<div class="modal-overlay" id="duplaModal">
+  <div class="modal-card">
+    <h3>Agregar rotación</h3>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Buscar jugador</label>
+      <input type="text" id="duplaSearchInput" placeholder="Nombre del compañero de rotación...">
+    </div>
+    <div id="duplaResultsList" style="max-height:240px; overflow:auto; margin-bottom:12px;"></div>
+    <div class="card-actions">
+      <button class="btn-ghost" id="btnDuplaCancel">Cancelar</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
@@ -779,6 +819,9 @@
   let matchSearchTerm = '';
   let resultadoDraft = null; // { matchId, stats: { [playerId]: {goles, asistencias} } } — borrador en memoria hasta "Finalizar partido"
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
+  let duplaModalMatchId = null; // partido para el que se está eligiendo compañero de rotación
+  let duplaModalPlayerId = null; // fila (jugador) desde la que se abrió "Agregar rotación"
+  let duplaSearchTerm = '';
 
   const el = (id) => document.getElementById(id);
   const uid = (p) => (p||'id') + '_' + Date.now() + '_' + Math.floor(Math.random()*10000);
@@ -832,6 +875,13 @@
   };
 
   const BOOT_ICON = '<img class="icon-boot" src="assets/boot-icon.png" alt="Asistencias" width="14" height="13">';
+
+  // Íconos de dupla: imágenes provistas (dos camisetas con flecha de intercambio / tachadas),
+  // con el fondo ya recortado a transparente. En el panel "Equipo Negro" (fondo oscuro) se
+  // invierten a blanco vía CSS (`.team-panel.negro img.icon-dupla`), mismo mecanismo que ya usa
+  // `.icon-boot` en ese panel — ver CSS `.team-panel.negro .icon-boot`.
+  const ICON_DUPLA_CREAR = '<img class="icon-dupla" src="assets/dupla-crear.png" alt="Crear dupla de rotación">';
+  const ICON_DUPLA_ELIMINAR = '<img class="icon-dupla" src="assets/dupla-eliminar.png" alt="Deshacer dupla de rotación">';
   function computeAvg(scores){
     const vals = POSITIONS.map(p => scores[p]).filter(v => v !== null && v !== undefined && v !== '');
     if(vals.length === 0) return null;
@@ -865,6 +915,10 @@
     // computeAvg/puntajeEnPosicion sigan funcionando igual para "jugador" (que no lo carga —
     // ver más abajo) que para un jugador real sin ningún puntaje cargado (FR-013).
     players.forEach(p => { if(!p.scores) p.scores = {}; });
+    // Duplas de rotación (008-duplas-rotacion): partidos guardados antes de esta feature no
+    // tienen el campo — se normaliza a un array vacío para que el resto del código pueda
+    // asumir siempre que `m.duplas` existe.
+    matches.forEach(m => { if(!m.duplas) m.duplas = []; });
 
     // El puntaje por jugador y los datos internos de armado de equipos (estrategia, sumas,
     // swaps, etc.) viven en documentos aparte, legibles solo por "admin" — ver data-model.md
@@ -981,7 +1035,7 @@
   // swaps, info de arqueros, jugadores bloqueados) del resto de cada partido antes de guardar:
   // `partidos` (público) conserva qué jugador quedó en qué equipo y su posición asignada,
   // `partidosArmado` (solo admin) lleva el resto — ver data-model.md → Partido.
-  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria'];
+  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','duplasSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria'];
   async function saveMatches(){
     try{
       const armadoById = {};
@@ -1000,7 +1054,11 @@
         return mPublic;
       });
       await window.storage.set('partidos', JSON.stringify(publicMatches), false);
-      await window.storage.set('partidosArmado', JSON.stringify(armadoById), false);
+      // `partidosArmado` es de escritura exclusiva de "admin" (Firestore Rules de
+      // 007-permisos-por-usuario); un "jugador" nunca cambia esos datos, así que ni se intenta
+      // guardarlos — evita un error de permisos innecesario en cada acción de "jugador" sobre un
+      // partido con equipos ya generados (p. ej. baja de convocatoria, duplas).
+      if(isAdmin()) await window.storage.set('partidosArmado', JSON.stringify(armadoById), false);
     }catch(e){ console.error(e); }
   }
   async function saveMotorConfig(){ try{ await window.storage.set('motorConfig', JSON.stringify(motorConfig), false); }catch(e){ console.error(e); } }
@@ -1331,8 +1389,56 @@
     });
   });
 
+  // Duplas de rotación (008-duplas-rotacion): devuelve el id del compañero de rotación de
+  // `playerId` en este partido, o null si no está vinculado (ver data-model.md → Dupla).
+  function getDuplaPartner(m, playerId){
+    const par = (m.duplas || []).find(par => par.includes(playerId));
+    if(!par) return null;
+    return par[0] === playerId ? par[1] : par[0];
+  }
+
+  // Vista derivada que colapsa `convocados` + `duplas` en una lista ordenada de "unidades" de
+  // convocatoria: cada unidad ocupa un único lugar en la cola de titulares/suplentes, sea un
+  // jugador individual (`ids: [id]`) o una dupla (`ids: [idA, idB]`). La unidad-dupla se emite
+  // en la posición del PRIMER integrante que aparece en `convocados` (la del segundo se omite),
+  // implementando la clarificación de sesión 2026-08-17 sin mover ni reescribir `convocados`
+  // — ver research.md #2.
+  function getUnidadesConvocatoria(m){
+    const emitido = new Set();
+    const unidades = [];
+    (m.convocados || []).forEach(id => {
+      if(emitido.has(id)) return;
+      const partnerId = getDuplaPartner(m, id);
+      if(partnerId){
+        unidades.push({ ids: [id, partnerId] });
+        emitido.add(id); emitido.add(partnerId);
+      }else{
+        unidades.push({ ids: [id] });
+        emitido.add(id);
+      }
+    });
+    return unidades;
+  }
+
   function getTitularIds(m){
-    return m.convocados.slice(0, titularesRequeridos(m));
+    return getUnidadesConvocatoria(m).slice(0, titularesRequeridos(m)).flatMap(u => u.ids);
+  }
+
+  // Conteo de titulares/suplentes para los resúmenes de la interfaz: una dupla titular aporta
+  // sus DOS ids al conteo de titulares aunque ocupe una sola vacante (FR-004b/FR-005). `vacantes`
+  // es la cantidad de VACANTES (no de ids) todavía sin ocupar, para no confundir "faltan jugadores"
+  // con "faltan ids" cuando hay duplas de por medio.
+  function contarTitularesSuplentes(m){
+    const req = titularesRequeridos(m);
+    const unidades = getUnidadesConvocatoria(m);
+    const titularUnidades = unidades.slice(0, req);
+    const titularesIds = titularUnidades.flatMap(u => u.ids);
+    return {
+      titulares: titularesIds.length, // jugadores (ids reales) ocupando alguna vacante de titular
+      suplentes: m.convocados.length - titularesIds.length,
+      slotsOcupados: titularUnidades.length, // vacantes de titular efectivamente ocupadas (una dupla ocupa 1)
+      vacantes: Math.max(0, req - unidades.length) // vacantes de titular sin ningún candidato
+    };
   }
 
   function motorConfigHash(){
@@ -1340,10 +1446,19 @@
     return JSON.stringify(reglasOrdenadas().map(r => ({ k:r.key, e:r.enabled, p:r.prioridad, pa:r.params })));
   }
 
+  // Forma canónica de `m.duplas` para poder compararla entre dos momentos (ver equiposStale):
+  // ordena cada par y ordena la lista de pares, para que el orden de creación/edición no importe.
+  function canonicalDuplas(m){
+    return JSON.stringify((m.duplas || []).map(par => [...par].sort()).sort((a,b) => (a[0]+a[1]).localeCompare(b[0]+b[1])));
+  }
+
   function equiposStale(m){
     if(!m.equipos) return false;
     if(m.equipos.estrategiaKey !== (m.estrategia || 'estrategia1')) return true;
     if((m.equipos.configHash || null) !== motorConfigHash()) return true; // cambió la config del motor
+    // Deshacer/crear una dupla puede no cambiar el CONJUNTO de ids titulares (si no hay suplente
+    // para promover) pero sí cambia cómo el motor los agrupó para calcular el balance — FR-015.
+    if((m.equipos.duplasSnapshot || '[]') !== canonicalDuplas(m)) return true;
     const current = [...getTitularIds(m)].sort();
     const snapshot = [...m.equipos.titularesSnapshot].sort();
     if(current.length !== snapshot.length) return true;
@@ -1626,12 +1741,86 @@
     return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
   }
 
+  // Duplas de rotación (008-duplas-rotacion, FR-007/FR-008/FR-009): construye un candidato
+  // sintético con la misma forma que un Jugador ({id, principal, secundarias, scores}) para que
+  // el motor evalúe a la dupla como una sola unidad de balance, sin tocar la lógica interna de
+  // las estrategias ni de resolverArqueros (que siguen operando sobre "candidatos" genéricos).
+  function construirUnidadDupla(pA, pB){
+    const avgA = computeAvg(pA.scores);
+    const avgB = computeAvg(pB.scores);
+    let valorCombinado;
+    if(avgA !== null && avgB !== null) valorCombinado = Math.round(((avgA + avgB) / 2) * 10) / 10;
+    else if(avgA !== null) valorCombinado = avgA;
+    else if(avgB !== null) valorCombinado = avgB;
+    else valorCombinado = null;
+    // El mismo valor combinado en las 4 posiciones: computeAvg/puntajeEnPosicion siguen
+    // funcionando sin cambios (FR-008 no distingue el valor de la dupla por posición).
+    const scoresUnidad = {};
+    POSITIONS.forEach(pos => { scoresUnidad[pos] = valorCombinado; });
+    // Candidatos de posición principal: la de cada integrante (FR-008). Si ambos son arqueros
+    // naturales, la unidad ES arquero (único candidato, FR-009); si solo uno lo es, la unidad NO
+    // se trata como natural (para no forzar a su compañero no-arquero al arco) — el integrante
+    // arquero queda disponible como candidato "por secundaria" más abajo.
+    const principales = [pA.principal, pB.principal];
+    let principal;
+    if(principales.every(pos => pos === 'Arquero')) principal = 'Arquero';
+    else if(pA.principal === 'Arquero') principal = pB.principal;
+    else principal = pA.principal;
+    const secundarias = Array.from(new Set([
+      ...principales, ...(pA.secundarias || []), ...(pB.secundarias || [])
+    ].filter(pos => pos !== principal)));
+    return { id: pA.id + '+' + pB.id, principal, secundarias, scores: scoresUnidad, _duplaIds: [pA.id, pB.id] };
+  }
+
+  // Unidades de armado para el motor: unidades individuales (jugador real, sin cambios) o duplas
+  // (candidato sintético de construirUnidadDupla), en la misma posición/orden que ocuparían como
+  // titulares — ver data-model.md → "Unidad de armado".
+  function getUnidadesDeArmado(m){
+    const req = titularesRequeridos(m);
+    return getUnidadesConvocatoria(m).slice(0, req).map(u => {
+      if(u.ids.length === 1) return players.find(p => p.id === u.ids[0]) || null;
+      const pA = players.find(p => p.id === u.ids[0]);
+      const pB = players.find(p => p.id === u.ids[1]);
+      return (pA && pB) ? construirUnidadDupla(pA, pB) : null;
+    }).filter(Boolean);
+  }
+
+  // Después de que las estrategias arman blanco/negro/posicionAsignada/etc. usando el id sintético
+  // de cada unidad-dupla, esta función lo reemplaza por los DOS ids reales (FR-013/FR-014: el
+  // roster generado sigue siendo de jugadores reales, nunca de un id combinado).
+  function expandirUnidadesEnResultado(resultado, unidadPorId){
+    const expandirLista = (ids) => (ids || []).flatMap(id => unidadPorId[id] || [id]);
+    const expandirMapa = (mapa) => {
+      if(!mapa) return mapa;
+      const out = {};
+      Object.entries(mapa).forEach(([id, val]) => {
+        (unidadPorId[id] || [id]).forEach(realId => { out[realId] = val; });
+      });
+      return out;
+    };
+    const expandirEventos = (lista) => (lista || []).flatMap(ev =>
+      unidadPorId[ev.playerId] ? unidadPorId[ev.playerId].map(realId => ({ ...ev, playerId: realId })) : [ev]
+    );
+    return {
+      ...resultado,
+      blanco: expandirLista(resultado.blanco),
+      negro: expandirLista(resultado.negro),
+      posicionAsignada: expandirMapa(resultado.posicionAsignada),
+      posicionOverride: expandirMapa(resultado.posicionOverride),
+      arquerosExcedentes: expandirEventos(resultado.arquerosExcedentes),
+      arquerosPorSecundaria: expandirEventos(resultado.arquerosPorSecundaria),
+      swaps: expandirEventos(resultado.swaps)
+    };
+  }
+
   window.__generarEquipos = function(matchId){
     if(!isAdmin()) return; // FR-008
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     const titularIds = getTitularIds(m);
-    const titularesPlayers = titularIds.map(id => players.find(p => p.id === id)).filter(Boolean);
+    const unidadesArmado = getUnidadesDeArmado(m);
+    const unidadPorId = {};
+    unidadesArmado.forEach(u => { if(u._duplaIds) unidadPorId[u.id] = u._duplaIds; });
     const estrategiaKey = m.estrategia || 'estrategia1';
 
     const prevTeamOf = {};
@@ -1643,12 +1832,27 @@
     // solo se respetan bloqueados que efectivamente estaban en la generación anterior
     const bloqueadosEfectivos = (m.bloqueados || []).filter(id => titularIds.includes(id) && prevTeamOf[id]);
 
+    // Las estrategias (y resolverArqueros) operan por `p.id` sobre `bloqueados`/`prevTeamOf`, que
+    // hoy solo tienen ids reales. Se agregan acá las claves sintéticas de las unidades-dupla
+    // (derivadas de sus dos ids reales) para que esa lógica siga funcionando sin cambios internos.
+    const prevTeamOfConUnidades = { ...prevTeamOf };
+    const bloqueadosConUnidades = [...bloqueadosEfectivos];
+    const bloqueadosSetReal = new Set(bloqueadosEfectivos);
+    unidadesArmado.forEach(u => {
+      if(!u._duplaIds) return;
+      const [idA, idB] = u._duplaIds;
+      const equipoPrevio = prevTeamOf[idA] || prevTeamOf[idB];
+      if(equipoPrevio) prevTeamOfConUnidades[u.id] = equipoPrevio;
+      if(bloqueadosSetReal.has(idA) || bloqueadosSetReal.has(idB)) bloqueadosConUnidades.push(u.id);
+    });
+
     let resultado;
     if(estrategiaKey === 'estrategia2'){
-      resultado = generarEquiposEstrategia2(titularesPlayers, bloqueadosEfectivos, prevTeamOf, prevPosicionAsignada);
+      resultado = generarEquiposEstrategia2(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades, prevPosicionAsignada);
     }else{
-      resultado = generarEquiposEstrategia1(titularesPlayers, bloqueadosEfectivos, prevTeamOf);
+      resultado = generarEquiposEstrategia1(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades);
     }
+    resultado = expandirUnidadesEnResultado(resultado, unidadPorId);
     const { blanco, negro, sumaBlanco, sumaNegro } = resultado;
 
     let cambios = 0;
@@ -1668,6 +1872,7 @@
       estrategia: ESTRATEGIAS[estrategiaKey].label,
       blanco, negro,
       titularesSnapshot: titularIds,
+      duplasSnapshot: canonicalDuplas(m),
       configHash: motorConfigHash(),
       sumaBlanco, sumaNegro,
       cambios, esPrimeraGeneracion,
@@ -1805,20 +2010,13 @@
     if(spanN) spanN.textContent = teamHeaderTotalText(m.equipos.negro, m.equipos.sumaNegro, m);
   }
 
-  function renderTeamPlayerRow(p, m){
-    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
-      || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
-      || p.principal;
-    const esSecundaria = posAsignada !== p.principal;
+  // Goles/asistencias (o resultado ya cargado) y puntaje individual de un jugador dentro del
+  // equipo generado — común a la fila individual y a cada integrante de una fila de dupla
+  // (FR-013/FR-014: cada integrante carga/muestra sus propios valores, nunca combinados).
+  function renderStatsYPuntajeMiembro(p, m, posAsignada){
     const finalizado = m.estado === 'Finalizado';
     const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
     const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
-    // Cargar/editar el resultado de un partido es una acción administrativa (FR-010); "jugador"
-    // nunca ve los inputs de carga, solo el resultado ya finalizado (goles/asistencias son
-    // estadísticas visibles para todos, ver Clarifications).
-    const editable = isAdmin() && !cerrada && !finalizado;
-    const bloqueado = (m.bloqueados || []).includes(p.id);
-
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
       const st = m.resultado.statsPorJugador[p.id] || {goles:0, asistencias:0};
@@ -1846,12 +2044,38 @@
       const valorMostrado = m.equipos.posicionAsignada ? (scoreEnPos > 0 ? scoreEnPos : 'sin puntaje') : (avg !== null ? avg : 'sin puntaje');
       puntajeHtml = `<span class="team-avg">${valorMostrado}</span>`;
     }
-    const lockBtn = editable ? `
-      <button class="icon-btn" title="${bloqueado ? 'Desbloquear' : 'Bloquear en este equipo'}" onclick="window.__toggleBloqueo('${m.id}','${p.id}')" style="${bloqueado?'color:var(--brick);':''}">
+    return { statsHtml, puntajeHtml };
+  }
+
+  function renderLockBtn(m, playerId, editable, bloqueado){
+    if(!editable) return '';
+    return `
+      <button class="icon-btn" title="${bloqueado ? 'Desbloquear' : 'Bloquear en este equipo'}" onclick="window.__toggleBloqueo('${m.id}','${playerId}')" style="${bloqueado?'color:var(--brick);':''}">
         ${bloqueado
           ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
           : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>'}
-      </button>` : '';
+      </button>`;
+  }
+
+  function esFilaEditable(m){
+    const finalizado = m.estado === 'Finalizado';
+    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
+    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
+    // Cargar/editar el resultado de un partido es una acción administrativa (FR-010); "jugador"
+    // nunca ve los inputs de carga, solo el resultado ya finalizado (goles/asistencias son
+    // estadísticas visibles para todos, ver Clarifications).
+    return isAdmin() && !cerrada && !finalizado;
+  }
+
+  function renderTeamPlayerRow(p, m){
+    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
+      || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
+      || p.principal;
+    const esSecundaria = posAsignada !== p.principal;
+    const editable = esFilaEditable(m);
+    const bloqueado = (m.bloqueados || []).includes(p.id);
+    const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
+    const lockBtn = renderLockBtn(m, p.id, editable, bloqueado);
     return `
       <div class="team-player-row" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${p.id}')"` : ''}>
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
@@ -1862,13 +2086,83 @@
       </div>`;
   }
 
+  // Fila agrupada de una dupla dentro del equipo generado: un solo renglón, con un integrante
+  // arriba y el otro abajo, compartiendo posición y candado (ambos siempre en el mismo equipo,
+  // con la misma posición asignada — FR-007/FR-008), pero cada uno con su propio puntaje y sus
+  // propios goles/asistencias (FR-013/FR-014, "única excepción" de Key Entities en spec.md).
+  function renderTeamPlayerRowDupla(pA, pB, m){
+    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[pA.id])
+      || (m.equipos.posicionOverride && m.equipos.posicionOverride[pA.id])
+      || pA.principal;
+    const editable = esFilaEditable(m);
+    const bloqueado = (m.bloqueados || []).includes(pA.id);
+    const lockBtn = renderLockBtn(m, pA.id, editable, bloqueado);
+    const miembroHtml = (p) => {
+      const esSecundaria = posAsignada !== p.principal;
+      const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
+      return `
+        <div class="team-dupla-member">
+          <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
+          ${puntajeHtml}
+          ${statsHtml}
+        </div>`;
+    };
+    return `
+      <div class="team-player-row team-player-row-dupla" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${pA.id}')"` : ''}>
+        <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
+        <div class="team-dupla-members">
+          ${miembroHtml(pA)}
+          ${miembroHtml(pB)}
+        </div>
+        <div class="team-dupla-side">
+          ${lockBtn}
+          <span class="team-dupla-marker" title="Dupla de rotación">${ICON_DUPLA_CREAR}</span>
+        </div>
+      </div>`;
+  }
+
+  // Agrupa la lista de jugadores (ya ordenada por posición) en filas: unidades individuales o
+  // pares de dupla adyacentes. El orden de armado ya deja a ambos integrantes de una dupla juntos
+  // (expandirUnidadesEnResultado los agrega consecutivos) y el sort por posición es estable, así
+  // que siguen adyacentes después de ordenar — si por algún motivo no lo estuvieran, cada uno cae
+  // a una fila individual en vez de romper el render.
+  function agruparFilasDeEquipo(m, playersOrdenados){
+    const filas = [];
+    let i = 0;
+    while(i < playersOrdenados.length){
+      const p = playersOrdenados[i];
+      const partnerId = getDuplaPartner(m, p.id);
+      const next = playersOrdenados[i + 1];
+      if(partnerId && next && next.id === partnerId){
+        filas.push([p, next]);
+        i += 2;
+      }else{
+        filas.push([p]);
+        i += 1;
+      }
+    }
+    return filas;
+  }
+
+  function renderFilaEquipo(grupo, m){
+    return grupo.length === 2 ? renderTeamPlayerRowDupla(grupo[0], grupo[1], m) : renderTeamPlayerRow(grupo[0], m);
+  }
+
   window.__toggleBloqueo = function(matchId, playerId){
     if(!isAdmin()) return; // FR-006/FR-008: bloquear jugadores es parte del armado, exclusivo de admin.
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     m.bloqueados = m.bloqueados || [];
-    const idx = m.bloqueados.indexOf(playerId);
-    if(idx >= 0) m.bloqueados.splice(idx, 1); else m.bloqueados.push(playerId);
+    // El candado aplica en conjunto a ambos integrantes de una dupla (FR-012): se decide un solo
+    // estado (según el de `playerId`) y se aplica a los dos, para no dejarlos desincronizados.
+    const partnerId = getDuplaPartner(m, playerId);
+    const ids = partnerId ? [playerId, partnerId] : [playerId];
+    const yaBloqueado = m.bloqueados.includes(playerId);
+    ids.forEach(id => {
+      const idx = m.bloqueados.indexOf(id);
+      if(yaBloqueado){ if(idx >= 0) m.bloqueados.splice(idx, 1); }
+      else if(idx < 0) m.bloqueados.push(id);
+    });
     saveMatches();
     renderMatchesTab();
   };
@@ -1885,10 +2179,9 @@
     if(playerId) window.__moverJugadorManual(matchId, playerId, targetTeam);
   };
 
-  window.__moverJugadorManual = function(matchId, playerId, targetTeam){
-    if(!isAdmin()) return; // FR-008
-    const m = matches.find(mm => mm.id === matchId);
-    if(!m || !m.equipos) return;
+  // Mueve un único id de un equipo a otro (misma lógica que ya existía). Extraída de
+  // __moverJugadorManual para poder aplicarla también al partner de una dupla (FR-011).
+  function moverUnJugadorDeEquipo(m, playerId, targetTeam){
     const equipoActual = m.equipos.blanco.includes(playerId) ? 'blanco' : (m.equipos.negro.includes(playerId) ? 'negro' : null);
     if(!equipoActual || equipoActual === targetTeam) return;
     const p = players.find(pl => pl.id === playerId);
@@ -1899,6 +2192,16 @@
     m.equipos[targetTeam].push(playerId);
     if(equipoActual === 'blanco') m.equipos.sumaBlanco -= valor; else m.equipos.sumaNegro -= valor;
     if(targetTeam === 'blanco') m.equipos.sumaBlanco += valor; else m.equipos.sumaNegro += valor;
+  }
+
+  window.__moverJugadorManual = function(matchId, playerId, targetTeam){
+    if(!isAdmin()) return; // FR-008
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !m.equipos) return;
+    moverUnJugadorDeEquipo(m, playerId, targetTeam);
+    // El otro integrante de una dupla se mueve junto, al mismo equipo (FR-011).
+    const partnerId = getDuplaPartner(m, playerId);
+    if(partnerId) moverUnJugadorDeEquipo(m, partnerId, targetTeam);
     saveMatches();
     renderMatchesTab();
   };
@@ -1974,11 +2277,11 @@
         <div class="teams-wrap">
           <div class="team-panel blanco">
             <h4>Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}</h4>
-            ${blancoPlayers.map(p => renderTeamPlayerRow(p, m)).join('')}
+            ${agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
           </div>
           <div class="team-panel negro">
             <h4>Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}</h4>
-            ${negroPlayers.map(p => renderTeamPlayerRow(p, m)).join('')}
+            ${agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
           </div>
         </div>
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -2089,11 +2392,11 @@
       <div class="teams-wrap">
         <div class="team-panel blanco" ${dragAttrsBlanco}>
           <h4>Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span></h4>
-          ${blancoPlayers.map(p => renderTeamPlayerRow(p, m)).join('')}
+          ${agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
         </div>
         <div class="team-panel negro" ${dragAttrsNegro}>
           <h4>Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span></h4>
-          ${negroPlayers.map(p => renderTeamPlayerRow(p, m)).join('')}
+          ${agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
         </div>
       </div>
       <div class="conv-summary">
@@ -2181,14 +2484,13 @@
     const sorted = [...matches].sort((a,b) => b.fecha.localeCompare(a.fecha));
     container.innerHTML = sorted.map(m => {
       const req = titularesRequeridos(m);
-      const titulares = Math.min(m.convocados.length, req);
-      const suplentes = Math.max(0, m.convocados.length - req);
+      const { suplentes, slotsOcupados } = contarTitularesSuplentes(m);
       return `
         <div class="match-card" onclick="window.__openMatch('${m.id}')">
           <div class="match-card-top">
             <div>
               <div class="match-date">${formatFecha(m.fecha)}</div>
-              <div class="match-meta">${canchaLabel(m)} · ${titulares}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
+              <div class="match-meta">${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="status-chip ${statusChipClass(m.estado)}">${m.estado}</span>
@@ -2297,9 +2599,8 @@
     el('detailEstado').textContent = m.estado;
     el('detailEstado').className = `status-chip ${statusChipClass(m.estado)}`;
     const req = titularesRequeridos(m);
-    const titularesCount = Math.min(m.convocados.length, req);
-    const suplentesCount = Math.max(0, m.convocados.length - req);
-    el('detailMeta').textContent = `${canchaLabel(m)} · ${titularesCount}/${req} titulares · ${suplentesCount} suplente${suplentesCount===1?'':'s'}`;
+    const { titulares: titularesCount, suplentes: suplentesCount, slotsOcupados, vacantes } = contarTitularesSuplentes(m);
+    el('detailMeta').textContent = `${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentesCount} suplente${suplentesCount===1?'':'s'}`;
 
     el('matchSearchInput').value = matchSearchTerm;
 
@@ -2314,48 +2615,162 @@
     el('matchSearchInput').disabled = locked;
     el('matchSearchInput').placeholder = locked ? 'Inscripción cerrada' : 'Buscar jugador para convocar...';
     const btnPrueba = el('btnCompletarPrueba');
-    const faltanTitulares = req - m.convocados.length;
-    btnPrueba.style.display = (!locked && faltanTitulares > 0) ? '' : 'none';
+    btnPrueba.style.display = (!locked && vacantes > 0) ? '' : 'none';
     if(locked){ el('autocompleteList').style.display = 'none'; el('autocompleteList').innerHTML = ''; }
     else renderAutocomplete(m);
 
     renderConvocadosList(m);
 
-    const faltan = req - titularesCount;
     el('convSummary').innerHTML = `
-      <div class="stat">Titulares: <b>${titularesCount}/${req}</b></div>
+      <div class="stat">Titulares: <b>${slotsOcupados}/${req}</b>${titularesCount !== slotsOcupados ? ` (${titularesCount} jugadores, con duplas)` : ''}</div>
       <div class="stat">Suplentes: <b>${suplentesCount}</b></div>
-      ${faltan > 0 ? `<div class="stat">Podés armar el partido igual aunque falten ${faltan} titular${faltan===1?'':'es'}.</div>` : ''}
+      ${vacantes > 0 ? `<div class="stat">Podés armar el partido igual aunque falten ${vacantes} titular${vacantes===1?'':'es'}.</div>` : ''}
     `;
 
     renderTeamsSection(m);
   }
 
+  function botonQuitar(m, p, locked){
+    return (!locked && (isAdmin() || p.id === window.session.jugadorId)) ? `
+      <button class="icon-btn" title="Quitar del partido" onclick="window.__removeFromMatch('${m.id}','${p.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>` : '';
+  }
+
   function renderConvocadosList(m){
     const listEl = el('convocadosList');
-    const req = titularesRequeridos(m);
     const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
     if(m.convocados.length === 0){
       listEl.innerHTML = `<div class="empty-state"><p>Todavía no convocaste jugadores para este partido.</p></div>`;
       return;
     }
-    listEl.innerHTML = m.convocados.map((playerId, idx) => {
-      const p = players.find(pl => pl.id === playerId);
-      if(!p) return '';
+    // Se recorre por UNIDAD (individual o dupla) — una dupla ocupa un único renglón, con sus dos
+    // integrantes agrupados adentro, en vez de dos filas separadas con una referencia cruzada.
+    const req = titularesRequeridos(m);
+    const unidades = getUnidadesConvocatoria(m);
+    listEl.innerHTML = unidades.map((unidad, idx) => {
       const isTitular = idx < req;
+      const rolBadge = `<span class="conv-badge-role ${isTitular ? 'titular' : 'suplente'}">${isTitular ? 'Titular' : 'Suplente'}</span>`;
+
+      if(unidad.ids.length === 1){
+        const p = players.find(pl => pl.id === unidad.ids[0]);
+        if(!p) return '';
+        // Crear un vínculo no tiene restricción de rol, igual que anotar a otro jugador (FR-001b).
+        const agregarBtn = !locked ? `<button class="btn-ghost" style="padding:4px 8px; font-size:12px; display:flex; align-items:center; gap:6px;" title="Agregar rotación" onclick="window.__openDuplaModal('${m.id}','${p.id}')">${ICON_DUPLA_CREAR} Agregar rotación</button>` : '';
+        return `
+          <div class="conv-row">
+            <span class="conv-num">${idx+1}</span>
+            ${rolBadge}
+            <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
+            <div class="conv-name">${fullName(p)}</div>
+            ${agregarBtn}
+            ${botonQuitar(m, p, locked)}
+          </div>`;
+      }
+
+      const [idA, idB] = unidad.ids;
+      const pA = players.find(pl => pl.id === idA), pB = players.find(pl => pl.id === idB);
+      if(!pA || !pB) return '';
+      // Deshacer una dupla: admin siempre puede; "jugador" solo si integra ese vínculo (FR-006/FR-006b).
+      const puedeGestionarDupla = isAdmin() || window.session.jugadorId === idA || window.session.jugadorId === idB;
+      const deshacerBtn = (!locked && puedeGestionarDupla) ? `
+        <button class="icon-btn icon-btn-dupla" title="Deshacer rotación" onclick="window.__deshacerDupla('${m.id}','${idA}')">
+          ${ICON_DUPLA_ELIMINAR}
+        </button>` : '';
       return `
-        <div class="conv-row">
+        <div class="conv-row conv-row-dupla">
           <span class="conv-num">${idx+1}</span>
-          <span class="conv-badge-role ${isTitular ? 'titular' : 'suplente'}">${isTitular ? 'Titular' : 'Suplente'}</span>
-          <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
-          <div class="conv-name">${fullName(p)}</div>
-          ${(!locked && (isAdmin() || p.id === window.session.jugadorId)) ? `
-          <button class="icon-btn" title="Quitar del partido" onclick="window.__removeFromMatch('${m.id}','${p.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>` : ''}
+          ${rolBadge}
+          <div class="conv-dupla-members">
+            <div class="conv-dupla-member">
+              <div class="conv-pos-badge" style="${posBadgeStyle(pA.principal)}">${pA.principal.slice(0,3).toUpperCase()}</div>
+              <div class="conv-name">${fullName(pA)}</div>
+              ${botonQuitar(m, pA, locked)}
+            </div>
+            <div class="conv-dupla-member">
+              <div class="conv-pos-badge" style="${posBadgeStyle(pB.principal)}">${pB.principal.slice(0,3).toUpperCase()}</div>
+              <div class="conv-name">${fullName(pB)}</div>
+              ${botonQuitar(m, pB, locked)}
+            </div>
+          </div>
+          ${deshacerBtn}
         </div>`;
     }).join('');
   }
+
+  // Buscador de "Agregar rotación" (FR-001/FR-002): a diferencia de renderAutocomplete (que solo
+  // ofrece NO convocados), incluye también convocados, y excluye a quien ya integre otra dupla.
+  function filtrarCandidatosDupla(m, term, excludeId){
+    const t = normalize(term || '');
+    const vinculados = new Set((m.duplas || []).flat());
+    return players.filter(p =>
+      p.estado === 'Activo' &&
+      p.id !== excludeId &&
+      !vinculados.has(p.id) &&
+      (!t || normalize(fullName(p)).includes(t))
+    ).slice(0, 8);
+  }
+
+  window.__openDuplaModal = function(matchId, playerId){
+    duplaModalMatchId = matchId;
+    duplaModalPlayerId = playerId;
+    duplaSearchTerm = '';
+    el('duplaSearchInput').value = '';
+    renderDuplaResults();
+    el('duplaModal').classList.add('open');
+    el('duplaSearchInput').focus();
+  };
+
+  function renderDuplaResults(){
+    const listEl = el('duplaResultsList');
+    const m = matches.find(mm => mm.id === duplaModalMatchId);
+    if(!listEl || !m) return;
+    const candidatos = filtrarCandidatosDupla(m, duplaSearchTerm, duplaModalPlayerId);
+    if(candidatos.length === 0){
+      listEl.innerHTML = `<div class="ac-empty">No encontramos jugadores activos que coincidan con la búsqueda.</div>`;
+      return;
+    }
+    listEl.innerHTML = candidatos.map(p => `
+      <div class="ac-item" onclick="window.__vincularDupla('${m.id}','${duplaModalPlayerId}','${p.id}')">
+        <span class="ac-pos-dot" style="background:${POS_COLOR[p.principal] || 'var(--muted)'}"></span>
+        ${fullName(p)}${!m.convocados.includes(p.id) ? ' <span class="tag" style="margin-left:auto;">no convocado</span>' : ''}
+      </div>`).join('');
+  }
+
+  el('duplaSearchInput').addEventListener('input', (e) => {
+    duplaSearchTerm = e.target.value;
+    renderDuplaResults();
+  });
+  el('btnDuplaCancel').addEventListener('click', () => {
+    el('duplaModal').classList.remove('open');
+  });
+
+  window.__vincularDupla = function(matchId, idA, idB){
+    // Sin restricción de rol: mismo criterio que __addToMatch (FR-001b).
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !idA || !idB || idA === idB) return;
+    if(getDuplaPartner(m, idA) || getDuplaPartner(m, idB)) return; // exclusividad 1 a 1 (FR-002)
+    // Incorporar directamente a quien no estaba convocado, sin pasar por el flujo normal (FR-001c).
+    if(!m.convocados.includes(idA)) m.convocados.push(idA);
+    if(!m.convocados.includes(idB)) m.convocados.push(idB);
+    m.duplas = m.duplas || [];
+    m.duplas.push([idA, idB]);
+    saveMatches();
+    el('duplaModal').classList.remove('open');
+    renderMatchDetail();
+  };
+
+  window.__deshacerDupla = function(matchId, playerId){
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m) return;
+    const partnerId = getDuplaPartner(m, playerId);
+    if(!partnerId) return;
+    // Admin deshace cualquier vínculo; "jugador" solo el propio (FR-006).
+    if(!isAdmin() && playerId !== window.session.jugadorId && partnerId !== window.session.jugadorId) return;
+    m.duplas = (m.duplas || []).filter(par => !(par.includes(playerId) && par.includes(partnerId)));
+    saveMatches();
+    renderMatchDetail();
+  };
 
   function renderAutocomplete(m){
     const dropdown = el('autocompleteList');
@@ -2398,6 +2813,8 @@
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     m.convocados = m.convocados.filter(id => id !== playerId);
+    // Si integraba una dupla, el vínculo se deshace solo (User Story 2, escenario 5).
+    m.duplas = (m.duplas || []).filter(par => !par.includes(playerId));
     saveMatches();
     renderMatchDetail();
   };
@@ -2446,7 +2863,7 @@
     const fecha = el('mFecha').value;
     const cancha = el('mCancha').value;
     if(!fecha){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
-    const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [] };
+    const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [], duplas: [] };
     matches.push(nuevo);
     saveMatches();
     el('newMatchModal').classList.remove('open');
