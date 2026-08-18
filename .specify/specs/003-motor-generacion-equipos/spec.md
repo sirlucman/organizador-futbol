@@ -8,6 +8,8 @@
 
 **Input**: Migración del contenido ya vigente de `Spec.md` (secciones 9 a 17, más el orden de listado de equipos y la explicación de estrategia de la sección 19) a la estructura nativa de spec-kit. Durante la migración se corrigió una inconsistencia de la sección 13 de `Spec.md`: "Balancear puntaje" pasa a ser un invariante no configurable (igual que "máximo un arquero por equipo"), en vez de una regla que se podía desactivar para emparejar equipos solo por cantidad de jugadores ignorando el puntaje — ese comportamiento contradecía el propósito mismo de la estrategia.
 
+**Actualización 2026-08-18**: se agrega la Estrategia 3 (formación fija), que además de las reglas de arquero de la Estrategia 2, intenta completar en cada equipo una formación de posiciones fija según el tamaño de cancha del partido (3-3-1 para cancha de 8, 3-4-1 para cancha de 9), con prioridad fija arquero > formación > diferencia de puntaje (best effort). Ver FR-018 a FR-021.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Generar equipos equilibrados automáticamente (Priority: P1)
@@ -28,7 +30,11 @@ El administrador elige una estrategia de generación y el motor arma dos equipos
 6. **Given** ningún arquero natural entre los titulares pero dos o más titulares con Arquero como posición secundaria, **When** se generan los equipos, **Then** cada equipo recibe exactamente un arquero: los dos con mejor puntaje en Arquero entre esos candidatos por posición secundaria, sin compensación.
 7. **Given** ningún arquero natural entre los titulares y como máximo un titular con Arquero como posición secundaria, **When** se generan los equipos, **Then** ese único candidato (si existe) ocupa el arco de un equipo y el otro equipo compensa equilibrando el resto de sus jugadores; si no existe ningún candidato, no se asigna a nadie al arco en ningún equipo.
 8. **Given** jugadores sin puntaje entre los titulares, **When** se generan los equipos, **Then** esos jugadores no se usan para calcular el puntaje total del equipo, pero se distribuyen de la forma más equilibrada posible entre ambos.
-9. **Given** equipos ya generados, **When** se visualiza el listado de cada equipo, **Then** los jugadores aparecen siempre ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero), usando la posición asignada con Estrategia 2 o la principal con Estrategia 1.
+9. **Given** equipos ya generados, **When** se visualiza el listado de cada equipo, **Then** los jugadores aparecen siempre ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero), usando la posición asignada con Estrategia 2 o Estrategia 3, o la principal con Estrategia 1.
+10. **Given** un partido con titulares definidos y la Estrategia 3 (formación fija) seleccionada, **When** se generan los equipos, **Then** el motor asigna primero los arqueros con las mismas reglas que la Estrategia 2, y luego intenta completar en cada equipo la formación fija correspondiente al tamaño de cancha del partido (3-3-1 para cancha de 8, 3-4-1 para cancha de 9), usando la posición secundaria de un jugador cuando sea necesaria para cubrir un lugar de esa formación, incluso si su puntaje en esa posición secundaria es menor al de otro candidato disponible para ese mismo lugar.
+11. **Given** más titulares naturales en una posición que lugares disponibles para esa posición en la formación, **When** se generan los equipos, **Then** los excedentes se reubican en su mejor posición secundaria que coincida con un lugar vacante de la formación.
+12. **Given** un lugar de la formación que ningún titular puede cubrir ni por posición principal ni por secundaria, **When** se generan los equipos, **Then** el motor reubica en ese lugar a cualquier titular disponible, priorizando entre las opciones posibles la que menos aleje la diferencia de puntaje entre equipos del `diferenciaMaxima` configurado.
+13. **Given** una generación con Estrategia 3 donde, agotadas todas las opciones anteriores, la diferencia de puntaje entre equipos supera igual el `diferenciaMaxima` configurado, **When** se generan los equipos, **Then** la generación se completa igual (la formación tiene prioridad sobre el puntaje) y se muestra el warning correspondiente, sin bloquear ninguna acción sobre el partido.
 
 ---
 
@@ -49,6 +55,8 @@ Después de cada generación, el administrador ve una explicación en lenguaje c
 5. **Given** una explicación generada, **When** se revisa su contenido, **Then** únicamente refleja decisiones que realmente ocurrieron durante esa ejecución, nunca genéricas o hipotéticas.
 6. **Given** una o más reglas configurables deshabilitadas al momento de generar, **When** se muestra la explicación, **Then** incluye una mención listando qué reglas estaban desactivadas para esa generación.
 7. **Given** una generación donde el arco se cubrió, total o parcialmente, con la posición secundaria de uno o más jugadores, **When** se muestra la explicación, **Then** incluye una mención específica a esa decisión (por ejemplo, "Nilo ocupó el arco por su posición secundaria").
+8. **Given** una generación con Estrategia 3, **When** se muestra el resumen, **Then** incluye además balance de posiciones, balance de arqueros, y una mención explícita de si la formación fija correspondiente se cumplió en ambos equipos o no (por ejemplo, "Formación 3-3-1 cumplida en ambos equipos" o "No se pudo completar el mediocampo del Equipo B").
+9. **Given** una generación con Estrategia 3 donde se usó la posición secundaria de un jugador para cubrir un lugar de la formación con un puntaje menor al de otro candidato disponible para ese lugar, **When** se muestra la explicación, **Then** incluye una mención específica a esa decisión.
 
 ---
 
@@ -69,6 +77,7 @@ El administrador visualiza las reglas configurables del motor, cambia su priorid
 5. **Given** la regla "Balancear jugadores sin puntaje" deshabilitada, **When** se generan equipos, **Then** esos jugadores se mezclan en el orden general en vez de repartirse al final.
 6. **Given** la Estrategia 1 seleccionada como estrategia por defecto, **When** se visualizan las reglas de scope "Estrategia 2", **Then** se muestran atenuadas con una nota indicando que no tienen efecto con la estrategia actual, aunque siguen siendo configurables porque la configuración es global.
 7. **Given** la configuración del motor modificada después de generar equipos para un partido, **When** se visualiza ese partido, **Then** el sistema avisa que los equipos pueden no reflejar la configuración actual y ofrece regenerarlos.
+8. **Given** la Estrategia 3 seleccionada, **When** el administrador abre la sección "Configuración", **Then** "cumplir la formación fija" no aparece como regla que se pueda deshabilitar, igual que los invariantes de arquero y de balancear puntaje; la regla "Balancear jugadores sin puntaje" sí sigue apareciendo como configurable y aplica igual que con las otras estrategias.
 
 ---
 
@@ -109,6 +118,9 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - `diferenciaMaxima` vacío: no se aplica ningún umbral de advertencia, pero el invariante de balancear puntaje sigue intentando minimizar la diferencia igual.
 - Todos los titulares bloqueados: la regeneración no tiene margen de reubicación; el resultado es idéntico a la generación anterior.
 - Minimizar cambios entre jugadores no bloqueados no es un objetivo que el algoritmo optimice activamente hoy: solo recalcula el balance óptimo entre los libres, lo que puede mover más jugadores de lo estrictamente necesario.
+- Estrategia 3 con un tamaño de cancha distinto de 8 o 9: no hay una formación fija definida para ese tamaño; queda fuera de alcance de esta versión (se agregará la formación correspondiente cuando se sumen nuevos tamaños de cancha soportados).
+- Estrategia 3 sin ningún candidato, ni principal ni secundario, para un lugar de la formación: el motor reubica ahí a cualquier titular disponible priorizando no alejarse del `diferenciaMaxima` configurado; si aun así se supera, se muestra el warning (no se bloquea la generación).
+- Estrategia 3 y arquero: se rige exactamente por las mismas reglas de la Estrategia 2 (FR-005); la formación fija se calcula sobre los jugadores de campo, sin contar el arco.
 - Un arquero natural con puntaje más bajo en la posición Arquero que un candidato por posición secundaria: el natural igual ocupa un arco (nunca es desplazado por un secundario); el puntaje solo decide entre candidatos del mismo nivel (entre naturales si hay 2+, o entre secundarios cuando hace falta cubrir el lugar que los naturales no llenaron).
 - Tres o más arqueros naturales entre los titulares: los dos de mejor puntaje ocupan el arco y el resto queda excedente (se reubica), exactamente igual que si no hubiera ningún candidato por posición secundaria — el excedente natural nunca "pierde su lugar" ante un secundario, porque los secundarios ni se consideran cuando los dos lugares ya se cubrieron con naturales.
 
@@ -116,7 +128,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 
 ### Functional Requirements
 
-- **FR-001**: El sistema MUST ofrecer al menos dos estrategias de generación seleccionables por el administrador por partido: Estrategia 1 (balance por puntaje promedio) y Estrategia 2 (balance por posiciones).
+- **FR-001**: El sistema MUST ofrecer al menos tres estrategias de generación seleccionables por el administrador por partido: Estrategia 1 (balance por puntaje promedio), Estrategia 2 (balance por posiciones) y Estrategia 3 (formación fija).
 - **FR-002**: La Estrategia 1 MUST evaluar a cada jugador exclusivamente por su puntaje promedio, sin optimizar posiciones, mostrando igualmente la posición principal a modo informativo.
 - **FR-003**: La Estrategia 2 MUST determinar la mejor posición para cada jugador priorizando la posición principal, MUST usar una posición secundaria únicamente cuando corrija una imparidad de titulares en esa posición, y MUST calcular el puntaje con el de la posición asignada.
 - **FR-004**: El sistema MUST garantizar, como invariantes no configurables: (a) que ningún equipo tenga más de un arquero, y (b) que el motor siempre intente minimizar la diferencia de puntaje entre ambos equipos. Ninguno de los dos MUST aparecer como regla que se pueda deshabilitar en la sección Configuración.
@@ -124,7 +136,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-006**: El sistema MUST excluir a los jugadores sin puntaje del cálculo de puntaje total del equipo, distribuyéndolos de la forma más equilibrada posible.
 - **FR-007**: El sistema MUST mostrar, dentro de cada equipo, a los jugadores ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero).
 - **FR-008**: El sistema MUST generar, después de cada ejecución, una explicación en lenguaje claro de las decisiones relevantes tomadas, reflejando únicamente decisiones que ocurrieron efectivamente.
-- **FR-009**: El sistema MUST mostrar, después de cada generación, un resumen con estrategia utilizada, puntaje total por equipo, diferencia de puntaje, jugadores sin puntaje por equipo, jugadores bloqueados y jugadores que cambiaron de equipo respecto de la generación anterior; MUST agregar balance de posiciones y balance de arqueros únicamente cuando se usa la Estrategia 2.
+- **FR-009**: El sistema MUST mostrar, después de cada generación, un resumen con estrategia utilizada, puntaje total por equipo, diferencia de puntaje, jugadores sin puntaje por equipo, jugadores bloqueados y jugadores que cambiaron de equipo respecto de la generación anterior; MUST agregar balance de posiciones y balance de arqueros cuando se usa la Estrategia 2 o la Estrategia 3; MUST agregar además, únicamente con Estrategia 3, una mención de si la formación fija correspondiente se cumplió o no en cada equipo.
 - **FR-009b**: Cuando alguna regla configurable esté deshabilitada al momento de generar, la explicación (FR-008) MUST incluir una mención listando qué reglas estaban desactivadas para esa generación.
 - **FR-010**: El sistema MUST permitir visualizar, reordenar por prioridad, habilitar, deshabilitar y parametrizar las reglas configurables (Balancear posiciones con `usarSecundarias`, Balancear jugadores sin puntaje), y MUST permitir ajustar el parámetro `diferenciaMaxima` del invariante de balancear puntaje, sin exponer ninguno de los dos invariantes (arqueros, puntaje) como regla que se pueda deshabilitar.
 - **FR-011**: El sistema MUST permitir elegir una estrategia por defecto global, aplicada al crear partidos nuevos, sin impedir elegir una estrategia distinta por partido.
@@ -134,13 +146,18 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-015**: El sistema MUST permitir bloquear y desbloquear jugadores en su equipo, y MUST garantizar que un jugador bloqueado nunca cambie de equipo en ninguna regeneración.
 - **FR-016**: Ante un cambio en la lista de titulares, el sistema MUST regenerar los equipos respetando siempre a los jugadores bloqueados y recalculando el balance entre los jugadores libres.
 - **FR-017**: La arquitectura del motor MUST permitir incorporar nuevas estrategias y reglas sin modificar el funcionamiento de las existentes.
+- **FR-018**: El sistema MUST ofrecer la Estrategia 3 (formación fija), que, después de asignar arqueros con las mismas reglas que la Estrategia 2 (FR-005), MUST intentar completar en cada equipo una formación de posiciones fija determinada por el tamaño de cancha del partido: 3 defensores, 3 volantes y 1 delantero para cancha de 8; 3 defensores, 4 volantes y 1 delantero para cancha de 9. Cumplir esa formación MUST ser un invariante no configurable, con esta prioridad fija entre reglas: (1) arqueros, (2) formación, (3) diferencia de puntaje entre equipos (best effort).
+- **FR-019**: Para cubrir cada lugar de la formación, el sistema MUST buscar candidatos en este orden: (a) titulares con esa posición como principal, priorizando al de mejor puntaje en esa posición; (b) si no hay más naturales disponibles, titulares con esa posición como secundaria, priorizando al de mejor puntaje en esa posición aunque sea menor al de otro candidato disponible para otro lugar — la formación MUST tener prioridad sobre el puntaje individual; (c) si ningún titular tiene esa posición ni como principal ni como secundaria, cualquier otro titular disponible, elegido priorizando no alejarse del `diferenciaMaxima` configurado.
+- **FR-020**: El sistema MUST reubicar a los titulares naturales excedentes de una posición (aquellos para los que no queda lugar en la formación) en su mejor posición secundaria que coincida con un lugar vacante de esa formación; si ninguna de sus posiciones secundarias coincide con un lugar vacante, se les aplica el criterio de FR-019(c).
+- **FR-021**: Con Estrategia 3, el sistema MUST tratar la diferencia de puntaje entre equipos como objetivo de mejor esfuerzo (best effort) subordinado a la formación: si, agotadas las opciones de FR-019 y FR-020, la diferencia sigue superando el `diferenciaMaxima` configurado, MUST completar la generación igual y mostrar el warning correspondiente (mismo mecanismo que FR-012), sin bloquear ninguna acción sobre el partido.
 
 ### Key Entities
 
 - **Motor de generación**: componente desacoplado de la interfaz que ejecuta una estrategia con un conjunto de reglas e invariantes priorizados sobre los titulares de un partido.
-- **Estrategia**: Estrategia 1 (balance por puntaje promedio) o Estrategia 2 (balance por posiciones); determina qué información usa el motor para balancear.
+- **Estrategia**: Estrategia 1 (balance por puntaje promedio), Estrategia 2 (balance por posiciones) o Estrategia 3 (formación fija); determina qué información usa el motor para balancear.
 - **Regla**: unidad de balance configurable, con prioridad, estado habilitado/deshabilitado y parámetros propios (Balancear posiciones, Balancear jugadores sin puntaje). Distinta de un invariante: se puede deshabilitar.
-- **Invariante**: comportamiento del motor que siempre se cumple y no aparece como regla configurable (máximo un arquero por equipo; balancear puntaje entre equipos — este último con el parámetro ajustable `diferenciaMaxima` para fines de advertencia, sin que el balanceo en sí se pueda apagar).
+- **Invariante**: comportamiento del motor que siempre se cumple y no aparece como regla configurable (máximo un arquero por equipo; balancear puntaje entre equipos — este último con el parámetro ajustable `diferenciaMaxima` para fines de advertencia, sin que el balanceo en sí se pueda apagar; y, únicamente con Estrategia 3, cumplir la formación fija de posiciones correspondiente al tamaño de cancha).
+- **Formación fija**: (Estrategia 3) distribución objetivo de posiciones de campo por equipo según el tamaño de cancha del partido — 3 defensores/3 volantes/1 delantero para cancha de 8, 3 defensores/4 volantes/1 delantero para cancha de 9 — sin contar el arco. Tiene prioridad sobre el puntaje individual de un jugador y sobre la diferencia de puntaje entre equipos.
 - **Configuración del motor**: conjunto global de reglas activas, sus prioridades y parámetros, más la estrategia por defecto para partidos nuevos.
 - **Resumen de generación**: conjunto de métricas calculadas tras una ejecución del motor, usado para evaluar su calidad y compararla entre configuraciones.
 
@@ -153,6 +170,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **SC-003**: El 100% de las generaciones respeta los invariantes de máximo un arquero por equipo y de intento de minimizar la diferencia de puntaje.
 - **SC-004**: Un jugador bloqueado nunca cambia de equipo en el 100% de las regeneraciones posteriores al bloqueo.
 - **SC-005**: El administrador puede ajustar el comportamiento configurable del motor (reglas, prioridades, parámetros, estrategia por defecto) sin necesidad de intervención técnica.
+- **SC-006**: Con Estrategia 3, el 100% de las generaciones cumple la formación fija de posiciones cuando el pool de titulares lo permite (posiciones principales o secundarias suficientes); cuando no lo permite, el sistema lo señala explícitamente en la explicación en vez de fallar silenciosamente.
 
 ## Assumptions
 
