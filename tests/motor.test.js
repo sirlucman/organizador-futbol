@@ -6,7 +6,7 @@
  *   BASELINE  — comportamiento actual del motor. Tiene que pasar HOY. Si algo de acá se
  *               rompe, es una regresión y el runner devuelve código de salida 1.
  *
- *   PENDIENTE — comportamiento que exigen las features 009 / 010 / 013 / 014, todavía sin
+ *   PENDIENTE — comportamiento que exigen las features 013 / 014, todavía sin
  *               implementar. Falla a propósito hasta que se implemente cada una, y no
  *               hace fallar el runner: es la lista de lo que falta. Cuando una pasa, hay
  *               que moverla al bloque BASELINE (pasa a ser comportamiento a preservar).
@@ -139,13 +139,6 @@ test('Partido testigo: los dos equipos quedan con la misma cantidad de unidades'
   eq(a.res.negro.length, 8, 'unidades en el Negro');
 });
 
-test('BUG vigente: la compensación por arquero se calcula sola y el refinamiento la deshace', () => {
-  const a = armar(F.PARTIDO_TESTIGO);
-  eq(a.res.arquerosInfo.compensacion, 6, 'la compensación es el puntaje del arquero, sin que nadie la configure');
-  eq(a.res.arquerosInfo.equipoCompensado, 'negro', 'se le acredita al equipo sin arquero fijo');
-  ok(a.diferencia < 1, `pero el armado termina casi empatado (${a.diferencia}), o sea que la compensación no sobrevivió`);
-});
-
 test('La Estrategia 2 sí respeta la compensación por arquero (no tiene refinamiento final)', () => {
   // Se pasa la ventaja explícita para que el test siga valiendo después de 009, donde el
   // valor pasa a ser configurable: antes de 009 el parámetro se ignora y da 6 igual.
@@ -193,14 +186,14 @@ test('012: una dupla con puntaje no cuenta como jugadores sin puntaje', () => {
   eq(valor, 5.8, 'y el valor que se muestra es el que el motor usó');
 });
 
-/* ======================= PENDIENTE 009 ======================= */
+/* ======================= 009 y 010 IMPLEMENTADAS: comportamiento a preservar ==== */
 
-pendiente('009', 'Con la ventaja en 0 no se compensa al equipo sin arquero fijo', () => {
+test('Con la ventaja en 0 no se compensa al equipo sin arquero fijo', () => {
   const a = armar(F.PARTIDO_TESTIGO, { params: { ventajaSinArquero: 0 } });
   eq(a.res.arquerosInfo.compensacion, 0, 'con la ventaja en 0 no debería haber ninguna compensación');
 });
 
-pendiente('009', 'La ventaja es la configurada, no el puntaje del arquero', () => {
+test('La ventaja es la configurada, no el puntaje del arquero', () => {
   // Mismo plantel pero con un arquero de 9: la ventaja debe seguir siendo la configurada.
   const plantel = JSON.parse(JSON.stringify(F.PARTIDO_TESTIGO));
   plantel.individuales.find(p => p.id === 'nilo').scores.Arquero = 9;
@@ -208,22 +201,22 @@ pendiente('009', 'La ventaja es la configurada, no el puntaje del arquero', () =
   eq(a.res.arquerosInfo.compensacion, 6, 'la ventaja debería venir de la configuración, no del puntaje del arquero');
 });
 
-pendiente('009', 'Sin equipo sin arquero fijo, la ventaja configurada no se aplica', () => {
+test('Sin equipo sin arquero fijo, la ventaja configurada no se aplica', () => {
   // Dos arqueros naturales: los dos equipos tienen arquero fijo.
   const plantel = F.plantelConDuplas({ duplas: 2, arqueros: 2 });
   const a = armar(plantel, { params: { ventajaSinArquero: 6 } });
   eq(a.res.arquerosInfo.compensacion, 0, 'con arquero fijo en los dos equipos no hay nada que compensar');
 });
 
-/* ======================= PENDIENTE 010 ======================= */
 
-pendiente('010', 'La ventaja configurada sobrevive al refinamiento final', () => {
+
+test('La ventaja configurada sobrevive al refinamiento final', () => {
   const a = armar(F.PARTIDO_TESTIGO, { params: { ventajaSinArquero: 6 } });
   const favorNegro = r1(a.res.sumaNegro - a.res.sumaBlanco);
   ok(favorNegro > 4, `el Negro (sin arquero fijo) debería terminar ~6 puntos arriba, quedó ${favorNegro}`);
 });
 
-pendiente('010', 'Con la ventaja en 0 el armado no cambia respecto del actual (no regresión)', () => {
+test('Con la ventaja en 0 el armado no cambia respecto del actual (no regresión)', () => {
   const a = armar(F.PARTIDO_TESTIGO, { params: { ventajaSinArquero: 0 } });
   eq(a.diferencia, 0.5, 'con objetivo cero, la diferencia debería seguir siendo la mínima alcanzable');
 });
@@ -249,7 +242,9 @@ test('Partido testigo: Leandro Benítez va de Delantero y la dupla de Volante', 
   const a = armar(F.PARTIDO_TESTIGO);
   eq(a.posicionDe('leandrob'), 'Delantero', 'Leandro Benítez tiene Delantero como secundaria');
   eq(a.posicionDe('claudio'), 'Volante', 'la dupla Claudio/Juan cubre Volante con sus dos integrantes');
-  eq(a.equipoDe('leandrob'), a.equipoDe('claudio'), 'el intercambio ocurre dentro del mismo equipo');
+  // No se afirma que los dos queden en el mismo equipo: eso era un artefacto del armado anterior.
+  // La asignación de posiciones no depende del equipo, y con la ventaja por arquero en 0 (el
+  // default desde 009) el reparto entre equipos da distinto aunque las posiciones sean las mismas.
 });
 
 test('Partido testigo: arreglar la formación no empeora el balance', () => {
@@ -400,7 +395,7 @@ baseline.forEach(r => {
 });
 
 console.log('\n\x1b[1mPENDIENTE\x1b[0m — lo que exigen las features todavía sin implementar');
-['009', '010', '013', '014'].forEach(f => {
+['013', '014'].forEach(f => {
   const delFeature = pendientes.filter(r => r.feature === f);
   if (!delFeature.length) return;
   console.log(`  \x1b[1m${f}\x1b[0m`);

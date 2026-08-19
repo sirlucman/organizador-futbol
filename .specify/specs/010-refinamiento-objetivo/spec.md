@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-19
 
-**Status**: Draft
+**Status**: Implementada (2026-08-19), junto con `009-ventaja-sin-arquero`. Verificada con `node tests/motor.test.js`: sus 2 casos pasaron al bloque BASELINE, incluida la no-regresión con objetivo cero. Sobre el partido testigo, con una ventaja de 6 el armado pasó de terminar 0.5 a favor del equipo equivocado a 6.5 a favor del equipo que rota el arco.
 
 **Depends on**: `009-ventaja-sin-arquero` (define el objetivo de diferencia que esta feature hace respetar)
 

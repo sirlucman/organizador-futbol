@@ -728,7 +728,12 @@
       resumen: 'empareja el puntaje',
       params: {
         diferenciaMaxima: { tipo: 'number', label: 'Diferencia aceptable', unidad: 'pts', default: null, min: 0, max: 50,
-          ayuda: 'Diferencia de puntaje que te parece aceptable. Si el armado la supera, el resumen del partido lo avisa. Dejalo vacío si no querés un objetivo.' }
+          ayuda: 'Cuánto se puede alejar el armado de la diferencia buscada antes de que el resumen te avise. Dejalo vacío si no querés un objetivo.' },
+        // 009-ventaja-sin-arquero: antes el monto estaba fijo en el código (el puntaje del único
+        // arquero) y no era ni visible ni editable. Arranca en 0 = ninguna ventaja, lo que cambia
+        // a propósito el comportamiento anterior: la compensación deja de aplicarse sola.
+        ventajaSinArquero: { tipo: 'number', label: 'Ventaja para el equipo sin arquero fijo', unidad: 'pts', default: 0, min: 0, max: 20,
+          ayuda: 'Cuando hay un solo arquero entre los titulares, un equipo rota el arco entre jugadores de campo. Estos son los puntos de ventaja que se le dan a ese equipo para compensarlo. En 0 no se compensa.' }
       }
     },
     sinPuntaje: {
@@ -747,7 +752,7 @@
     {
       key: 'arqueros',
       label: 'Un arquero por equipo',
-      descripcion: 'Primero busca entre los arqueros naturales (posición principal): si hay dos o más, van los de mejor puntaje, uno por equipo. Solo si algún equipo queda sin arquero después de agotar los naturales, busca entre quienes tienen Arquero como posición secundaria para cubrir ese lugar (por mejor puntaje) — un natural nunca es desplazado por un secundario. Si queda un solo arquero entre ambos niveles, el equipo sin arquero fijo se compensa con jugadores de mayor puntaje (rotan el arco). Si no hay ningún candidato en ningún nivel, se arma con lo que hay y rotan todos. Los arqueros naturales que no ganan el arco pasan a su mejor posición secundaria (o a delantero si no tienen); los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición habitual.'
+      descripcion: 'Primero busca entre los arqueros naturales (posición principal): si hay dos o más, van los de mejor puntaje, uno por equipo. Solo si algún equipo queda sin arquero después de agotar los naturales, busca entre quienes tienen Arquero como posición secundaria para cubrir ese lugar (por mejor puntaje) — un natural nunca es desplazado por un secundario. Si queda un solo arquero entre ambos niveles, el otro equipo rota el arco entre sus jugadores de campo; cuánta ventaja de puntaje se le da por eso no es parte de este invariante, se configura en la regla "Emparejar el puntaje". Si no hay ningún candidato en ningún nivel, se arma con lo que hay y rotan todos. Los arqueros naturales que no ganan el arco pasan a su mejor posición secundaria (o a delantero si no tienen); los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición habitual.'
     },
     {
       key: 'formacionFija',
@@ -902,6 +907,22 @@
     if(vals.length === 0) return null;
     const sum = vals.reduce((a,b) => a + Number(b), 0);
     return Math.round((sum / vals.length) * 10) / 10;
+  }
+  /* --- OBJETIVO DE DIFERENCIA (009-ventaja-sin-arquero) ---
+     Cuánta diferencia de puntaje busca el motor, y a favor de qué equipo. Vale 0 salvo que un solo
+     equipo haya quedado con arquero fijo y haya una ventaja configurada. Un único número gobierna
+     todos los pasos del armado: el reparto, el refinamiento final y el aviso del resumen. Antes la
+     compensación era un crédito escondido en el reparto, con un monto fijo en el código (el puntaje
+     del único arquero), y el refinamiento final la deshacía sin saber que existía. */
+  function ventajaSinArquero(){
+    const v = reglaParam('puntaje', 'ventajaSinArquero');
+    return (v === null || v === undefined || Number.isNaN(Number(v))) ? 0 : Math.max(0, Number(v));
+  }
+  // Diferencia buscada, con signo, expresada como (sumaBlanco - sumaNegro).
+  function objetivoDiferencia(arquerosInfo){
+    if(!arquerosInfo || !arquerosInfo.compensado || !arquerosInfo.equipoCompensado) return 0;
+    const ventaja = arquerosInfo.compensacion || 0;
+    return arquerosInfo.equipoCompensado === 'blanco' ? ventaja : -ventaja;
   }
   function puntajeEnPosicion(p, pos){
     const v = p.scores && p.scores[pos];
@@ -1563,7 +1584,7 @@
       const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
       const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
       equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
-      compensacion = valorDe(unico);
+      compensacion = ventajaSinArquero(); // 009: configurable, antes era el puntaje del arquero
     }
     const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
 
@@ -1666,7 +1687,7 @@
       const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
       const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
       equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
-      compensacion = puntajeEnPosicion(unico, 'Arquero');
+      compensacion = ventajaSinArquero(); // 009: configurable, antes era el puntaje del arquero
     }
     const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
     return { blanco, negro, sumaBlanco, sumaNegro, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria, compensacion, equipoCompensado };
@@ -2047,20 +2068,28 @@
       sumaNegro = resultado.sumaNegro;
     }
 
-    // Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
-    // y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
-    // distintos cuyo intercambio achique la diferencia de puntaje, y se aplica el mejor, repitiendo
-    // hasta que ningún intercambio mejore. Como siempre se intercambian jugadores de igual posición,
-    // la formación y la cantidad de integrantes de cada equipo quedan intactas; y como solo se aplica
-    // un intercambio si reduce la diferencia, nunca puede empeorar el balance.
+    /* Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
+       y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
+       distintos cuyo intercambio acerque el armado al OBJETIVO de diferencia, y se aplica el mejor,
+       repitiendo hasta que ninguno mejore. Como siempre se intercambian jugadores de igual posición,
+       la formación y la cantidad de integrantes de cada equipo quedan intactas; y como solo se aplica
+       un intercambio si reduce el desvío, nunca puede empeorar el balance.
+
+       Antes este paso minimizaba la diferencia CRUDA, sin saber que podía existir un objetivo
+       distinto de cero: el reparto le daba una ventaja al equipo sin arquero fijo y acá se la
+       quitaba persiguiendo el empate. En un partido real con un solo arquero, una ventaja de 6
+       terminaba convertida en una diferencia de 0.5 mientras el resumen afirmaba que se había
+       compensado (010-refinamiento-objetivo). Con objetivo 0 el comportamiento es idéntico al de
+       antes: cero es un caso particular del objetivo, no una excepción. */
     {
+      const objetivo = objetivoDiferencia(arquerosInfo);
       const porId = {};
       titularesPlayers.forEach(p => { porId[p.id] = p; });
       const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
       const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
-      const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce la diferencia, así que siempre corta antes
+      const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce el desvío, así que siempre corta antes
       for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
-        const diff = sumaBlanco - sumaNegro;
+        const diff = (sumaBlanco - sumaNegro) - objetivo;
         let mejor = null, mejorAbs = Math.abs(diff);
         blanco.forEach((idB, i) => {
           if(!intercambiable(idB)) return;
@@ -2692,9 +2721,17 @@
     const sinPuntajeNegro = sinPuntajeCount(negroPlayers);
     const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
     const bloqueados = m.bloqueados || [];
-    // objetivo de diferencia (parámetro de la regla "Balancear puntaje")
+    /* Diferencia buscada en ESTE armado, con signo (sumaBlanco - sumaNegro). Se lee de la info de
+       arqueros guardada con el armado, no de la config actual, para que el resumen siga explicando
+       lo que realmente se hizo aunque después se cambie la configuración (009-ventaja-sin-arquero). */
+    const objetivoDiff = objetivoDiferencia(eq.arquerosInfo);
+    const ventajaOtorgada = Math.abs(objetivoDiff);
+    // Lo que se compara con la "Diferencia aceptable" es el DESVÍO respecto del objetivo, no la
+    // diferencia cruda: con una ventaja de 6 configurada, terminar 6 puntos apartados es un acierto
+    // y no un problema (009, FR-010).
+    const desvio = Math.round(Math.abs((eq.sumaBlanco - eq.sumaNegro) - objetivoDiff) * 10) / 10;
     const diffObjetivo = reglaEnabled('puntaje') ? reglaParam('puntaje', 'diferenciaMaxima') : null;
-    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && diferencia > Number(diffObjetivo));
+    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && desvio > Number(diffObjetivo));
 
     const explicaciones = [];
     const totalSinPuntaje = sinPuntajeBlanco + sinPuntajeNegro;
@@ -2729,7 +2766,16 @@
         explicaciones.push('No hay arqueros entre los titulares: se armó con lo que hay y el arco lo rotan los jugadores de ambos equipos.');
       }else if(eq.arquerosInfo.compensado){
         const eqComp = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro';
-        explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se lo compensó con jugadores de mayor puntaje.`);
+        // Con la ventaja en 0 no se afirma que se compensó, porque no se compensó (009, FR-009).
+        // Con una ventaja configurada se dice cuánta y cuánta diferencia se logró, para que el
+        // dato sea auditable en vez de una afirmación genérica (009, FR-008).
+        if(ventajaOtorgada > 0){
+          const aFavorDe = (eq.sumaBlanco - eq.sumaNegro) === 0 ? null
+            : ((eq.sumaBlanco > eq.sumaNegro) ? 'Blanco' : 'Negro');
+          explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se le dieron ${ventajaOtorgada} puntos de ventaja. Diferencia lograda: ${diferencia}${aFavorDe ? ` a favor del Equipo ${aFavorDe}` : ' (empate)'}.`);
+        }else{
+          explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan el arco entre los jugadores de campo).`);
+        }
       }
     }
     (eq.arquerosExcedentes || []).forEach(s => {
@@ -2751,7 +2797,9 @@
         : `Se mantuvieron ${titularIds.length - eq.cambios} asignaciones de la generación anterior; ${eq.cambios} jugador${eq.cambios===1?'':'es'} cambiaron de equipo.`);
     }
     if(superaObjetivo){
-      explicaciones.push(`La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
+      explicaciones.push(ventajaOtorgada > 0
+        ? `El armado quedó a ${desvio} de la diferencia buscada (${ventajaOtorgada} a favor del equipo sin arquero fijo), y supera lo aceptable (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`
+        : `La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
     }
     // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
     const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
@@ -2800,7 +2848,7 @@
         </div>
       </div>
       <div class="conv-summary">
-        <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(objetivo ≤ ${diffObjetivo})</span>` : ''}</div>
+        <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${ventajaOtorgada > 0 ? ` <span style="opacity:0.7;">(buscada: ${ventajaOtorgada} a favor del ${eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro'})</span>` : ''}${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(desvío aceptable ≤ ${diffObjetivo})</span>` : ''}</div>
         <div class="stat">Sin puntaje — Blanco: <b>${sinPuntajeBlanco}</b></div>
         <div class="stat">Sin puntaje — Negro: <b>${sinPuntajeNegro}</b></div>
         <div class="stat">Jugadores bloqueados: <b>${bloqueados.length}</b></div>

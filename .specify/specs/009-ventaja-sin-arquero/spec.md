@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-19
 
-**Status**: Draft
+**Status**: Implementada (2026-08-19), junto con `010-refinamiento-objetivo`. Verificada con `node tests/motor.test.js`: sus 3 casos pasaron al bloque BASELINE. Falta la verificación visual del campo nuevo en Configuración y de los textos del resumen.
 
 **Input**: User description: "Que antes de ejecutar el algoritmo el usuario pueda decidir cuántos puntos bonus se le otorgan a un equipo si no tiene arquero fijo. Que venga 0 por defecto la primera vez, y después se guarde el valor para futuras corridas. Aplica también a la Estrategia 2."
 
@@ -28,7 +28,7 @@ Dos problemas motivan esta feature:
 - Q: ¿A qué estrategias aplica? → A: A las tres. La regla "Emparejar el puntaje" está siempre activa en todas, y la compensación por arquero hoy existe en las tres (con código propio en la Estrategia 1 y compartido entre la 2 y la 3). Dejar una estrategia afuera requeriría más código, no menos, y produciría un comportamiento incoherente entre estrategias.
 - Q: ¿Qué pasa si NINGÚN equipo tiene arquero fijo (no hay ningún candidato)? → A: No hay ventaja para nadie. La ventaja compensa una asimetría entre los dos equipos; si los dos rotan el arco, no hay asimetría que compensar.
 - Q: ¿La ventaja se resta del puntaje del equipo que sí tiene arquero, o se suma al que no lo tiene? → A: Es indistinto para el resultado: lo que define es el objetivo de diferencia entre los dos equipos. Se especifica como objetivo de diferencia, no como suma o resta a un equipo, para que un solo número gobierne todos los pasos del armado.
-- Q: En Estrategia 3, ¿se garantiza que la ventaja se cumpla? → A: No en esta feature. El refinamiento final de la Estrategia 3 minimiza la diferencia cruda y va a deshacer parte de la ventaja. Por eso el resumen MUST informar la ventaja objetivo **y** la diferencia lograda, para que la brecha sea visible en vez de quedar oculta detrás de una afirmación falsa. Cerrar esa brecha es la feature siguiente (ver Fuera de Alcance).
+- Q: En Estrategia 3, ¿se garantiza que la ventaja se cumpla? → A: Sí. Se resolvió implementando `010-refinamiento-objetivo` junto con esta feature (ver "Limitación conocida — CERRADA"). El resumen informa igual la ventaja otorgada y la diferencia lograda, porque el dato tiene que poder auditarse aunque se cumpla.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -145,17 +145,21 @@ El "admin" que configuró una ventaja de 6 y una diferencia aceptable de 0 no re
 - La cantidad de arqueros de un partido y quién termina en el arco siguen decidiéndose exactamente como hoy (`003-motor-generacion-equipos`, FR-005). Esta feature solo cambia el monto de la ventaja y su visibilidad.
 - El parámetro es global de la configuración del motor, no por partido — igual que el resto de las reglas.
 
-## Limitación conocida
+## Limitación conocida — CERRADA
 
-En la **Estrategia 3**, el refinamiento final del armado busca la diferencia de puntaje más chica posible sin conocer el objetivo, por lo que va a deshacer parte de la ventaja configurada. El resultado esperado con esta feature es que la brecha quede **visible y auditable** (FR-008), no que se cierre. Cerrarla es la feature siguiente y está fuera de alcance acá.
+La versión original de este spec asumía que en la **Estrategia 3** el refinamiento final iba a deshacer parte de la ventaja, y solo exigía que la brecha quedara visible. Se implementó junto con `010-refinamiento-objetivo`, que hace que ese paso persiga el objetivo, así que la limitación no llegó a existir: la ventaja se respeta en las tres estrategias.
 
-En la **Estrategia 2** no existe ese refinamiento, así que la ventaja se respeta de punta a punta.
+Medido sobre el partido testigo (un solo arquero, el Negro rota el arco):
+
+| Ventaja configurada | Blanco | Negro | Diferencia lograda |
+|---|---|---|---|
+| 0 | 50.8 | 51.3 | 0.5 |
+| 6 | 47.8 | 54.3 | 6.5 a favor del Negro |
 
 ## Fuera de Alcance
 
 Las tres van por separado, después de esta:
 
-- Que el refinamiento final de la Estrategia 3 persiga el objetivo de diferencia en lugar de minimizar la diferencia cruda (cierra la Limitación conocida de arriba).
 - Reemplazar la asignación de posiciones de la Estrategia 3 por un método que garantice el mejor encaje posible con la formación fija.
 - Repartir las duplas de rotación de forma pareja entre los dos equipos.
 
