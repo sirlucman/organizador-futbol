@@ -36,7 +36,7 @@ Un segundo problema apareció al analizar ese partido: **nada garantiza que las 
 - Q: ¿Por qué la dupla que sobra va al equipo con arquero fijo? → A: Porque el lugar de una dupla siempre lo ocupa alguien que jugó la mitad del partido, y esa frescura es una ventaja que el puntaje no mide. El equipo sin arquero fijo ya recibe una ventaja de puntaje (`009-ventaja-sin-arquero`); darle además la dupla que sobra sería acumular dos ventajas sobre el mismo equipo.
 - Q: Y si la cantidad de duplas es impar pero los dos equipos tienen arquero fijo (o ninguno lo tiene)? → A: No hay criterio de desempate: la dupla que sobra va a cualquiera de los dos equipos.
 - Q: ¿Jugar con duplas es ventaja? → A: Levemente, y por algo que el puntaje no mide: el lugar de la dupla siempre lo ocupa alguien que jugó la mitad del partido. No se le pone un número a esa frescura (sería otro factor a calibrar a ciegas); se administra estructuralmente, repartiéndolas parejo.
-- Q: ¿La regla de duplas parejas aplica a las otras estrategias? → A: No en esta feature. La asimetría existe también en la Estrategia 1 y en la 2, pero acá la restricción sale casi gratis porque el reparto de la Estrategia 3 se reescribe de todos modos; retrofitearla en el reparto de las otras dos es un cambio aparte (ver Fuera de Alcance).
+- Q: ¿La regla de duplas parejas aplica a las otras estrategias? → A: En esta feature no, pero se extendió a las tres en `013-duplas-parejas-estrategias-1-2`, implementada el mismo día. La regla vive en un solo lugar del código y la usan las tres estrategias.
 - Q: ¿Cambia la fórmula de puntaje de las duplas o de los jugadores fuera de posición? → A: No. Esta feature no toca ningún puntaje. Al sacar el encaje de la dimensión del puntaje, dejan de hacer falta los ajustes que se habían considerado.
 
 ## User Scenarios & Testing *(mandatory)*
@@ -165,7 +165,6 @@ Sirve como criterio de aceptación concreto de las tres historias. Formación 3-
 
 ## Fuera de Alcance
 
-- Repartir las duplas de forma pareja en la Estrategia 1 y en la Estrategia 2. La asimetría existe ahí también, pero su reparto no se reescribe en esta feature.
 - Cambiar el valor de puntaje de una dupla para que dependa de la posición, o cambiar cuánto vale un jugador fuera de su posición. Quedó explícitamente descartado: el encaje se resuelve por fuera del puntaje.
 - Corregir que el panel muestre "sin puntaje" para integrantes de una dupla que sí tienen puntaje en el motor (el panel evalúa al jugador real en su posición asignada mientras el motor usa el valor combinado de la unidad). Esta feature lo alivia en la práctica al ubicar mejor a las duplas, pero el desajuste de fondo sigue y merece su propio spec.
 - Agregar un paso de asignación óptima a la Estrategia 2.

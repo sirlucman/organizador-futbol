@@ -6,7 +6,7 @@
  *   BASELINE  — comportamiento actual del motor. Tiene que pasar HOY. Si algo de acá se
  *               rompe, es una regresión y el runner devuelve código de salida 1.
  *
- *   PENDIENTE — comportamiento que exigen las features 013 / 014, todavía sin
+ *   PENDIENTE — comportamiento que exige la feature 014, todavía sin
  *               implementar. Falla a propósito hasta que se implemente cada una, y no
  *               hace fallar el runner: es la lista de lo que falta. Cuando una pasa, hay
  *               que moverla al bloque BASELINE (pasa a ser comportamiento a preservar).
@@ -148,9 +148,13 @@ test('La Estrategia 2 sí respeta la compensación por arquero (no tiene refinam
 });
 
 test('Estrategia 1 sobre el partido testigo: armado de referencia', () => {
+  // Antes de 013 daba 49.3 / 53.3. Cambió porque las duplas se ubican primero para que su cupo
+  // por equipo se pueda respetar, y eso corre el orden del reparto. Los partidos sin duplas se
+  // arman exactamente igual que antes.
   const a = armar(F.PARTIDO_TESTIGO, { params: { ventajaSinArquero: 6 } }, { estrategia: 1 });
-  eq(r1(a.res.sumaBlanco), 49.3, 'suma del Blanco con Estrategia 1');
-  eq(r1(a.res.sumaNegro), 53.3, 'suma del Negro con Estrategia 1');
+  eq(r1(a.res.sumaBlanco), 48.8, 'suma del Blanco con Estrategia 1');
+  eq(r1(a.res.sumaNegro), 53.8, 'suma del Negro con Estrategia 1');
+  eq(a.duplasPorEquipo().blanco, 1, 'una dupla en cada equipo');
 });
 
 test('012: el puntaje visible de cada unidad suma exactamente el total del equipo', () => {
@@ -307,10 +311,10 @@ test('Duplas impar con arquero en los dos equipos: sin criterio de desempate, pe
   });
 });
 
-/* ======================= PENDIENTE 013 ======================= */
+/* ======================= 013 IMPLEMENTADA: comportamiento a preservar ==== */
 
 [1, 2].forEach(estrategia => {
-  pendiente('013', `Estrategia ${estrategia}: 2 duplas → una por equipo, con cualquier orden`, () => {
+  test(`Estrategia ${estrategia}: 2 duplas → una por equipo, con cualquier orden`, () => {
     paraTodoOrden(F.plantelConDuplas({ duplas: 2, arqueros: 1 }), {}, a => {
       const c = a.duplasPorEquipo();
       eq(c.blanco, 1, 'duplas en el Blanco');
@@ -318,7 +322,7 @@ test('Duplas impar con arquero en los dos equipos: sin criterio de desempate, pe
     }, { estrategia });
   });
 
-  pendiente('013', `Estrategia ${estrategia}: 1 dupla → al equipo CON arquero fijo, con cualquier orden`, () => {
+  test(`Estrategia ${estrategia}: 1 dupla → al equipo CON arquero fijo, con cualquier orden`, () => {
     paraTodoOrden(F.plantelConDuplas({ duplas: 1, arqueros: 1 }), {}, a => {
       const conArquero = a.equipoConArqueroFijo();
       ok(conArquero !== null, 'el plantel debería dejar a un solo equipo con arquero fijo');
@@ -327,7 +331,7 @@ test('Duplas impar con arquero en los dos equipos: sin criterio de desempate, pe
     }, { estrategia });
   });
 
-  pendiente('013', `Estrategia ${estrategia}: 3 duplas → dos al equipo con arquero fijo`, () => {
+  test(`Estrategia ${estrategia}: 3 duplas → dos al equipo con arquero fijo`, () => {
     paraTodoOrden(F.plantelConDuplas({ duplas: 3, arqueros: 1 }), {}, a => {
       const conArquero = a.equipoConArqueroFijo();
       ok(conArquero !== null, 'el plantel debería dejar a un solo equipo con arquero fijo');
@@ -372,8 +376,8 @@ pendiente('014', 'Dupla sin ningún puntaje: sigue siendo "sin puntaje"', () => 
 
 pendiente('014', 'La Estrategia 1 no cambia: sigue usando el promedio de los promedios', () => {
   const a = armar(F.PARTIDO_TESTIGO, { params: { ventajaSinArquero: 6 } }, { estrategia: 1 });
-  eq(r1(a.res.sumaBlanco), 49.3, 'suma del Blanco con Estrategia 1');
-  eq(r1(a.res.sumaNegro), 53.3, 'suma del Negro con Estrategia 1');
+  eq(r1(a.res.sumaBlanco), 48.8, 'suma del Blanco con Estrategia 1');
+  eq(r1(a.res.sumaNegro), 53.8, 'suma del Negro con Estrategia 1');
 });
 
 /* ======================= runner ======================= */
@@ -395,7 +399,7 @@ baseline.forEach(r => {
 });
 
 console.log('\n\x1b[1mPENDIENTE\x1b[0m — lo que exigen las features todavía sin implementar');
-['013', '014'].forEach(f => {
+['014'].forEach(f => {
   const delFeature = pendientes.filter(r => r.feature === f);
   if (!delFeature.length) return;
   console.log(`  \x1b[1m${f}\x1b[0m`);

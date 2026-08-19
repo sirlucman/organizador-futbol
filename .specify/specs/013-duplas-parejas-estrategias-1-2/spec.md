@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-19
 
-**Status**: Draft
+**Status**: Implementada (2026-08-19). Verificada con `node tests/motor.test.js`: sus 6 casos pasaron al bloque BASELINE, probados con todos los órdenes de convocatoria posibles y con las dos estrategias. La regla quedó escrita una sola vez (`cupoDuplasPorEquipo`) y la usan las tres estrategias.
 
 **Depends on**: `011-encaje-optimo-formacion` (define la regla de reparto de duplas, ahí aplicada solo a la Estrategia 3)
 
@@ -71,7 +71,7 @@ Un "admin" genera equipos con Estrategia 1 o con Estrategia 2 en un partido con 
 
 ### Enmiendas a specs vigentes
 
-- **`011-encaje-optimo-formacion`, FR-007 / FR-007a / FR-007b y su sección "Fuera de Alcance"**: la regla deja de ser exclusiva de la Estrategia 3. Debe quedar redactada como regla del motor, aplicable a las tres estrategias, y sacarse de Fuera de Alcance.
+- **`011-encaje-optimo-formacion`, FR-007 / FR-007a / FR-007b y su sección "Fuera de Alcance"**: la regla deja de ser exclusiva de la Estrategia 3. Queda redactada como regla del motor, aplicable a las tres estrategias, y sale de Fuera de Alcance. **Hecho.**
 - **`008-duplas-rotacion`, FR-008**: la restricción de reparto parejo pasa a valer para las tres estrategias.
 
 ## Success Criteria *(mandatory)*
@@ -93,3 +93,9 @@ Un "admin" genera equipos con Estrategia 1 o con Estrategia 2 en un partido con 
 - Cambiar el algoritmo de reparto de las Estrategias 1 y 2 más allá de incorporar esta restricción.
 - Llevar a las Estrategias 1 y 2 la asignación de posiciones con encaje óptimo de la Estrategia 3.
 - Igualar la cantidad de jugadores reales por equipo cuando la cantidad de duplas es impar.
+
+## Nota de implementación
+
+En las tres estrategias las duplas se ubican **antes** que el resto. No es un detalle de orden: si llegan al final del reparto, los cupos de cantidad de cada equipo ya están llenos y no queda margen para respetar su cupo propio. Los tests con todos los órdenes de convocatoria fueron los que lo detectaron — con la primera versión, la regla se cumplía solo para algunos órdenes.
+
+Consecuencia medida: en un partido con duplas, la Estrategia 1 arma distinto que antes (sobre el partido testigo, 49.3/53.3 pasó a 48.8/53.8, con una dupla por equipo). Los partidos **sin** duplas se arman exactamente igual que antes, con las tres estrategias.

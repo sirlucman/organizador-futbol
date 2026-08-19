@@ -59,6 +59,8 @@ const DECLARACIONES = [
   'mejorPosicionAlternativa',
   'resolverArqueros',
   'asignarArquerosPorNiveles',
+  'esDupla',
+  'cupoDuplasPorEquipo',
   'repartirBucketBalanceado',
   'ORDEN_FORMACION',
   'FORMACION_KEY_POR_POSICION',

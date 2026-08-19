@@ -1599,10 +1599,15 @@
     else ordenados = usaPuntaje
       ? [...libres].sort((a,b) => (computeAvg(b.scores) || 0) - (computeAvg(a.scores) || 0))
       : [...libres];
+    // Las duplas se ubican primero (013): si llegan al final, los cupos de cantidad de cada equipo
+    // ya están llenos y el reparto no tiene margen para respetar su cupo propio.
+    ordenados = [...ordenados.filter(esDupla), ...ordenados.filter(p => !esDupla(p))];
 
     const n = titularesPlayers.length;
     const cupoBlanco = Math.ceil(n / 2);
     const cupoNegro = Math.floor(n / 2);
+    // Cupo de duplas por equipo (013): la misma regla que usan las Estrategias 2 y 3.
+    const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
 
     ordenados.forEach(p => {
       const valor = valorDe(p);
@@ -1611,11 +1616,16 @@
       // el equipo compensado "aparenta" tener menos puntaje, así se lleva a los jugadores más fuertes
       const ajustadoBlanco = sumaBlanco - (equipoCompensado === 'blanco' ? compensacion : 0);
       const ajustadoNegro  = sumaNegro  - (equipoCompensado === 'negro'  ? compensacion : 0);
+      const sinCupoDuplas = eq => esDupla(p) && cupoDuplas[eq] <= 0;
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
+      // El cupo de duplas manda sobre el puntaje, pero no sobre los cupos de cantidad de arriba.
+      else if(sinCupoDuplas('blanco')) vaABlanco = false;
+      else if(sinCupoDuplas('negro')) vaABlanco = true;
       else if(usaPuntaje) vaABlanco = ajustadoBlanco <= ajustadoNegro;
       else vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: sólo empareja las cantidades
+      if(esDupla(p)) cupoDuplas[vaABlanco ? 'blanco' : 'negro']--;
 
       if(vaABlanco){ blanco.push(p.id); sumaBlanco += valor; }
       else{ negro.push(p.id); sumaNegro += valor; }
@@ -1624,23 +1634,64 @@
     return { blanco, negro, sumaBlanco, sumaNegro, posicionOverride, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
   }
 
+  /* --- REPARTO DE DUPLAS DE ROTACIÓN (011-encaje-optimo-formacion, extendido a las tres
+     estrategias por 013-duplas-parejas-estrategias-1-2) ---
+     El lugar de una dupla lo ocupa siempre alguien que jugó la mitad del partido, y esa frescura es
+     una ventaja que el puntaje no mide. Acumularlas en un equipo deja, con dos de ellas, 10
+     jugadores reales contra 8: cuatro rotando en dos lugares contra ocho jugando enteros. Antes que
+     no pasara era cuestión de suerte del reparto, no de una regla.
+       - Cantidad par: mitad y mitad.
+       - Cantidad impar: la que sobra va al equipo CON arquero fijo, porque el que rota el arco ya
+         recibe la ventaja de puntaje por no tenerlo y no corresponde acumularle las dos.
+       - Impar con arquero fijo en los dos equipos (o en ninguno): va a cualquiera.
+     Es una restricción dura del reparto: el equilibrio de puntaje se busca dentro de lo que
+     permita, no al revés. Los bloqueos manuales prevalecen sobre ella. */
+  const esDupla = u => !!(u && u._duplaIds);
+
+  function cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf){
+    const duplas = titularesPlayers.filter(esDupla);
+    const cupo = { blanco: Math.floor(duplas.length / 2), negro: Math.floor(duplas.length / 2) };
+    if(duplas.length % 2 === 1){
+      const equipoConArquero = (arquerosInfo && arquerosInfo.compensado)
+        ? (arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco')
+        : 'blanco'; // sin un solo equipo con arquero fijo no hay criterio de desempate
+      cupo[equipoConArquero]++;
+    }
+    // Las duplas ya ubicadas (en el arco, o bloqueadas en su equipo anterior) descuentan del cupo.
+    duplas.forEach(u => {
+      const equipo = blanco.includes(u.id) ? 'blanco'
+        : (negro.includes(u.id) ? 'negro'
+          : (sonBloqueados && sonBloqueados(u) ? (prevTeamOf || {})[u.id] : null));
+      if(equipo) cupo[equipo] = Math.max(0, cupo[equipo] - 1);
+    });
+    return cupo;
+  }
+
   /* Estrategia 2 — Balance por posiciones */
   function repartirBucketBalanceado(jugadoresConValor, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, comp){
-    // jugadoresConValor: [{id, valor}], ordenados desc por valor antes de llamar (si usaPuntaje)
-    // comp: { equipoCompensado, compensacion } — crédito virtual para el equipo sin arquero fijo
+    // jugadoresConValor: [{id, valor, esDupla}], ordenados desc por valor antes de llamar (si usaPuntaje)
+    // comp: { equipoCompensado, compensacion, cupoDuplas } — crédito virtual para el equipo sin
+    //   arquero fijo, y el cupo de duplas por equipo (objeto MUTABLE y compartido entre llamadas,
+    //   porque la cuenta de duplas es del equipo completo y no del grupo que se reparte acá).
     const equipoCompensado = comp && comp.equipoCompensado;
     const compensacion = (comp && comp.compensacion) || 0;
+    const cupoDuplas = comp && comp.cupoDuplas;
     let enEsteBucketBlanco = 0, enEsteBucketNegro = 0;
-    jugadoresConValor.forEach(({id, valor}) => {
+    jugadoresConValor.forEach(({id, valor, esDupla: unidadEsDupla}) => {
       const blancoLleno = enEsteBucketBlanco >= cupoBlanco;
       const negroLleno = enEsteBucketNegro >= cupoNegro;
       const ajustadoBlanco = sumaBlanco - (equipoCompensado === 'blanco' ? compensacion : 0);
       const ajustadoNegro  = sumaNegro  - (equipoCompensado === 'negro'  ? compensacion : 0);
+      const sinCupoDuplas = eq => unidadEsDupla && cupoDuplas && cupoDuplas[eq] <= 0;
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
+      // El cupo de duplas manda sobre el puntaje, pero no sobre los cupos de cantidad de arriba.
+      else if(sinCupoDuplas('blanco')) vaABlanco = false;
+      else if(sinCupoDuplas('negro')) vaABlanco = true;
       else if(usaPuntaje === false) vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: empareja cantidades
       else vaABlanco = ajustadoBlanco <= ajustadoNegro;
+      if(unidadEsDupla && cupoDuplas) cupoDuplas[vaABlanco ? 'blanco' : 'negro']--;
       if(vaABlanco){ blanco.push(id); sumaBlanco += valor; enEsteBucketBlanco++; }
       else{ negro.push(id); sumaNegro += valor; enEsteBucketNegro++; }
     });
@@ -1740,6 +1791,10 @@
     const yaUbicados = new Set([...blanco, ...negro]);
     const restantes = titularesPlayers.filter(p => !yaUbicados.has(p.id));
 
+    // Cupo de duplas por equipo (013): se calcula una vez y se comparte entre los grupos de
+    // posición, porque la cuenta es del equipo completo y no del grupo que se está repartiendo.
+    const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
+
     // Reparte una lista de jugadores balanceando cantidad y, si la regla de puntaje está activa, puntaje.
     function repartir(lista){
       const bloqueadosDeEste = lista.filter(sonBloqueados);
@@ -1762,13 +1817,16 @@
       let jugadores = libresDeEste.map(p => {
         const pos = posicionAsignada[p.id];
         const valor = puntajeEnPosicion(p, pos);
-        return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[pos] === 0) };
+        return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[pos] === 0), esDupla: esDupla(p) };
       });
       if(usaPuntaje){
         if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
         else jugadores.sort((a,b) => b.valor - a.valor);
       }
-      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado, compensacion });
+      // Las duplas se ubican primero (013): si llegan al final del grupo, el cupo de cantidad de
+      // cada equipo ya está lleno y no queda margen para respetar su cupo propio.
+      jugadores = [...jugadores.filter(j => j.esDupla), ...jugadores.filter(j => !j.esDupla)];
+      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado, compensacion, cupoDuplas });
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
     }
@@ -1982,20 +2040,7 @@
            ya recibe la ventaja de puntaje por no tenerlo y no corresponde acumularle las dos.
          - Impar con arquero fijo en los dos equipos (o en ninguno): va a cualquiera.
        Se reparten antes que el resto para que el cupo por posición ya las tenga descontadas. */
-    const esDupla = u => !!(u && u._duplaIds);
-    const cantidadDuplas = titularesPlayers.filter(esDupla).length;
-    const cupoDuplas = { blanco: Math.floor(cantidadDuplas / 2), negro: Math.floor(cantidadDuplas / 2) };
-    if(cantidadDuplas % 2 === 1){
-      const equipoConArquero = arquerosInfo.compensado
-        ? (arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco')
-        : 'blanco';
-      cupoDuplas[equipoConArquero]++;
-    }
-    // Una dupla bloqueada mantiene su equipo (FR-015) y descuenta del cupo: el bloqueo manda.
-    bloqueadosDeEste.filter(esDupla).forEach(u => {
-      const eq = prevTeamOf[u.id];
-      cupoDuplas[eq] = Math.max(0, cupoDuplas[eq] - 1);
-    });
+    const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
     const faltantesDuplas = { blanco: [], negro: [] };
     // Ubica una dupla en un equipo con cupo disponible: entre los dos, el que va más atrás de
     // puntaje (con el crédito del equipo sin arquero fijo, igual que repartirBucketBalanceado).
