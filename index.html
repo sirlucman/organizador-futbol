@@ -243,6 +243,10 @@
   .team-dupla-member{ display:flex; align-items:center; gap:4px; }
   .team-dupla-name{ flex: 1 1 auto; min-width:0; }
   .team-dupla-side{ display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; }
+  /* Nota del integrante de una dupla en la posición asignada, al lado de su nombre. Es informativa:
+     el número que suma al total del equipo es el de la unidad y va en la columna .team-avg. */
+  .team-nota-pos{ font-family: var(--font-mono); font-size: 11px; opacity: 0.55; margin-left: 6px; }
+  .team-avg-unidad{ align-self: center; }
   .team-dupla-marker{ opacity:0.65; display:flex; align-items:center; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
   .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
@@ -724,7 +728,12 @@
       resumen: 'empareja el puntaje',
       params: {
         diferenciaMaxima: { tipo: 'number', label: 'Diferencia aceptable', unidad: 'pts', default: null, min: 0, max: 50,
-          ayuda: 'Diferencia de puntaje que te parece aceptable. Si el armado la supera, el resumen del partido lo avisa. Dejalo vacío si no querés un objetivo.' }
+          ayuda: 'Cuánto se puede alejar el armado de la diferencia buscada antes de que el resumen te avise. Dejalo vacío si no querés un objetivo.' },
+        // 009-ventaja-sin-arquero: antes el monto estaba fijo en el código (el puntaje del único
+        // arquero) y no era ni visible ni editable. Arranca en 0 = ninguna ventaja, lo que cambia
+        // a propósito el comportamiento anterior: la compensación deja de aplicarse sola.
+        ventajaSinArquero: { tipo: 'number', label: 'Ventaja para el equipo sin arquero fijo', unidad: 'pts', default: 0, min: 0, max: 20,
+          ayuda: 'Cuando hay un solo arquero entre los titulares, un equipo rota el arco entre jugadores de campo. Estos son los puntos de ventaja que se le dan a ese equipo para compensarlo. En 0 no se compensa.' }
       }
     },
     sinPuntaje: {
@@ -743,7 +752,7 @@
     {
       key: 'arqueros',
       label: 'Un arquero por equipo',
-      descripcion: 'Primero busca entre los arqueros naturales (posición principal): si hay dos o más, van los de mejor puntaje, uno por equipo. Solo si algún equipo queda sin arquero después de agotar los naturales, busca entre quienes tienen Arquero como posición secundaria para cubrir ese lugar (por mejor puntaje) — un natural nunca es desplazado por un secundario. Si queda un solo arquero entre ambos niveles, el equipo sin arquero fijo se compensa con jugadores de mayor puntaje (rotan el arco). Si no hay ningún candidato en ningún nivel, se arma con lo que hay y rotan todos. Los arqueros naturales que no ganan el arco pasan a su mejor posición secundaria (o a delantero si no tienen); los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición habitual.'
+      descripcion: 'Primero busca entre los arqueros naturales (posición principal): si hay dos o más, van los de mejor puntaje, uno por equipo. Solo si algún equipo queda sin arquero después de agotar los naturales, busca entre quienes tienen Arquero como posición secundaria para cubrir ese lugar (por mejor puntaje) — un natural nunca es desplazado por un secundario. Si queda un solo arquero entre ambos niveles, el otro equipo rota el arco entre sus jugadores de campo; cuánta ventaja de puntaje se le da por eso no es parte de este invariante, se configura en la regla "Emparejar el puntaje". Si no hay ningún candidato en ningún nivel, se arma con lo que hay y rotan todos. Los arqueros naturales que no ganan el arco pasan a su mejor posición secundaria (o a delantero si no tienen); los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición habitual.'
     },
     {
       key: 'formacionFija',
@@ -898,6 +907,31 @@
     if(vals.length === 0) return null;
     const sum = vals.reduce((a,b) => a + Number(b), 0);
     return Math.round((sum / vals.length) * 10) / 10;
+  }
+  /* Valor general de una unidad de armado, sin mirar posiciones: el promedio de un jugador, y el
+     promedio de los promedios de los dos integrantes de una dupla. Es lo que usa la Estrategia 1
+     (014-puntaje-dupla-por-posicion, FR-006). Para una dupla ya no alcanza con `computeAvg` sobre
+     sus `scores`, porque desde 014 cada posición vale distinto y promediar las cuatro daría otro
+     número; el valor general viaja aparte, en `_valorGeneral`. */
+  function valorGeneralDe(u){
+    if(u && u._valorGeneral !== undefined) return u._valorGeneral;
+    return computeAvg(u.scores);
+  }
+  /* --- OBJETIVO DE DIFERENCIA (009-ventaja-sin-arquero) ---
+     Cuánta diferencia de puntaje busca el motor, y a favor de qué equipo. Vale 0 salvo que un solo
+     equipo haya quedado con arquero fijo y haya una ventaja configurada. Un único número gobierna
+     todos los pasos del armado: el reparto, el refinamiento final y el aviso del resumen. Antes la
+     compensación era un crédito escondido en el reparto, con un monto fijo en el código (el puntaje
+     del único arquero), y el refinamiento final la deshacía sin saber que existía. */
+  function ventajaSinArquero(){
+    const v = reglaParam('puntaje', 'ventajaSinArquero');
+    return (v === null || v === undefined || Number.isNaN(Number(v))) ? 0 : Math.max(0, Number(v));
+  }
+  // Diferencia buscada, con signo, expresada como (sumaBlanco - sumaNegro).
+  function objetivoDiferencia(arquerosInfo){
+    if(!arquerosInfo || !arquerosInfo.compensado || !arquerosInfo.equipoCompensado) return 0;
+    const ventaja = arquerosInfo.compensacion || 0;
+    return arquerosInfo.equipoCompensado === 'blanco' ? ventaja : -ventaja;
   }
   function puntajeEnPosicion(p, pos){
     const v = p.scores && p.scores[pos];
@@ -1514,7 +1548,9 @@
     let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
     const usaPuntaje = reglaEnabled('puntaje');
     const separaSinPuntaje = reglaEnabled('sinPuntaje');
-    const valorDe = p => { const avg = computeAvg(p.scores); return avg === null ? 0 : avg; };
+    // La Estrategia 1 no mira posiciones: una dupla vale el promedio de los promedios generales de
+    // sus integrantes, como siempre (014 FR-006 / 008 FR-008), no su valor por posición.
+    const valorDe = p => { const avg = valorGeneralDe(p); return avg === null ? 0 : avg; };
 
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
     titularesPlayers.forEach(p => {
@@ -1559,25 +1595,30 @@
       const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
       const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
       equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
-      compensacion = valorDe(unico);
+      compensacion = ventajaSinArquero(); // 009: configurable, antes era el puntaje del arquero
     }
     const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
 
     const libres = titularesPlayers.filter(p => !sonBloqueados(p) && !yaUbicados.has(p.id));
-    const conPuntaje = libres.filter(p => computeAvg(p.scores) !== null);
-    const sinPuntaje = libres.filter(p => computeAvg(p.scores) === null);
-    if(usaPuntaje) conPuntaje.sort((a,b) => computeAvg(b.scores) - computeAvg(a.scores));
+    const conPuntaje = libres.filter(p => valorGeneralDe(p) !== null);
+    const sinPuntaje = libres.filter(p => valorGeneralDe(p) === null);
+    if(usaPuntaje) conPuntaje.sort((a,b) => valorGeneralDe(b) - valorGeneralDe(a));
     // Con la regla "sin puntaje" activa, esos jugadores se reparten al final para no distorsionar el orden por puntaje.
     // Sin ella, se mezclan en el orden general.
     let ordenados;
     if(separaSinPuntaje) ordenados = [...conPuntaje, ...sinPuntaje];
     else ordenados = usaPuntaje
-      ? [...libres].sort((a,b) => (computeAvg(b.scores) || 0) - (computeAvg(a.scores) || 0))
+      ? [...libres].sort((a,b) => (valorGeneralDe(b) || 0) - (valorGeneralDe(a) || 0))
       : [...libres];
+    // Las duplas se ubican primero (013): si llegan al final, los cupos de cantidad de cada equipo
+    // ya están llenos y el reparto no tiene margen para respetar su cupo propio.
+    ordenados = [...ordenados.filter(esDupla), ...ordenados.filter(p => !esDupla(p))];
 
     const n = titularesPlayers.length;
     const cupoBlanco = Math.ceil(n / 2);
     const cupoNegro = Math.floor(n / 2);
+    // Cupo de duplas por equipo (013): la misma regla que usan las Estrategias 2 y 3.
+    const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
 
     ordenados.forEach(p => {
       const valor = valorDe(p);
@@ -1586,11 +1627,16 @@
       // el equipo compensado "aparenta" tener menos puntaje, así se lleva a los jugadores más fuertes
       const ajustadoBlanco = sumaBlanco - (equipoCompensado === 'blanco' ? compensacion : 0);
       const ajustadoNegro  = sumaNegro  - (equipoCompensado === 'negro'  ? compensacion : 0);
+      const sinCupoDuplas = eq => esDupla(p) && cupoDuplas[eq] <= 0;
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
+      // El cupo de duplas manda sobre el puntaje, pero no sobre los cupos de cantidad de arriba.
+      else if(sinCupoDuplas('blanco')) vaABlanco = false;
+      else if(sinCupoDuplas('negro')) vaABlanco = true;
       else if(usaPuntaje) vaABlanco = ajustadoBlanco <= ajustadoNegro;
       else vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: sólo empareja las cantidades
+      if(esDupla(p)) cupoDuplas[vaABlanco ? 'blanco' : 'negro']--;
 
       if(vaABlanco){ blanco.push(p.id); sumaBlanco += valor; }
       else{ negro.push(p.id); sumaNegro += valor; }
@@ -1599,23 +1645,64 @@
     return { blanco, negro, sumaBlanco, sumaNegro, posicionOverride, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
   }
 
+  /* --- REPARTO DE DUPLAS DE ROTACIÓN (011-encaje-optimo-formacion, extendido a las tres
+     estrategias por 013-duplas-parejas-estrategias-1-2) ---
+     El lugar de una dupla lo ocupa siempre alguien que jugó la mitad del partido, y esa frescura es
+     una ventaja que el puntaje no mide. Acumularlas en un equipo deja, con dos de ellas, 10
+     jugadores reales contra 8: cuatro rotando en dos lugares contra ocho jugando enteros. Antes que
+     no pasara era cuestión de suerte del reparto, no de una regla.
+       - Cantidad par: mitad y mitad.
+       - Cantidad impar: la que sobra va al equipo CON arquero fijo, porque el que rota el arco ya
+         recibe la ventaja de puntaje por no tenerlo y no corresponde acumularle las dos.
+       - Impar con arquero fijo en los dos equipos (o en ninguno): va a cualquiera.
+     Es una restricción dura del reparto: el equilibrio de puntaje se busca dentro de lo que
+     permita, no al revés. Los bloqueos manuales prevalecen sobre ella. */
+  const esDupla = u => !!(u && u._duplaIds);
+
+  function cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf){
+    const duplas = titularesPlayers.filter(esDupla);
+    const cupo = { blanco: Math.floor(duplas.length / 2), negro: Math.floor(duplas.length / 2) };
+    if(duplas.length % 2 === 1){
+      const equipoConArquero = (arquerosInfo && arquerosInfo.compensado)
+        ? (arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco')
+        : 'blanco'; // sin un solo equipo con arquero fijo no hay criterio de desempate
+      cupo[equipoConArquero]++;
+    }
+    // Las duplas ya ubicadas (en el arco, o bloqueadas en su equipo anterior) descuentan del cupo.
+    duplas.forEach(u => {
+      const equipo = blanco.includes(u.id) ? 'blanco'
+        : (negro.includes(u.id) ? 'negro'
+          : (sonBloqueados && sonBloqueados(u) ? (prevTeamOf || {})[u.id] : null));
+      if(equipo) cupo[equipo] = Math.max(0, cupo[equipo] - 1);
+    });
+    return cupo;
+  }
+
   /* Estrategia 2 — Balance por posiciones */
   function repartirBucketBalanceado(jugadoresConValor, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, comp){
-    // jugadoresConValor: [{id, valor}], ordenados desc por valor antes de llamar (si usaPuntaje)
-    // comp: { equipoCompensado, compensacion } — crédito virtual para el equipo sin arquero fijo
+    // jugadoresConValor: [{id, valor, esDupla}], ordenados desc por valor antes de llamar (si usaPuntaje)
+    // comp: { equipoCompensado, compensacion, cupoDuplas } — crédito virtual para el equipo sin
+    //   arquero fijo, y el cupo de duplas por equipo (objeto MUTABLE y compartido entre llamadas,
+    //   porque la cuenta de duplas es del equipo completo y no del grupo que se reparte acá).
     const equipoCompensado = comp && comp.equipoCompensado;
     const compensacion = (comp && comp.compensacion) || 0;
+    const cupoDuplas = comp && comp.cupoDuplas;
     let enEsteBucketBlanco = 0, enEsteBucketNegro = 0;
-    jugadoresConValor.forEach(({id, valor}) => {
+    jugadoresConValor.forEach(({id, valor, esDupla: unidadEsDupla}) => {
       const blancoLleno = enEsteBucketBlanco >= cupoBlanco;
       const negroLleno = enEsteBucketNegro >= cupoNegro;
       const ajustadoBlanco = sumaBlanco - (equipoCompensado === 'blanco' ? compensacion : 0);
       const ajustadoNegro  = sumaNegro  - (equipoCompensado === 'negro'  ? compensacion : 0);
+      const sinCupoDuplas = eq => unidadEsDupla && cupoDuplas && cupoDuplas[eq] <= 0;
       let vaABlanco;
       if(blancoLleno) vaABlanco = false;
       else if(negroLleno) vaABlanco = true;
+      // El cupo de duplas manda sobre el puntaje, pero no sobre los cupos de cantidad de arriba.
+      else if(sinCupoDuplas('blanco')) vaABlanco = false;
+      else if(sinCupoDuplas('negro')) vaABlanco = true;
       else if(usaPuntaje === false) vaABlanco = blanco.length <= negro.length; // sin balance de puntaje: empareja cantidades
       else vaABlanco = ajustadoBlanco <= ajustadoNegro;
+      if(unidadEsDupla && cupoDuplas) cupoDuplas[vaABlanco ? 'blanco' : 'negro']--;
       if(vaABlanco){ blanco.push(id); sumaBlanco += valor; enEsteBucketBlanco++; }
       else{ negro.push(id); sumaNegro += valor; enEsteBucketNegro++; }
     });
@@ -1662,7 +1749,7 @@
       const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
       const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
       equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
-      compensacion = puntajeEnPosicion(unico, 'Arquero');
+      compensacion = ventajaSinArquero(); // 009: configurable, antes era el puntaje del arquero
     }
     const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
     return { blanco, negro, sumaBlanco, sumaNegro, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria, compensacion, equipoCompensado };
@@ -1715,6 +1802,10 @@
     const yaUbicados = new Set([...blanco, ...negro]);
     const restantes = titularesPlayers.filter(p => !yaUbicados.has(p.id));
 
+    // Cupo de duplas por equipo (013): se calcula una vez y se comparte entre los grupos de
+    // posición, porque la cuenta es del equipo completo y no del grupo que se está repartiendo.
+    const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
+
     // Reparte una lista de jugadores balanceando cantidad y, si la regla de puntaje está activa, puntaje.
     function repartir(lista){
       const bloqueadosDeEste = lista.filter(sonBloqueados);
@@ -1737,13 +1828,16 @@
       let jugadores = libresDeEste.map(p => {
         const pos = posicionAsignada[p.id];
         const valor = puntajeEnPosicion(p, pos);
-        return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[pos] === 0) };
+        return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[pos] === 0), esDupla: esDupla(p) };
       });
       if(usaPuntaje){
         if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
         else jugadores.sort((a,b) => b.valor - a.valor);
       }
-      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado, compensacion });
+      // Las duplas se ubican primero (013): si llegan al final del grupo, el cupo de cantidad de
+      // cada equipo ya está lleno y no queda margen para respetar su cupo propio.
+      jugadores = [...jugadores.filter(j => j.esDupla), ...jugadores.filter(j => !j.esDupla)];
+      const resultado = repartirBucketBalanceado(jugadores, cupoBlancoLibres, cupoNegroLibres, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado, compensacion, cupoDuplas });
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
     }
@@ -1774,6 +1868,94 @@
   function tieneScoreEnPosicion(p, pos){
     const v = p.scores && p.scores[pos];
     return v !== null && v !== undefined && v !== '';
+  }
+
+  /* --- ENCAJE POSICIONAL (011-encaje-optimo-formacion) ---
+     El encaje sale de las posiciones DECLARADAS de cada titular, nunca del puntaje. Meter el
+     encaje dentro del puntaje degenera siempre: el promedio de una dupla premia posiciones que
+     nadie cubre, el mínimo de las notas no penaliza a quien tiene una sola nota cargada, y el 0
+     de `puntajeEnPosicion` castiga de más. Son dos dimensiones distintas y el motor ya tiene las
+     dos: `secundarias` dice dónde juega cada uno, `scores` dice cuánto vale. */
+  const COSTO_DESCUBIERTA = 100; // domina cualquier suma de encajes: nunca hay 100 titulares
+
+  // 0 = juega ahí de principal, 1 = la tiene como secundaria, COSTO_DESCUBIERTA = no la juega.
+  // En una dupla se miran los dos integrantes (FR-004): 0 si la cubren los dos, 1 si solo uno
+  // (la mitad del partido hay alguien fuera de puesto), descubierta si ninguno.
+  function costoEncaje(u, pos){
+    const miembros = u._duplaMiembros;
+    if(!miembros) return u.principal === pos ? 0 : ((u.secundarias || []).includes(pos) ? 1 : COSTO_DESCUBIERTA);
+    const cubren = miembros.filter(m => m.principal === pos || (m.secundarias || []).includes(pos)).length;
+    return cubren === 2 ? 0 : (cubren === 1 ? 1 : COSTO_DESCUBIERTA);
+  }
+
+  /* Decide qué titular juega en cada lugar de la formación con GARANTÍA de mejor encaje posible:
+     primero la mínima cantidad de lugares que no cubre nadie (los domina COSTO_DESCUBIERTA) y,
+     entre esas, la mayor cantidad de titulares en su posición principal (FR-001/FR-002).
+
+     Antes este paso corregía de una sola pasada: partía de la posición natural de cada uno y solo
+     movía a los titulares de una posición con EXCEDENTE. Un titular cuya posición natural no
+     sobraba nunca se consideraba para un lugar vacío aunque lo cubriera como secundaria, y el
+     lugar que quedaba sin candidatos se llenaba con el primer titular suelto de la lista, sin
+     mirar si jugaba ahí. Así, con formación 3-3-1, una dupla que cubría Defensor y Volante
+     terminó de Delantero mientras un volante con Delantero como secundaria se quedaba de Volante,
+     y el resumen avisaba que no se pudo completar la formación cuando sí se podía.
+
+     Se prueban todas las asignaciones con una programación dinámica sobre (titular procesado,
+     lugares ya usados por posición). Con tres posiciones de campo y ~18 titulares son unos pocos
+     miles de estados: instantáneo. A diferencia de un barrido que prueba intercambios de a dos,
+     encuentra las reubicaciones en cadena de tres o más (A al puesto de B, B al de C, C al de A),
+     que ningún intercambio de a pares mejora por separado.
+
+     Devuelve { [id]: posición } y `null` para los titulares que sobran de lo que pide la
+     formación (remanente): esos siguen jugando su posición natural, igual que antes. */
+  function asignarPosicionesOptimo(unidades, cupoPorPosicion){
+    const cupo = {};
+    ORDEN_FORMACION.forEach(pos => { cupo[pos] = cupoPorPosicion[pos] || 0; });
+    const totalLugares = ORDEN_FORMACION.reduce((a, pos) => a + cupo[pos], 0);
+    const maxRemanente = Math.max(0, unidades.length - totalLugares);
+    const destinos = [...ORDEN_FORMACION, null]; // null = remanente (juega su posición natural)
+
+    // Una capa por titular procesado: clave "usadosDef,usadosVol,usadosDel" -> mejor costo.
+    let capa = new Map([['0,0,0', 0]]);
+    const decisiones = [];
+    unidades.forEach((u, i) => {
+      const siguiente = new Map(), origen = new Map();
+      capa.forEach((costo, clave) => {
+        const usados = clave.split(',').map(Number);
+        destinos.forEach(pos => {
+          const idx = ORDEN_FORMACION.indexOf(pos);
+          const nuevos = [...usados];
+          if(idx === -1){
+            // Al remanente solo pueden ir los que sobran de la formación.
+            if((i + 1) - (nuevos[0] + nuevos[1] + nuevos[2]) > maxRemanente) return;
+          }else{
+            if(nuevos[idx] >= cupo[pos]) return;
+            nuevos[idx]++;
+          }
+          const nuevoCosto = costo + (idx === -1 ? 0 : costoEncaje(u, pos));
+          const nuevaClave = nuevos.join(',');
+          const previo = siguiente.get(nuevaClave);
+          if(previo === undefined || nuevoCosto < previo){
+            siguiente.set(nuevaClave, nuevoCosto);
+            origen.set(nuevaClave, { clave, pos });
+          }
+        });
+      });
+      decisiones.push(origen);
+      capa = siguiente;
+    });
+
+    // Estado final de menor costo (los lugares pueden quedar sin llenar si faltan titulares).
+    let mejorClave = null, mejorCosto = Infinity;
+    capa.forEach((costo, clave) => { if(costo < mejorCosto){ mejorCosto = costo; mejorClave = clave; } });
+    const out = {};
+    if(mejorClave === null) return out; // sin titulares libres: nada que asignar
+    for(let i = unidades.length - 1; i >= 0; i--){
+      const paso = decisiones[i].get(mejorClave);
+      out[unidades[i].id] = paso.pos;
+      mejorClave = paso.clave;
+    }
+    return out;
   }
 
   function generarEquiposEstrategia3(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada, formacionObjetivo){
@@ -1833,60 +2015,71 @@
     const targetGlobal = {};
     ORDEN_FORMACION.forEach(pos => { targetGlobal[pos] = cupoEquipo.blanco[pos] + cupoEquipo.negro[pos]; });
 
-    function tieneAlternativa(p, posActual){
-      return (p.secundarias || []).some(s => s !== posActual && ORDEN_FORMACION.includes(s));
-    }
-
-    // Paso 2 — nivel de POSICIÓN (todavía sin mirar equipos): todos arrancan en su posición natural
-    // y se corrigen excedentes y faltantes contra el cupo global (la suma de ambos equipos).
-    // Decidir posición y equipo por separado evita el problema de resolver lugar por lugar: ahí, la
-    // elección de quién ocupa un lugar temprano podía "gastar" a un titular que era el único natural
-    // de una posición todavía no procesada, o mover a alguien que no tiene ninguna otra posición
-    // donde sume puntaje pudiendo mover a un compañero que sí la tiene.
+    // Paso 2 — nivel de POSICIÓN (todavía sin mirar equipos): quién juega en cada lugar de la
+    // formación, con el mejor encaje posible sobre el cupo global (la suma de ambos equipos).
+    // Decidir posición y equipo por separado no es un detalle de implementación: el encaje de un
+    // titular depende de la POSICIÓN y no del equipo, y los cupos por posición de cada equipo ya
+    // están fijos por la formación, así que cualquier reparto entre equipos que los respete da
+    // exactamente el mismo encaje. Las dos decisiones son independientes y no compiten.
+    const asignacion = asignarPosicionesOptimo(libres, targetGlobal);
     const buckets = {};
-    ORDEN_FORMACION.forEach(pos => { buckets[pos] = libres.filter(p => posicionAsignada[p.id] === pos); });
+    ORDEN_FORMACION.forEach(pos => { buckets[pos] = []; });
     const motivoPorId = {};
-
-    // Excedentes: si sobran naturales para una posición, se van primero los que SÍ tienen otra
-    // posición secundaria útil (FR-020) — entre ellos, el de menor puntaje acá; los que no tienen
-    // ninguna alternativa se quedan, porque moverlos significa que no suman puntaje en ningún lado.
-    const pendientes = [];
-    ORDEN_FORMACION.forEach(pos => {
-      const exceso = buckets[pos].length - targetGlobal[pos];
-      if(exceso > 0){
-        const ordenados = [...buckets[pos]].sort((a, b) => {
-          const flexA = tieneAlternativa(a, pos), flexB = tieneAlternativa(b, pos);
-          if(flexA !== flexB) return flexA ? -1 : 1;
-          return puntajeEnPosicion(a, pos) - puntajeEnPosicion(b, pos);
-        });
-        const movidos = ordenados.slice(0, exceso);
-        buckets[pos] = buckets[pos].filter(p => !movidos.includes(p));
-        pendientes.push(...movidos.map(p => ({ p, desde: pos })));
+    let pendientes = [];
+    libres.forEach(u => {
+      const pos = asignacion[u.id];
+      const desde = posicionAsignada[u.id];
+      if(pos === null){ pendientes.push({ p: u, desde }); return; } // remanente: sigue en su posición natural
+      posicionAsignada[u.id] = pos;
+      if(costoEncaje(u, pos) >= COSTO_DESCUBIERTA){
+        // Lugar que no cubre nadie: no hay ninguna asignación sin él (lo garantiza el paso anterior).
+        motivoPorId[u.id] = 'fallback';
+      }else if(pos !== desde){
+        motivoPorId[u.id] = 'formacion';
+        swaps.push({ playerId: u.id, desde, hacia: pos, motivo: 'formacion' });
       }
+      buckets[pos].push(u);
     });
 
-    // Faltantes: se cubren con los pendientes que tengan esa posición como secundaria (FR-019 b/b'),
-    // priorizando al de mejor puntaje ahí; si ninguno sirve, cualquier pendiente (FR-019c).
+    /* Paso 3a — reparto de las DUPLAS de rotación (FR-007/FR-007a/FR-007b de 011). Es una
+       restricción dura del reparto, no un objetivo a optimizar: el lugar de una dupla lo ocupa
+       siempre alguien que jugó la mitad del partido, y esa frescura es una ventaja que el puntaje
+       no mide. Acumular las duplas en un equipo deja, con dos de ellas, 10 jugadores reales contra
+       8 — cuatro rotando en dos lugares contra ocho jugando enteros.
+         - Cantidad par: mitad y mitad.
+         - Cantidad impar: la que sobra va al equipo CON arquero fijo, porque el que rota el arco
+           ya recibe la ventaja de puntaje por no tenerlo y no corresponde acumularle las dos.
+         - Impar con arquero fijo en los dos equipos (o en ninguno): va a cualquiera.
+       Se reparten antes que el resto para que el cupo por posición ya las tenga descontadas. */
+    const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
+    const faltantesDuplas = { blanco: [], negro: [] };
+    // Ubica una dupla en un equipo con cupo disponible: entre los dos, el que va más atrás de
+    // puntaje (con el crédito del equipo sin arquero fijo, igual que repartirBucketBalanceado).
+    // `descuentaCupo` es false para el remanente, que juega fuera de los lugares de la formación.
+    function ubicarDupla(u, pos, descuentaCupo){
+      const ajustadoBlanco = sumaBlanco - (arquerosInfo.equipoCompensado === 'blanco' ? arquerosInfo.compensacion : 0);
+      const ajustadoNegro = sumaNegro - (arquerosInfo.equipoCompensado === 'negro' ? arquerosInfo.compensacion : 0);
+      let equipo;
+      if(cupoDuplas.blanco <= 0) equipo = 'negro';
+      else if(cupoDuplas.negro <= 0) equipo = 'blanco';
+      else equipo = ajustadoBlanco <= ajustadoNegro ? 'blanco' : 'negro';
+      cupoDuplas[equipo]--;
+      if(descuentaCupo) cupoEquipo[equipo][pos] = Math.max(0, cupoEquipo[equipo][pos] - 1);
+      const valor = puntajeEnPosicion(u, pos);
+      if(equipo === 'blanco'){ blanco.push(u.id); sumaBlanco += valor; } else { negro.push(u.id); sumaNegro += valor; }
+      if(motivoPorId[u.id] === 'fallback') faltantesDuplas[equipo].push(pos);
+    }
     ORDEN_FORMACION.forEach(pos => {
-      while(buckets[pos].length < targetGlobal[pos] && pendientes.length > 0){
-        let idx = -1, motivo = 'formacion', mejorValor = -Infinity;
-        pendientes.forEach(({ p }, i) => {
-          if(!(p.secundarias || []).includes(pos)) return;
-          const v = puntajeEnPosicion(p, pos);
-          if(v > mejorValor){ mejorValor = v; idx = i; }
-        });
-        if(idx === -1){ idx = 0; motivo = 'fallback'; }
-        const { p, desde } = pendientes.splice(idx, 1)[0];
-        posicionAsignada[p.id] = pos;
-        motivoPorId[p.id] = motivo;
-        if(motivo === 'formacion') swaps.push({ playerId: p.id, desde, hacia: pos, motivo: 'formacion' });
-        buckets[pos].push(p);
-      }
+      const duplas = buckets[pos].filter(esDupla);
+      if(duplas.length === 0) return;
+      buckets[pos] = buckets[pos].filter(u => !esDupla(u));
+      duplas.sort((a, b) => puntajeEnPosicion(b, pos) - puntajeEnPosicion(a, pos));
+      duplas.forEach(u => ubicarDupla(u, pos, true));
     });
 
     // Paso 3 — nivel de EQUIPO: ya definido quién juega en cada posición, se reparte cada grupo entre
     // los dos equipos balanceando puntaje con la misma función que usa Estrategia 2.
-    const faltantes = { blanco: [], negro: [] };
+    const faltantes = { blanco: [...faltantesDuplas.blanco], negro: [...faltantesDuplas.negro] };
     ORDEN_FORMACION.forEach(pos => {
       bloqueadosDeEste.filter(p => posicionAsignada[p.id] === pos).forEach(p => {
         const equipo = prevTeamOf[p.id];
@@ -1910,9 +2103,16 @@
 
     // Paso 4: remanente, si el pool de titulares excede lo que pide la formación (colchón, igual que Estrategia 2).
     if(pendientes.length > 0){
+      // Las duplas del remanente también respetan su cupo por equipo (Paso 3a).
+      pendientes.filter(({ p }) => esDupla(p)).forEach(({ p }) => ubicarDupla(p, posicionAsignada[p.id], false));
+      pendientes = pendientes.filter(({ p }) => !esDupla(p));
+    }
+    if(pendientes.length > 0){
       const total = pendientes.length;
-      const cupoBlanco = Math.ceil(total / 2);
-      const cupoNegro = Math.floor(total / 2);
+      // Se reparte el remanente equilibrando la cantidad de integrantes de cada equipo, que las
+      // duplas ya ubicadas pueden haber dejado desparejo.
+      const cupoBlanco = Math.min(total, Math.max(0, Math.round((total + negro.length - blanco.length) / 2)));
+      const cupoNegro = total - cupoBlanco;
       const jugadores = pendientes.map(({ p }) => {
         const pos = posicionAsignada[p.id];
         return { id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) };
@@ -1924,26 +2124,37 @@
       sumaNegro = resultado.sumaNegro;
     }
 
-    // Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
-    // y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
-    // distintos cuyo intercambio achique la diferencia de puntaje, y se aplica el mejor, repitiendo
-    // hasta que ningún intercambio mejore. Como siempre se intercambian jugadores de igual posición,
-    // la formación y la cantidad de integrantes de cada equipo quedan intactas; y como solo se aplica
-    // un intercambio si reduce la diferencia, nunca puede empeorar el balance.
+    /* Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
+       y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
+       distintos cuyo intercambio acerque el armado al OBJETIVO de diferencia, y se aplica el mejor,
+       repitiendo hasta que ninguno mejore. Como siempre se intercambian jugadores de igual posición,
+       la formación y la cantidad de integrantes de cada equipo quedan intactas; y como solo se aplica
+       un intercambio si reduce el desvío, nunca puede empeorar el balance.
+
+       Antes este paso minimizaba la diferencia CRUDA, sin saber que podía existir un objetivo
+       distinto de cero: el reparto le daba una ventaja al equipo sin arquero fijo y acá se la
+       quitaba persiguiendo el empate. En un partido real con un solo arquero, una ventaja de 6
+       terminaba convertida en una diferencia de 0.5 mientras el resumen afirmaba que se había
+       compensado (010-refinamiento-objetivo). Con objetivo 0 el comportamiento es idéntico al de
+       antes: cero es un caso particular del objetivo, no una excepción. */
     {
+      const objetivo = objetivoDiferencia(arquerosInfo);
       const porId = {};
       titularesPlayers.forEach(p => { porId[p.id] = p; });
       const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
       const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
-      const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce la diferencia, así que siempre corta antes
+      const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce el desvío, así que siempre corta antes
       for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
-        const diff = sumaBlanco - sumaNegro;
+        const diff = (sumaBlanco - sumaNegro) - objetivo;
         let mejor = null, mejorAbs = Math.abs(diff);
         blanco.forEach((idB, i) => {
           if(!intercambiable(idB)) return;
           negro.forEach((idN, j) => {
             if(!intercambiable(idN)) return;
             if(posicionAsignada[idB] !== posicionAsignada[idN]) return;
+            // Intercambiar una dupla por un jugador individual cambiaría la cantidad de duplas de
+            // cada equipo, que el Paso 3a fijó como restricción dura: solo dupla por dupla.
+            if(esDupla(porId[idB]) !== esDupla(porId[idN])) return;
             const nuevoAbs = Math.abs(diff - 2 * (valorDe(idB) - valorDe(idN)));
             if(nuevoAbs < mejorAbs - 1e-9){ mejorAbs = nuevoAbs; mejor = { i, j }; }
           });
@@ -1973,15 +2184,33 @@
   function construirUnidadDupla(pA, pB){
     const avgA = computeAvg(pA.scores);
     const avgB = computeAvg(pB.scores);
-    let valorCombinado;
-    if(avgA !== null && avgB !== null) valorCombinado = Math.round(((avgA + avgB) / 2) * 10) / 10;
-    else if(avgA !== null) valorCombinado = avgA;
-    else if(avgB !== null) valorCombinado = avgB;
-    else valorCombinado = null;
-    // El mismo valor combinado en las 4 posiciones: computeAvg/puntajeEnPosicion siguen
-    // funcionando sin cambios (FR-008 no distingue el valor de la dupla por posición).
+    const combinar = (a, b) => {
+      if(a !== null && b !== null) return Math.round(((a + b) / 2) * 10) / 10;
+      if(a !== null) return a;
+      if(b !== null) return b;
+      return null;
+    };
+    // Valor general de la unidad: el promedio de los promedios generales. Es el que usa la
+    // Estrategia 1, que no mira posiciones (008 FR-008, 014 FR-006). No se puede derivar de
+    // `scores` con computeAvg porque ahora cada posición vale distinto.
+    const valorGeneral = combinar(avgA, avgB);
+    /* Valor por posición (014-puntaje-dupla-por-posicion, FR-001/FR-002): el promedio del aporte
+       de cada integrante en esa posición, donde el aporte es su nota cargada ahí si existe y su
+       promedio general si no la tiene. Así la dupla vale lo que realmente aporta en el puesto que
+       le tocó, en vez de valer lo mismo en las cuatro posiciones. Cuando ninguno de los dos tiene
+       nota en esa posición, la fórmula colapsa sola al valor general de siempre (FR-003), y
+       cuando ninguno tiene ninguna nota la unidad queda sin puntaje (FR-004). El encaje
+       posicional no depende de estos números: lo decide `costoEncaje` con las posiciones
+       declaradas (011-encaje-optimo-formacion, FR-008). */
+    const aporte = (p, avg, pos) => {
+      const v = p.scores && p.scores[pos];
+      if(v !== null && v !== undefined && v !== '') return Number(v);
+      return avg; // sin nota en el puesto: se lo representa con su promedio general (null si no tiene ninguna)
+    };
     const scoresUnidad = {};
-    POSITIONS.forEach(pos => { scoresUnidad[pos] = valorCombinado; });
+    POSITIONS.forEach(pos => {
+      scoresUnidad[pos] = combinar(aporte(pA, avgA, pos), aporte(pB, avgB, pos));
+    });
     // Candidatos de posición principal: la de cada integrante (FR-008). Si ambos son arqueros
     // naturales, la unidad ES arquero (único candidato, FR-009); si solo uno lo es, la unidad NO
     // se trata como natural (para no forzar a su compañero no-arquero al arco) — el integrante
@@ -1994,7 +2223,9 @@
     const secundarias = Array.from(new Set([
       ...principales, ...(pA.secundarias || []), ...(pB.secundarias || [])
     ].filter(pos => pos !== principal)));
-    return { id: pA.id + '+' + pB.id, principal, secundarias, scores: scoresUnidad, _duplaIds: [pA.id, pB.id] };
+    // `_duplaMiembros` deja a los dos integrantes a mano para el encaje por niveles de
+    // `costoEncaje` (una posición que cubren los dos no es lo mismo que una que cubre uno solo).
+    return { id: pA.id + '+' + pB.id, principal, secundarias, scores: scoresUnidad, _valorGeneral: valorGeneral, _duplaIds: [pA.id, pB.id], _duplaMiembros: [pA, pB] };
   }
 
   // Unidades de armado para el motor: unidades individuales (jugador real, sin cambios) o duplas
@@ -2268,12 +2499,31 @@
     // Puntaje individual: nunca para "jugador" (FR-004/FR-013), sea propio o ajeno.
     let puntajeHtml = '';
     if(isAdmin()){
-      const scoreEnPos = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : null;
-      const avg = computeAvg(p.scores);
-      const valorMostrado = m.equipos.posicionAsignada ? (scoreEnPos > 0 ? scoreEnPos : 'sin puntaje') : (avg !== null ? avg : 'sin puntaje');
-      puntajeHtml = `<span class="team-avg">${valorMostrado}</span>`;
+      const valor = valorDePuntaje([p], m);
+      puntajeHtml = `<span class="team-avg">${valor === null ? 'sin puntaje' : valor}</span>`;
     }
     return { statsHtml, puntajeHtml };
+  }
+
+  function posicionAsignadaDe(p, m){
+    return (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
+      || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
+      || p.principal;
+  }
+
+  /* Puntaje que el motor usó para una unidad de armado, o null si no tiene puntaje
+     (012-puntajes-coherentes-panel). Es el número que suma al total del equipo, y por eso es el
+     que va en la columna de puntaje. Para una dupla se recalcula la unidad con la misma función
+     que usa el motor: antes el panel mostraba la nota individual de cada integrante en la posición
+     asignada, que no es lo que se sumó — con la dupla de un partido real se veían dos "sin
+     puntaje" mientras el motor había computado 5.8, y los números visibles del Blanco sumaban 46
+     contra un total de 51.8. */
+  function valorDePuntaje(grupo, m){
+    const unidad = grupo.length === 2 ? construirUnidadDupla(grupo[0], grupo[1]) : grupo[0];
+    // Sin posiciones asignadas (Estrategia 1) el panel muestra el promedio general, como siempre.
+    if(!m.equipos.posicionAsignada) return valorGeneralDe(unidad);
+    const valor = puntajeEnPosicion(unidad, posicionAsignadaDe(grupo[0], m));
+    return valor > 0 ? valor : null;
   }
 
   function renderLockBtn(m, playerId, editable, bloqueado){
@@ -2326,16 +2576,32 @@
     const editable = esFilaEditable(m);
     const bloqueado = (m.bloqueados || []).includes(pA.id);
     const lockBtn = renderLockBtn(m, pA.id, editable, bloqueado);
+    // Cada integrante muestra su propia nota en la posición asignada al lado del nombre (dato
+    // informativo), pero el puntaje que suma al total del equipo es uno solo, el de la unidad, y
+    // va en la columna de puntaje (012-puntajes-coherentes-panel, FR-001).
+    // Si el integrante no tiene nota cargada en ese puesto, al lado del nombre va la leyenda "sin
+    // puntaje" (014, FR-012): aclara que su aporte al número de la columna se estimó con su
+    // promedio general. La columna siempre muestra el número mientras la unidad tenga valor
+    // calculable, incluso cuando ninguno de los dos cubre la posición (FR-011).
     const miembroHtml = (p) => {
       const esSecundaria = posAsignada !== p.principal;
-      const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
+      const { statsHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
+      const nota = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : computeAvg(p.scores);
+      const tieneNota = nota > 0;
+      const titulo = tieneNota
+        ? `Puntaje de ${fullName(p)} en ${posAsignada}`
+        : `${fullName(p)} no tiene puntaje cargado en ${posAsignada}: aporta su promedio general`;
+      const notaHtml = isAdmin() ? `<span class="team-nota-pos" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
       return `
         <div class="team-dupla-member">
-          <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
-          ${puntajeHtml}
+          <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}${notaHtml}</span>
           ${statsHtml}
         </div>`;
     };
+    const valorUnidad = valorDePuntaje([pA, pB], m);
+    const puntajeUnidadHtml = isAdmin()
+      ? `<span class="team-avg team-avg-unidad" title="Puntaje de la dupla: es el que suma al total del equipo">${valorUnidad === null ? 'sin puntaje' : valorUnidad}</span>`
+      : '';
     return `
       <div class="team-player-row team-player-row-dupla" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${pA.id}')"` : ''}>
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
@@ -2343,6 +2609,7 @@
           ${miembroHtml(pA)}
           ${miembroHtml(pB)}
         </div>
+        ${puntajeUnidadHtml}
         <div class="team-dupla-side">
           ${lockBtn}
           <span class="team-dupla-marker" title="Dupla de rotación">${ICON_DUPLA_CREAR}</span>
@@ -2525,27 +2792,35 @@
     const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
     const esEstrategia3 = eq.estrategiaKey === 'estrategia3';
 
+    // Cuenta UNIDADES de armado sin puntaje, no jugadores: una dupla cuenta una sola vez y solo si
+    // la unidad no tiene puntaje — es la unidad lo que el motor repartió (012, FR-003). Antes
+    // contaba a cada integrante por separado, así que una dupla con puntaje aparecía como dos
+    // jugadores sin puntaje.
     function sinPuntajeCount(lista){
-      return lista.filter(p => {
-        if(esEstrategia2 || esEstrategia3){
-          const pos = eq.posicionAsignada[p.id];
-          return puntajeEnPosicion(p, pos) === 0;
-        }
-        return computeAvg(p.scores) === null;
-      }).length;
+      return agruparFilasDeEquipo(m, lista).filter(grupo => valorDePuntaje(grupo, m) === null).length;
     }
     const sinPuntajeBlanco = sinPuntajeCount(blancoPlayers);
     const sinPuntajeNegro = sinPuntajeCount(negroPlayers);
     const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
     const bloqueados = m.bloqueados || [];
-    // objetivo de diferencia (parámetro de la regla "Balancear puntaje")
+    /* Diferencia buscada en ESTE armado, con signo (sumaBlanco - sumaNegro). Se lee de la info de
+       arqueros guardada con el armado, no de la config actual, para que el resumen siga explicando
+       lo que realmente se hizo aunque después se cambie la configuración (009-ventaja-sin-arquero). */
+    const objetivoDiff = objetivoDiferencia(eq.arquerosInfo);
+    const ventajaOtorgada = Math.abs(objetivoDiff);
+    // Lo que se compara con la "Diferencia aceptable" es el DESVÍO respecto del objetivo, no la
+    // diferencia cruda: con una ventaja de 6 configurada, terminar 6 puntos apartados es un acierto
+    // y no un problema (009, FR-010).
+    const desvio = Math.round(Math.abs((eq.sumaBlanco - eq.sumaNegro) - objetivoDiff) * 10) / 10;
     const diffObjetivo = reglaEnabled('puntaje') ? reglaParam('puntaje', 'diferenciaMaxima') : null;
-    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && diferencia > Number(diffObjetivo));
+    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && desvio > Number(diffObjetivo));
 
     const explicaciones = [];
     const totalSinPuntaje = sinPuntajeBlanco + sinPuntajeNegro;
     if(totalSinPuntaje > 0){
-      explicaciones.push(`Se distribuyeron ${totalSinPuntaje} jugador${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos.`);
+      // "titular" y no "jugador" porque la cuenta es por unidad de armado, y una dupla ocupa una
+      // sola vacante de titular entre sus dos integrantes (008-duplas-rotacion).
+      explicaciones.push(`Se distribuyeron ${totalSinPuntaje} titular${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos.`);
     }
     if(esEstrategia2 || esEstrategia3){
       (eq.swaps || []).forEach(s => {
@@ -2573,7 +2848,16 @@
         explicaciones.push('No hay arqueros entre los titulares: se armó con lo que hay y el arco lo rotan los jugadores de ambos equipos.');
       }else if(eq.arquerosInfo.compensado){
         const eqComp = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro';
-        explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se lo compensó con jugadores de mayor puntaje.`);
+        // Con la ventaja en 0 no se afirma que se compensó, porque no se compensó (009, FR-009).
+        // Con una ventaja configurada se dice cuánta y cuánta diferencia se logró, para que el
+        // dato sea auditable en vez de una afirmación genérica (009, FR-008).
+        if(ventajaOtorgada > 0){
+          const aFavorDe = (eq.sumaBlanco - eq.sumaNegro) === 0 ? null
+            : ((eq.sumaBlanco > eq.sumaNegro) ? 'Blanco' : 'Negro');
+          explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se le dieron ${ventajaOtorgada} puntos de ventaja. Diferencia lograda: ${diferencia}${aFavorDe ? ` a favor del Equipo ${aFavorDe}` : ' (empate)'}.`);
+        }else{
+          explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan el arco entre los jugadores de campo).`);
+        }
       }
     }
     (eq.arquerosExcedentes || []).forEach(s => {
@@ -2595,7 +2879,9 @@
         : `Se mantuvieron ${titularIds.length - eq.cambios} asignaciones de la generación anterior; ${eq.cambios} jugador${eq.cambios===1?'':'es'} cambiaron de equipo.`);
     }
     if(superaObjetivo){
-      explicaciones.push(`La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
+      explicaciones.push(ventajaOtorgada > 0
+        ? `El armado quedó a ${desvio} de la diferencia buscada (${ventajaOtorgada} a favor del equipo sin arquero fijo), y supera lo aceptable (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`
+        : `La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
     }
     // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
     const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
@@ -2644,7 +2930,7 @@
         </div>
       </div>
       <div class="conv-summary">
-        <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(objetivo ≤ ${diffObjetivo})</span>` : ''}</div>
+        <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${ventajaOtorgada > 0 ? ` <span style="opacity:0.7;">(buscada: ${ventajaOtorgada} a favor del ${eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro'})</span>` : ''}${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(desvío aceptable ≤ ${diffObjetivo})</span>` : ''}</div>
         <div class="stat">Sin puntaje — Blanco: <b>${sinPuntajeBlanco}</b></div>
         <div class="stat">Sin puntaje — Negro: <b>${sinPuntajeNegro}</b></div>
         <div class="stat">Jugadores bloqueados: <b>${bloqueados.length}</b></div>

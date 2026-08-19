@@ -62,6 +62,13 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
 - que se predefina esquema táctico para el armado de equipos. Ej: 1 arquero, 3 defensores, 2 volantes, 2 delanteros
 - que en base a los jugadores disponibles sugiera la mejor estrategia
 
+<!-- Las cuatro zonas grises del motor detectadas al especificar 009/010/011 se promovieron
+     a specs el 2026-08-19 y por eso salieron de este documento:
+       - reparto parejo de duplas en Estrategias 1 y 2 → .specify/specs/013-duplas-parejas-estrategias-1-2/
+       - puntajes del panel incoherentes con los del motor → .specify/specs/012-puntajes-coherentes-panel/
+       - informar el mínimo de diferencia alcanzable → .specify/specs/015-minimo-diferencia-alcanzable/
+       - puntaje de dupla según la posición → .specify/specs/014-puntaje-dupla-por-posicion/ -->
+
 ### Mejoras de UX
 - Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
 - Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `.specify/memory/constitution.md`, sección "Restricciones Técnicas y de Alcance").
