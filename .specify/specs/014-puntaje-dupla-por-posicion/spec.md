@@ -4,7 +4,7 @@
 
 **Created**: 2026-08-19
 
-**Status**: Draft
+**Status**: Implementada (2026-08-19). Verificada con `node tests/motor.test.js`: sus 7 casos pasaron al bloque BASELINE (valor por posición, integrante único puntuado, dupla sin ningún puntaje, no-regresión de la Estrategia 1, y los tres del panel). Sobre el partido testigo el armado pasó de 50.8/51.3 a 50.5/51.0, con la misma diferencia de 0.5: las dos duplas juegan de Volante y ahora valen sus notas de Volante (5.5 y 6.0) en vez del promedio de sus promedios (5.8 y 6.3). Falta la verificación visual en el navegador de la leyenda por integrante (FR-012).
 
 **Depends on**: `011-encaje-optimo-formacion` (saca el encaje posicional de la dimensión del puntaje; sin eso, esta feature reintroduce el problema que se describe abajo)
 
@@ -30,6 +30,7 @@ El orden importa. Si se cambia la fórmula **antes** de `011`, se vuelve al prob
 - Q: ¿Cuál es la fórmula? → A: El valor de la dupla en una posición es el promedio de lo que aporta cada integrante en esa posición, y a un integrante que no tiene nota cargada ahí se lo representa con su promedio general. Ejemplo: en Defensor, `(nota de Defensor de Claudio + promedio general de Juan) / 2`.
 - Q: ¿Por qué el promedio general y no cero, o la nota más baja? → A: Porque cero miente (un volante fuera de puesto no vale cero) y la nota más baja no penaliza nada cuando el jugador tiene una sola nota cargada, que es el caso más común del plantel. El promedio general es el estimador honesto de "cuánto rinde esta persona" y no requiere calibrar ningún factor nuevo.
 - Q: ¿Qué pasa en una posición donde ninguno de los dos tiene nota? → A: La fórmula colapsa a `(promedio general de A + promedio general de B) / 2`, que es exactamente el valor actual. O sea: el valor de hoy pasa a ser el caso degenerado de la fórmula nueva, y no hace falta ninguna regla aparte.
+- Q: En esa posición que ninguno cubre, ¿el panel muestra "sin puntaje"? → A: La columna de puntajes muestra el número obtenido (el promedio de los promedios generales de ambos), nunca vacío. La leyenda "sin puntaje" se sigue mostrando al lado del nombre de cada integrante que no tiene nota cargada para esa posición, como aclaración de por qué el número sale de su promedio general. O sea: número en la columna, leyenda al lado del nombre.
 - Q: ¿Esa posición queda "premiada" (vale igual que una cubierta)? → A: Puede pasar, y por eso esta feature depende de `011`. El encaje lo decide la dimensión de encaje, con las posiciones declaradas: el motor no va a poner a la dupla en una posición que no cubre si existe alguna alternativa, sin importar cuánto valga ahí.
 - Q: ¿Aplica a la Estrategia 1? → A: No. La Estrategia 1 no mira posiciones, así que ahí la dupla se sigue valuando con el promedio de los promedios generales, como define `008-duplas-rotacion` FR-008. Esta feature aplica a las Estrategias 2 y 3, que sí puntúan por posición.
 - Q: ¿Cambia el valor de un jugador individual fuera de su posición? → A: No. Sigue valiendo lo que vale hoy. Es una zona gris aparte y no hace falta tocarla para esta feature.
@@ -68,6 +69,8 @@ El "admin" ve en el panel el puntaje de la dupla para la posición en la que que
 
 1. **Given** una dupla en el panel, **When** el "admin" mira su puntaje, **Then** ve el valor que el motor usó para la posición asignada.
 2. **Given** cualquier equipo generado, **When** el "admin" suma los puntajes visibles, **Then** coincide con el total mostrado.
+3. **Given** una dupla ubicada en una posición que ninguno de sus integrantes tiene cargada, **When** el "admin" mira el panel, **Then** la columna de puntajes muestra el número calculado (el promedio de los promedios generales de ambos) y la leyenda "sin puntaje" aparece al lado del nombre de cada integrante.
+4. **Given** una dupla en la que solo uno de los dos tiene nota para la posición asignada, **When** el "admin" mira el panel, **Then** la columna muestra el valor de la unidad y la leyenda "sin puntaje" aparece solo al lado del nombre del integrante que no tiene esa nota cargada.
 
 ---
 
@@ -92,6 +95,8 @@ El "admin" ve en el panel el puntaje de la dupla para la posición en la que que
 - **FR-008**: El sistema MUST NOT usar el puntaje de una dupla para decidir en qué posición la ubica; esa decisión sigue siendo la de encaje, con las posiciones declaradas (`011-encaje-optimo-formacion`).
 - **FR-009**: El sistema MUST NOT cambiar cómo se elige el arquero de cada equipo.
 - **FR-010**: El valor de la dupla MUST expresarse con un decimal, igual que el resto de los puntajes.
+- **FR-011**: Siempre que la unidad tenga un valor calculable, la columna de puntajes del panel MUST mostrar ese número, incluso cuando sale del promedio de los promedios generales porque ninguno de los dos integrantes tiene nota para esa posición; la columna MUST quedar en "sin puntaje" únicamente cuando ningún integrante tiene ninguna nota cargada (FR-004).
+- **FR-012**: La leyenda "sin puntaje" MUST seguir mostrándose al lado del nombre de cada integrante que no tiene nota cargada para la posición asignada, como aclaración de que su aporte se estimó con su promedio general. Es una marca por jugador y no reemplaza al número de la columna ni altera los contadores de "sin puntaje", que siguen contando unidades de armado (`012-puntajes-coherentes-panel`).
 
 ### Enmiendas a specs vigentes
 

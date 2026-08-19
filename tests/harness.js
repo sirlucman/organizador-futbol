@@ -53,6 +53,7 @@ const DECLARACIONES = [
   'POSITIONS',
   'CANCHAS',
   'computeAvg',
+  'valorGeneralDe',
   'ventajaSinArquero',
   'objetivoDiferencia',
   'puntajeEnPosicion',

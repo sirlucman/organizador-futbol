@@ -6,7 +6,7 @@
  *   BASELINE  — comportamiento actual del motor. Tiene que pasar HOY. Si algo de acá se
  *               rompe, es una regresión y el runner devuelve código de salida 1.
  *
- *   PENDIENTE — comportamiento que exige la feature 014, todavía sin
+ *   PENDIENTE — comportamiento que exigen las features todavía sin
  *               implementar. Falla a propósito hasta que se implemente cada una, y no
  *               hace fallar el runner: es la lista de lo que falta. Cuando una pasa, hay
  *               que moverla al bloque BASELINE (pasa a ser comportamiento a preservar).
@@ -93,17 +93,21 @@ const pendiente = (feature, nombre, fn) => TESTS.push({ nombre, feature, fn });
 
 /* ======================= BASELINE ======================= */
 
-test('El valor de una dupla es el promedio de los promedios, igual en las 4 posiciones', () => {
+// 014 cambió este caso: antes la dupla valía lo mismo en las 4 posiciones. Ahora el valor general
+// (promedio de los promedios) sigue existiendo — lo usa la Estrategia 1 — pero viaja en
+// `_valorGeneral`, y `scores` guarda el valor por posición.
+test('El valor general de una dupla es el promedio de los promedios de sus integrantes', () => {
   const motor = cargarMotor();
   const [[claudio, juan], [walther, lautaro]] = F.PARTIDO_TESTIGO.duplas;
   const cj = motor.construirUnidadDupla(claudio, juan);
   const wl = motor.construirUnidadDupla(walther, lautaro);
   // Claudio promedia 5.5 (6 y 5), Juan 6 → 5.75, redondeado a 5.8
-  eq(cj.scores.Delantero, 5.8, 'la dupla Claudio/Juan debería valer 5.8');
-  eq(cj.scores.Volante, 5.8, 'la dupla vale lo mismo en Volante que en Delantero');
-  eq(cj.scores.Arquero, 5.8, 'la dupla vale lo mismo en Arquero');
+  eq(cj._valorGeneral, 5.8, 'la dupla Claudio/Juan debería valer 5.8 en general');
+  eq(motor.valorGeneralDe(cj), 5.8, 'y valorGeneralDe devuelve ese mismo número');
+  // Delantero no lo cubre ninguno de los dos: ahí la fórmula por posición colapsa al valor general
+  eq(cj.scores.Delantero, 5.8, 'en una posición que ninguno cubre vale lo mismo que antes de 014');
   // Walther promedia 5.5, Lautaro 7 → 6.25, redondeado a 6.3
-  eq(wl.scores.Volante, 6.3, 'la dupla Walther/Lautaro debería valer 6.3');
+  eq(wl._valorGeneral, 6.3, 'la dupla Walther/Lautaro debería valer 6.3 en general');
 });
 
 test('La dupla Claudio/Juan no cubre Delantero (ni principal ni secundaria)', () => {
@@ -115,13 +119,16 @@ test('La dupla Claudio/Juan no cubre Delantero (ni principal ni secundaria)', ()
   ok(!cj.secundarias.includes('Delantero'), 'Delantero NO debería ser una posición de la unidad');
 });
 
-test('Partido testigo: armado con encaje óptimo (50.8 / 51.3)', () => {
+test('Partido testigo: armado con encaje óptimo (50.5 / 51.0)', () => {
   // Antes de 011 este mismo plantel daba 51.8 / 51.3 con la dupla Claudio/Juan de Delantero,
-  // una posición que no cubre ninguno de sus dos integrantes. La diferencia sigue siendo 0.5,
-  // que es el piso matemático de este plantel con los dos equipos parejos.
+  // una posición que no cubre ninguno de sus dos integrantes.
+  // 014 bajó los dos totales, porque las dos duplas juegan de Volante y ahora valen sus notas de
+  // Volante y no el promedio de sus promedios: Claudio/Juan 5.5 en vez de 5.8 (Blanco 50.8 → 50.5)
+  // y Walther/Lautaro 6.0 en vez de 6.3 (Negro 51.3 → 51.0). La diferencia sigue siendo 0.5, el
+  // piso matemático de este plantel con los dos equipos parejos.
   const a = armar(F.PARTIDO_TESTIGO);
-  eq(r1(a.res.sumaBlanco), 50.8, 'suma del Blanco');
-  eq(r1(a.res.sumaNegro), 51.3, 'suma del Negro');
+  eq(r1(a.res.sumaBlanco), 50.5, 'suma del Blanco');
+  eq(r1(a.res.sumaNegro), 51, 'suma del Negro');
   eq(a.diferencia, 0.5, 'diferencia de puntaje');
 });
 
@@ -187,7 +194,8 @@ test('012: una dupla con puntaje no cuenta como jugadores sin puntaje', () => {
   const [[claudio, juan]] = F.PARTIDO_TESTIGO.duplas;
   const valor = a.motor.valorDePuntaje([claudio, juan], m);
   ok(valor !== null, 'la dupla Claudio/Juan tiene puntaje: no debe contarse como "sin puntaje"');
-  eq(valor, 5.8, 'y el valor que se muestra es el que el motor usó');
+  // 5.5 desde 014: la dupla juega de Volante y ahí vale las notas de Volante de sus integrantes.
+  eq(valor, 5.5, 'y el valor que se muestra es el que el motor usó');
 });
 
 /* ======================= 009 y 010 IMPLEMENTADAS: comportamiento a preservar ==== */
@@ -342,9 +350,9 @@ test('Duplas impar con arquero en los dos equipos: sin criterio de desempate, pe
   });
 });
 
-/* ======================= PENDIENTE 014 ======================= */
+/* ============ 014 IMPLEMENTADA: comportamiento a preservar ============ */
 
-pendiente('014', 'La dupla vale el promedio de las notas de sus integrantes en esa posición', () => {
+test('014: la dupla vale el promedio de las notas de sus integrantes en esa posición', () => {
   const motor = cargarMotor();
   const [[claudio, juan]] = F.PARTIDO_TESTIGO.duplas;
   const cj = motor.construirUnidadDupla(claudio, juan);
@@ -356,7 +364,7 @@ pendiente('014', 'La dupla vale el promedio de las notas de sus integrantes en e
   eq(cj.scores.Delantero, 5.8, 'valor de la dupla en Delantero (caso degenerado, igual que hoy)');
 });
 
-pendiente('014', 'Dupla con un solo integrante puntuado: vale lo que ese integrante', () => {
+test('014: dupla con un solo integrante puntuado: vale lo que ese integrante', () => {
   const motor = cargarMotor();
   const conNota = F.P('a', 'Con nota', 'Volante', [], { Volante: 8 });
   const sinNada = F.P('b', 'Sin nada', 'Defensor', [], {});
@@ -365,7 +373,7 @@ pendiente('014', 'Dupla con un solo integrante puntuado: vale lo que ese integra
   eq(u.scores.Defensor, 8, 'en Defensor también: no hay otro valor disponible');
 });
 
-pendiente('014', 'Dupla sin ningún puntaje: sigue siendo "sin puntaje"', () => {
+test('014: dupla sin ningún puntaje: sigue siendo "sin puntaje"', () => {
   const motor = cargarMotor();
   const u = motor.construirUnidadDupla(
     F.P('a', 'Uno', 'Volante', [], {}),
@@ -374,10 +382,40 @@ pendiente('014', 'Dupla sin ningún puntaje: sigue siendo "sin puntaje"', () => 
   eq(motor.computeAvg(u.scores), null, 'la unidad no debería tener puntaje');
 });
 
-pendiente('014', 'La Estrategia 1 no cambia: sigue usando el promedio de los promedios', () => {
+test('014: la Estrategia 1 no cambia: sigue usando el promedio de los promedios', () => {
   const a = armar(F.PARTIDO_TESTIGO, { params: { ventajaSinArquero: 6 } }, { estrategia: 1 });
   eq(r1(a.res.sumaBlanco), 48.8, 'suma del Blanco con Estrategia 1');
   eq(r1(a.res.sumaNegro), 53.8, 'suma del Negro con Estrategia 1');
+});
+
+// FR-011: la columna de puntajes del panel muestra el número siempre que la unidad tenga valor,
+// incluso en una posición que ninguno de los dos integrantes cubre (donde el número sale del
+// promedio de los promedios generales). "Sin puntaje" en la columna queda solo para FR-004.
+test('014: el panel muestra el número aunque ninguno cubra la posición', () => {
+  const motor = cargarMotor();
+  const [[claudio, juan]] = F.PARTIDO_TESTIGO.duplas;
+  // Delantero: ninguno de los dos tiene nota cargada ahí.
+  const m = { equipos: { posicionAsignada: { [claudio.id]: 'Delantero', [juan.id]: 'Delantero' } } };
+  eq(motor.valorDePuntaje([claudio, juan], m), 5.8, 'la columna debe mostrar el número, no "sin puntaje"');
+});
+
+test('014: el panel muestra "sin puntaje" solo cuando la unidad no tiene ningún valor', () => {
+  const motor = cargarMotor();
+  const a = F.P('a', 'Uno', 'Volante', [], {});
+  const b = F.P('b', 'Otro', 'Defensor', [], {});
+  const m = { equipos: { posicionAsignada: { a: 'Volante', b: 'Volante' } } };
+  eq(motor.valorDePuntaje([a, b], m), null, 'sin ninguna nota cargada, la columna sí queda "sin puntaje"');
+});
+
+// FR-012 (la leyenda "sin puntaje" al lado del nombre de cada integrante sin nota en el puesto)
+// vive en renderTeamPlayerRowDupla, que es HTML y no se puede extraer con este harness: se
+// verifica en el navegador. Acá se prueba la condición que la dispara.
+test('014: la leyenda por integrante se dispara cuando no tiene nota en el puesto', () => {
+  const motor = cargarMotor();
+  const [[claudio, juan]] = F.PARTIDO_TESTIGO.duplas;
+  eq(motor.puntajeEnPosicion(claudio, 'Delantero'), 0, 'Claudio no tiene nota de Delantero → leyenda');
+  eq(motor.puntajeEnPosicion(juan, 'Delantero'), 0, 'Juan tampoco → leyenda en los dos');
+  ok(motor.puntajeEnPosicion(juan, 'Volante') > 0, 'en Volante Juan sí tiene nota → sin leyenda');
 });
 
 /* ======================= runner ======================= */

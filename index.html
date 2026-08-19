@@ -908,6 +908,15 @@
     const sum = vals.reduce((a,b) => a + Number(b), 0);
     return Math.round((sum / vals.length) * 10) / 10;
   }
+  /* Valor general de una unidad de armado, sin mirar posiciones: el promedio de un jugador, y el
+     promedio de los promedios de los dos integrantes de una dupla. Es lo que usa la Estrategia 1
+     (014-puntaje-dupla-por-posicion, FR-006). Para una dupla ya no alcanza con `computeAvg` sobre
+     sus `scores`, porque desde 014 cada posición vale distinto y promediar las cuatro daría otro
+     número; el valor general viaja aparte, en `_valorGeneral`. */
+  function valorGeneralDe(u){
+    if(u && u._valorGeneral !== undefined) return u._valorGeneral;
+    return computeAvg(u.scores);
+  }
   /* --- OBJETIVO DE DIFERENCIA (009-ventaja-sin-arquero) ---
      Cuánta diferencia de puntaje busca el motor, y a favor de qué equipo. Vale 0 salvo que un solo
      equipo haya quedado con arquero fijo y haya una ventaja configurada. Un único número gobierna
@@ -1539,7 +1548,9 @@
     let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
     const usaPuntaje = reglaEnabled('puntaje');
     const separaSinPuntaje = reglaEnabled('sinPuntaje');
-    const valorDe = p => { const avg = computeAvg(p.scores); return avg === null ? 0 : avg; };
+    // La Estrategia 1 no mira posiciones: una dupla vale el promedio de los promedios generales de
+    // sus integrantes, como siempre (014 FR-006 / 008 FR-008), no su valor por posición.
+    const valorDe = p => { const avg = valorGeneralDe(p); return avg === null ? 0 : avg; };
 
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
     titularesPlayers.forEach(p => {
@@ -1589,15 +1600,15 @@
     const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
 
     const libres = titularesPlayers.filter(p => !sonBloqueados(p) && !yaUbicados.has(p.id));
-    const conPuntaje = libres.filter(p => computeAvg(p.scores) !== null);
-    const sinPuntaje = libres.filter(p => computeAvg(p.scores) === null);
-    if(usaPuntaje) conPuntaje.sort((a,b) => computeAvg(b.scores) - computeAvg(a.scores));
+    const conPuntaje = libres.filter(p => valorGeneralDe(p) !== null);
+    const sinPuntaje = libres.filter(p => valorGeneralDe(p) === null);
+    if(usaPuntaje) conPuntaje.sort((a,b) => valorGeneralDe(b) - valorGeneralDe(a));
     // Con la regla "sin puntaje" activa, esos jugadores se reparten al final para no distorsionar el orden por puntaje.
     // Sin ella, se mezclan en el orden general.
     let ordenados;
     if(separaSinPuntaje) ordenados = [...conPuntaje, ...sinPuntaje];
     else ordenados = usaPuntaje
-      ? [...libres].sort((a,b) => (computeAvg(b.scores) || 0) - (computeAvg(a.scores) || 0))
+      ? [...libres].sort((a,b) => (valorGeneralDe(b) || 0) - (valorGeneralDe(a) || 0))
       : [...libres];
     // Las duplas se ubican primero (013): si llegan al final, los cupos de cantidad de cada equipo
     // ya están llenos y el reparto no tiene margen para respetar su cupo propio.
@@ -2173,15 +2184,33 @@
   function construirUnidadDupla(pA, pB){
     const avgA = computeAvg(pA.scores);
     const avgB = computeAvg(pB.scores);
-    let valorCombinado;
-    if(avgA !== null && avgB !== null) valorCombinado = Math.round(((avgA + avgB) / 2) * 10) / 10;
-    else if(avgA !== null) valorCombinado = avgA;
-    else if(avgB !== null) valorCombinado = avgB;
-    else valorCombinado = null;
-    // El mismo valor combinado en las 4 posiciones: computeAvg/puntajeEnPosicion siguen
-    // funcionando sin cambios (FR-008 no distingue el valor de la dupla por posición).
+    const combinar = (a, b) => {
+      if(a !== null && b !== null) return Math.round(((a + b) / 2) * 10) / 10;
+      if(a !== null) return a;
+      if(b !== null) return b;
+      return null;
+    };
+    // Valor general de la unidad: el promedio de los promedios generales. Es el que usa la
+    // Estrategia 1, que no mira posiciones (008 FR-008, 014 FR-006). No se puede derivar de
+    // `scores` con computeAvg porque ahora cada posición vale distinto.
+    const valorGeneral = combinar(avgA, avgB);
+    /* Valor por posición (014-puntaje-dupla-por-posicion, FR-001/FR-002): el promedio del aporte
+       de cada integrante en esa posición, donde el aporte es su nota cargada ahí si existe y su
+       promedio general si no la tiene. Así la dupla vale lo que realmente aporta en el puesto que
+       le tocó, en vez de valer lo mismo en las cuatro posiciones. Cuando ninguno de los dos tiene
+       nota en esa posición, la fórmula colapsa sola al valor general de siempre (FR-003), y
+       cuando ninguno tiene ninguna nota la unidad queda sin puntaje (FR-004). El encaje
+       posicional no depende de estos números: lo decide `costoEncaje` con las posiciones
+       declaradas (011-encaje-optimo-formacion, FR-008). */
+    const aporte = (p, avg, pos) => {
+      const v = p.scores && p.scores[pos];
+      if(v !== null && v !== undefined && v !== '') return Number(v);
+      return avg; // sin nota en el puesto: se lo representa con su promedio general (null si no tiene ninguna)
+    };
     const scoresUnidad = {};
-    POSITIONS.forEach(pos => { scoresUnidad[pos] = valorCombinado; });
+    POSITIONS.forEach(pos => {
+      scoresUnidad[pos] = combinar(aporte(pA, avgA, pos), aporte(pB, avgB, pos));
+    });
     // Candidatos de posición principal: la de cada integrante (FR-008). Si ambos son arqueros
     // naturales, la unidad ES arquero (único candidato, FR-009); si solo uno lo es, la unidad NO
     // se trata como natural (para no forzar a su compañero no-arquero al arco) — el integrante
@@ -2196,7 +2225,7 @@
     ].filter(pos => pos !== principal)));
     // `_duplaMiembros` deja a los dos integrantes a mano para el encaje por niveles de
     // `costoEncaje` (una posición que cubren los dos no es lo mismo que una que cubre uno solo).
-    return { id: pA.id + '+' + pB.id, principal, secundarias, scores: scoresUnidad, _duplaIds: [pA.id, pB.id], _duplaMiembros: [pA, pB] };
+    return { id: pA.id + '+' + pB.id, principal, secundarias, scores: scoresUnidad, _valorGeneral: valorGeneral, _duplaIds: [pA.id, pB.id], _duplaMiembros: [pA, pB] };
   }
 
   // Unidades de armado para el motor: unidades individuales (jugador real, sin cambios) o duplas
@@ -2492,7 +2521,7 @@
   function valorDePuntaje(grupo, m){
     const unidad = grupo.length === 2 ? construirUnidadDupla(grupo[0], grupo[1]) : grupo[0];
     // Sin posiciones asignadas (Estrategia 1) el panel muestra el promedio general, como siempre.
-    if(!m.equipos.posicionAsignada) return computeAvg(unidad.scores);
+    if(!m.equipos.posicionAsignada) return valorGeneralDe(unidad);
     const valor = puntajeEnPosicion(unidad, posicionAsignadaDe(grupo[0], m));
     return valor > 0 ? valor : null;
   }
@@ -2550,11 +2579,19 @@
     // Cada integrante muestra su propia nota en la posición asignada al lado del nombre (dato
     // informativo), pero el puntaje que suma al total del equipo es uno solo, el de la unidad, y
     // va en la columna de puntaje (012-puntajes-coherentes-panel, FR-001).
+    // Si el integrante no tiene nota cargada en ese puesto, al lado del nombre va la leyenda "sin
+    // puntaje" (014, FR-012): aclara que su aporte al número de la columna se estimó con su
+    // promedio general. La columna siempre muestra el número mientras la unidad tenga valor
+    // calculable, incluso cuando ninguno de los dos cubre la posición (FR-011).
     const miembroHtml = (p) => {
       const esSecundaria = posAsignada !== p.principal;
       const { statsHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
       const nota = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : computeAvg(p.scores);
-      const notaHtml = isAdmin() ? `<span class="team-nota-pos" title="Puntaje de ${fullName(p)} en ${posAsignada}">${nota > 0 ? nota : 'sin nota'}</span>` : '';
+      const tieneNota = nota > 0;
+      const titulo = tieneNota
+        ? `Puntaje de ${fullName(p)} en ${posAsignada}`
+        : `${fullName(p)} no tiene puntaje cargado en ${posAsignada}: aporta su promedio general`;
+      const notaHtml = isAdmin() ? `<span class="team-nota-pos" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
       return `
         <div class="team-dupla-member">
           <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}${notaHtml}</span>
