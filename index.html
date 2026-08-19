@@ -676,8 +676,8 @@
   function posTextColor(pos){ return pos === 'Volante' ? 'var(--ink)' : 'var(--chalk)'; } // el amarillo necesita texto oscuro para que se lea
   function posBadgeStyle(pos){ return `background:${POS_COLOR[pos] || 'var(--muted)'}; color:${POS_COLOR[pos] ? posTextColor(pos) : 'var(--chalk)'};`; }
   const CANCHAS = {
-    futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8 },
-    futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9 }
+    futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { defensores: 3, volantes: 3, delanteros: 1 } },
+    futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9, formacion: { defensores: 3, volantes: 4, delanteros: 1 } }
   };
   const ESTRATEGIAS = {
     estrategia1: {
@@ -689,6 +689,11 @@
       label: 'Por posición y puntaje',
       resumen: 'reparte parejo por puesto (arquero, defensor, volante, delantero) y dentro de eso empareja el puntaje',
       descripcion: 'Primero reparte por puesto (arquero, defensor, volante, delantero) para que queden parejos en cada posición, y dentro de eso empareja el puntaje. Puede mover a un jugador a una posición secundaria si mejora el equilibrio.'
+    },
+    estrategia3: {
+      label: 'Formación fija',
+      resumen: 'además de emparejar arqueros, intenta completar en cada equipo la formación de posiciones del tamaño de cancha del partido',
+      descripcion: 'Arma los arqueros igual que "Por posición y puntaje" y después intenta completar en cada equipo una formación fija de posiciones según el tamaño de cancha (3-3-1 para Fútbol 8, 3-4-1 para Fútbol 9). La formación tiene prioridad sobre el puntaje individual: si hace falta, usa la posición secundaria de un jugador aunque tenga menos puntaje que otro candidato, y si aun así algún lugar no se puede cubrir, completa igual la generación y lo avisa en la explicación.'
     }
   };
   /* ================= CONFIGURACIÓN DEL MOTOR (Slice 4) ================= */
@@ -739,6 +744,12 @@
       key: 'arqueros',
       label: 'Un arquero por equipo',
       descripcion: 'Primero busca entre los arqueros naturales (posición principal): si hay dos o más, van los de mejor puntaje, uno por equipo. Solo si algún equipo queda sin arquero después de agotar los naturales, busca entre quienes tienen Arquero como posición secundaria para cubrir ese lugar (por mejor puntaje) — un natural nunca es desplazado por un secundario. Si queda un solo arquero entre ambos niveles, el equipo sin arquero fijo se compensa con jugadores de mayor puntaje (rotan el arco). Si no hay ningún candidato en ningún nivel, se arma con lo que hay y rotan todos. Los arqueros naturales que no ganan el arco pasan a su mejor posición secundaria (o a delantero si no tienen); los candidatos que llegaban solo por posición secundaria y no ganan el arco siguen jugando su posición habitual.'
+    },
+    {
+      key: 'formacionFija',
+      label: 'Formación fija',
+      descripcion: 'Además de los arqueros, intenta completar en cada equipo la formación de posiciones del tamaño de cancha del partido (3-3-1 para Fútbol 8, 3-4-1 para Fútbol 9), usando la posición secundaria de un jugador cuando haga falta, incluso con menos puntaje que otro candidato. Si algún lugar no se puede cubrir ni por posición principal ni secundaria, se completa igual con cualquier titular disponible priorizando no alejarse de la diferencia de puntaje configurada, y se avisa en la explicación.',
+      soloEn: 'estrategia3'
     }
   ];
 
@@ -1035,7 +1046,7 @@
   // swaps, info de arqueros, jugadores bloqueados) del resto de cada partido antes de guardar:
   // `partidos` (público) conserva qué jugador quedó en qué equipo y su posición asignada,
   // `partidosArmado` (solo admin) lleva el resto — ver data-model.md → Partido.
-  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','duplasSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria'];
+  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','duplasSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria','formacion'];
   async function saveMatches(){
     try{
       const armadoById = {};
@@ -1611,6 +1622,52 @@
     return { sumaBlanco, sumaNegro };
   }
 
+  // Arqueros por niveles (FR-005/FR-018) — INVARIANTE (siempre se aplica): máximo un arquero por equipo.
+  // Compartida por Estrategia 2 y Estrategia 3, que usan exactamente las mismas reglas de arquero (FR-018).
+  // Búsqueda por niveles: primero se agotan los arqueros naturales (posición principal, o persistida como
+  // Arquero si el titular está bloqueado); solo si algún equipo queda sin arquero después de eso, se busca
+  // entre los candidatos por posición secundaria (no bloqueados) para cubrir ESE slot, por mejor puntaje en
+  // Arquero. Un natural nunca es desplazado por un secundario. Muta `posicionAsignada` en el lugar para que
+  // el resto del algoritmo (corrección de posiciones / formación fija) vea la población real de campo que
+  // queda después de sacar a quien terminó atajando.
+  function asignarArquerosPorNiveles(titularesPlayers, posicionAsignada, sonBloqueados, prevTeamOf){
+    let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
+    const arquerosExcedentes = [];
+    const arquerosPorSecundaria = [];
+    let compensacion = 0, equipoCompensado = null;
+    const naturalPool = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
+    const secundarioPool = titularesPlayers.filter(p => posicionAsignada[p.id] !== 'Arquero' && !sonBloqueados(p) && (p.secundarias || []).includes('Arquero'))
+      .sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
+    const arq = resolverArqueros(naturalPool, sonBloqueados, prevTeamOf || {});
+    let titularBlancoArq = arq.titularBlanco, titularNegroArq = arq.titularNegro;
+    let iSec = 0;
+    if(!titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
+    if(!titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
+    arq.bloqueados.forEach(p => {
+      const valor = puntajeEnPosicion(p, 'Arquero');
+      if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
+      else{ negro.push(p.id); sumaNegro += valor; }
+    });
+    if(titularBlancoArq){ posicionAsignada[titularBlancoArq.id] = 'Arquero'; blanco.push(titularBlancoArq.id); sumaBlanco += puntajeEnPosicion(titularBlancoArq,'Arquero'); }
+    if(titularNegroArq){ posicionAsignada[titularNegroArq.id] = 'Arquero'; negro.push(titularNegroArq.id); sumaNegro += puntajeEnPosicion(titularNegroArq,'Arquero'); }
+    // Los naturales excedentes (no ganaron un slot entre los naturales) se reubican en su mejor posición
+    // secundaria; si no tienen, a Delantero.
+    arq.excedentes.forEach(p => {
+      const nuevaPos = mejorPosicionAlternativa(p);
+      posicionAsignada[p.id] = nuevaPos;
+      arquerosExcedentes.push({ playerId: p.id, pos: nuevaPos });
+    });
+    const arquerosEnArco = (titularBlancoArq?1:0) + (titularNegroArq?1:0) + arq.bloqueados.length;
+    if(arquerosEnArco === 1){
+      const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
+      const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
+      equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
+      compensacion = puntajeEnPosicion(unico, 'Arquero');
+    }
+    const arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
+    return { blanco, negro, sumaBlanco, sumaNegro, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria, compensacion, equipoCompensado };
+  }
+
   function generarEquiposEstrategia2(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada){
     const bloqueadosSet = new Set(bloqueados || []);
     const usaPosiciones = reglaEnabled('posiciones');
@@ -1629,51 +1686,15 @@
     const OUTFIELD = ['Defensor','Volante','Delantero'];
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
 
-    let blanco = [], negro = [], sumaBlanco = 0, sumaNegro = 0;
-    let arquerosInfo = null;
-    const arquerosExcedentes = [];
-    const arquerosPorSecundaria = [];
-
-    // Paso 1: arqueros — INVARIANTE (siempre se aplica): máximo un arquero por equipo.
-    // Búsqueda por niveles: primero se agotan los arqueros naturales (posición principal, o persistida como
-    // Arquero si el titular está bloqueado); solo si algún equipo queda sin arquero después de eso, se busca
-    // entre los candidatos por posición secundaria (no bloqueados) para cubrir ESE slot, por mejor puntaje en
-    // Arquero. Un natural nunca es desplazado por un secundario. Corre antes que la corrección de posiciones
-    // (Paso 2) para que esa corrección vea la población real que queda en cada posición de cancha después de
-    // sacar a quien terminó atajando.
-    let compensacion = 0, equipoCompensado = null;
-    {
-      const naturalPool = titularesPlayers.filter(p => posicionAsignada[p.id] === 'Arquero');
-      const secundarioPool = titularesPlayers.filter(p => posicionAsignada[p.id] !== 'Arquero' && !sonBloqueados(p) && (p.secundarias || []).includes('Arquero'))
-        .sort((a,b) => puntajeEnPosicion(b,'Arquero') - puntajeEnPosicion(a,'Arquero'));
-      const arq = resolverArqueros(naturalPool, sonBloqueados, prevTeamOf || {});
-      let titularBlancoArq = arq.titularBlanco, titularNegroArq = arq.titularNegro;
-      let iSec = 0;
-      if(!titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
-      if(!titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
-      arq.bloqueados.forEach(p => {
-        const valor = puntajeEnPosicion(p, 'Arquero');
-        if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
-        else{ negro.push(p.id); sumaNegro += valor; }
-      });
-      if(titularBlancoArq){ posicionAsignada[titularBlancoArq.id] = 'Arquero'; blanco.push(titularBlancoArq.id); sumaBlanco += puntajeEnPosicion(titularBlancoArq,'Arquero'); }
-      if(titularNegroArq){ posicionAsignada[titularNegroArq.id] = 'Arquero'; negro.push(titularNegroArq.id); sumaNegro += puntajeEnPosicion(titularNegroArq,'Arquero'); }
-      // Los naturales excedentes (no ganaron un slot entre los naturales) se reubican en su mejor posición
-      // secundaria; si no tienen, a Delantero.
-      arq.excedentes.forEach(p => {
-        const nuevaPos = mejorPosicionAlternativa(p);
-        posicionAsignada[p.id] = nuevaPos;
-        arquerosExcedentes.push({ playerId: p.id, pos: nuevaPos });
-      });
-      const arquerosEnArco = (titularBlancoArq?1:0) + (titularNegroArq?1:0) + arq.bloqueados.length;
-      if(arquerosEnArco === 1){
-        const unico = titularBlancoArq || titularNegroArq || arq.bloqueados[0];
-        const equipoConArquero = titularBlancoArq ? 'blanco' : (titularNegroArq ? 'negro' : prevTeamOf[unico.id]);
-        equipoCompensado = equipoConArquero === 'blanco' ? 'negro' : 'blanco';
-        compensacion = puntajeEnPosicion(unico, 'Arquero');
-      }
-      arquerosInfo = { total: naturalPool.length + secundarioPool.length, compensado: arquerosEnArco === 1, equipoCompensado, compensacion };
-    }
+    // Paso 1: arqueros (ver asignarArquerosPorNiveles). Corre antes que la corrección de posiciones (Paso 2)
+    // para que esa corrección vea la población real que queda en cada posición de cancha después de sacar a
+    // quien terminó atajando.
+    const arqResultado = asignarArquerosPorNiveles(titularesPlayers, posicionAsignada, sonBloqueados, prevTeamOf);
+    let blanco = arqResultado.blanco, negro = arqResultado.negro, sumaBlanco = arqResultado.sumaBlanco, sumaNegro = arqResultado.sumaNegro;
+    const arquerosInfo = arqResultado.arquerosInfo;
+    const arquerosExcedentes = arqResultado.arquerosExcedentes;
+    const arquerosPorSecundaria = arqResultado.arquerosPorSecundaria;
+    const compensacion = arqResultado.compensacion, equipoCompensado = arqResultado.equipoCompensado;
 
     // Paso 2: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el
     // parámetro lo permiten, nunca a un bloqueado ni a quien ya quedó ubicado como arquero en el Paso 1.
@@ -1739,6 +1760,210 @@
     }
 
     return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
+  }
+
+  /* Estrategia 3 — Formación fija (FR-018 a FR-021). Arqueros: mismas reglas que Estrategia 2
+     (asignarArquerosPorNiveles). Después, completa en cada equipo la formación de campo del
+     `formacionObjetivo` recibido (según el tamaño de cancha del partido), lugar por lugar y en
+     simultáneo para ambos equipos — nunca arma un equipo entero antes que el otro (Clarifications
+     del spec, sesión 2026-08-18). Orden de posiciones: Defensor, Volante, Delantero (FR-007), el
+     mismo orden que decide qué lugar se resuelve primero cuando varios necesitan el nivel (c). */
+  const ORDEN_FORMACION = ['Defensor', 'Volante', 'Delantero'];
+  const FORMACION_KEY_POR_POSICION = { Defensor: 'defensores', Volante: 'volantes', Delantero: 'delanteros' };
+
+  function tieneScoreEnPosicion(p, pos){
+    const v = p.scores && p.scores[pos];
+    return v !== null && v !== undefined && v !== '';
+  }
+
+  function generarEquiposEstrategia3(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada, formacionObjetivo){
+    const bloqueadosSet = new Set(bloqueados || []);
+    const separaSinPuntaje = reglaEnabled('sinPuntaje');
+    const usaPuntaje = true; // invariante de balancear puntaje (FR-004), igual que en Estrategia 2
+
+    const posicionAsignada = {};
+    const swaps = [];
+    titularesPlayers.forEach(p => {
+      posicionAsignada[p.id] = (bloqueadosSet.has(p.id) && prevPosicionAsignada && prevPosicionAsignada[p.id])
+        ? prevPosicionAsignada[p.id]
+        : p.principal;
+    });
+
+    const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
+
+    // Paso 1: arqueros (FR-018 — mismas reglas que FR-005/Estrategia 2).
+    const arqResultado = asignarArquerosPorNiveles(titularesPlayers, posicionAsignada, sonBloqueados, prevTeamOf);
+    let blanco = arqResultado.blanco, negro = arqResultado.negro, sumaBlanco = arqResultado.sumaBlanco, sumaNegro = arqResultado.sumaNegro;
+    const arquerosInfo = arqResultado.arquerosInfo;
+    const arquerosExcedentes = arqResultado.arquerosExcedentes;
+    const arquerosPorSecundaria = arqResultado.arquerosPorSecundaria;
+
+    const yaUbicados = new Set([...blanco, ...negro]);
+    const restantes = titularesPlayers.filter(p => !yaUbicados.has(p.id));
+    const bloqueadosDeEste = restantes.filter(sonBloqueados);
+    const libres = restantes.filter(p => !sonBloqueados(p));
+
+    // Cupo por equipo y posición según la formación objetivo (FR-018).
+    const cupoEquipo = { blanco: {}, negro: {} };
+    ORDEN_FORMACION.forEach(pos => {
+      const cupo = formacionObjetivo[FORMACION_KEY_POR_POSICION[pos]] || 0;
+      cupoEquipo.blanco[pos] = cupo;
+      cupoEquipo.negro[pos] = cupo;
+    });
+    // El paso de arqueros puede dejar a un equipo con un integrante menos que el otro (ej.
+    // un solo arquero natural sin candidato por secundaria, AC5/FR-005): ese equipo recibe
+    // lugares de campo extra para que ambos equipos terminen con la misma cantidad total de
+    // jugadores, igual que ya garantiza `repartir` en Estrategia 2.
+    {
+      const diferenciaEquipos = blanco.length - negro.length;
+      if(diferenciaEquipos !== 0){
+        const equipoCorto = diferenciaEquipos > 0 ? 'negro' : 'blanco';
+        for(let i = 0; i < Math.abs(diferenciaEquipos); i++){
+          cupoEquipo[equipoCorto][ORDEN_FORMACION[i % ORDEN_FORMACION.length]]++;
+        }
+      }
+    }
+    // Los bloqueados mantienen su equipo y posición de la generación anterior (FR-015): descuentan
+    // su lugar del cupo antes de repartir al resto, igual que hace `repartir` en Estrategia 2.
+    bloqueadosDeEste.forEach(p => {
+      const equipo = prevTeamOf[p.id];
+      const pos = posicionAsignada[p.id];
+      if(cupoEquipo[equipo][pos] !== undefined) cupoEquipo[equipo][pos] = Math.max(0, cupoEquipo[equipo][pos] - 1);
+    });
+    const targetGlobal = {};
+    ORDEN_FORMACION.forEach(pos => { targetGlobal[pos] = cupoEquipo.blanco[pos] + cupoEquipo.negro[pos]; });
+
+    function tieneAlternativa(p, posActual){
+      return (p.secundarias || []).some(s => s !== posActual && ORDEN_FORMACION.includes(s));
+    }
+
+    // Paso 2 — nivel de POSICIÓN (todavía sin mirar equipos): todos arrancan en su posición natural
+    // y se corrigen excedentes y faltantes contra el cupo global (la suma de ambos equipos).
+    // Decidir posición y equipo por separado evita el problema de resolver lugar por lugar: ahí, la
+    // elección de quién ocupa un lugar temprano podía "gastar" a un titular que era el único natural
+    // de una posición todavía no procesada, o mover a alguien que no tiene ninguna otra posición
+    // donde sume puntaje pudiendo mover a un compañero que sí la tiene.
+    const buckets = {};
+    ORDEN_FORMACION.forEach(pos => { buckets[pos] = libres.filter(p => posicionAsignada[p.id] === pos); });
+    const motivoPorId = {};
+
+    // Excedentes: si sobran naturales para una posición, se van primero los que SÍ tienen otra
+    // posición secundaria útil (FR-020) — entre ellos, el de menor puntaje acá; los que no tienen
+    // ninguna alternativa se quedan, porque moverlos significa que no suman puntaje en ningún lado.
+    const pendientes = [];
+    ORDEN_FORMACION.forEach(pos => {
+      const exceso = buckets[pos].length - targetGlobal[pos];
+      if(exceso > 0){
+        const ordenados = [...buckets[pos]].sort((a, b) => {
+          const flexA = tieneAlternativa(a, pos), flexB = tieneAlternativa(b, pos);
+          if(flexA !== flexB) return flexA ? -1 : 1;
+          return puntajeEnPosicion(a, pos) - puntajeEnPosicion(b, pos);
+        });
+        const movidos = ordenados.slice(0, exceso);
+        buckets[pos] = buckets[pos].filter(p => !movidos.includes(p));
+        pendientes.push(...movidos.map(p => ({ p, desde: pos })));
+      }
+    });
+
+    // Faltantes: se cubren con los pendientes que tengan esa posición como secundaria (FR-019 b/b'),
+    // priorizando al de mejor puntaje ahí; si ninguno sirve, cualquier pendiente (FR-019c).
+    ORDEN_FORMACION.forEach(pos => {
+      while(buckets[pos].length < targetGlobal[pos] && pendientes.length > 0){
+        let idx = -1, motivo = 'formacion', mejorValor = -Infinity;
+        pendientes.forEach(({ p }, i) => {
+          if(!(p.secundarias || []).includes(pos)) return;
+          const v = puntajeEnPosicion(p, pos);
+          if(v > mejorValor){ mejorValor = v; idx = i; }
+        });
+        if(idx === -1){ idx = 0; motivo = 'fallback'; }
+        const { p, desde } = pendientes.splice(idx, 1)[0];
+        posicionAsignada[p.id] = pos;
+        motivoPorId[p.id] = motivo;
+        if(motivo === 'formacion') swaps.push({ playerId: p.id, desde, hacia: pos, motivo: 'formacion' });
+        buckets[pos].push(p);
+      }
+    });
+
+    // Paso 3 — nivel de EQUIPO: ya definido quién juega en cada posición, se reparte cada grupo entre
+    // los dos equipos balanceando puntaje con la misma función que usa Estrategia 2.
+    const faltantes = { blanco: [], negro: [] };
+    ORDEN_FORMACION.forEach(pos => {
+      bloqueadosDeEste.filter(p => posicionAsignada[p.id] === pos).forEach(p => {
+        const equipo = prevTeamOf[p.id];
+        const valor = puntajeEnPosicion(p, pos);
+        if(equipo === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; } else { negro.push(p.id); sumaNegro += valor; }
+      });
+      const jugadores = buckets[pos].map(p => ({ id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) }));
+      if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
+      else jugadores.sort((a,b) => b.valor - a.valor);
+      const antesBlanco = new Set(blanco);
+      const resultado = repartirBucketBalanceado(jugadores, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado: arquerosInfo.equipoCompensado, compensacion: arquerosInfo.compensacion });
+      sumaBlanco = resultado.sumaBlanco;
+      sumaNegro = resultado.sumaNegro;
+      // El lugar cubierto por fallback (nadie con esa posición natural ni secundaria) se le anota al
+      // equipo que efectivamente terminó recibiendo a ese titular.
+      buckets[pos].forEach(p => {
+        if(motivoPorId[p.id] !== 'fallback') return;
+        faltantes[antesBlanco.has(p.id) || blanco.includes(p.id) ? 'blanco' : 'negro'].push(pos);
+      });
+    });
+
+    // Paso 4: remanente, si el pool de titulares excede lo que pide la formación (colchón, igual que Estrategia 2).
+    if(pendientes.length > 0){
+      const total = pendientes.length;
+      const cupoBlanco = Math.ceil(total / 2);
+      const cupoNegro = Math.floor(total / 2);
+      const jugadores = pendientes.map(({ p }) => {
+        const pos = posicionAsignada[p.id];
+        return { id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) };
+      });
+      if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
+      else jugadores.sort((a,b) => b.valor - a.valor);
+      const resultado = repartirBucketBalanceado(jugadores, cupoBlanco, cupoNegro, blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado: arquerosInfo.equipoCompensado, compensacion: arquerosInfo.compensacion });
+      sumaBlanco = resultado.sumaBlanco;
+      sumaNegro = resultado.sumaNegro;
+    }
+
+    // Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
+    // y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
+    // distintos cuyo intercambio achique la diferencia de puntaje, y se aplica el mejor, repitiendo
+    // hasta que ningún intercambio mejore. Como siempre se intercambian jugadores de igual posición,
+    // la formación y la cantidad de integrantes de cada equipo quedan intactas; y como solo se aplica
+    // un intercambio si reduce la diferencia, nunca puede empeorar el balance.
+    {
+      const porId = {};
+      titularesPlayers.forEach(p => { porId[p.id] = p; });
+      const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
+      const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
+      const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce la diferencia, así que siempre corta antes
+      for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
+        const diff = sumaBlanco - sumaNegro;
+        let mejor = null, mejorAbs = Math.abs(diff);
+        blanco.forEach((idB, i) => {
+          if(!intercambiable(idB)) return;
+          negro.forEach((idN, j) => {
+            if(!intercambiable(idN)) return;
+            if(posicionAsignada[idB] !== posicionAsignada[idN]) return;
+            const nuevoAbs = Math.abs(diff - 2 * (valorDe(idB) - valorDe(idN)));
+            if(nuevoAbs < mejorAbs - 1e-9){ mejorAbs = nuevoAbs; mejor = { i, j }; }
+          });
+        });
+        if(!mejor) break;
+        const idB = blanco[mejor.i], idN = negro[mejor.j];
+        blanco[mejor.i] = idN;
+        negro[mejor.j] = idB;
+        sumaBlanco += valorDe(idN) - valorDe(idB);
+        sumaNegro += valorDe(idB) - valorDe(idN);
+      }
+    }
+
+    const formacion = {
+      objetivo: { ...formacionObjetivo },
+      blanco: { cumplida: faltantes.blanco.length === 0, faltantes: faltantes.blanco },
+      negro: { cumplida: faltantes.negro.length === 0, faltantes: faltantes.negro }
+    };
+
+    return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria, formacion };
   }
 
   // Duplas de rotación (008-duplas-rotacion, FR-007/FR-008/FR-009): construye un candidato
@@ -1847,7 +2072,10 @@
     });
 
     let resultado;
-    if(estrategiaKey === 'estrategia2'){
+    if(estrategiaKey === 'estrategia3'){
+      const formacionObjetivo = (CANCHAS[m.cancha] || CANCHAS.futbol8).formacion;
+      resultado = generarEquiposEstrategia3(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades, prevPosicionAsignada, formacionObjetivo);
+    }else if(estrategiaKey === 'estrategia2'){
       resultado = generarEquiposEstrategia2(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades, prevPosicionAsignada);
     }else{
       resultado = generarEquiposEstrategia1(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades);
@@ -1881,7 +2109,8 @@
       swaps: resultado.swaps || [],
       arquerosInfo: resultado.arquerosInfo || null,
       arquerosExcedentes: resultado.arquerosExcedentes || [],
-      arquerosPorSecundaria: resultado.arquerosPorSecundaria || []
+      arquerosPorSecundaria: resultado.arquerosPorSecundaria || [],
+      formacion: resultado.formacion || null
     };
     m.estado = 'Equipos generados';
     saveMatches();
@@ -2294,10 +2523,11 @@
 
     const stale = equiposStale(m);
     const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
+    const esEstrategia3 = eq.estrategiaKey === 'estrategia3';
 
     function sinPuntajeCount(lista){
       return lista.filter(p => {
-        if(esEstrategia2){
+        if(esEstrategia2 || esEstrategia3){
           const pos = eq.posicionAsignada[p.id];
           return puntajeEnPosicion(p, pos) === 0;
         }
@@ -2317,13 +2547,27 @@
     if(totalSinPuntaje > 0){
       explicaciones.push(`Se distribuyeron ${totalSinPuntaje} jugador${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos.`);
     }
-    if(esEstrategia2){
+    if(esEstrategia2 || esEstrategia3){
       (eq.swaps || []).forEach(s => {
         const p = players.find(pl => pl.id === s.playerId);
-        if(p) explicaciones.push(`Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
+        if(!p) return;
+        explicaciones.push(s.motivo === 'formacion'
+          ? `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para completar la formación fija.`
+          : `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
       });
     }
-    // El invariante de arqueros aplica a ambas estrategias
+    if(esEstrategia3 && eq.formacion){
+      const obj = eq.formacion.objetivo;
+      const label = `${obj.defensores}-${obj.volantes}-${obj.delanteros}`;
+      const { blanco: fB, negro: fN } = eq.formacion;
+      if(fB.cumplida && fN.cumplida){
+        explicaciones.push(`Formación ${label} cumplida en ambos equipos.`);
+      } else {
+        const noCumplidos = [!fB.cumplida ? 'Blanco' : null, !fN.cumplida ? 'Negro' : null].filter(Boolean);
+        explicaciones.push(`No se pudo completar la formación ${label} en el Equipo ${noCumplidos.join(' y en el Equipo ')}.`);
+      }
+    }
+    // El invariante de arqueros aplica a todas las estrategias
     if(eq.arquerosInfo){
       if(eq.arquerosInfo.total === 0){
         explicaciones.push('No hay arqueros entre los titulares: se armó con lo que hay y el arco lo rotan los jugadores de ambos equipos.');
@@ -2356,14 +2600,14 @@
     // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
     const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
       const soloEn = REGLAS_CATALOGO[r.key].soloEn;
-      return !soloEn || (esEstrategia2 && soloEn === 'estrategia2');
+      return !soloEn || soloEn === eq.estrategiaKey;
     });
     if(reglasApagadas.length > 0){
       explicaciones.push(`Reglas desactivadas en el motor: ${reglasApagadas.map(r => REGLAS_CATALOGO[r.key].label).join(', ')}.`);
     }
 
     let balancePosicionesHtml = '';
-    if(esEstrategia2){
+    if(esEstrategia2 || esEstrategia3){
       function contarPosiciones(lista){
         const c = { Arquero:0, Defensor:0, Volante:0, Delantero:0 };
         lista.forEach(p => { const pos = eq.posicionAsignada[p.id] || p.principal; if(c[pos] !== undefined) c[pos]++; });
