@@ -1031,7 +1031,7 @@
   // finalizado, para que las estadísticas acumuladas queden consistentes con el nuevo resultado.
   function recomputeAllPlayerStatsFromMatches(){
     const totales = {};
-    players.forEach(p => { totales[p.id] = { pj: 0, g: 0, e: 0, pe: 0, goles: 0, asistencias: 0 }; });
+    players.forEach(p => { totales[p.id] = { pj: 0, g: 0, e: 0, pe: 0, goles: 0, golesPenal: 0, asistencias: 0 }; });
     matches.forEach(m => {
       if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos || !m.equipos.blanco || !m.equipos.negro) return;
       const stats = m.resultado.statsPorJugador || {};
@@ -1046,6 +1046,7 @@
         const rival = equipo === 'blanco' ? 'negro' : 'blanco';
         totales[playerId].pj++;
         totales[playerId].goles += (st.goles || 0);
+        totales[playerId].golesPenal += (st.golesPenal || 0);
         totales[playerId].asistencias += (st.asistencias || 0);
         if(golesPorEquipo[equipo] > golesPorEquipo[rival]) totales[playerId].g++;
         else if(golesPorEquipo[equipo] < golesPorEquipo[rival]) totales[playerId].pe++;
@@ -1056,6 +1057,7 @@
       const t = totales[p.id];
       p.partidosJugados = t.pj;
       p.golesTotales = t.goles;
+      p.golesPenalTotales = t.golesPenal;
       p.asistenciasTotales = t.asistencias;
       p.partidosGanados = t.g;
       p.partidosEmpatados = t.e;
@@ -2362,7 +2364,7 @@
     if(!m.inscripcionCerrada || m.estado === 'Finalizado') return;
     if(resultadoDraft && resultadoDraft.matchId === m.id) return;
     const stats = {};
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => { stats[id] = { goles: 0, asistencias: 0 }; });
+    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => { stats[id] = { goles: 0, golesPenal: 0, asistencias: 0 }; });
     resultadoDraft = { matchId: m.id, stats };
   }
 
@@ -2389,6 +2391,7 @@
           const rival = equipo === 'blanco' ? 'negro' : 'blanco';
           p.partidosJugados = (p.partidosJugados || 0) + 1;
           p.golesTotales = (p.golesTotales || 0) + (st.goles || 0);
+          p.golesPenalTotales = (p.golesPenalTotales || 0) + (st.golesPenal || 0);
           p.asistenciasTotales = (p.asistenciasTotales || 0) + (st.asistencias || 0);
           // Ganado/perdido/empatado según el resultado del equipo del jugador frente al rival (FR-009).
           if(golesPorEquipo[equipo] > golesPorEquipo[rival]) p.partidosGanados = (p.partidosGanados || 0) + 1;
@@ -2412,8 +2415,8 @@
     if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
     const stats = {};
     [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = m.resultado.statsPorJugador[id] || { goles: 0, asistencias: 0 };
-      stats[id] = { goles: st.goles || 0, asistencias: st.asistencias || 0 };
+      const st = m.resultado.statsPorJugador[id] || { goles: 0, golesPenal: 0, asistencias: 0 };
+      stats[id] = { goles: st.goles || 0, golesPenal: st.golesPenal || 0, asistencias: st.asistencias || 0 };
     });
     resultadoDraft = { matchId: m.id, stats };
     editandoResultadoFinalizado = m.id;
@@ -2479,7 +2482,7 @@
     const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
-      const st = m.resultado.statsPorJugador[p.id] || {goles:0, asistencias:0};
+      const st = m.resultado.statsPorJugador[p.id] || {goles:0, golesPenal:0, asistencias:0};
       statsHtml = `<span class="team-stat-readonly">${st.goles}<span class="stat-goal-icon">⚽</span> · ${st.asistencias}${BOOT_ICON}</span>`;
     }else if(cerrada && isAdmin()){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
@@ -2490,9 +2493,14 @@
         ? m.equipos[equipoDeP].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0) : 0;
       const asisHabil = golesEquipo > 0;
       const a = (draft && asisHabil) ? draft.asistencias : 0;
+      // Los penales de un jugador no pueden superar sus propios goles (spec resultados-partido).
+      const penalHabil = g > 0;
+      const pen = (draft && penalHabil) ? Math.min(draft.golesPenal || 0, g) : 0;
       statsHtml = `
         <span class="team-stat-label">⚽</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
+        <span class="team-stat-label" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}">P</span>
+        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesPenal" value="${pen}" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}" ${penalHabil?'':'disabled'}>
         <span class="team-stat-label">${BOOT_ICON}</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>`;
     }
@@ -2961,9 +2969,20 @@
         const pid = inp.dataset.player;
         const tipo = inp.dataset.tipo;
         const val = inp.value === '' ? 0 : Math.max(0, parseInt(inp.value, 10) || 0);
-        resultadoDraft.stats[pid][tipo] = val;
+        if(tipo === 'golesPenal'){
+          // Los penales de un jugador no pueden superar sus propios goles en el partido (spec resultados-partido).
+          const goles = resultadoDraft.stats[pid] ? (resultadoDraft.stats[pid].goles || 0) : 0;
+          const clamped = Math.min(val, goles);
+          resultadoDraft.stats[pid][tipo] = clamped;
+          if(clamped !== val) inp.value = clamped;
+        }else{
+          resultadoDraft.stats[pid][tipo] = val;
+        }
         updateTeamTotalsDisplay(m);
-        if(tipo === 'goles') actualizarAsistenciasHabilitadas(m, section); // habilita/deshabilita asistencias según goles del equipo
+        if(tipo === 'goles'){
+          actualizarAsistenciasHabilitadas(m, section); // habilita/deshabilita asistencias según goles del equipo
+          actualizarPenalesHabilitados(m, section); // habilita/deshabilita y clampa penales según los goles del jugador
+        }
       });
     });
   }
@@ -2981,6 +3000,25 @@
         inp.title = habil ? 'Asistencias' : 'El equipo no hizo goles: no se pueden cargar asistencias';
         if(!habil){ inp.value = 0; if(resultadoDraft.stats[id]) resultadoDraft.stats[id].asistencias = 0; }
       });
+    });
+  }
+
+  // Recalcula, sin re-render completo, qué inputs de penal quedan habilitados y los clampa a los
+  // goles del propio jugador (los penales de un jugador no pueden superar sus propios goles).
+  function actualizarPenalesHabilitados(m, section){
+    if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
+    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
+      const st = resultadoDraft.stats[id];
+      if(!st) return;
+      const goles = st.goles || 0;
+      const habil = goles > 0;
+      const inp = section.querySelector(`.team-stat-input[data-player="${id}"][data-tipo="golesPenal"]`);
+      if(!inp) return;
+      inp.disabled = !habil;
+      inp.title = habil ? 'Goles de penal' : 'El jugador no hizo goles: no se pueden cargar penales';
+      const clamped = Math.min(st.golesPenal || 0, goles);
+      st.golesPenal = clamped;
+      inp.value = clamped;
     });
   }
 
@@ -3041,11 +3079,11 @@
     function equipoHtml(ids, nombre, claseEquipo){
       const goles = ids.reduce((s,id) => s + ((stats[id]||{}).goles||0), 0);
       const goleadores = ids
-        .map(id => ({ p: players.find(pl => pl.id === id), goles: (stats[id]||{}).goles || 0 }))
+        .map(id => ({ p: players.find(pl => pl.id === id), goles: (stats[id]||{}).goles || 0, golesPenal: (stats[id]||{}).golesPenal || 0 }))
         .filter(x => x.p && x.goles > 0)
         .sort((a,b) => b.goles - a.goles);
       const scorersHtml = goleadores.length
-        ? goleadores.map(x => `<div>${fullName(x.p)} (${x.goles})</div>`).join('')
+        ? goleadores.map(x => `<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">⚽</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`).join('')
         : `<div class="scorer-empty">Sin goleadores</div>`;
       return `
         <div class="match-result-team ${claseEquipo}">
