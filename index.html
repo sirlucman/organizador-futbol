@@ -3259,12 +3259,27 @@
     renderMatchesTab();
   };
 
+  /* Elegir la estrategia de un partido también la deja como estrategia por defecto para los
+     partidos que se creen después. La alternativa era mantener dos lugares donde se elige lo
+     mismo —el selector del partido y la tarjeta de Configuración— y tener que acordarse de
+     actualizar el segundo cada vez que cambia el primero; en la práctica el default terminaba
+     desfasado de lo que se usaba de verdad (arrancó en "Solo por puntaje" y siguió ahí mientras
+     todos los partidos se armaban con "Formación fija").
+
+     Cambiar el default NO desactualiza a ningún otro partido: `motorConfigHash` no incluye la
+     estrategia, justamente porque cada partido guarda la suya y se compara contra esa
+     (`equiposStale`). El único partido que queda marcado para regenerar es este. */
   function bindSelectorEstrategia(m){
     const sel = el('selectEstrategia');
     if(!sel) return;
     sel.addEventListener('change', () => {
       m.estrategia = sel.value;
       saveMatches();
+      if(motorConfig.estrategia !== sel.value){
+        motorConfig.estrategia = sel.value;
+        saveMotorConfig();
+        renderMotorTab(); // la sección Configuración muestra la estrategia elegida y sus reglas
+      }
       renderMatchesTab();
     });
   }
@@ -4066,7 +4081,7 @@
 
     const hint = el('rulesHint');
     if(hint){
-      hint.innerHTML = `Aplican a la estrategia <b>“${ESTRATEGIAS[estrategia].label}”</b>. Prendé o apagá cada una; el orden (▲▼) decide cuál se resuelve primero.`;
+      hint.innerHTML = `Aplican a la estrategia <b>“${ESTRATEGIAS[estrategia].label}”</b>. Prendé o apagá cada una; el orden (▲▼) decide cuál se resuelve primero.<br><span style="opacity:0.75;">Esta es la estrategia con la que nacen los partidos nuevos. Se actualiza sola: si en un partido elegís otra, esa pasa a ser la de acá.</span>`;
     }
 
     // Invariantes primero: el motor los resuelve antes que las reglas configurables.
