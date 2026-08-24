@@ -20,6 +20,17 @@ Si algún día el motor se extrae a su propio archivo (lo que el Principio IV de
 
 **PENDIENTE** — lo que exige `014-puntaje-dupla-por-posicion`, la única sin implementar (y pendiente de decisión: ver su spec). El resto (`009`, `010`, `011`, `012`, `013`) ya está implementado y sus casos viven en el bloque BASELINE. Falla a propósito y no hace fallar el runner. Cuando un pendiente pasa a `✓ ya cumple`, hay que moverlo al bloque BASELINE: pasa a ser comportamiento a preservar. El test `BUG vigente:` se borra cuando el pendiente que lo contradice queda cumplido.
 
+## La Estrategia 4 ("Formación fija pareja")
+
+Arma igual que la Estrategia 3 y cambia una sola cosa: cómo elige el reparto entre los dos equipos. Por eso sus tests van en dos grupos:
+
+- **Lo nuevo** — que las líneas queden parejas, que el total no se pase del margen configurado, y que con margen 0 nunca entregue un total peor que la Estrategia 3.
+- **Lo heredado** — formación cumplida, nadie fuera de puesto, misma cantidad de jugadores por equipo, reparto de duplas y bloqueados. Es el grupo que importa cuando algo se rompe: una estrategia que empareja líneas rompiendo la formación no sirve para nada.
+
+El test clave es **"el reparto elegido es el óptimo (fuerza bruta independiente)"**. La estrategia se apoya en que enumera todos los repartos posibles y devuelve el mejor, no el mejor que encontró buscando. Ese test toma las posiciones que eligió el motor, genera las 2^n asignaciones de unidades a equipos por fuerza bruta, descarta las que rompen una restricción dura (cupo por posición y cupo de duplas, leídos del armado real) y comprueba que ninguna de las que quedan sea mejor. No usa la enumeración del motor: si hay un error ahí o en el costo, aparece acá.
+
+`PARTIDO_LINEAS_DESPAREJAS` en [fixtures.js](fixtures.js) es el partido del 2026-08-24 que motivó la estrategia: la 3 lo cerró con la diferencia total en 0.3 y la defensa despareja por 6.5, porque el mejor arquero y el mejor delantero cayeron en el mismo equipo y la defensa tuvo que pagar esos 7 puntos. Tiene dos líneas de un solo lugar por equipo con diferencias grandes (9 contra 6 en el arco, 8 contra 4 en el ataque), que es justamente lo que no se puede emparejar repartiendo: solo se puede elegir si se suman o se cancelan.
+
 Las features `012-puntajes-coherentes-panel` y `015-minimo-diferencia-alcanzable` no tienen tests acá: son comportamiento de interfaz y de mensajes, no del motor. Se verifican a mano en el navegador contra staging.
 
 ## El partido testigo
