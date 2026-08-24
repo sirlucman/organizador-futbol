@@ -796,7 +796,10 @@
 
   function defaultMotorConfig(){
     return {
-      estrategia: 'estrategia1',
+      // Solo aplica cuando todavía no hay una config guardada: `normalizeMotorConfig` respeta la
+      // estrategia persistida. Cambiarlo acá no cambia la de un entorno que ya eligió una — eso se
+      // hace desde Configuración, que es donde vive el dato.
+      estrategia: 'estrategia4',
       reglas: REGLAS_ORDEN_DEFAULT.map((key, i) => {
         const params = {};
         Object.entries(REGLAS_CATALOGO[key].params).forEach(([pk, pdef]) => { params[pk] = pdef.default; });
