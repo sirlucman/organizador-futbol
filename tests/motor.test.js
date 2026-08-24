@@ -34,9 +34,10 @@ function armar(plantel, config = {}, opciones = {}) {
   const bloqueados = opciones.bloqueados || [];
   const prevTeamOf = opciones.prevTeamOf || {};
   const estrategia = opciones.estrategia || 3;
+  const prevPos = opciones.prevPosicionAsignada || null;
   const res = estrategia === 1 ? motor.generarEquiposEstrategia1(unidades, bloqueados, prevTeamOf)
-    : estrategia === 2 ? motor.generarEquiposEstrategia2(unidades, bloqueados, prevTeamOf, null)
-      : motor.generarEquiposEstrategia3(unidades, bloqueados, prevTeamOf, null, plantel.formacion);
+    : estrategia === 2 ? motor.generarEquiposEstrategia2(unidades, bloqueados, prevTeamOf, prevPos)
+      : motor.generarEquiposEstrategia3(unidades, bloqueados, prevTeamOf, prevPos, plantel.formacion);
   const porJugador = F.jugadoresPorUnidad(plantel, motor);
   const unidadesPorId = {};
   unidades.forEach(u => { unidadesPorId[u.id] = u; });
@@ -347,6 +348,167 @@ test('Duplas impar con arquero en los dos equipos: sin criterio de desempate, pe
       eq(c[conArquero], 2, `el equipo con arquero fijo (${conArquero}) debería recibir dos`);
       eq(c[conArquero === 'blanco' ? 'negro' : 'blanco'], 1, 'el otro, una');
     }, { estrategia });
+  });
+});
+
+/* ====== El bloqueo es sobre el EQUIPO, no sobre la posición (FR-015) ====== */
+
+/* Simula el ciclo real de la aplicación, que es donde aparecía el problema:
+   generar → mover unidades a mano entre equipos (`__moverJugadorManual` cambia el equipo y NO toca
+   las posiciones, así que la formación queda rota) → bloquear a TODOS → regenerar.
+   El armado guardado lleva los ids REALES de cada dupla, sin su clave sintética (eso hace
+   `expandirUnidadesEnResultado`), igual que lo guarda la aplicación. */
+function cicloRealDeRegeneracion(plantel, opciones = {}, config = {}) {
+  const primera = armar(plantel, config, opciones);
+  const { motor, porJugador } = primera;
+  const equipos = { blanco: [...primera.res.blanco], negro: [...primera.res.negro] };
+
+  (opciones.moverAMano || []).forEach(([jugadorA, jugadorB]) => {
+    const uA = porJugador[jugadorA], uB = porJugador[jugadorB];
+    const eqA = equipos.blanco.includes(uA) ? 'blanco' : 'negro';
+    const eqB = equipos.blanco.includes(uB) ? 'blanco' : 'negro';
+    ok(eqA !== eqB, `${jugadorA} y ${jugadorB} ya estaban en el mismo equipo: el movimiento no prueba nada`);
+    equipos[eqA][equipos[eqA].indexOf(uA)] = uB;
+    equipos[eqB][equipos[eqB].indexOf(uB)] = uA;
+  });
+
+  const unidadPorId = {};
+  primera.unidades.forEach(u => { if (u._duplaIds) unidadPorId[u.id] = u._duplaIds; });
+  const guardado = motor.expandirUnidadesEnResultado(
+    { ...primera.res, blanco: equipos.blanco, negro: equipos.negro }, unidadPorId);
+
+  const prevTeamOf = {};
+  guardado.blanco.forEach(id => { prevTeamOf[id] = 'blanco'; });
+  guardado.negro.forEach(id => { prevTeamOf[id] = 'negro'; });
+
+  // Lo que repone __generarEquipos antes de llamar a la estrategia: la clave sintética de cada
+  // dupla en el mapa de equipos y en la lista de bloqueados.
+  const prevTeamOfConUnidades = { ...prevTeamOf };
+  const bloqueadosConUnidades = Object.keys(prevTeamOf);
+  primera.unidades.forEach(u => {
+    if (!u._duplaIds) return;
+    prevTeamOfConUnidades[u.id] = prevTeamOf[u._duplaIds[0]];
+    bloqueadosConUnidades.push(u.id);
+  });
+
+  const segunda = armar(plantel, config, {
+    ...opciones,
+    bloqueados: bloqueadosConUnidades,
+    prevTeamOf: prevTeamOfConUnidades,
+    prevPosicionAsignada: guardado.posicionAsignada,
+  });
+  return { primera, segunda, equiposTrasMover: equipos };
+}
+
+/* Cuánto se apartan los dos equipos de tener la misma cantidad en cada puesto de campo. Es el
+   objetivo de la Estrategia 2, que no tiene una formación fija que cumplir. */
+const desequilibrioDe = (a) => {
+  const cuenta = { blanco: {}, negro: {} };
+  ['Defensor', 'Volante', 'Delantero'].forEach(pos => { cuenta.blanco[pos] = 0; cuenta.negro[pos] = 0; });
+  ['blanco', 'negro'].forEach(equipo => {
+    (equipo === 'blanco' ? a.res.blanco : a.res.negro).forEach(id => {
+      const pos = a.res.posicionAsignada[id];
+      if (pos !== 'Arquero') cuenta[equipo][pos]++;
+    });
+  });
+  return ['Defensor', 'Volante', 'Delantero'].reduce((t, pos) => t + Math.abs(cuenta.blanco[pos] - cuenta.negro[pos]), 0);
+};
+
+const formacionDe = (a, equipo) => {
+  const cuenta = { Arquero: 0, Defensor: 0, Volante: 0, Delantero: 0 };
+  (equipo === 'blanco' ? a.res.blanco : a.res.negro).forEach(id => { cuenta[a.res.posicionAsignada[id]]++; });
+  return cuenta;
+};
+
+/* El caso reportado: se mueven dos jugadores a mano (queda un equipo con un defensor de más y el
+   otro con un volante de más), se bloquea a todos y se regenera. Ningún jugador puede cambiar de
+   equipo, pero la formación se arregla igual devolviendo gente a su puesto DENTRO de cada equipo. */
+test('Con todo bloqueado y la formación rota a mano, la regeneración la arregla sin mover a nadie de equipo', () => {
+  const { primera, segunda, equiposTrasMover } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, {
+    estrategia: 3,
+    moverAMano: [['joaquinb', 'lucas']],   // Volante (sec. Defensor) por Defensor (sec. Volante)
+  });
+
+  // El plantel tiene un solo candidato a arquero: el equipo que se queda sin arquero fijo juega con
+  // un jugador de campo más (4-3-1 en vez de 3-3-1), que es la formación que le toca.
+  const conArquero = formacionDe(segunda, 'blanco').Arquero === 1 ? 'blanco' : 'negro';
+  const sinArquero = conArquero === 'blanco' ? 'negro' : 'blanco';
+  eq(JSON.stringify(formacionDe(segunda, conArquero)), JSON.stringify({ Arquero: 1, Defensor: 3, Volante: 3, Delantero: 1 }),
+    `formación del equipo con arquero fijo (${conArquero})`);
+  eq(JSON.stringify(formacionDe(segunda, sinArquero)), JSON.stringify({ Arquero: 0, Defensor: 4, Volante: 3, Delantero: 1 }),
+    `formación del equipo sin arquero fijo (${sinArquero})`);
+
+  ok(segunda.res.formacion.blanco.cumplida && segunda.res.formacion.negro.cumplida,
+    `la formación debería quedar cumplida en los dos equipos, quedó ${JSON.stringify(segunda.res.formacion)}`);
+
+  // Y nadie se movió de equipo: el bloqueo se respetó, incluidos los dos que se movieron a mano.
+  primera.unidades.forEach(u => {
+    const esperado = equiposTrasMover.blanco.includes(u.id) ? 'blanco' : 'negro';
+    const quedo = segunda.res.blanco.includes(u.id) ? 'blanco' : 'negro';
+    eq(quedo, esperado, `${u.id} cambió de equipo`);
+  });
+});
+
+test('Con todo bloqueado, nadie termina en una posición que no cubre', () => {
+  const { segunda } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, {
+    estrategia: 3,
+    moverAMano: [['joaquinb', 'lucas']],
+  });
+  segunda.unidades.forEach(u => {
+    ok(segunda.encajeDe(u.id) !== 'descubierta',
+      `${u.id} quedó de ${segunda.res.posicionAsignada[u.id]}, posición que no cubre`);
+  });
+});
+
+test('Con todo bloqueado y la formación ya cumplida, regenerar no cambia el armado', () => {
+  const { primera, segunda } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, { estrategia: 3 });
+  primera.unidades.forEach(u => {
+    eq(segunda.res.posicionAsignada[u.id], primera.res.posicionAsignada[u.id], `posición de ${u.id}`);
+    eq(segunda.res.blanco.includes(u.id), primera.res.blanco.includes(u.id), `equipo de ${u.id}`);
+  });
+});
+
+test('La formación reportada mira a los bloqueados, no solo a los libres', () => {
+  // Un plantel donde el equipo roto NO se puede arreglar: los bloqueados dejan al Blanco sin
+  // volantes suficientes. Antes esto se reportaba como "cumplida" porque los faltantes se
+  // acumulaban solo sobre los titulares libres.
+  const { segunda } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, {
+    estrategia: 3,
+    moverAMano: [['joaquinb', 'joaquinl']],  // Volante flexible por un defensor puro
+  });
+  const roto = ['blanco', 'negro'].filter(e => !segunda.res.formacion[e].cumplida);
+  eq(roto.length, 1, `debería haber exactamente un equipo fuera de formación, hay ${roto.length}`);
+  ok(segunda.res.formacion[roto[0]].faltantes.length > 0, 'el equipo fuera de formación debería listar qué lugar falta');
+});
+
+/* La Estrategia 2 no tiene formación fija, pero sí un objetivo de posiciones: que los dos equipos
+   queden parejos en cada puesto. Vale lo mismo — el bloqueo no debería impedirle emparejarlos. */
+const CON_SECUNDARIAS = { reglas: { posiciones: { enabled: true, params: { usarSecundarias: true } } } };
+
+test('Estrategia 2: con todo bloqueado, los puestos se emparejan igual entre los equipos', () => {
+  const opciones = { estrategia: 2, moverAMano: [['joaquinb', 'alfredo']] };
+  const { primera, segunda } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, opciones, CON_SECUNDARIAS);
+  // El movimiento manual desbalancea los puestos; con todo bloqueado nadie puede cambiar de equipo,
+  // pero el motor tiene que poder recuperar el mismo equilibrio de la generación original.
+  eq(desequilibrioDe(segunda), desequilibrioDe(primera),
+    'el desequilibrio por puesto debería volver al de la generación original');
+});
+
+test('Estrategia 2: el repaso de posiciones no saca a nadie de su equipo', () => {
+  const opciones = { estrategia: 2, moverAMano: [['joaquinb', 'alfredo']] };
+  const { primera, segunda, equiposTrasMover } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, opciones, CON_SECUNDARIAS);
+  primera.unidades.forEach(u => {
+    eq(segunda.res.blanco.includes(u.id) ? 'blanco' : 'negro',
+      equiposTrasMover.blanco.includes(u.id) ? 'blanco' : 'negro', `${u.id} cambió de equipo`);
+  });
+});
+
+test('Estrategia 2: nadie termina en una posición que no cubre', () => {
+  const opciones = { estrategia: 2, moverAMano: [['joaquinb', 'alfredo']] };
+  const { segunda } = cicloRealDeRegeneracion(F.PARTIDO_TESTIGO, opciones, CON_SECUNDARIAS);
+  segunda.unidades.forEach(u => {
+    ok(segunda.encajeDe(u.id) !== 'descubierta',
+      `${u.id} quedó de ${segunda.res.posicionAsignada[u.id]}, posición que no cubre`);
   });
 });
 

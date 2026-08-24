@@ -73,6 +73,7 @@ const DECLARACIONES = [
   'generarEquiposEstrategia2',
   'generarEquiposEstrategia3',
   'construirUnidadDupla',
+  'expandirUnidadesEnResultado',
   'posicionAsignadaDe',
   'valorDePuntaje',
 ];

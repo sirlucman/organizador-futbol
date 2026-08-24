@@ -716,7 +716,7 @@
       resumen: 'reparte parejo por puesto',
       params: {
         usarSecundarias: { tipo: 'bool', label: 'Permitir mover a una posición secundaria', default: true,
-          ayuda: 'Si un puesto queda impar, deja mover a un jugador a una de sus posiciones secundarias para emparejar.' }
+          ayuda: 'Si un puesto queda impar, o si los dos equipos quedan con distinta cantidad en un puesto, deja mover a un jugador a una de sus posiciones secundarias para emparejar.' }
       }
     },
     puntaje: {
@@ -1785,8 +1785,12 @@
     const arquerosPorSecundaria = arqResultado.arquerosPorSecundaria;
     const compensacion = arqResultado.compensacion, equipoCompensado = arqResultado.equipoCompensado;
 
-    // Paso 2: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el
-    // parámetro lo permiten, nunca a un bloqueado ni a quien ya quedó ubicado como arquero en el Paso 1.
+    /* Paso 2: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el
+       parámetro lo permiten, nunca a un bloqueado ni a quien ya quedó ubicado como arquero en el Paso 1.
+       Sigue sin tocar a los bloqueados a propósito: este paso empareja la cantidad GLOBAL de cada puesto
+       para que el reparto la pueda partir al medio, y a un bloqueado no lo reparte nadie — su equipo ya
+       está decidido. Moverlo acá optimiza una paridad que no significa nada para él y empeora el reparto
+       del resto. Al bloqueado lo reubica el Paso 4, que mide el desequilibrio real entre los equipos. */
     if(usaSecundarias){
       const yaArquero = new Set([...blanco, ...negro]);
       OUTFIELD.forEach(pos => {
@@ -1853,6 +1857,55 @@
     } else {
       // sin balance por posición: un solo grupo, balanceando cantidad + puntaje
       repartir(restantes);
+    }
+
+    /* Paso 4: REPASO DE POSICIONES CON LOS EQUIPOS YA ARMADOS.
+
+       El Paso 2 empareja las posiciones ANTES de repartir, mirando el total de los dos equipos
+       juntos: una posición con cantidad par se parte al medio sola. Pero cuando los equipos ya
+       vienen dados —el administrador movió gente a mano y bloqueó— eso deja de ser cierto: seis
+       volantes son un número par y pueden estar cuatro en un equipo y dos en el otro, y el Paso 2
+       no ve nada para corregir. El bloqueo es sobre el equipo, no sobre la posición (FR-015), así
+       que el motor todavía puede emparejar los puestos sin mover a nadie de equipo.
+
+       Se busca el movimiento a una posición secundaria que más achique la diferencia de cantidad
+       por puesto entre los dos equipos, se aplica y se repite hasta que ninguno mejore. Nadie
+       cambia de equipo y el arco no se toca. Como en la Estrategia 2 el equilibrio de posiciones
+       manda sobre el puntaje ("primero reparte por puesto y dentro de eso empareja el puntaje"),
+       el puntaje de cada equipo se ajusta con el movimiento, no lo condiciona. */
+    if(usaPosiciones && usaSecundarias){
+      const porId = {};
+      titularesPlayers.forEach(p => { porId[p.id] = p; });
+      const equipoDe = {};
+      blanco.forEach(id => { equipoDe[id] = 'blanco'; });
+      negro.forEach(id => { equipoDe[id] = 'negro'; });
+      const deCampo = [...blanco, ...negro].filter(id => posicionAsignada[id] !== 'Arquero');
+      // Cuánto se apartan los dos equipos de tener la misma cantidad en cada puesto.
+      const desequilibrio = () => {
+        const cuenta = { blanco: {}, negro: {} };
+        OUTFIELD.forEach(pos => { cuenta.blanco[pos] = 0; cuenta.negro[pos] = 0; });
+        deCampo.forEach(id => { cuenta[equipoDe[id]][posicionAsignada[id]]++; });
+        return OUTFIELD.reduce((a, pos) => a + Math.abs(cuenta.blanco[pos] - cuenta.negro[pos]), 0);
+      };
+      const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce el desequilibrio, así que corta antes
+      for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
+        let mejor = null, mejorValor = desequilibrio();
+        deCampo.forEach(id => {
+          const desde = posicionAsignada[id];
+          (porId[id].secundarias || []).forEach(hacia => {
+            if(!OUTFIELD.includes(hacia) || hacia === desde) return;
+            posicionAsignada[id] = hacia;
+            const valor = desequilibrio();
+            posicionAsignada[id] = desde;
+            if(valor < mejorValor){ mejorValor = valor; mejor = { id, desde, hacia }; }
+          });
+        });
+        if(!mejor) break;
+        const delta = puntajeEnPosicion(porId[mejor.id], mejor.hacia) - puntajeEnPosicion(porId[mejor.id], mejor.desde);
+        if(equipoDe[mejor.id] === 'blanco') sumaBlanco += delta; else sumaNegro += delta;
+        posicionAsignada[mejor.id] = mejor.hacia;
+        swaps.push({ playerId: mejor.id, desde: mejor.desde, hacia: mejor.hacia });
+      }
     }
 
     return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria };
@@ -1966,7 +2019,6 @@
     const usaPuntaje = true; // invariante de balancear puntaje (FR-004), igual que en Estrategia 2
 
     const posicionAsignada = {};
-    const swaps = [];
     titularesPlayers.forEach(p => {
       posicionAsignada[p.id] = (bloqueadosSet.has(p.id) && prevPosicionAsignada && prevPosicionAsignada[p.id])
         ? prevPosicionAsignada[p.id]
@@ -2007,6 +2059,10 @@
         }
       }
     }
+    // La formación que le toca a cada equipo, antes de que los bloqueados y las duplas le descuenten
+    // lugares a `cupoEquipo`. Es contra ESTO que se mide el repaso final de posiciones (Paso 4b) y el
+    // cumplimiento de la formación: el cupo remanente dice cuánto queda por repartir, no qué se pidió.
+    const formacionPorEquipo = { blanco: { ...cupoEquipo.blanco }, negro: { ...cupoEquipo.negro } };
     // Los bloqueados mantienen su equipo y posición de la generación anterior (FR-015): descuentan
     // su lugar del cupo antes de repartir al resto, igual que hace `repartir` en Estrategia 2.
     bloqueadosDeEste.forEach(p => {
@@ -2026,20 +2082,11 @@
     const asignacion = asignarPosicionesOptimo(libres, targetGlobal);
     const buckets = {};
     ORDEN_FORMACION.forEach(pos => { buckets[pos] = []; });
-    const motivoPorId = {};
     let pendientes = [];
     libres.forEach(u => {
       const pos = asignacion[u.id];
-      const desde = posicionAsignada[u.id];
-      if(pos === null){ pendientes.push({ p: u, desde }); return; } // remanente: sigue en su posición natural
+      if(pos === null){ pendientes.push(u); return; } // remanente: sigue en su posición natural
       posicionAsignada[u.id] = pos;
-      if(costoEncaje(u, pos) >= COSTO_DESCUBIERTA){
-        // Lugar que no cubre nadie: no hay ninguna asignación sin él (lo garantiza el paso anterior).
-        motivoPorId[u.id] = 'fallback';
-      }else if(pos !== desde){
-        motivoPorId[u.id] = 'formacion';
-        swaps.push({ playerId: u.id, desde, hacia: pos, motivo: 'formacion' });
-      }
       buckets[pos].push(u);
     });
 
@@ -2054,7 +2101,6 @@
          - Impar con arquero fijo en los dos equipos (o en ninguno): va a cualquiera.
        Se reparten antes que el resto para que el cupo por posición ya las tenga descontadas. */
     const cupoDuplas = cupoDuplasPorEquipo(titularesPlayers, arquerosInfo, blanco, negro, sonBloqueados, prevTeamOf);
-    const faltantesDuplas = { blanco: [], negro: [] };
     // Ubica una dupla en un equipo con cupo disponible: entre los dos, el que va más atrás de
     // puntaje (con el crédito del equipo sin arquero fijo, igual que repartirBucketBalanceado).
     // `descuentaCupo` es false para el remanente, que juega fuera de los lugares de la formación.
@@ -2069,7 +2115,6 @@
       if(descuentaCupo) cupoEquipo[equipo][pos] = Math.max(0, cupoEquipo[equipo][pos] - 1);
       const valor = puntajeEnPosicion(u, pos);
       if(equipo === 'blanco'){ blanco.push(u.id); sumaBlanco += valor; } else { negro.push(u.id); sumaNegro += valor; }
-      if(motivoPorId[u.id] === 'fallback') faltantesDuplas[equipo].push(pos);
     }
     ORDEN_FORMACION.forEach(pos => {
       const duplas = buckets[pos].filter(esDupla);
@@ -2081,7 +2126,6 @@
 
     // Paso 3 — nivel de EQUIPO: ya definido quién juega en cada posición, se reparte cada grupo entre
     // los dos equipos balanceando puntaje con la misma función que usa Estrategia 2.
-    const faltantes = { blanco: [...faltantesDuplas.blanco], negro: [...faltantesDuplas.negro] };
     ORDEN_FORMACION.forEach(pos => {
       bloqueadosDeEste.filter(p => posicionAsignada[p.id] === pos).forEach(p => {
         const equipo = prevTeamOf[p.id];
@@ -2091,23 +2135,16 @@
       const jugadores = buckets[pos].map(p => ({ id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) }));
       if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
       else jugadores.sort((a,b) => b.valor - a.valor);
-      const antesBlanco = new Set(blanco);
       const resultado = repartirBucketBalanceado(jugadores, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado: arquerosInfo.equipoCompensado, compensacion: arquerosInfo.compensacion });
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
-      // El lugar cubierto por fallback (nadie con esa posición natural ni secundaria) se le anota al
-      // equipo que efectivamente terminó recibiendo a ese titular.
-      buckets[pos].forEach(p => {
-        if(motivoPorId[p.id] !== 'fallback') return;
-        faltantes[antesBlanco.has(p.id) || blanco.includes(p.id) ? 'blanco' : 'negro'].push(pos);
-      });
     });
 
     // Paso 4: remanente, si el pool de titulares excede lo que pide la formación (colchón, igual que Estrategia 2).
     if(pendientes.length > 0){
       // Las duplas del remanente también respetan su cupo por equipo (Paso 3a).
-      pendientes.filter(({ p }) => esDupla(p)).forEach(({ p }) => ubicarDupla(p, posicionAsignada[p.id], false));
-      pendientes = pendientes.filter(({ p }) => !esDupla(p));
+      pendientes.filter(esDupla).forEach(p => ubicarDupla(p, posicionAsignada[p.id], false));
+      pendientes = pendientes.filter(p => !esDupla(p));
     }
     if(pendientes.length > 0){
       const total = pendientes.length;
@@ -2115,7 +2152,7 @@
       // duplas ya ubicadas pueden haber dejado desparejo.
       const cupoBlanco = Math.min(total, Math.max(0, Math.round((total + negro.length - blanco.length) / 2)));
       const cupoNegro = total - cupoBlanco;
-      const jugadores = pendientes.map(({ p }) => {
+      const jugadores = pendientes.map(p => {
         const pos = posicionAsignada[p.id];
         return { id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) };
       });
@@ -2125,6 +2162,67 @@
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
     }
+
+    const porId = {};
+    titularesPlayers.forEach(p => { porId[p.id] = p; });
+
+    /* Paso 4b: REPASO DE POSICIONES DENTRO DE CADA EQUIPO.
+
+       Los pasos anteriores reparten posiciones mirando el cupo GLOBAL y solo entre los titulares
+       LIBRES: los bloqueados entran con la posición que ya traían y nunca se reconsideran. Pero el
+       bloqueo es sobre el equipo, no sobre la posición (FR-015: "un jugador bloqueado nunca cambie de
+       equipo"; el candado dice "Bloquear en este equipo"). Alcanzaba con mover un jugador a mano y
+       bloquear todo para que un equipo quedara fuera de formación sin que el motor pudiera arreglarlo,
+       aunque el arreglo no necesitara mover a NADIE de equipo: bastaba devolver a alguien a su
+       posición principal. Bloquear a todos no deja al motor sin margen — le deja el margen que importa.
+
+       Con los equipos ya definidos, cada uno vuelve a resolver sus propias posiciones contra su propia
+       formación, con el mismo optimizador que usa el Paso 2. Nadie cambia de equipo. El arco no se
+       toca: esa decisión tiene sus propias reglas (FR-005) y su compensación de puntaje. */
+    const remanenteFinal = new Set();
+    ['blanco', 'negro'].forEach(equipo => {
+      const ids = equipo === 'blanco' ? blanco : negro;
+      const deCampo = ids.filter(id => posicionAsignada[id] !== 'Arquero').map(id => porId[id]);
+      const asignacionEquipo = asignarPosicionesOptimo(deCampo, formacionPorEquipo[equipo]);
+      deCampo.forEach(u => {
+        const pos = asignacionEquipo[u.id];
+        // Remanente: el equipo tiene más titulares que lugares en la formación y este sobra; sigue
+        // en la posición que traía, igual que en el Paso 4.
+        if(!pos){ remanenteFinal.add(u.id); return; }
+        if(pos === posicionAsignada[u.id]) return;
+        const delta = puntajeEnPosicion(u, pos) - puntajeEnPosicion(u, posicionAsignada[u.id]);
+        if(equipo === 'blanco') sumaBlanco += delta; else sumaNegro += delta;
+        posicionAsignada[u.id] = pos;
+      });
+    });
+
+    /* Formación cumplida y movimientos a explicar se leen del resultado FINAL y no de lo que fue
+       decidiendo cada paso: después del repaso de arriba, lo que decidió el Paso 2 puede ya no ser lo
+       que terminó jugando cada uno. Antes se acumulaban sobre la marcha y solo para los libres, así
+       que un equipo lleno de bloqueados fuera de formación se reportaba como cumplido. */
+    const faltantes = { blanco: [], negro: [] };
+    ['blanco', 'negro'].forEach(equipo => {
+      const ids = (equipo === 'blanco' ? blanco : negro).filter(id => !remanenteFinal.has(id));
+      ORDEN_FORMACION.forEach(pos => {
+        const ocupantes = ids.filter(id => posicionAsignada[id] === pos);
+        // Un lugar falta si no lo ocupa nadie, o si lo ocupa alguien que no lo juega ni de principal
+        // ni de secundaria (FR-020: se completa igual con quien haya, y se avisa).
+        const descubiertos = ocupantes.filter(id => costoEncaje(porId[id], pos) >= COSTO_DESCUBIERTA).length;
+        const vacios = Math.max(0, formacionPorEquipo[equipo][pos] - ocupantes.length);
+        for(let i = 0; i < descubiertos + vacios; i++) faltantes[equipo].push(pos);
+      });
+    });
+
+    // "Se utilizó la posición secundaria de X": quién terminó jugando fuera de su posición principal
+    // para que la formación cerrara. Los arqueros se reportan aparte (arquerosExcedentes /
+    // arquerosPorSecundaria) y los lugares que no cubre nadie, como formación incompleta.
+    const swaps = [];
+    titularesPlayers.forEach(u => {
+      const hacia = posicionAsignada[u.id];
+      if(hacia === 'Arquero' || hacia === u.principal) return;
+      if(!(u.secundarias || []).includes(hacia)) return;
+      swaps.push({ playerId: u.id, desde: u.principal, hacia, motivo: 'formacion' });
+    });
 
     /* Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
        y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
@@ -2141,8 +2239,6 @@
        antes: cero es un caso particular del objetivo, no una excepción. */
     {
       const objetivo = objetivoDiferencia(arquerosInfo);
-      const porId = {};
-      titularesPlayers.forEach(p => { porId[p.id] = p; });
       const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
       const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
       const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce el desvío, así que siempre corta antes
