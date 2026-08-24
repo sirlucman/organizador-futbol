@@ -698,6 +698,11 @@
       label: 'Formación fija',
       resumen: 'además de emparejar arqueros, intenta completar en cada equipo la formación de posiciones del tamaño de cancha del partido',
       descripcion: 'Arma los arqueros igual que "Por posición y puntaje" y después intenta completar en cada equipo una formación fija de posiciones según el tamaño de cancha (3-3-1 para Fútbol 8, 3-4-1 para Fútbol 9). La formación tiene prioridad sobre el puntaje individual: si hace falta, usa la posición secundaria de un jugador aunque tenga menos puntaje que otro candidato, y si aun así algún lugar no se puede cubrir, completa igual la generación y lo avisa en la explicación.'
+    },
+    estrategia4: {
+      label: 'Formación fija pareja',
+      resumen: 'como "Formación fija", pero además busca que cada línea (defensa, mediocampo, ataque) quede lo más pareja posible',
+      descripcion: 'Arma exactamente igual que "Formación fija" (mismos arqueros, mismas posiciones, misma formación fija) y cambia una sola cosa: cómo elige el reparto entre los dos equipos. En vez de mirar solo la diferencia de puntaje total, mide también la de cada línea (defensa, mediocampo, ataque) y prueba TODOS los repartos posibles para quedarse con el que deje las líneas lo más parejas posible sin alejarse del total buscado. Sirve para el caso típico en el que los dos equipos suman parecido pero uno tiene toda la defensa y el otro toda la delantera. Las líneas de un solo lugar por equipo (arquero, delantero en 3-3-1) no se pueden emparejar, así que las acomoda para que se compensen entre sí en vez de sumarse.'
     }
   };
   /* ================= CONFIGURACIÓN DEL MOTOR (Slice 4) ================= */
@@ -736,6 +741,21 @@
           ayuda: 'Cuando hay un solo arquero entre los titulares, un equipo rota el arco entre jugadores de campo. Estos son los puntos de ventaja que se le dan a ese equipo para compensarlo. En 0 no se compensa.' }
       }
     },
+    balanceLineas: {
+      label: 'Emparejar también cada línea',
+      descripcion: 'Además de la diferencia de puntaje total, mira la de cada línea (defensa, mediocampo, ataque) y elige el reparto que las deje lo más parejas posible.',
+      siOff: 'No se puede apagar en esta estrategia: es lo único que la distingue de "Formación fija".',
+      soloEn: 'estrategia4',
+      nucleoDe: 'estrategia4',
+      resumen: 'empareja también cada línea',
+      params: {
+        // Sin margen, el motor solo puede elegir entre armados que empatan en el mejor total
+        // posible, y muchas veces eso deja un único armado: la estrategia se vuelve idéntica a
+        // "Formación fija". 1 punto alcanza para que tenga con qué acomodar las líneas.
+        margenTotal: { tipo: 'number', label: 'Margen del total para emparejar líneas', unidad: 'pts', default: 1, min: 0, max: 20,
+          ayuda: 'Cuánto puede alejarse la diferencia de puntaje total de la buscada si con eso las líneas quedan más parejas. En 0 el total manda y las líneas solo desempatan. Nunca se pasa de la "Diferencia aceptable" configurada más arriba.' }
+      }
+    },
     sinPuntaje: {
       label: 'Repartir a los jugadores sin puntaje',
       descripcion: 'A los jugadores que todavía no tienen puntaje los reparte lo más parejo posible entre los equipos, sin contarlos en el total.',
@@ -744,7 +764,13 @@
       params: {}
     }
   };
-  const REGLAS_ORDEN_DEFAULT = ['posiciones', 'puntaje', 'sinPuntaje'];
+  const REGLAS_ORDEN_DEFAULT = ['posiciones', 'puntaje', 'balanceLineas', 'sinPuntaje'];
+
+  // `soloEn` de una regla o de un invariante: puede ser una estrategia o varias.
+  function aplicaEnEstrategia(soloEn, estrategia){
+    if(!soloEn) return true;
+    return Array.isArray(soloEn) ? soloEn.includes(estrategia) : soloEn === estrategia;
+  }
 
   // Invariantes: reglas que el motor aplica siempre y no forman parte de la config editable.
   // Se muestran en la sección Configuración (solo lectura) para que quede claro qué hace el motor.
@@ -758,7 +784,13 @@
       key: 'formacionFija',
       label: 'Formación fija',
       descripcion: 'Además de los arqueros, intenta completar en cada equipo la formación de posiciones del tamaño de cancha del partido (3-3-1 para Fútbol 8, 3-4-1 para Fútbol 9), usando la posición secundaria de un jugador cuando haga falta, incluso con menos puntaje que otro candidato. Si algún lugar no se puede cubrir ni por posición principal ni secundaria, se completa igual con cualquier titular disponible priorizando no alejarse de la diferencia de puntaje configurada, y se avisa en la explicación.',
-      soloEn: 'estrategia3'
+      soloEn: ['estrategia3', 'estrategia4']
+    },
+    {
+      key: 'repartoExhaustivo',
+      label: 'Se prueban todos los repartos posibles',
+      descripcion: 'Con las posiciones ya resueltas, el motor no arma los equipos de una pasada: enumera TODAS las formas de repartir cada línea entre los dos equipos (unos cientos en Fútbol 8, unos miles en Fútbol 9) y se queda con la mejor. Hace falta porque los mejores armados salen de mover dos o tres jugadores a la vez: pasar al mejor delantero al otro equipo, por ejemplo, empeora el total si se lo mira solo, y recién sirve junto con el re-reparto de la defensa. El orden de prioridades es: misma cantidad de jugadores por equipo, no pasarse del margen del total, repartir parejo a los que no tienen puntaje, líneas lo más parejas posible, y a igualdad de todo eso, mover a la menor cantidad de gente respecto de la generación anterior.',
+      soloEn: 'estrategia4'
     }
   ];
 
@@ -1082,7 +1114,7 @@
   // swaps, info de arqueros, jugadores bloqueados) del resto de cada partido antes de guardar:
   // `partidos` (público) conserva qué jugador quedó en qué equipo y su posición asignada,
   // `partidosArmado` (solo admin) lleva el resto — ver data-model.md → Partido.
-  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','duplasSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria','formacion'];
+  const CAMPOS_EQUIPOS_ARMADO = ['estrategiaKey','estrategia','titularesSnapshot','duplasSnapshot','configHash','sumaBlanco','sumaNegro','cambios','esPrimeraGeneracion','swaps','arquerosInfo','arquerosExcedentes','arquerosPorSecundaria','formacion','balanceLineas','enumeracionTruncada'];
   async function saveMatches(){
     try{
       const armadoById = {};
@@ -1919,6 +1951,10 @@
      mismo orden que decide qué lugar se resuelve primero cuando varios necesitan el nivel (c). */
   const ORDEN_FORMACION = ['Defensor', 'Volante', 'Delantero'];
   const FORMACION_KEY_POR_POSICION = { Defensor: 'defensores', Volante: 'volantes', Delantero: 'delanteros' };
+  // Las cuatro líneas del armado, para medir y mostrar el balance de cada una. El arco es una línea
+  // más a los efectos de mostrarla, aunque no se reparta con las mismas reglas (FR-005).
+  const ORDEN_LINEAS = ['Arquero', ...ORDEN_FORMACION];
+  const LABEL_LINEA = { Arquero: 'Arco', Defensor: 'Defensa', Volante: 'Medio', Delantero: 'Ataque' };
 
   function tieneScoreEnPosicion(p, pos){
     const v = p.scores && p.scores[pos];
@@ -2013,7 +2049,240 @@
     return out;
   }
 
-  function generarEquiposEstrategia3(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada, formacionObjetivo){
+  /* ================= BALANCE POR LÍNEA (Estrategia 4 — "Formación fija pareja") =================
+
+     El problema que resuelve. La Estrategia 3 mira UN solo número: la diferencia de puntaje entre
+     los dos equipos. Llega a esa diferencia y no le importa cómo, así que el desbalance de una
+     línea le sirve como moneda para pagar el de otra. El caso que la motivó (partido del
+     2026-08-24) terminó con la diferencia total en 0.3 y estas líneas:
+
+         Arquero  Blanco +3     Defensa  Negro +6.5     Medio  Negro +0.2     Ataque  Blanco +4
+
+     Blanco tenía el mejor arquero y el mejor delantero (7 puntos de ventaja en dos líneas de UN
+     lugar por equipo) y el motor le sacó esos 7 puntos enteros de la defensa para cerrar el total.
+     El número final era perfecto y los equipos no se parecían en nada.
+
+     Dos cosas hacían falta para arreglarlo, y ninguna es "buscar mejor":
+
+     1) Otra función objetivo. Acá el total pasa a ser una RESTRICCIÓN (no se puede alejar del
+        objetivo más que `margenTotal`) y lo que se minimiza es la SUMA DE LOS CUADRADOS de la
+        diferencia de cada línea de campo. Los cuadrados no son decorativos: con el total fijo,
+        minimizar cuadrados reparte el desbalance inevitable en partes iguales entre las líneas
+        en vez de concentrarlo en una. Minimizar la suma de valores absolutos no distingue
+        (6.5 + 0.2 pesa lo mismo que 3.4 + 3.3); los cuadrados sí (42.5 contra 22.4).
+        El arco no entra en la cuenta: se decide antes (FR-005) y su diferencia es la misma en
+        todos los armados posibles, así que sumarla no cambiaría qué armado gana.
+
+     2) Enumeración exacta en vez de búsqueda incremental. Con las posiciones ya resueltas, el
+        reparto es "de cada línea, cuáles de sus unidades van a Blanco": 400 combinaciones en
+        Fútbol 8 (3-3-1) y ~2.800 en Fútbol 9 (3-4-1). Se prueban todas. Hace falta porque los
+        buenos armados salen de movimientos COMBINADOS: en el caso testigo, pasar al delantero
+        fuerte al otro equipo empeora el total de 0.3 a -7.7 y cualquier búsqueda que pruebe de
+        a un intercambio lo descarta en el primer paso — recién sirve junto con el re-reparto de
+        la defensa y el mediocampo. Es lo mismo que ya hace `asignarPosicionesOptimo` con el
+        encaje y por el mismo motivo.
+
+     Lo que NO puede arreglar, y conviene tener claro: arquero y delantero son un lugar por equipo.
+     Si uno vale 9 y el otro 6, esa diferencia de 3 existe en todos los armados posibles y no hay
+     reparto que la borre. Lo único que se puede elegir es si se SUMA a la de otra línea de un lugar
+     o si la CANCELA. Eso es justamente lo que encuentra la enumeración, y es de donde sale la
+     mejora: con el arquero fuerte y el delantero fuerte en equipos distintos, las líneas de varios
+     jugadores (defensa, mediocampo) ya no tienen nada que compensar y pueden quedar parejas. */
+
+  // Tope defensivo: con las formaciones reales el producto no pasa de unos pocos miles (el peor
+  // reparto posible de 18 unidades en tres líneas da 8.000), así que esto no se alcanza nunca.
+  // Si alguna vez se alcanzara, se avisa en el resultado (`enumeracionTruncada`) en vez de
+  // devolver en silencio el mejor de una búsqueda parcial haciéndolo pasar por óptimo.
+  const MAX_COMBINACIONES_LINEAS = 400000;
+
+  // Todos los subconjuntos de tamaño k de los índices 0..n-1.
+  function combinacionesDeIndices(n, k){
+    const out = [];
+    if(k < 0 || k > n) return out;
+    const actual = [];
+    (function rec(desde){
+      if(actual.length === k){ out.push([...actual]); return; }
+      for(let i = desde; i < n; i++){
+        if(n - i < k - actual.length) break; // ya no alcanzan los que quedan
+        actual.push(i);
+        rec(i + 1);
+        actual.pop();
+      }
+    })(0);
+    return out;
+  }
+
+  /* Suma de puntaje de cada línea en cada equipo, sobre el armado FINAL. Es lo que se muestra en
+     el resumen y lo que mide el costo de la Estrategia 4. Cada unidad suma en la posición que
+     terminó jugando (`posicionAsignada`), que es la que se ve en el panel: si el resumen midiera
+     otra cosa que lo que se muestra, no habría forma de auditar el armado. */
+  function sumasPorLinea(ids, posicionAsignada, porId){
+    const out = {};
+    (ids || []).forEach(id => {
+      const u = porId[id];
+      if(!u) return;
+      const pos = (posicionAsignada && posicionAsignada[id]) || u.principal;
+      out[pos] = (out[pos] || 0) + puntajeEnPosicion(u, pos);
+    });
+    return out;
+  }
+  function balanceLineasDe(blanco, negro, posicionAsignada, porId){
+    const sumB = sumasPorLinea(blanco, posicionAsignada, porId);
+    const sumN = sumasPorLinea(negro, posicionAsignada, porId);
+    const out = {};
+    const posiciones = [...new Set([...ORDEN_LINEAS, ...Object.keys(sumB), ...Object.keys(sumN)])];
+    posiciones.forEach(pos => {
+      const b = sumB[pos] || 0, n = sumN[pos] || 0;
+      out[pos] = {
+        blanco: Math.round(b * 10) / 10,
+        negro: Math.round(n * 10) / 10,
+        diferencia: Math.round((b - n) * 10) / 10
+      };
+    });
+    return out;
+  }
+
+  // Comparación lexicográfica de dos costos: ¿es `a` estrictamente mejor que `b`?
+  function mejorCostoLex(a, b){
+    for(let i = 0; i < a.length; i++){
+      if(a[i] < b[i] - 1e-9) return true;
+      if(a[i] > b[i] + 1e-9) return false;
+    }
+    return false;
+  }
+
+  // Cuánto se puede alejar el TOTAL del objetivo para poder emparejar las líneas. Es el margen de
+  // la regla nueva, pero nunca más de la "Diferencia aceptable" ya configurada: el motor no se
+  // toma una libertad que el usuario declaró inaceptable.
+  function margenTotalPorLinea(){
+    const m = reglaParam('balanceLineas', 'margenTotal');
+    const margen = (m === null || m === undefined || m === '' || Number.isNaN(Number(m))) ? 0 : Math.max(0, Number(m));
+    const d = reglaEnabled('puntaje') ? reglaParam('puntaje', 'diferenciaMaxima') : null;
+    if(d === null || d === undefined || d === '' || Number.isNaN(Number(d))) return margen;
+    return Math.min(margen, Math.max(0, Number(d)));
+  }
+
+  const r4 = x => Math.round(x * 10000) / 10000; // mata el ruido de coma flotante antes de comparar
+
+  /* Todas las formas de partir un grupo de unidades entre los dos equipos, respetando el cupo de
+     cada uno. Cada opción viaja con todo lo que el costo necesita ya calculado, para no recorrer
+     las unidades de nuevo en cada una de las miles de combinaciones. */
+  function opcionesDeReparto(unidades, posDe, cupoBlanco, cupoNegro, prevTeamOf){
+    const n = unidades.length;
+    const desde = Math.max(0, n - cupoNegro);
+    const hasta = Math.min(cupoBlanco, n);
+    const opciones = [];
+    for(let k = desde; k <= hasta; k++){
+      combinacionesDeIndices(n, k).forEach(indices => {
+        const enBlanco = new Set(indices);
+        const o = {
+          blanco: [], negro: [], porLinea: {},
+          sumaBlanco: 0, sumaNegro: 0, duplasBlanco: 0, duplasNegro: 0,
+          sinPuntajeBlanco: 0, sinPuntajeNegro: 0, cambios: 0
+        };
+        unidades.forEach((u, i) => {
+          const equipo = enBlanco.has(i) ? 'blanco' : 'negro';
+          const pos = posDe(u);
+          const valor = puntajeEnPosicion(u, pos);
+          o[equipo].push(u.id);
+          if(!o.porLinea[pos]) o.porLinea[pos] = { blanco: 0, negro: 0 };
+          o.porLinea[pos][equipo] += valor;
+          if(equipo === 'blanco') o.sumaBlanco += valor; else o.sumaNegro += valor;
+          if(esDupla(u)) o[equipo === 'blanco' ? 'duplasBlanco' : 'duplasNegro']++;
+          if(!tieneScoreEnPosicion(u, pos)) o[equipo === 'blanco' ? 'sinPuntajeBlanco' : 'sinPuntajeNegro']++;
+          const previo = prevTeamOf && prevTeamOf[u.id];
+          if(previo && previo !== equipo) o.cambios++;
+        });
+        opciones.push(o);
+      });
+    }
+    return opciones;
+  }
+
+  /* Elige, entre TODOS los repartos posibles, el mejor según un costo lexicográfico. El orden de
+     los criterios es la decisión de diseño del algoritmo, de más importante a menos:
+
+       1. Misma cantidad de unidades en cada equipo (un equipo con un jugador menos no es un
+          armado parejo, no importa cómo queden las líneas).
+       2. No pasarse del margen de total permitido: el balance por línea no puede comprarse
+          rompiendo la diferencia de puntaje, que sigue siendo la promesa principal del motor.
+       3. Repartir parejo a los que no tienen puntaje (solo si la regla está activa). Suman 0, así
+          que acumularlos en un equipo lo debilita de una forma que el puntaje no ve.
+       4. EL OBJETIVO NUEVO: minimizar la suma de cuadrados de la diferencia de cada línea de campo.
+       5. Entre armados con las líneas igual de parejas, el que quede más cerca del total buscado.
+       6. Entre iguales, el que mueva menos gente respecto de la generación anterior (estabilidad),
+          y a igualdad de todo, el primero que se generó (resultado reproducible, sin azar). */
+  function repartirPorLineasParejo(ctx){
+    const { grupos, base, cupoDuplas, objetivo, banda, separaSinPuntaje } = ctx;
+    let combinaciones = 1;
+    grupos.forEach(g => { combinaciones *= Math.max(1, g.opciones.length); });
+    const truncada = combinaciones > MAX_COMBINACIONES_LINEAS;
+
+    let mejor = null, mejorCosto = null;
+    const eleccion = [];
+    let evaluadas = 0;
+
+    const costoDe = () => {
+      let cantB = base.cantBlanco, cantN = base.cantNegro;
+      let sumaB = base.sumaBlanco, sumaN = base.sumaNegro;
+      let spB = base.sinPuntajeBlanco, spN = base.sinPuntajeNegro;
+      let cambios = 0;
+      const lineas = {};
+      ORDEN_FORMACION.forEach(pos => {
+        lineas[pos] = { blanco: base.lineasBlanco[pos] || 0, negro: base.lineasNegro[pos] || 0 };
+      });
+      eleccion.forEach(o => {
+        cantB += o.blanco.length; cantN += o.negro.length;
+        sumaB += o.sumaBlanco; sumaN += o.sumaNegro;
+        spB += o.sinPuntajeBlanco; spN += o.sinPuntajeNegro;
+        cambios += o.cambios;
+        Object.entries(o.porLinea).forEach(([pos, v]) => {
+          if(!lineas[pos]) lineas[pos] = { blanco: 0, negro: 0 };
+          lineas[pos].blanco += v.blanco; lineas[pos].negro += v.negro;
+        });
+      });
+      const desvio = Math.abs(r4(sumaB - sumaN - objetivo));
+      let costoLineas = 0;
+      ORDEN_FORMACION.forEach(pos => {
+        const d = r4(lineas[pos].blanco - lineas[pos].negro);
+        costoLineas += d * d;
+      });
+      return [
+        Math.abs(cantB - cantN),
+        Math.max(0, r4(desvio - banda)),
+        separaSinPuntaje ? Math.abs(spB - spN) : 0,
+        r4(costoLineas),
+        desvio,
+        cambios
+      ];
+    };
+
+    (function rec(i, duplasB, duplasN){
+      if(evaluadas > MAX_COMBINACIONES_LINEAS) return;
+      if(i === grupos.length){
+        evaluadas++;
+        const costo = costoDe();
+        if(mejorCosto === null || mejorCostoLex(costo, mejorCosto)){
+          mejorCosto = costo;
+          mejor = eleccion.map(o => o);
+        }
+        return;
+      }
+      grupos[i].opciones.forEach(o => {
+        // El cupo de duplas es una restricción DURA que cruza las líneas (FR-007 de 008-duplas):
+        // no se puede acumular la frescura de las rotaciones en un solo equipo.
+        if(duplasB + o.duplasBlanco > cupoDuplas.blanco) return;
+        if(duplasN + o.duplasNegro > cupoDuplas.negro) return;
+        eleccion.push(o);
+        rec(i + 1, duplasB + o.duplasBlanco, duplasN + o.duplasNegro);
+        eleccion.pop();
+      });
+    })(0, 0, 0);
+
+    return { opciones: mejor, costo: mejorCosto, truncada, evaluadas };
+  }
+
+  function generarEquiposEstrategia3(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada, formacionObjetivo, opts){
     const bloqueadosSet = new Set(bloqueados || []);
     const separaSinPuntaje = reglaEnabled('sinPuntaje');
     const usaPuntaje = true; // invariante de balancear puntaje (FR-004), igual que en Estrategia 2
@@ -2090,6 +2359,14 @@
       buckets[pos].push(u);
     });
 
+    const porId = {};
+    titularesPlayers.forEach(p => { porId[p.id] = p; });
+    // Estrategia 4: mismo armado hasta acá (arqueros, posiciones, encaje, formación) y otro reparto
+    // entre equipos, más el refinamiento del Paso 5 midiendo líneas. Con la bandera apagada,
+    // la Estrategia 3 corre exactamente el mismo código que antes.
+    const balancePorLinea = !!(opts && opts.balancePorLinea);
+    let enumeracionTruncada = false;
+
     /* Paso 3a — reparto de las DUPLAS de rotación (FR-007/FR-007a/FR-007b de 011). Es una
        restricción dura del reparto, no un objetivo a optimizar: el lugar de una dupla lo ocupa
        siempre alguien que jugó la mitad del partido, y esa frescura es una ventaja que el puntaje
@@ -2116,6 +2393,51 @@
       const valor = puntajeEnPosicion(u, pos);
       if(equipo === 'blanco'){ blanco.push(u.id); sumaBlanco += valor; } else { negro.push(u.id); sumaNegro += valor; }
     }
+    if(balancePorLinea){
+      /* Paso 3/4 (Estrategia 4) — REPARTO POR LÍNEAS, ENUMERANDO TODOS LOS REPARTOS POSIBLES.
+         Reemplaza de una sola vez a los pasos 3a, 3 y 4 de la Estrategia 3: el cupo de duplas, el
+         cupo por posición de cada equipo, el remanente y el balance de puntaje dejan de resolverse
+         uno después del otro (donde cada paso le come el margen al siguiente) y pasan a ser
+         restricciones y criterios de una única decisión. Ver el bloque BALANCE POR LÍNEA arriba. */
+      // Los bloqueados entran primero, con su equipo y posición anteriores (FR-015), para que el
+      // reparto del resto se decida sabiendo con qué puntaje arranca cada línea de cada equipo.
+      bloqueadosDeEste.forEach(p => {
+        const equipo = prevTeamOf[p.id];
+        const valor = puntajeEnPosicion(p, posicionAsignada[p.id]);
+        if(equipo === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; } else { negro.push(p.id); sumaNegro += valor; }
+      });
+      const grupos = [];
+      ORDEN_FORMACION.forEach(pos => {
+        if(buckets[pos].length === 0) return;
+        grupos.push({ opciones: opcionesDeReparto(buckets[pos], () => pos, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], prevTeamOf) });
+      });
+      // El remanente (más titulares que lugares en la formación) juega su posición natural, pero
+      // entra en la misma decisión: suma en la línea que le toca y en el total como cualquier otro.
+      if(pendientes.length > 0){
+        grupos.push({ opciones: opcionesDeReparto(pendientes, u => posicionAsignada[u.id], pendientes.length, pendientes.length, prevTeamOf) });
+      }
+      const sinPuntajeDe = ids => ids.filter(id => !tieneScoreEnPosicion(porId[id], posicionAsignada[id])).length;
+      const elegido = repartirPorLineasParejo({
+        grupos,
+        base: {
+          cantBlanco: blanco.length, cantNegro: negro.length,
+          sumaBlanco, sumaNegro,
+          lineasBlanco: sumasPorLinea(blanco, posicionAsignada, porId),
+          lineasNegro: sumasPorLinea(negro, posicionAsignada, porId),
+          sinPuntajeBlanco: sinPuntajeDe(blanco), sinPuntajeNegro: sinPuntajeDe(negro)
+        },
+        cupoDuplas,
+        objetivo: objetivoDiferencia(arquerosInfo),
+        banda: margenTotalPorLinea(),
+        separaSinPuntaje
+      });
+      enumeracionTruncada = elegido.truncada;
+      (elegido.opciones || []).forEach(o => {
+        o.blanco.forEach(id => { blanco.push(id); sumaBlanco += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
+        o.negro.forEach(id => { negro.push(id); sumaNegro += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
+      });
+      pendientes = [];
+    }else{
     ORDEN_FORMACION.forEach(pos => {
       const duplas = buckets[pos].filter(esDupla);
       if(duplas.length === 0) return;
@@ -2162,9 +2484,7 @@
       sumaBlanco = resultado.sumaBlanco;
       sumaNegro = resultado.sumaNegro;
     }
-
-    const porId = {};
-    titularesPlayers.forEach(p => { porId[p.id] = p; });
+    }
 
     /* Paso 4b: REPASO DE POSICIONES DENTRO DE CADA EQUIPO.
 
@@ -2200,29 +2520,38 @@
        decidiendo cada paso: después del repaso de arriba, lo que decidió el Paso 2 puede ya no ser lo
        que terminó jugando cada uno. Antes se acumulaban sobre la marcha y solo para los libres, así
        que un equipo lleno de bloqueados fuera de formación se reportaba como cumplido. */
-    const faltantes = { blanco: [], negro: [] };
-    ['blanco', 'negro'].forEach(equipo => {
-      const ids = (equipo === 'blanco' ? blanco : negro).filter(id => !remanenteFinal.has(id));
-      ORDEN_FORMACION.forEach(pos => {
-        const ocupantes = ids.filter(id => posicionAsignada[id] === pos);
-        // Un lugar falta si no lo ocupa nadie, o si lo ocupa alguien que no lo juega ni de principal
-        // ni de secundaria (FR-020: se completa igual con quien haya, y se avisa).
-        const descubiertos = ocupantes.filter(id => costoEncaje(porId[id], pos) >= COSTO_DESCUBIERTA).length;
-        const vacios = Math.max(0, formacionPorEquipo[equipo][pos] - ocupantes.length);
-        for(let i = 0; i < descubiertos + vacios; i++) faltantes[equipo].push(pos);
+    const calcularFaltantes = () => {
+      const out = { blanco: [], negro: [] };
+      ['blanco', 'negro'].forEach(equipo => {
+        const ids = (equipo === 'blanco' ? blanco : negro).filter(id => !remanenteFinal.has(id));
+        ORDEN_FORMACION.forEach(pos => {
+          const ocupantes = ids.filter(id => posicionAsignada[id] === pos);
+          // Un lugar falta si no lo ocupa nadie, o si lo ocupa alguien que no lo juega ni de principal
+          // ni de secundaria (FR-020: se completa igual con quien haya, y se avisa).
+          const descubiertos = ocupantes.filter(id => costoEncaje(porId[id], pos) >= COSTO_DESCUBIERTA).length;
+          const vacios = Math.max(0, formacionPorEquipo[equipo][pos] - ocupantes.length);
+          for(let i = 0; i < descubiertos + vacios; i++) out[equipo].push(pos);
+        });
       });
-    });
+      return out;
+    };
 
     // "Se utilizó la posición secundaria de X": quién terminó jugando fuera de su posición principal
     // para que la formación cerrara. Los arqueros se reportan aparte (arquerosExcedentes /
     // arquerosPorSecundaria) y los lugares que no cubre nadie, como formación incompleta.
-    const swaps = [];
-    titularesPlayers.forEach(u => {
-      const hacia = posicionAsignada[u.id];
-      if(hacia === 'Arquero' || hacia === u.principal) return;
-      if(!(u.secundarias || []).includes(hacia)) return;
-      swaps.push({ playerId: u.id, desde: u.principal, hacia, motivo: 'formacion' });
-    });
+    const calcularSwaps = () => {
+      const out = [];
+      titularesPlayers.forEach(u => {
+        const hacia = posicionAsignada[u.id];
+        if(hacia === 'Arquero' || hacia === u.principal) return;
+        if(!(u.secundarias || []).includes(hacia)) return;
+        out.push({ playerId: u.id, desde: u.principal, hacia, motivo: 'formacion' });
+      });
+      return out;
+    };
+
+    let faltantes = calcularFaltantes();
+    let swaps = calcularSwaps();
 
     /* Paso 5: refinamiento final (FR-004). Los pasos anteriores arman los equipos de una sola pasada
        y nunca revisan el resultado; acá se buscan pares de titulares de la MISMA posición en equipos
@@ -2236,8 +2565,109 @@
        quitaba persiguiendo el empate. En un partido real con un solo arquero, una ventaja de 6
        terminaba convertida en una diferencia de 0.5 mientras el resumen afirmaba que se había
        compensado (010-refinamiento-objetivo). Con objetivo 0 el comportamiento es idéntico al de
-       antes: cero es un caso particular del objetivo, no una excepción. */
-    {
+       antes: cero es un caso particular del objetivo, no una excepción.
+
+       Estrategia 4 usa el mismo mecanismo (intercambios de igual posición) contra el costo por
+       línea en vez de contra el desvío del total. No es redundante con la enumeración: el repaso
+       de posiciones del Paso 4b puede haber movido a alguien de línea DESPUÉS de que se eligiera
+       el reparto, y con titulares bloqueados la enumeración arranca con parte del armado fija.
+       Acá se termina de acomodar lo que quedó, sin sacar a nadie de su equipo ni de su puesto. */
+    if(balancePorLinea){
+      const objetivo = objetivoDiferencia(arquerosInfo);
+      const banda = margenTotalPorLinea();
+      const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
+      const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
+      const sinPuntajeDe = ids => ids.filter(id => !tieneScoreEnPosicion(porId[id], posicionAsignada[id])).length;
+      // Mismos criterios y mismo orden que la enumeración, sin los dos que un intercambio de igual
+      // posición no puede cambiar (cantidad de integrantes y cupo de duplas).
+      const costoActual = () => {
+        const lineas = balanceLineasDe(blanco, negro, posicionAsignada, porId);
+        const desvio = Math.abs(r4(sumaBlanco - sumaNegro - objetivo));
+        let costoLineas = 0;
+        ORDEN_FORMACION.forEach(pos => { const d = lineas[pos].diferencia; costoLineas += d * d; });
+        return [
+          Math.max(0, r4(desvio - banda)),
+          separaSinPuntaje ? Math.abs(sinPuntajeDe(blanco) - sinPuntajeDe(negro)) : 0,
+          r4(costoLineas),
+          desvio
+        ];
+      };
+      // Aplica y deshace un intercambio de EQUIPO entre dos unidades de igual posición.
+      const cambiarEquipo = (i, j) => {
+        const idB = blanco[i], idN = negro[j];
+        const delta = valorDe(idN) - valorDe(idB);
+        blanco[i] = idN; negro[j] = idB;
+        sumaBlanco += delta; sumaNegro -= delta;
+      };
+
+      /* Intercambio de POSICIÓN entre dos unidades del MISMO equipo. Nadie cambia de equipo ni de
+         formación (el puesto de cada uno se lo queda el otro), así que la única cosa que cambia es
+         de qué línea suma cada uno. Es la pieza que le faltaba al refinamiento: cuando dos formas
+         de repartir las posiciones empatan en encaje — por ejemplo, para el sexto lugar de defensa
+         da lo mismo un volante con Defensor como secundaria o una dupla que solo cubre el puesto
+         con uno de sus dos integrantes — el Paso 2 elige una cualquiera, y cuál eligió cambiaba
+         el mejor armado alcanzable. Acá se corrige mirando el balance, que es lo que el Paso 2 no
+         puede saber todavía porque los equipos no están definidos.
+
+         Condición dura: el encaje no puede empeorar y no puede aparecer un puesto descubierto que
+         antes no existía. El encaje tiene prioridad sobre el balance (FR-020) y este paso no está
+         autorizado a negociarlo, solo a aprovechar los empates. */
+      const permutable = id => posicionAsignada[id] !== 'Arquero' && !remanenteFinal.has(id);
+      const encajePermite = (uA, posA, uB, posB) => {
+        const nuevoA = costoEncaje(uA, posB), nuevoB = costoEncaje(uB, posA);
+        if(nuevoA >= COSTO_DESCUBIERTA || nuevoB >= COSTO_DESCUBIERTA) return false;
+        return nuevoA + nuevoB <= costoEncaje(uA, posA) + costoEncaje(uB, posB);
+      };
+      const cambiarPosicion = (equipo, idA, idB) => {
+        const posA = posicionAsignada[idA], posB = posicionAsignada[idB];
+        const antes = valorDe(idA) + valorDe(idB);
+        posicionAsignada[idA] = posB; posicionAsignada[idB] = posA;
+        const delta = (valorDe(idA) + valorDe(idB)) - antes;
+        if(equipo === 'blanco') sumaBlanco += delta; else sumaNegro += delta;
+      };
+
+      const MAX_VUELTAS = 50; // cada vuelta baja el costo, así que siempre corta antes
+      let huboCambioDePosicion = false;
+      for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
+        let mejor = null, mejorCosto = costoActual();
+        for(let i = 0; i < blanco.length; i++){
+          const idB = blanco[i];
+          if(!intercambiable(idB)) continue;
+          for(let j = 0; j < negro.length; j++){
+            const idN = negro[j];
+            if(!intercambiable(idN)) continue;
+            if(posicionAsignada[idB] !== posicionAsignada[idN]) continue;
+            if(esDupla(porId[idB]) !== esDupla(porId[idN])) continue;
+            cambiarEquipo(i, j);
+            const costo = costoActual();
+            cambiarEquipo(i, j); // vuelve atrás
+            if(mejorCostoLex(costo, mejorCosto)){ mejorCosto = costo; mejor = { tipo: 'equipo', i, j }; }
+          }
+        }
+        ['blanco', 'negro'].forEach(equipo => {
+          const ids = equipo === 'blanco' ? blanco : negro;
+          for(let i = 0; i < ids.length; i++){
+            for(let j = i + 1; j < ids.length; j++){
+              const idA = ids[i], idB = ids[j];
+              if(!permutable(idA) || !permutable(idB)) continue;
+              const posA = posicionAsignada[idA], posB = posicionAsignada[idB];
+              if(posA === posB) continue;
+              if(!encajePermite(porId[idA], posA, porId[idB], posB)) continue;
+              cambiarPosicion(equipo, idA, idB);
+              const costo = costoActual();
+              cambiarPosicion(equipo, idA, idB); // vuelve atrás
+              if(mejorCostoLex(costo, mejorCosto)){ mejorCosto = costo; mejor = { tipo: 'posicion', equipo, idA, idB }; }
+            }
+          }
+        });
+        if(!mejor) break;
+        if(mejor.tipo === 'equipo') cambiarEquipo(mejor.i, mejor.j);
+        else { cambiarPosicion(mejor.equipo, mejor.idA, mejor.idB); huboCambioDePosicion = true; }
+      }
+      // Si alguien cambió de puesto, lo que se explica en el resumen cambió: se vuelve a leer del
+      // armado final, igual que después del Paso 4b.
+      if(huboCambioDePosicion){ faltantes = calcularFaltantes(); swaps = calcularSwaps(); }
+    }else{
       const objetivo = objetivoDiferencia(arquerosInfo);
       const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
       const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
@@ -2272,7 +2702,22 @@
       negro: { cumplida: faltantes.negro.length === 0, faltantes: faltantes.negro }
     };
 
-    return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria, formacion };
+    /* El balance por línea se mide sobre el armado FINAL, después del repaso de posiciones y del
+       refinamiento, y se devuelve siempre — también en la Estrategia 3, que no lo optimiza. Poder
+       ver las cuatro líneas de un armado que solo perseguía el total es justamente lo que permite
+       comparar las dos estrategias en el mismo partido y decidir con datos cuál conviene. */
+    const balanceLineas = balanceLineasDe(blanco, negro, posicionAsignada, porId);
+
+    return { blanco, negro, sumaBlanco, sumaNegro, posicionAsignada, swaps, arquerosInfo, arquerosExcedentes, arquerosPorSecundaria, formacion, balanceLineas, enumeracionTruncada };
+  }
+
+  /* Estrategia 4 — "Formación fija pareja". Todo el armado es el de la Estrategia 3 (mismos
+     arqueros, mismas posiciones, mismo encaje, misma formación fija): lo único distinto es cómo
+     se elige el reparto entre los dos equipos. Es una estrategia aparte y no un cambio de la 3
+     a propósito: la 3 queda intacta como red de seguridad y las dos se pueden correr sobre el
+     mismo partido para comparar. */
+  function generarEquiposEstrategia4(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada, formacionObjetivo){
+    return generarEquiposEstrategia3(titularesPlayers, bloqueados, prevTeamOf, prevPosicionAsignada, formacionObjetivo, { balancePorLinea: true });
   }
 
   // Duplas de rotación (008-duplas-rotacion, FR-007/FR-008/FR-009): construye un candidato
@@ -2401,7 +2846,10 @@
     });
 
     let resultado;
-    if(estrategiaKey === 'estrategia3'){
+    if(estrategiaKey === 'estrategia4'){
+      const formacionObjetivo = (CANCHAS[m.cancha] || CANCHAS.futbol8).formacion;
+      resultado = generarEquiposEstrategia4(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades, prevPosicionAsignada, formacionObjetivo);
+    }else if(estrategiaKey === 'estrategia3'){
       const formacionObjetivo = (CANCHAS[m.cancha] || CANCHAS.futbol8).formacion;
       resultado = generarEquiposEstrategia3(unidadesArmado, bloqueadosConUnidades, prevTeamOfConUnidades, prevPosicionAsignada, formacionObjetivo);
     }else if(estrategiaKey === 'estrategia2'){
@@ -2439,7 +2887,9 @@
       arquerosInfo: resultado.arquerosInfo || null,
       arquerosExcedentes: resultado.arquerosExcedentes || [],
       arquerosPorSecundaria: resultado.arquerosPorSecundaria || [],
-      formacion: resultado.formacion || null
+      formacion: resultado.formacion || null,
+      balanceLineas: resultado.balanceLineas || null,
+      enumeracionTruncada: !!resultado.enumeracionTruncada
     };
     m.estado = 'Equipos generados';
     saveMatches();
@@ -2894,7 +3344,10 @@
 
     const stale = equiposStale(m);
     const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
-    const esEstrategia3 = eq.estrategiaKey === 'estrategia3';
+    // La 4 comparte con la 3 todo lo que se explica en el resumen (posiciones, formación fija,
+    // arqueros): solo cambia el reparto entre equipos.
+    const esFormacionFija = eq.estrategiaKey === 'estrategia3' || eq.estrategiaKey === 'estrategia4';
+    const esEstrategia4 = eq.estrategiaKey === 'estrategia4';
 
     // Cuenta UNIDADES de armado sin puntaje, no jugadores: una dupla cuenta una sola vez y solo si
     // la unidad no tiene puntaje — es la unidad lo que el motor repartió (012, FR-003). Antes
@@ -2926,7 +3379,7 @@
       // sola vacante de titular entre sus dos integrantes (008-duplas-rotacion).
       explicaciones.push(`Se distribuyeron ${totalSinPuntaje} titular${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos.`);
     }
-    if(esEstrategia2 || esEstrategia3){
+    if(esEstrategia2 || esFormacionFija){
       (eq.swaps || []).forEach(s => {
         const p = players.find(pl => pl.id === s.playerId);
         if(!p) return;
@@ -2935,7 +3388,7 @@
           : `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
       });
     }
-    if(esEstrategia3 && eq.formacion){
+    if(esFormacionFija && eq.formacion){
       const obj = eq.formacion.objetivo;
       const label = `${obj.defensores}-${obj.volantes}-${obj.delanteros}`;
       const { blanco: fB, negro: fN } = eq.formacion;
@@ -2944,6 +3397,32 @@
       } else {
         const noCumplidos = [!fB.cumplida ? 'Blanco' : null, !fN.cumplida ? 'Negro' : null].filter(Boolean);
         explicaciones.push(`No se pudo completar la formación ${label} en el Equipo ${noCumplidos.join(' y en el Equipo ')}.`);
+      }
+    }
+    /* Balance por línea: qué logró (o no) la Estrategia 4. Se explica lo que el usuario no puede
+       deducir del panel: cuál quedó peor, y cuáles no se podían emparejar de ninguna forma. */
+    if(esEstrategia4 && eq.balanceLineas){
+      const campo = ORDEN_FORMACION.map(pos => ({ pos, d: (eq.balanceLineas[pos] || {}).diferencia || 0 }));
+      const peor = campo.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a, campo[0]);
+      explicaciones.push(Math.abs(peor.d) > 0
+        ? `Se emparejó cada línea además del total: la más despareja quedó en ${LABEL_LINEA[peor.pos]}, por ${Math.abs(peor.d)} punto${Math.abs(peor.d) === 1 ? '' : 's'}.`
+        : 'Se emparejó cada línea además del total: las líneas de campo quedaron exactamente iguales.');
+      // Líneas de UN solo lugar por equipo: su diferencia no se puede repartir, solo cruzar de
+      // equipo para que se compense con otra. Es la parte del resultado que más se malinterpreta.
+      const unSoloLugar = ORDEN_LINEAS.filter(pos => {
+        if(pos === 'Arquero') return true;
+        return eq.formacion && eq.formacion.objetivo[FORMACION_KEY_POR_POSICION[pos]] === 1;
+      }).filter(pos => eq.balanceLineas[pos] && eq.balanceLineas[pos].diferencia !== 0);
+      if(unSoloLugar.length >= 2){
+        const compensan = new Set(unSoloLugar.map(pos => Math.sign(eq.balanceLineas[pos].diferencia))).size > 1;
+        explicaciones.push(`${unSoloLugar.map(pos => LABEL_LINEA[pos]).join(' y ')} tienen un solo lugar por equipo: esa diferencia existe en cualquier armado posible y no se puede repartir. ${compensan ? 'Quedaron a favor de equipos distintos para que se compensen entre sí en vez de sumarse.' : 'No se pudieron cruzar sin romper el resto del armado.'}`);
+      }
+      const margen = margenTotalPorLinea();
+      if(margen === 0 && Math.abs(peor.d) > 1){
+        explicaciones.push('El motor no tiene margen para alejarse del total buscado, así que solo pudo elegir entre repartos que empatan en el mejor total posible. Subiendo el "Margen del total para emparejar líneas" en la configuración, las líneas pueden quedar más parejas.');
+      }
+      if(eq.enumeracionTruncada){
+        explicaciones.push('Había demasiadas combinaciones de reparto para probarlas todas: se eligió la mejor de las que se alcanzaron a evaluar, que puede no ser la mejor posible.');
       }
     }
     // El invariante de arqueros aplica a todas las estrategias
@@ -2989,15 +3468,14 @@
     }
     // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
     const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
-      const soloEn = REGLAS_CATALOGO[r.key].soloEn;
-      return !soloEn || soloEn === eq.estrategiaKey;
+      return aplicaEnEstrategia(REGLAS_CATALOGO[r.key].soloEn, eq.estrategiaKey);
     });
     if(reglasApagadas.length > 0){
       explicaciones.push(`Reglas desactivadas en el motor: ${reglasApagadas.map(r => REGLAS_CATALOGO[r.key].label).join(', ')}.`);
     }
 
     let balancePosicionesHtml = '';
-    if(esEstrategia2 || esEstrategia3){
+    if(esEstrategia2 || esFormacionFija){
       function contarPosiciones(lista){
         const c = { Arquero:0, Defensor:0, Volante:0, Delantero:0 };
         lista.forEach(p => { const pos = eq.posicionAsignada[p.id] || p.principal; if(c[pos] !== undefined) c[pos]++; });
@@ -3009,6 +3487,21 @@
           <div class="stat">Blanco — Arq: <b>${cB.Arquero}</b> Def: <b>${cB.Defensor}</b> Vol: <b>${cB.Volante}</b> Del: <b>${cB.Delantero}</b></div>
           <div class="stat">Negro — Arq: <b>${cN.Arquero}</b> Def: <b>${cN.Defensor}</b> Vol: <b>${cN.Volante}</b> Del: <b>${cN.Delantero}</b></div>
         </div>`;
+    }
+
+    /* Puntaje de cada línea, Blanco contra Negro. Se muestra en TODAS las estrategias que asignan
+       posiciones, también en las que no lo optimizan: es el dato que faltaba para darse cuenta de
+       que un armado con la diferencia total en 0 podía tener la defensa despareja por 6. */
+    let balanceLineasHtml = '';
+    if(eq.balanceLineas){
+      const chips = ORDEN_LINEAS.map(pos => {
+        const l = eq.balanceLineas[pos];
+        if(!l || (l.blanco === 0 && l.negro === 0)) return '';
+        const d = Math.abs(l.diferencia);
+        const aFavor = l.diferencia > 0 ? 'Blanco' : 'Negro';
+        return `<div class="stat">${LABEL_LINEA[pos] || pos}: <b>${l.blanco}</b> vs <b>${l.negro}</b> <span style="opacity:0.7;">${d === 0 ? '(parejo)' : `(+${d} ${aFavor})`}</span></div>`;
+      }).filter(Boolean).join('');
+      if(chips) balanceLineasHtml = `<div class="conv-summary">${chips}</div>`;
     }
 
     const dragAttrsBlanco = !locked ? `ondragover="event.preventDefault()" ondrop="window.__dropOnTeam(event,'${m.id}','blanco')"` : '';
@@ -3040,6 +3533,7 @@
         <div class="stat">Jugadores bloqueados: <b>${bloqueados.length}</b></div>
       </div>
       ${balancePosicionesHtml}
+      ${balanceLineasHtml}
       ${explicaciones.length > 0 ? `
         <div class="explain-box">
           <b>Por qué quedaron así:</b>
@@ -3539,8 +4033,7 @@
   /* ================= CONFIGURACIÓN (Slice 4) ================= */
   // Una regla marcada con "soloEn" únicamente tiene efecto con esa estrategia.
   function reglaAplicaAEstrategia(key, estrategia){
-    const soloEn = REGLAS_CATALOGO[key].soloEn;
-    return !soloEn || soloEn === estrategia;
+    return aplicaEnEstrategia(REGLAS_CATALOGO[key].soloEn, estrategia);
   }
 
   // Una regla es "núcleo" de la estrategia elegida (o siempre fija, sin importar la estrategia): no se puede apagar.
@@ -3574,7 +4067,7 @@
     }
 
     // Invariantes primero: el motor los resuelve antes que las reglas configurables.
-    const invariantes = REGLAS_INVARIANTES.filter(inv => !inv.soloEn || inv.soloEn === estrategia);
+    const invariantes = REGLAS_INVARIANTES.filter(inv => aplicaEnEstrategia(inv.soloEn, estrategia));
     const invariantesHtml = invariantes.map(inv => `
       <div class="rule-card fixed">
         <div class="rule-top">

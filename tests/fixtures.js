@@ -42,6 +42,45 @@ const PARTIDO_TESTIGO = {
   ],
 };
 
+/* Partido del 2026-08-24, el que motivó la Estrategia 4. La Estrategia 3 lo cerró con la
+   diferencia total en 0.3 y estas líneas: arco +3 y ataque +4 para Blanco, defensa -6.5 para
+   Blanco. Los dos equipos sumaban lo mismo y no se parecían en nada: Blanco tenía el mejor
+   arquero y el mejor delantero, y esos 7 puntos de ventaja se los pagó con la defensa entera.
+
+   Detalles del plantel que hacen al caso: hay dos líneas de UN solo lugar por equipo (arco y
+   ataque, formación 3-3-1) con una diferencia grande entre sus dos ocupantes — 9 contra 6 en el
+   arco y 8 contra 4 en el ataque — y ninguna de las dos se puede emparejar repartiendo. Lo único
+   que se puede elegir es si se suman o se cancelan.
+
+   Los puntajes son los que se vieron en el panel de la aplicación. Los de las posiciones que
+   nadie jugó no están en la captura, así que solo se cargan los que hacían falta para reproducir
+   el armado (es lo que el motor mira: cada unidad vale su nota en el puesto que le tocó). */
+const PARTIDO_LINEAS_DESPAREJAS = {
+  cancha: 'futbol8',
+  formacion: { defensores: 3, volantes: 3, delanteros: 1 },
+  individuales: [
+    P('vallejos', 'Nicolás Vallejos',     'Arquero',   [],           { Arquero: 9 }),
+    P('alfredo',  'Alfredo',              'Defensor',  [],           { Defensor: 5.5 }),
+    P('joaquinl', 'Joaquín Leal',         'Defensor',  [],           { Defensor: 5 }),
+    P('agustinb', 'Agustín Benítez',      'Defensor',  [],           { Defensor: 5 }),
+    P('benjamin', 'Benjamín',             'Volante',   [],           { Volante: 7.5 }),
+    P('leandrob', 'Leandro Benítez',      'Volante',   [],           { Volante: 7 }),
+    P('esteban',  'Esteban Souto',        'Delantero', [],           { Delantero: 8 }),
+    P('nilo',     'Nilo',                 'Defensor',  ['Arquero'],  { Arquero: 6, Defensor: 6 }),
+    P('lucas',    'Lucas Manoukian',      'Defensor',  [],           { Defensor: 8 }),
+    P('anibal',   'Anibal Leal',          'Defensor',  [],           { Defensor: 7 }),
+    P('joaquinb', 'Joaquín Benítez',      'Volante',   ['Defensor'], { Defensor: 7, Volante: 7 }),
+    P('salto',    'Joaquín Saltolastra',  'Volante',   [],           { Volante: 8 }),
+    P('exequiel', 'Exequiel Geraldo',     'Volante',   [],           { Volante: 7 }),
+    P('fabian',   'Fabian',               'Volante',   [],           { Volante: 6 }),
+    P('chipi',    'Chipi',                'Delantero', [],           { Delantero: 4 }),
+  ],
+  duplas: [
+    [P('walther', 'Walther Leal', 'Defensor', ['Volante'], { Defensor: 6, Volante: 5.5 }),
+     P('lautaro', 'Lautaro Leal', 'Volante',  [],          { Volante: 7 })],
+  ],
+};
+
 /* Plantel sintético parametrizable, para probar el reparto de duplas sin depender del
    partido real. Devuelve 16 unidades de armado (8 por equipo, cancha de 8) con la
    cantidad de duplas pedida y la cantidad de arqueros naturales pedida. */
@@ -93,4 +132,4 @@ function jugadoresPorUnidad(plantel, motor) {
   return out;
 }
 
-module.exports = { PARTIDO_TESTIGO, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };
+module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };

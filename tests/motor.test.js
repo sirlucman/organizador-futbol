@@ -25,7 +25,13 @@ const r1 = x => Math.round(x * 10) / 10;
 
 /* ---------- helpers de dominio ---------- */
 function armar(plantel, config = {}, opciones = {}) {
-  const motor = cargarMotor({ puntaje: { params: { diferenciaMaxima: 0, ...(config.params || {}) } }, ...(config.reglas || {}) });
+  const motor = cargarMotor({
+    puntaje: { params: { diferenciaMaxima: 0, ...(config.params || {}) } },
+    // El harness no conoce los defaults del catálogo: se repite acá el de la regla de balance por
+    // línea (margenTotal: 1) para que los tests corran contra la configuración real de la app.
+    balanceLineas: { params: { margenTotal: 1 } },
+    ...(config.reglas || {}),
+  });
   let unidades = F.unidadesDe(plantel, motor);
   // El orden de las unidades es el orden de convocatoria, que en la vida real es cualquiera.
   // `rotar` permite probar la misma consigna con distintos órdenes: una garantía del motor
@@ -37,7 +43,8 @@ function armar(plantel, config = {}, opciones = {}) {
   const prevPos = opciones.prevPosicionAsignada || null;
   const res = estrategia === 1 ? motor.generarEquiposEstrategia1(unidades, bloqueados, prevTeamOf)
     : estrategia === 2 ? motor.generarEquiposEstrategia2(unidades, bloqueados, prevTeamOf, prevPos)
-      : motor.generarEquiposEstrategia3(unidades, bloqueados, prevTeamOf, prevPos, plantel.formacion);
+      : estrategia === 4 ? motor.generarEquiposEstrategia4(unidades, bloqueados, prevTeamOf, prevPos, plantel.formacion)
+        : motor.generarEquiposEstrategia3(unidades, bloqueados, prevTeamOf, prevPos, plantel.formacion);
   const porJugador = F.jugadoresPorUnidad(plantel, motor);
   const unidadesPorId = {};
   unidades.forEach(u => { unidadesPorId[u.id] = u; });
@@ -61,6 +68,15 @@ function armar(plantel, config = {}, opciones = {}) {
       if (!res.arquerosInfo.compensado) return null;
       return res.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco';
     },
+    // Diferencia de puntaje de una línea, con signo (Blanco - Negro).
+    difLinea: pos => (res.balanceLineas && res.balanceLineas[pos] ? res.balanceLineas[pos].diferencia : 0),
+    // Lo que minimiza la Estrategia 4: suma de cuadrados de la diferencia de cada línea de campo.
+    // Un solo número que dice "cuán desparejas quedaron las líneas", castigando concentrar todo
+    // el desbalance en una (que es exactamente el problema que motivó la estrategia).
+    costoLineas: () => r1(motor.ORDEN_FORMACION.reduce((acc, pos) => {
+      const d = res.balanceLineas[pos].diferencia;
+      return acc + d * d;
+    }, 0)),
     duplasPorEquipo: () => {
       const cuenta = { blanco: 0, negro: 0 };
       unidades.filter(u => u._duplaIds).forEach(u => {
@@ -578,6 +594,241 @@ test('014: la leyenda por integrante se dispara cuando no tiene nota en el puest
   eq(motor.puntajeEnPosicion(claudio, 'Delantero'), 0, 'Claudio no tiene nota de Delantero → leyenda');
   eq(motor.puntajeEnPosicion(juan, 'Delantero'), 0, 'Juan tampoco → leyenda en los dos');
   ok(motor.puntajeEnPosicion(juan, 'Volante') > 0, 'en Volante Juan sí tiene nota → sin leyenda');
+});
+
+/* ---------- Estrategia 4: "Formación fija pareja" (balance por línea) ----------
+   La estrategia arma igual que la 3 hasta las posiciones y cambia una sola cosa: cómo elige el
+   reparto entre los dos equipos. Por eso los tests se dividen en dos grupos: los que verifican
+   que lo NUEVO funciona (las líneas quedan parejas) y los que verifican que lo VIEJO sigue
+   valiendo (formación, encaje, duplas, bloqueados, cantidad de jugadores). El segundo grupo es
+   el que importa cuando algo se rompa: una estrategia que empareja líneas rompiendo la formación
+   no sirve para nada. */
+
+// Margen de 1 punto en el total, que es el default de la regla y el que tenía configurado el
+// partido real. Sin margen la estrategia solo puede desempatar, no acomodar (ver test de abajo).
+const CONFIG_LINEAS = { params: { diferenciaMaxima: 1 } };
+
+test('E4: en el partido que la motivó, ninguna línea de campo queda despareja por más de 1', () => {
+  const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
+  ok(Math.abs(a.difLinea('Defensor')) <= 1, `la defensa quedó despareja por ${a.difLinea('Defensor')}`);
+  ok(Math.abs(a.difLinea('Volante')) <= 1, `el mediocampo quedó desparejo por ${a.difLinea('Volante')}`);
+});
+
+test('E4: sobre el mismo partido, deja las líneas más parejas que la Estrategia 3', () => {
+  const e3 = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 3 });
+  const e4 = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
+  ok(e4.costoLineas() < e3.costoLineas(),
+    `la 4 no mejoró: costo de líneas 3 = ${e3.costoLineas()}, 4 = ${e4.costoLineas()}`);
+});
+
+/* El corazón del asunto. Arco y ataque tienen un solo lugar por equipo: 9 contra 6 y 8 contra 4.
+   Esa diferencia existe en TODOS los armados posibles y no hay reparto que la borre — lo único
+   que se puede elegir es de qué lado cae cada una. La Estrategia 3 las dejó a las dos a favor de
+   Blanco (7 puntos que la defensa tuvo que devolver enteros); la 4 las cruza. */
+test('E4: las líneas de un solo lugar quedan a favor de equipos distintos, para compensarse', () => {
+  const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
+  const arco = a.difLinea('Arquero'), ataque = a.difLinea('Delantero');
+  ok(arco !== 0 && ataque !== 0, 'el fixture tiene que tener las dos líneas desparejas');
+  ok(Math.sign(arco) !== Math.sign(ataque),
+    `arco (${arco}) y ataque (${ataque}) quedaron a favor del mismo equipo, en vez de compensarse`);
+});
+
+test('E4: el total no se aleja de lo buscado más que el margen configurado', () => {
+  paraTodoOrden(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, a => {
+    const objetivo = a.motor.objetivoDiferencia(a.res.arquerosInfo);
+    const desvio = r1(Math.abs(a.res.sumaBlanco - a.res.sumaNegro - objetivo));
+    ok(desvio <= 1 + 1e-9, `el desvío del total fue ${desvio}, y el margen es 1`);
+  }, { estrategia: 4 });
+});
+
+/* Con margen 0 el total manda por completo y las líneas solo desempatan entre armados que ya
+   empatan en el mejor total posible. Es la garantía que hace segura a la estrategia: nunca
+   entrega un total peor del que se podría haber conseguido. */
+test('E4: con margen 0 no empeora el total respecto de la Estrategia 3', () => {
+  const sinMargen = { params: { diferenciaMaxima: 0 } };
+  const e3 = armar(F.PARTIDO_LINEAS_DESPAREJAS, sinMargen, { estrategia: 3 });
+  const e4 = armar(F.PARTIDO_LINEAS_DESPAREJAS, sinMargen, { estrategia: 4 });
+  ok(e4.diferencia <= e3.diferencia + 1e-9,
+    `con margen 0 la 4 empeoró el total: 3 = ${e3.diferencia}, 4 = ${e4.diferencia}`);
+});
+
+test('E4: el balance por línea suma exactamente el total de cada equipo', () => {
+  const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
+  ['blanco', 'negro'].forEach(equipo => {
+    const suma = a.motor.ORDEN_LINEAS.reduce((acc, pos) => acc + a.res.balanceLineas[pos][equipo], 0);
+    const total = equipo === 'blanco' ? a.res.sumaBlanco : a.res.sumaNegro;
+    eq(r1(suma), r1(total), `el balance por línea del equipo ${equipo} no suma su total`);
+  });
+});
+
+// --- lo que la Estrategia 4 hereda de la 3 y no puede romper ---
+
+test('E4: la formación se completa en los dos equipos, con cualquier orden', () => {
+  [F.PARTIDO_TESTIGO, F.PARTIDO_LINEAS_DESPAREJAS].forEach(plantel => {
+    paraTodoOrden(plantel, CONFIG_LINEAS, a => {
+      ok(a.res.formacion.blanco.cumplida && a.res.formacion.negro.cumplida,
+        `formación incompleta: blanco ${JSON.stringify(a.res.formacion.blanco.faltantes)}, negro ${JSON.stringify(a.res.formacion.negro.faltantes)}`);
+    }, { estrategia: 4 });
+  });
+});
+
+test('E4: nadie termina en una posición que no cubre, con cualquier orden', () => {
+  [F.PARTIDO_TESTIGO, F.PARTIDO_LINEAS_DESPAREJAS].forEach(plantel => {
+    paraTodoOrden(plantel, CONFIG_LINEAS, a => {
+      a.unidades.forEach(u => {
+        ok(a.encajeDe(u.id) !== 'descubierta', `${u.id} quedó en ${a.res.posicionAsignada[u.id]}, que no cubre`);
+      });
+    }, { estrategia: 4 });
+  });
+});
+
+test('E4: los dos equipos quedan con la misma cantidad de unidades, con cualquier orden', () => {
+  paraTodoOrden(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, a => {
+    eq(a.res.blanco.length, a.res.negro.length, 'equipos con distinta cantidad de unidades');
+  }, { estrategia: 4 });
+});
+
+test('E4: las duplas se reparten con las mismas reglas que la Estrategia 3', () => {
+  [1, 2, 3, 4].forEach(cantidad => {
+    const plantel = F.plantelConDuplas({ duplas: cantidad, arqueros: 1 });
+    paraTodoOrden(plantel, CONFIG_LINEAS, a => {
+      const cuenta = a.duplasPorEquipo();
+      ok(Math.abs(cuenta.blanco - cuenta.negro) <= 1,
+        `${cantidad} duplas repartidas ${cuenta.blanco}/${cuenta.negro}`);
+      // Con cantidad impar, la que sobra va al equipo CON arquero fijo (FR-007b de 011).
+      if (cantidad % 2 === 1) {
+        const conArquero = a.equipoConArqueroFijo();
+        if (conArquero) {
+          ok(cuenta[conArquero] > cuenta[conArquero === 'blanco' ? 'negro' : 'blanco'],
+            `la dupla impar no fue al equipo con arquero fijo (${conArquero})`);
+        }
+      }
+    }, { estrategia: 4 });
+  });
+});
+
+test('E4: un titular bloqueado nunca cambia de equipo', () => {
+  const previo = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
+  const prevTeamOf = {};
+  previo.res.blanco.forEach(id => { prevTeamOf[id] = 'blanco'; });
+  previo.res.negro.forEach(id => { prevTeamOf[id] = 'negro'; });
+  // Se bloquea medio plantel: los bloqueados se quedan y el resto se reacomoda alrededor.
+  const bloqueados = [...previo.res.blanco.slice(0, 4), ...previo.res.negro.slice(0, 4)];
+  const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, {
+    estrategia: 4, bloqueados, prevTeamOf, prevPosicionAsignada: previo.res.posicionAsignada,
+  });
+  bloqueados.forEach(id => {
+    const quedaEn = a.res.blanco.includes(id) ? 'blanco' : 'negro';
+    eq(quedaEn, prevTeamOf[id], `el bloqueado ${id} cambió de equipo`);
+  });
+});
+
+/* El reparto se elige enumerando: con el mismo plantel, el óptimo es el mismo aunque cambie el
+   orden de convocatoria. Los empates se desempatan por el primero generado, así que los equipos
+   pueden no ser idénticos entre órdenes — pero el costo de líneas y el total sí tienen que serlo,
+   porque son el óptimo y el óptimo no depende del orden en que se recorren las opciones. */
+test('E4: el resultado no depende del orden de convocatoria', () => {
+  const referencia = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
+  paraTodoOrden(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, a => {
+    eq(a.costoLineas(), referencia.costoLineas(), 'el costo de líneas cambió con el orden');
+    eq(a.diferencia, referencia.diferencia, 'la diferencia de puntaje cambió con el orden');
+  }, { estrategia: 4 });
+});
+
+test('E4: no se probaron combinaciones de más (la enumeración nunca se trunca)', () => {
+  [F.PARTIDO_TESTIGO, F.PARTIDO_LINEAS_DESPAREJAS, F.plantelConDuplas({ duplas: 0, arqueros: 2 })].forEach(plantel => {
+    const a = armar(plantel, CONFIG_LINEAS, { estrategia: 4 });
+    ok(!a.res.enumeracionTruncada, 'la enumeración se truncó: el armado puede no ser el óptimo');
+  });
+});
+
+/* La garantía sobre la que se apoya toda la estrategia: el reparto elegido es el ÓPTIMO, no el
+   mejor que encontró buscando. Se verifica por fuerza bruta y SIN usar la enumeración del motor:
+   se toman las posiciones que eligió, se generan las 2^n asignaciones de unidades a equipos, se
+   descartan las que rompen una restricción dura (cupo por posición y cupo de duplas, leídos del
+   armado real) y se comprueba que ninguna de las que quedan sea mejor. Si el motor tuviera un
+   error en la enumeración o en el costo, es acá donde aparece. */
+test('E4: el reparto elegido es el óptimo (fuerza bruta independiente)', () => {
+  const casos = [
+    ['partido del 2026-08-24', F.PARTIDO_LINEAS_DESPAREJAS, { params: { diferenciaMaxima: 1 } }],
+    ['partido del 2026-08-24, sin margen', F.PARTIDO_LINEAS_DESPAREJAS, { params: { diferenciaMaxima: 0 } }],
+    ['partido testigo', F.PARTIDO_TESTIGO, { params: { diferenciaMaxima: 1 } }],
+    ['partido testigo con ventaja 6', F.PARTIDO_TESTIGO, { params: { diferenciaMaxima: 1, ventajaSinArquero: 6 } }],
+    ['4 duplas', F.plantelConDuplas({ duplas: 4, arqueros: 2 }), { params: { diferenciaMaxima: 1 } }],
+    ['1 dupla y 1 arquero', F.plantelConDuplas({ duplas: 1, arqueros: 1 }), { params: { diferenciaMaxima: 1 } }],
+    ['sin arqueros', F.plantelConDuplas({ duplas: 0, arqueros: 0 }), { params: { diferenciaMaxima: 1 } }],
+  ];
+  const r4 = x => Math.round(x * 10000) / 10000;
+  casos.forEach(([nombre, plantel, config]) => {
+    const a = armar(plantel, config, { estrategia: 4 });
+    const { motor, res, unidadesPorId } = a;
+    const objetivo = motor.objetivoDiferencia(res.arquerosInfo);
+    const banda = motor.margenTotalPorLinea();
+    const valor = id => motor.puntajeEnPosicion(unidadesPorId[id], res.posicionAsignada[id]);
+    const esDupla = id => !!unidadesPorId[id]._duplaIds;
+
+    const arqueros = { blanco: 0, negro: 0 };
+    const libres = [];
+    ['blanco', 'negro'].forEach(e => res[e].forEach(id => {
+      if (res.posicionAsignada[id] === 'Arquero') arqueros[e] += valor(id);
+      else libres.push({ id, pos: res.posicionAsignada[id], equipo: e });
+    }));
+    // Restricciones duras leídas del armado real, no de la lógica del motor.
+    const cupo = {}, duplas = { blanco: 0, negro: 0 };
+    libres.forEach(u => {
+      cupo[u.pos] = cupo[u.pos] || { blanco: 0, negro: 0 };
+      cupo[u.pos][u.equipo]++;
+      if (esDupla(u.id)) duplas[u.equipo]++;
+    });
+
+    const costoDe = asignacion => {
+      const suma = { ...arqueros };
+      const lineas = {};
+      libres.forEach((u, i) => {
+        const e = asignacion[i];
+        suma[e] += valor(u.id);
+        lineas[u.pos] = lineas[u.pos] || { blanco: 0, negro: 0 };
+        lineas[u.pos][e] += valor(u.id);
+      });
+      const desvio = Math.abs(r4(suma.blanco - suma.negro - objetivo));
+      const costoLineas = motor.ORDEN_FORMACION.reduce((acc, pos) => {
+        if (!lineas[pos]) return acc;
+        const d = r4(lineas[pos].blanco - lineas[pos].negro);
+        return acc + d * d;
+      }, 0);
+      return [Math.max(0, r4(desvio - banda)), r4(costoLineas), desvio];
+    };
+
+    const costoMotor = costoDe(libres.map(u => u.equipo));
+    const n = libres.length;
+    ok(n <= 20, `el caso "${nombre}" tiene ${n} unidades libres: 2^n no es razonable`);
+    let mejor = null, validos = 0;
+    for (let mask = 0; mask < (1 << n); mask++) {
+      const asignacion = [];
+      for (let i = 0; i < n; i++) asignacion.push((mask >> i) & 1 ? 'blanco' : 'negro');
+      const c = {}, d = { blanco: 0, negro: 0 };
+      libres.forEach((u, i) => {
+        c[u.pos] = c[u.pos] || { blanco: 0, negro: 0 };
+        c[u.pos][asignacion[i]]++;
+        if (esDupla(u.id)) d[asignacion[i]]++;
+      });
+      const respeta = motor.ORDEN_FORMACION.every(pos => !cupo[pos]
+        || (c[pos].blanco === cupo[pos].blanco && c[pos].negro === cupo[pos].negro));
+      if (!respeta || d.blanco !== duplas.blanco || d.negro !== duplas.negro) continue;
+      validos++;
+      const costo = costoDe(asignacion);
+      if (mejor === null || motor.mejorCostoLex(costo, mejor)) mejor = costo;
+    }
+    ok(validos > 1, `el caso "${nombre}" solo tenía ${validos} reparto válido: no prueba nada`);
+    ok(!motor.mejorCostoLex(mejor, costoMotor),
+      `en "${nombre}" había un reparto mejor: motor ${JSON.stringify(costoMotor)}, óptimo ${JSON.stringify(mejor)}`);
+  });
+});
+
+test('E4: la Estrategia 3 sigue devolviendo el balance por línea, sin optimizarlo', () => {
+  const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 3 });
+  ok(a.res.balanceLineas && typeof a.res.balanceLineas.Defensor.diferencia === 'number',
+    'la Estrategia 3 tiene que informar las líneas para poder compararla con la 4');
 });
 
 /* ======================= runner ======================= */
