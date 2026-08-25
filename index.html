@@ -983,17 +983,32 @@
 
   /* ================= PERSISTENCIA ================= */
   async function loadAll(){
-    try{ const res = await window.storage.get('players', false); players = res && res.value ? JSON.parse(res.value) : []; }
-    catch(e){ players = []; }
-    try{ const res2 = await window.storage.get('partidos', false); matches = res2 && res2.value ? JSON.parse(res2.value) : []; }
-    catch(e){ matches = []; }
-    if(isAdmin()){
-      try{ const res3 = await window.storage.get('motorConfig', false); motorConfig = normalizeMotorConfig(res3 && res3.value ? JSON.parse(res3.value) : null); }
-      catch(e){ motorConfig = defaultMotorConfig(); }
-    }else{
-      // "jugador" no puede ver la configuración del motor (FR-012); ni se solicita.
-      motorConfig = defaultMotorConfig();
-    }
+    /* Las lecturas se piden TODAS JUNTAS: antes eran hasta 7 round-trips secuenciales a Firestore
+       (players, partidos, motorConfig, playerScores, partidosArmado y los dos flags de migracion),
+       lo que dejaba la app visible pero vacia varios segundos. Se paralelizan solo los pedidos; el
+       orden en que se aplican abajo no cambia, porque el merge de puntaje/armado depende de que
+       `players`/`matches` ya esten normalizados.
+       Una cuenta "jugador" solo pide los dos documentos publicos: el resto son exclusivos de admin
+       (FR-004/FR-012/FR-014) y las reglas de Firestore los rechazarian igual. */
+    const admin = isAdmin();
+    const soloAdmin = ['motorConfig','playerScores','partidosArmado',
+                       'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado'];
+    const claves = ['players','partidos'].concat(admin ? soloAdmin : []);
+    const crudo = {};
+    await Promise.all(claves.map(async (clave) => {
+      try{ const res = await window.storage.get(clave, false); crudo[clave] = (res && res.value) || null; }
+      catch(e){ console.error('No se pudo leer ' + clave + ':', e); crudo[clave] = null; }
+    }));
+    const leerJson = (clave, porDefecto) => {
+      if(!crudo[clave]) return porDefecto;
+      try{ return JSON.parse(crudo[clave]); }
+      catch(e){ console.error('JSON invalido en ' + clave + ':', e); return porDefecto; }
+    };
+
+    players = leerJson('players', []);
+    matches = leerJson('partidos', []);
+    motorConfig = admin ? normalizeMotorConfig(leerJson('motorConfig', null)) : defaultMotorConfig();
+
     // Puntaje ("scores") por jugador nunca falta en memoria (aunque esté vacío), para que
     // computeAvg/puntajeEnPosicion sigan funcionando igual para "jugador" (que no lo carga —
     // ver más abajo) que para un jugador real sin ningún puntaje cargado (FR-013).
@@ -1005,40 +1020,37 @@
 
     // El puntaje por jugador y los datos internos de armado de equipos (estrategia, sumas,
     // swaps, etc.) viven en documentos aparte, legibles solo por "admin" — ver data-model.md
-    // y research.md de 007-permisos-por-usuario. Si la cuenta es "jugador" ni se solicitan: las
-    // reglas de Firestore los rechazarían igual, esto solo evita el pedido de red innecesario.
-    if(isAdmin()){
-      try{
-        const resScores = await window.storage.get('playerScores', false);
-        const scoresById = resScores && resScores.value ? JSON.parse(resScores.value) : {};
-        players.forEach(p => { if(scoresById[p.id]) p.scores = scoresById[p.id]; });
-      }catch(e){ console.error(e); }
-      try{
-        const resArmado = await window.storage.get('partidosArmado', false);
-        const armadoById = resArmado && resArmado.value ? JSON.parse(resArmado.value) : {};
-        matches.forEach(m => {
-          const armado = armadoById[m.id];
-          if(!armado) return;
-          if(m.equipos) Object.assign(m.equipos, armado.equipos || {});
-          m.bloqueados = armado.bloqueados || [];
-        });
-      }catch(e){ console.error(e); }
+    // y research.md de 007-permisos-por-usuario.
+    if(admin){
+      const scoresById = leerJson('playerScores', {});
+      players.forEach(p => { if(scoresById[p.id]) p.scores = scoresById[p.id]; });
+      const armadoById = leerJson('partidosArmado', {});
+      matches.forEach(m => {
+        const armado = armadoById[m.id];
+        if(!armado) return;
+        if(m.equipos) Object.assign(m.equipos, armado.equipos || {});
+        m.bloqueados = armado.bloqueados || [];
+      });
     }
+
+    // Se pinta con lo que ya se tiene, antes de las migraciones: son escrituras que no cambian
+    // lo que se ve en el 99% de los arranques, y esperarlas volvia a dejar la pantalla vacia.
+    renderPlayersTab();
+    renderMatchesTab();
+    renderMotorTab();
+
+    if(!admin) return;
 
     // Migración única: los partidos finalizados antes de agregar ganados/empatados/perdidos no los tienen
     // acumulados. Se recalculan una sola vez a partir del historial guardado; de ahí en más el flujo normal
     // es que __finalizarPartido los sume incrementalmente al finalizar cada partido (FR-009/FR-010).
-    // Solo "admin" necesita chequear/correr esta migración; "jugador" ni la pide (las reglas de
-    // Firestore restringen este documento a admin, ver contracts/firestore-rules.md).
-    if(isAdmin()){
-      let migrado = false;
-      try{ const resM = await window.storage.get('statsGanadosEmpatadosPerdidosMigrado', false); migrado = !!(resM && resM.value); }
-      catch(e){ migrado = false; }
-      if(!migrado){
-        recomputeAllPlayerStatsFromMatches();
-        await savePlayers();
-        try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
-      }
+    // Solo "admin" la corre; "jugador" ni pide el flag (las reglas de Firestore lo restringen a admin).
+    let recalculado = false;
+    if(!crudo['statsGanadosEmpatadosPerdidosMigrado']){
+      recomputeAllPlayerStatsFromMatches();
+      await savePlayers();
+      try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
+      recalculado = true;
     }
 
     // Migración única (007-permisos-por-usuario): separa puntaje y armado interno en sus propios
@@ -1047,20 +1059,17 @@
     // `partidos`; savePlayers()/saveMatches() ya escriben en el formato separado, así que alcanza
     // con volver a guardar una vez. Solo la corre "admin": es quien tiene el puntaje/armado en
     // memoria para poder separarlo (una cuenta "jugador" nunca los llega a cargar).
-    if(isAdmin()){
-      let puntajeArmadoSeparado = false;
-      try{ const resSep = await window.storage.get('puntajeArmadoSeparadoMigrado', false); puntajeArmadoSeparado = !!(resSep && resSep.value); }
-      catch(e){ puntajeArmadoSeparado = false; }
-      if(!puntajeArmadoSeparado){
-        await savePlayers();
-        await saveMatches();
-        try{ await window.storage.set('puntajeArmadoSeparadoMigrado', 'true', false); }catch(e){ console.error(e); }
-      }
+    if(!crudo['puntajeArmadoSeparadoMigrado']){
+      await savePlayers();
+      await saveMatches();
+      try{ await window.storage.set('puntajeArmadoSeparadoMigrado', 'true', false); }catch(e){ console.error(e); }
     }
 
-    renderPlayersTab();
-    renderMatchesTab();
-    renderMotorTab();
+    // Solo si una migración cambió datos en memoria hay algo nuevo que mostrar.
+    if(recalculado){
+      renderPlayersTab();
+      renderMatchesTab();
+    }
   }
 
   // Recalcula partidos jugados/ganados/empatados/perdidos/goles/asistencias de todos los jugadores
@@ -4421,6 +4430,14 @@
     if(foot) foot.style.display = '';
   }
 
+  /* Placeholder mientras loadAll() trae los datos (varias lecturas a Firestore). Sin esto la app
+     aparece completamente vacia por ~1.5s y parece colgada. No muestra ningun dato, asi que es
+     seguro pintarlo antes de conocer el rol. */
+  function showLoadingState(){
+    const roster = el('roster');
+    if(roster) roster.innerHTML = '<div class="empty-state"><p>Cargando el plantel...</p></div>';
+  }
+
   async function attemptLogin(){
     const usuario = el('loginUsuario').value;
     const password = el('loginPassword').value;
@@ -4445,12 +4462,17 @@
       loginError.textContent = '';
       el('loginUsuario').value = '';
       el('loginPassword').value = '';
+      // La app se muestra ya, sin esperar el rol: el shell vacio no filtra nada porque `body`
+      // arranca en `role-jugador` (fail-closed) y los contenedores estan vacios — en la carga
+      // inicial nunca se renderizaron, y en un cambio de cuenta los vacio clearRenderedState().
+      // Esperar aca a resolveSession() dejaba la pantalla de login congelada ~2s.
+      loginScreen.style.display = 'none';
+      appRoot.style.display = '';
       if(!appLoaded){
         appLoaded = true;
+        showLoadingState();
         await resolveSession(user.uid);
         document.body.classList.toggle('role-jugador', !isAdmin());
-        loginScreen.style.display = 'none';
-        appRoot.style.display = '';
         await loadAll();
       }
     }else{
