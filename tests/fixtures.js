@@ -99,9 +99,11 @@ const PARTIDO_LINEAS_DESPAREJAS = {
  * Mejor armado del espacio conjunto, con el MISMO encaje: ninguna línea desparejo por más de 1,
  * suma de cuadrados 1.5, total +0.5 (dentro del margen de 1).
  *
- * Los puntajes son sintéticos (búsqueda aleatoria sembrada, semilla 4) y no un partido real: los
- * planteles reales de `PARTIDO_TESTIGO` y `PARTIDO_LINEAS_DESPAREJAS` tienen tan pocas posiciones
- * secundarias cargadas que sus clases de empate son de 1 y 2 escenarios, y el motor acierta.
+ * Los puntajes son sintéticos y no un partido real: los planteles reales de `PARTIDO_TESTIGO` y
+ * `PARTIDO_LINEAS_DESPAREJAS` tienen tan pocas posiciones secundarias cargadas que sus clases de
+ * empate son de 1 y 2 escenarios, y el motor acierta en ellos.
+ *
+ * Se regenera exacto con:  node tools/medir-motor.js volcar 4 --cancha=8 --mezcla=0.85
  */
 const PARTIDO_EMPATE_ENCAJE = {
   cancha: 'futbol8',
@@ -123,6 +125,53 @@ const PARTIDO_EMPATE_ENCAJE = {
     P('j11', 'Jugador 11', 'Volante', ['Defensor'], { Volante: 7.5, Defensor: 3.5 }),
     P('j12', 'Jugador 12', 'Defensor', ['Delantero'], { Defensor: 8.5, Delantero: 4 }),
     P('j13', 'Jugador 13', 'Volante', ['Delantero'], { Volante: 6, Delantero: 8.5 }),
+  ],
+  duplas: [],
+};
+
+/* Plantel sintético de CANCHA DE 9 (formación 3-4-1, 18 unidades) con empates de encaje.
+ *
+ * Los otros planteles son todos de cancha de 8, así que la formación 3-4-1 no estaba cubierta por
+ * ningún test del motor. No es un tamaño más: el mediocampo pasa de 3 a 4 lugares por equipo, y con
+ * eso la enumeración del reparto crece de 800 combinaciones a 2.800 (C(6,3)·C(8,4)·C(2,1)).
+ *
+ * Es además un test de regresión real del desempate de encaje (FR-028), no solo de cobertura: se lo
+ * eligió comprobando que el motor ANTERIOR al arreglo no llegaba al óptimo en este plantel.
+ *
+ *   Motor anterior: Defensa +1.5, Medio +1, Ataque -5  → suma de cuadrados 28.25
+ *   Motor actual:   Defensa  0,   Medio  0, Ataque -0.5 → suma de cuadrados 0.25 (el óptimo)
+ *
+ * Los dos respetan el margen de 1 punto en el total. La diferencia entera está en el ataque, que
+ * tiene un solo lugar por equipo: con 10 escenarios de posiciones empatados en encaje, cuál se
+ * elija decide quién juega ahí, y el motor anterior se quedaba con el primero que encontraba.
+ *
+ * Puntajes sintéticos. Se regenera exacto con:
+ *   node tools/medir-motor.js volcar 147 --cancha=9 --mezcla=0.6
+ * Se lo encontró comparando contra el motor previo al arreglo:
+ *   node tools/medir-motor.js comparar <commit> --cancha=9 --n=200 --mezcla=0.6
+ */
+const PARTIDO_CANCHA9_EMPATE = {
+  cancha: 'futbol9',
+  formacion: { defensores: 3, volantes: 4, delanteros: 1 },
+  individuales: [
+    P('arq0', 'Arquero 0', 'Arquero', [], { Arquero: 5 }),
+    P('arq1', 'Arquero 1', 'Arquero', [], { Arquero: 6.5 }),
+    P('j0', 'Jugador 0', 'Volante', ['Defensor'], { Volante: 6, Defensor: 7 }),
+    P('j1', 'Jugador 1', 'Defensor', ['Volante'], { Defensor: 6, Volante: 5.5 }),
+    P('j2', 'Jugador 2', 'Defensor', [], { Defensor: 6.5 }),
+    P('j3', 'Jugador 3', 'Defensor', ['Delantero'], { Defensor: 4.5, Delantero: 3 }),
+    P('j4', 'Jugador 4', 'Defensor', ['Delantero'], { Defensor: 7.5, Delantero: 4.5 }),
+    P('j5', 'Jugador 5', 'Defensor', ['Volante'], { Defensor: 6, Volante: 8.5 }),
+    P('j6', 'Jugador 6', 'Volante', [], { Volante: 9 }),
+    P('j7', 'Jugador 7', 'Volante', ['Defensor'], { Volante: 6, Defensor: 3 }),
+    P('j8', 'Jugador 8', 'Defensor', ['Delantero'], { Defensor: 8, Delantero: 8 }),
+    P('j9', 'Jugador 9', 'Volante', [], { Volante: 3 }),
+    P('j10', 'Jugador 10', 'Volante', ['Defensor'], { Volante: 6.5, Defensor: 5.5 }),
+    P('j11', 'Jugador 11', 'Volante', ['Defensor'], { Volante: 6.5, Defensor: 3.5 }),
+    P('j12', 'Jugador 12', 'Defensor', ['Delantero'], { Defensor: 5, Delantero: 4.5 }),
+    P('j13', 'Jugador 13', 'Delantero', ['Defensor'], { Delantero: 4, Defensor: 3 }),
+    P('j14', 'Jugador 14', 'Defensor', ['Delantero'], { Defensor: 7.5, Delantero: 9 }),
+    P('j15', 'Jugador 15', 'Volante', ['Defensor'], { Volante: 5.5, Defensor: 4 }),
   ],
   duplas: [],
 };
@@ -178,4 +227,4 @@ function jugadoresPorUnidad(plantel, motor) {
   return out;
 }
 
-module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, PARTIDO_EMPATE_ENCAJE, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };
+module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, PARTIDO_EMPATE_ENCAJE, PARTIDO_CANCHA9_EMPATE, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };

@@ -27,11 +27,35 @@ Arma igual que la Estrategia 3 y cambia una sola cosa: cómo elige el reparto en
 - **Lo nuevo** — que las líneas queden parejas, que el total no se pase del margen configurado, y que con margen 0 nunca entregue un total peor que la Estrategia 3.
 - **Lo heredado** — formación cumplida, nadie fuera de puesto, misma cantidad de jugadores por equipo, reparto de duplas y bloqueados. Es el grupo que importa cuando algo se rompe: una estrategia que empareja líneas rompiendo la formación no sirve para nada.
 
-El test clave es **"el reparto elegido es el óptimo (fuerza bruta independiente)"**. La estrategia se apoya en que enumera todos los repartos posibles y devuelve el mejor, no el mejor que encontró buscando. Ese test toma las posiciones que eligió el motor, genera las 2^n asignaciones de unidades a equipos por fuerza bruta, descarta las que rompen una restricción dura (cupo por posición y cupo de duplas, leídos del armado real) y comprueba que ninguna de las que quedan sea mejor. No usa la enumeración del motor: si hay un error ahí o en el costo, aparece acá.
+Hay dos tests clave, y hacen falta los dos porque el motor decide el armado en dos pasos: primero quién juega de qué (las posiciones) y después cómo se reparten los titulares entre los equipos.
+
+**"el reparto elegido es el óptimo (fuerza bruta independiente)"** cubre el segundo paso. La estrategia se apoya en que enumera todos los repartos posibles y devuelve el mejor, no el mejor que encontró buscando. El test toma las posiciones que eligió el motor, genera las 2^n asignaciones de unidades a equipos por fuerza bruta, descarta las que rompen una restricción dura (cupo por posición y cupo de duplas, leídos del armado real) y comprueba que ninguna de las que quedan sea mejor. No usa la enumeración del motor: si hay un error ahí o en el costo, aparece acá.
+
+**"el armado es el óptimo del espacio conjunto"** cubre los dos pasos a la vez, y es lo que el test anterior por sí solo no puede ver. Verificar el reparto partiendo de las posiciones que el motor eligió no dice nada sobre las posiciones que descartó: cuando varios escenarios de posiciones empatan en encaje, cuál se elija cambia el mejor balance por línea alcanzable. Este test enumera también ese eje —todos los escenarios empatados en el mejor encaje, cruzados con todos los repartos válidos de cada uno— y es el que exige FR-028. Tiene su variante con titulares bloqueados, donde el armado arranca parcialmente fijo y el espacio se restringe a los repartos que no mueven a nadie de equipo.
 
 `PARTIDO_LINEAS_DESPAREJAS` en [fixtures.js](fixtures.js) es el partido del 2026-08-24 que motivó la estrategia: la 3 lo cerró con la diferencia total en 0.3 y la defensa despareja por 6.5, porque el mejor arquero y el mejor delantero cayeron en el mismo equipo y la defensa tuvo que pagar esos 7 puntos. Tiene dos líneas de un solo lugar por equipo con diferencias grandes (9 contra 6 en el arco, 8 contra 4 en el ataque), que es justamente lo que no se puede emparejar repartiendo: solo se puede elegir si se suman o se cancelan.
 
 Las features `012-puntajes-coherentes-panel` y `015-minimo-diferencia-alcanzable` no tienen tests acá: son comportamiento de interfaz y de mensajes, no del motor. Se verifican a mano en el navegador contra staging.
+
+## Medir, además de testear
+
+Los tests responden "¿el motor cumple?" sobre unos pocos planteles elegidos. [tools/medir-motor.js](../tools/medir-motor.js) responde dos preguntas que un test no puede:
+
+```sh
+node tools/medir-motor.js verificar                     # los planteles del repo contra el óptimo
+node tools/medir-motor.js buscar --cancha=9 --n=400     # busca planteles donde el motor NO sea óptimo
+node tools/medir-motor.js comparar <commit>             # el motor actual contra el de ese commit
+node tools/medir-motor.js volcar <semilla>              # imprime un plantel como código de fixture
+node tools/medir-motor.js perf                          # cuánto tarda una generación
+```
+
+**¿CUÁNTO cuesta un problema?** Genera planteles al azar (con semilla, así que todo hallazgo se reproduce) y los compara contra el óptimo del espacio conjunto. La palanca es `--mezcla`, la proporción de titulares con posición secundaria cargada: es lo que controla cuántos escenarios de encaje empatan, o sea cuán duro es el caso. Sin esto, el gap del desempate de encaje (FR-028) parecía teórico; medido, resultó que en planteles con empate el motor se quedaba corto en cerca de la mitad de los casos, hasta por 4.5 puntos en una línea. Eso es lo que justificó el arreglo.
+
+**¿El motor de hace N commits se comportaba distinto?** `comparar` vuelca el `index.html` de un commit a un temporal, lo carga con el mismo harness y corre las dos versiones sobre los mismos planteles. Es lo que se usó para elegir los fixtures de regresión: un fixture donde el motor viejo ya acertaba no protege de nada. `PARTIDO_CANCHA9_EMPATE` salió de ahí — el motor previo al arreglo fallaba en el 41% de los planteles de cancha de 9, y ese es uno de los peores.
+
+El ciclo completo es `comparar` → una semilla interesante → `volcar` → fixture nuevo. Los dos fixtures sintéticos de [fixtures.js](fixtures.js) llevan anotado el comando que los regenera exacto.
+
+La definición de "óptimo" vive en [optimo-conjunto.js](optimo-conjunto.js) y la comparten los tests y la herramienta a propósito: si cada uno tuviera la suya, una podría pasar mientras la otra falla.
 
 ## El partido testigo
 
