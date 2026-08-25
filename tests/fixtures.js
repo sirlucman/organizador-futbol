@@ -81,6 +81,52 @@ const PARTIDO_LINEAS_DESPAREJAS = {
   ],
 };
 
+/* Plantel sintético que expone el desempate de encaje de la Estrategia 4.
+ *
+ * El motor decide en dos pasos: primero QUIÉN JUEGA DE QUÉ (encaje) y después CÓMO SE REPARTEN
+ * entre los dos equipos. El segundo paso enumera todos los repartos posibles y es óptimo, pero
+ * solo dentro del escenario de posiciones que le entregó el primero — y el primero elige uno
+ * cualquiera entre todos los que empatan en encaje. Cuando el escenario descartado era el que
+ * habilitaba el mejor balance por línea, el motor no lo ve.
+ *
+ * Lo que hace a este plantel un caso testigo: 8 titulares tienen Defensor como principal para 6
+ * lugares y 6 tienen Volante para 6, así que hay que correr gente a su secundaria y CUÁLES se
+ * corren empata en encaje de 12 formas distintas. Entre esas 12, el ataque (un solo lugar por
+ * equipo) puede quedar desparejo por 4.5 o por 0.5 según a quién le toque, y esa diferencia el
+ * paso de reparto no la puede arreglar porque llega cuando el escenario ya está elegido.
+ *
+ * Armado del motor: ataque -4.5, suma de cuadrados de las líneas de campo 21.5, total -0.5.
+ * Mejor armado del espacio conjunto, con el MISMO encaje: ninguna línea desparejo por más de 1,
+ * suma de cuadrados 1.5, total +0.5 (dentro del margen de 1).
+ *
+ * Los puntajes son sintéticos (búsqueda aleatoria sembrada, semilla 4) y no un partido real: los
+ * planteles reales de `PARTIDO_TESTIGO` y `PARTIDO_LINEAS_DESPAREJAS` tienen tan pocas posiciones
+ * secundarias cargadas que sus clases de empate son de 1 y 2 escenarios, y el motor acierta.
+ */
+const PARTIDO_EMPATE_ENCAJE = {
+  cancha: 'futbol8',
+  formacion: { defensores: 3, volantes: 3, delanteros: 1 },
+  individuales: [
+    P('arq0', 'Arquero 0', 'Arquero', [], { Arquero: 4.5 }),
+    P('arq1', 'Arquero 1', 'Arquero', [], { Arquero: 7 }),
+    P('j0', 'Jugador 0', 'Volante', ['Defensor'], { Volante: 6.5, Defensor: 3.5 }),
+    P('j1', 'Jugador 1', 'Defensor', ['Delantero'], { Defensor: 6.5, Delantero: 6 }),
+    P('j2', 'Jugador 2', 'Volante', ['Delantero'], { Volante: 5.5, Delantero: 5 }),
+    P('j3', 'Jugador 3', 'Defensor', ['Volante'], { Defensor: 4.5, Volante: 8 }),
+    P('j4', 'Jugador 4', 'Defensor', ['Volante'], { Defensor: 3, Volante: 5.5 }),
+    P('j5', 'Jugador 5', 'Volante', ['Delantero'], { Volante: 7, Delantero: 7 }),
+    P('j6', 'Jugador 6', 'Defensor', ['Delantero'], { Defensor: 5, Delantero: 3 }),
+    P('j7', 'Jugador 7', 'Volante', ['Defensor'], { Volante: 4, Defensor: 7 }),
+    P('j8', 'Jugador 8', 'Volante', ['Defensor'], { Volante: 4, Defensor: 7 }),
+    P('j9', 'Jugador 9', 'Defensor', ['Delantero'], { Defensor: 8.5, Delantero: 6.5 }),
+    P('j10', 'Jugador 10', 'Defensor', ['Volante'], { Defensor: 4.5, Volante: 4.5 }),
+    P('j11', 'Jugador 11', 'Volante', ['Defensor'], { Volante: 7.5, Defensor: 3.5 }),
+    P('j12', 'Jugador 12', 'Defensor', ['Delantero'], { Defensor: 8.5, Delantero: 4 }),
+    P('j13', 'Jugador 13', 'Volante', ['Delantero'], { Volante: 6, Delantero: 8.5 }),
+  ],
+  duplas: [],
+};
+
 /* Plantel sintético parametrizable, para probar el reparto de duplas sin depender del
    partido real. Devuelve 16 unidades de armado (8 por equipo, cancha de 8) con la
    cantidad de duplas pedida y la cantidad de arqueros naturales pedida. */
@@ -132,4 +178,4 @@ function jugadoresPorUnidad(plantel, motor) {
   return out;
 }
 
-module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };
+module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, PARTIDO_EMPATE_ENCAJE, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };

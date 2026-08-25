@@ -2052,6 +2052,91 @@
     return out;
   }
 
+  /* TODAS las asignaciones de posición que empatan en el MEJOR encaje posible, y no una cualquiera
+     entre ellas como devuelve `asignarPosicionesOptimo`.
+
+     Por qué hace falta. El encaje se mide con tres valores (principal 0, secundaria 1, descubierta
+     100), así que los empates son la regla y no la excepción: cada vez que sobran titulares de una
+     posición hay que correr a alguno a su secundaria, y CUÁLES se corren empata exacto. Elegir uno
+     de esos escenarios y descartar el resto no es gratis: el escenario decide en qué línea suma
+     cada titular, y con eso el mejor balance por línea que el reparto puede llegar a conseguir.
+     Quedarse con uno solo hacía que la Estrategia 4 optimizara exhaustivamente dentro de un
+     escenario elegido al azar entre varios igual de buenos (medido: en planteles con empate, el
+     armado se quedaba corto en cerca de la mitad de los casos, hasta por 4.5 puntos en una línea).
+
+     Cómo. `asignarPosicionesOptimo` es una programación dinámica hacia adelante que se queda con un
+     predecesor por estado. Acá se calcula el mismo mínimo pero hacia ATRÁS —el costo mínimo de
+     asignar de la unidad `i` en adelante, dado cuántos lugares de cada posición ya se usaron— y con
+     eso una opción es parte de un camino óptimo si y solo si alcanza ese mínimo. Enumerarlos todos
+     es entonces recorrer, en cada paso, las opciones que lo alcanzan.
+
+     No hace falta deduplicar: cada asignación distinta es una PARTICIÓN distinta (qué titular juega
+     en qué línea) y no una permutación de lugares dentro de una línea. El "primer defensor" y el
+     "tercer defensor" no existen como cosas distintas — una línea vale la suma de sus integrantes,
+     así que intercambiar dos titulares de la misma línea no cambia nada y el enumerador ni lo
+     considera. Es lo que mantiene chica la cantidad de escenarios. */
+  function enumerarAsignacionesOptimas(unidades, cupoPorPosicion, tope){
+    const cupo = {};
+    ORDEN_FORMACION.forEach(pos => { cupo[pos] = cupoPorPosicion[pos] || 0; });
+    const totalLugares = ORDEN_FORMACION.reduce((a, pos) => a + cupo[pos], 0);
+    const maxRemanente = Math.max(0, unidades.length - totalLugares);
+    const destinos = [...ORDEN_FORMACION, null]; // null = remanente (juega su posición natural)
+    const n = unidades.length;
+
+    // Las opciones válidas para la unidad `i` dado el cupo ya consumido. Mismas reglas que
+    // `asignarPosicionesOptimo`: no se pasa del cupo de una posición ni del remanente disponible.
+    const opcionesDe = (i, usados) => {
+      const out = [];
+      destinos.forEach(pos => {
+        const idx = ORDEN_FORMACION.indexOf(pos);
+        const nuevos = [...usados];
+        if(idx === -1){
+          if((i + 1) - (nuevos[0] + nuevos[1] + nuevos[2]) > maxRemanente) return;
+        }else{
+          if(nuevos[idx] >= cupo[pos]) return;
+          nuevos[idx]++;
+        }
+        out.push({ pos, usados: nuevos, costo: idx === -1 ? 0 : costoEncaje(unidades[i], pos) });
+      });
+      return out;
+    };
+
+    const memo = new Map();
+    const minimoDesde = (i, usados) => {
+      if(i === n) return 0;
+      const clave = i + '|' + usados.join(',');
+      if(memo.has(clave)) return memo.get(clave);
+      let mejor = Infinity;
+      opcionesDe(i, usados).forEach(o => {
+        const c = o.costo + minimoDesde(i + 1, o.usados);
+        if(c < mejor) mejor = c;
+      });
+      memo.set(clave, mejor);
+      return mejor;
+    };
+
+    const asignaciones = [];
+    let truncada = false;
+    const actual = {};
+    (function rec(i, usados){
+      if(truncada) return;
+      if(i === n){
+        if(asignaciones.length >= tope){ truncada = true; return; }
+        asignaciones.push({ ...actual });
+        return;
+      }
+      const objetivo = minimoDesde(i, usados);
+      opcionesDe(i, usados).forEach(o => {
+        if(truncada) return;
+        if(o.costo + minimoDesde(i + 1, o.usados) !== objetivo) return;
+        actual[unidades[i].id] = o.pos;
+        rec(i + 1, o.usados);
+      });
+    })(0, [0, 0, 0]);
+
+    return { asignaciones, truncada, costoOptimo: minimoDesde(0, [0, 0, 0]) };
+  }
+
   /* ================= BALANCE POR LÍNEA (Estrategia 4 — "Formación fija pareja") =================
 
      El problema que resuelve. La Estrategia 3 mira UN solo número: la diferencia de puntaje entre
@@ -2097,6 +2182,23 @@
   // Si alguna vez se alcanzara, se avisa en el resultado (`enumeracionTruncada`) en vez de
   // devolver en silencio el mejor de una búsqueda parcial haciéndolo pasar por óptimo.
   const MAX_COMBINACIONES_LINEAS = 400000;
+
+  // Tope de escenarios de posiciones empatados en encaje que se prueban (ver
+  // `enumerarAsignacionesOptimas`). Con los planteles reales son unos pocos —los fixtures dan entre
+  // 1 y 6— y en una búsqueda aleatoria sobre planteles donde casi todos tienen secundaria cargada
+  // (el caso más favorable a los empates) el máximo observado fue del orden de 800. El tope está
+  // bien por encima de eso y se paga barato: cada escenario cuesta una enumeración de reparto, y
+  // el peor caso medido de una generación completa quedó en un cuarto de segundo. Si alguna vez se
+  // alcanzara, se avisa igual que con la enumeración de repartos (`enumeracionTruncada`) en vez de
+  // presentar como óptimo el mejor de una búsqueda parcial.
+  const MAX_ASIGNACIONES_ENCAJE = 2000;
+
+  // Presupuesto TOTAL de repartos a evaluar sumando todos los escenarios de posiciones. Es distinto
+  // de `MAX_COMBINACIONES_LINEAS`, que acota UNA enumeración de reparto: acá se acota el producto
+  // escenarios × repartos, que es el trabajo real de la Estrategia 4. Con los planteles reales se
+  // usan unos cientos de los dos millones; el peor caso sintético medido (784 escenarios sobre un
+  // plantel donde casi todos tienen secundaria) gastó ~630.000 y tardó 0,14 s.
+  const MAX_REPARTOS_EVALUADOS = 2000000;
 
   // Todos los subconjuntos de tamaño k de los índices 0..n-1.
   function combinacionesDeIndices(n, k){
@@ -2409,36 +2511,76 @@
         const valor = puntajeEnPosicion(p, posicionAsignada[p.id]);
         if(equipo === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; } else { negro.push(p.id); sumaNegro += valor; }
       });
-      const grupos = [];
-      ORDEN_FORMACION.forEach(pos => {
-        if(buckets[pos].length === 0) return;
-        grupos.push({ opciones: opcionesDeReparto(buckets[pos], () => pos, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], prevTeamOf) });
+      /* La base del reparto: lo que ya está decidido y no depende del escenario de posiciones que
+         se pruebe abajo (el arco y los bloqueados). Se calcula una sola vez. */
+      const sinPuntajeDe = (ids, posDe) => ids.filter(id => !tieneScoreEnPosicion(porId[id], posDe[id])).length;
+      const baseReparto = {
+        cantBlanco: blanco.length, cantNegro: negro.length,
+        sumaBlanco, sumaNegro,
+        lineasBlanco: sumasPorLinea(blanco, posicionAsignada, porId),
+        lineasNegro: sumasPorLinea(negro, posicionAsignada, porId),
+        sinPuntajeBlanco: sinPuntajeDe(blanco, posicionAsignada),
+        sinPuntajeNegro: sinPuntajeDe(negro, posicionAsignada)
+      };
+      const objetivo = objetivoDiferencia(arquerosInfo);
+      const banda = margenTotalPorLinea();
+
+      /* Y acá el punto: se prueba el reparto sobre TODOS los escenarios de posiciones que empatan
+         en el mejor encaje, no sobre uno solo. El Paso 2 devuelve un escenario cualquiera entre los
+         empatados, y cuál devolvió cambia el mejor balance por línea alcanzable: el escenario decide
+         en qué línea suma cada titular. Optimizar exhaustivamente el reparto dentro de un escenario
+         elegido al azar no es optimizar el armado — es optimizar la mitad del problema.
+
+         El encaje conserva su prioridad sobre el balance (FR-019/FR-020): solo entran escenarios que
+         empatan en el ÓPTIMO de encaje, nunca uno que encaje peor a cambio de líneas más parejas. */
+      const escenarios = enumerarAsignacionesOptimas(libres, targetGlobal, MAX_ASIGNACIONES_ENCAJE);
+      if(escenarios.truncada) enumeracionTruncada = true;
+
+      let mejor = null;
+      let presupuesto = MAX_REPARTOS_EVALUADOS; // repartos a evaluar entre TODOS los escenarios
+      escenarios.asignaciones.forEach(asignacionCandidata => {
+        if(presupuesto <= 0){ enumeracionTruncada = true; return; }
+        // Las posiciones de este escenario: los bloqueados y el arco vienen de la base, y cada
+        // titular libre va donde lo manda el escenario (o a su posición natural si es remanente).
+        const posCand = { ...posicionAsignada };
+        const bucketsCand = {};
+        ORDEN_FORMACION.forEach(pos => { bucketsCand[pos] = []; });
+        const pendientesCand = [];
+        libres.forEach(u => {
+          const pos = asignacionCandidata[u.id];
+          if(pos === null){ posCand[u.id] = u.principal; pendientesCand.push(u); return; }
+          posCand[u.id] = pos;
+          bucketsCand[pos].push(u);
+        });
+
+        const grupos = [];
+        ORDEN_FORMACION.forEach(pos => {
+          if(bucketsCand[pos].length === 0) return;
+          grupos.push({ opciones: opcionesDeReparto(bucketsCand[pos], () => pos, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], prevTeamOf) });
+        });
+        // El remanente (más titulares que lugares en la formación) juega su posición natural, pero
+        // entra en la misma decisión: suma en la línea que le toca y en el total como cualquier otro.
+        if(pendientesCand.length > 0){
+          grupos.push({ opciones: opcionesDeReparto(pendientesCand, u => posCand[u.id], pendientesCand.length, pendientesCand.length, prevTeamOf) });
+        }
+
+        const elegido = repartirPorLineasParejo({ grupos, base: baseReparto, cupoDuplas, objetivo, banda, separaSinPuntaje });
+        presupuesto -= elegido.evaluadas;
+        if(elegido.truncada) enumeracionTruncada = true;
+        if(!elegido.costo) return; // ningún reparto respetaba el cupo de duplas en este escenario
+        // A igualdad de costo gana el primero, que es lo que mantiene el resultado reproducible.
+        if(mejor === null || mejorCostoLex(elegido.costo, mejor.costo)){
+          mejor = { costo: elegido.costo, opciones: elegido.opciones, posCand };
+        }
       });
-      // El remanente (más titulares que lugares en la formación) juega su posición natural, pero
-      // entra en la misma decisión: suma en la línea que le toca y en el total como cualquier otro.
-      if(pendientes.length > 0){
-        grupos.push({ opciones: opcionesDeReparto(pendientes, u => posicionAsignada[u.id], pendientes.length, pendientes.length, prevTeamOf) });
+
+      if(mejor){
+        Object.assign(posicionAsignada, mejor.posCand);
+        (mejor.opciones || []).forEach(o => {
+          o.blanco.forEach(id => { blanco.push(id); sumaBlanco += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
+          o.negro.forEach(id => { negro.push(id); sumaNegro += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
+        });
       }
-      const sinPuntajeDe = ids => ids.filter(id => !tieneScoreEnPosicion(porId[id], posicionAsignada[id])).length;
-      const elegido = repartirPorLineasParejo({
-        grupos,
-        base: {
-          cantBlanco: blanco.length, cantNegro: negro.length,
-          sumaBlanco, sumaNegro,
-          lineasBlanco: sumasPorLinea(blanco, posicionAsignada, porId),
-          lineasNegro: sumasPorLinea(negro, posicionAsignada, porId),
-          sinPuntajeBlanco: sinPuntajeDe(blanco), sinPuntajeNegro: sinPuntajeDe(negro)
-        },
-        cupoDuplas,
-        objetivo: objetivoDiferencia(arquerosInfo),
-        banda: margenTotalPorLinea(),
-        separaSinPuntaje
-      });
-      enumeracionTruncada = elegido.truncada;
-      (elegido.opciones || []).forEach(o => {
-        o.blanco.forEach(id => { blanco.push(id); sumaBlanco += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
-        o.negro.forEach(id => { negro.push(id); sumaNegro += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
-      });
       pendientes = [];
     }else{
     ORDEN_FORMACION.forEach(pos => {
@@ -2574,7 +2716,9 @@
        línea en vez de contra el desvío del total. No es redundante con la enumeración: el repaso
        de posiciones del Paso 4b puede haber movido a alguien de línea DESPUÉS de que se eligiera
        el reparto, y con titulares bloqueados la enumeración arranca con parte del armado fija.
-       Acá se termina de acomodar lo que quedó, sin sacar a nadie de su equipo ni de su puesto. */
+       Acá se termina de acomodar lo que quedó, sin sacar a nadie de su equipo ni de su puesto.
+       Lo que este paso ya NO resuelve son los empates de encaje: de eso se ocupa el Paso 3/4
+       probando el reparto sobre todos los escenarios empatados (ver el bloque de más abajo). */
     if(balancePorLinea){
       const objetivo = objetivoDiferencia(arquerosInfo);
       const banda = margenTotalPorLinea();
@@ -2605,12 +2749,20 @@
 
       /* Intercambio de POSICIÓN entre dos unidades del MISMO equipo. Nadie cambia de equipo ni de
          formación (el puesto de cada uno se lo queda el otro), así que la única cosa que cambia es
-         de qué línea suma cada uno. Es la pieza que le faltaba al refinamiento: cuando dos formas
-         de repartir las posiciones empatan en encaje — por ejemplo, para el sexto lugar de defensa
-         da lo mismo un volante con Defensor como secundaria o una dupla que solo cubre el puesto
-         con uno de sus dos integrantes — el Paso 2 elige una cualquiera, y cuál eligió cambiaba
-         el mejor armado alcanzable. Acá se corrige mirando el balance, que es lo que el Paso 2 no
-         puede saber todavía porque los equipos no están definidos.
+         de qué línea suma cada uno.
+
+         OJO con lo que este paso ya NO es. Antes era el único lugar donde se aprovechaban los
+         empates de encaje: el Paso 2 elegía un escenario de posiciones cualquiera entre los
+         empatados y acá se intentaba arreglar a posteriori, con un hill-climbing de a un
+         intercambio. Eso dejaba armados mejorables (medido: cerca de la mitad de los planteles con
+         empate, hasta 4.5 puntos en una línea), porque un intercambio que solo mejora en combinación
+         con otro nunca se aplicaba. Los empates ahora los resuelve el Paso 3/4, que prueba el
+         reparto sobre TODOS los escenarios empatados.
+
+         Lo que sigue haciendo, y por lo que no es redundante: el repaso de posiciones del Paso 4b
+         puede mover a alguien de línea DESPUÉS de que se eligió el reparto, y con titulares
+         bloqueados la enumeración arranca con parte del armado fija. Acá se acomoda lo que quedó.
+         Como solo aplica intercambios que mejoran el costo, no puede empeorar el armado.
 
          Condición dura: el encaje no puede empeorar y no puede aparecer un puesto descubierto que
          antes no existía. El encaje tiene prioridad sobre el balance (FR-020) y este paso no está
