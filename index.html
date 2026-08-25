@@ -982,22 +982,62 @@
   }
 
   /* ================= PERSISTENCIA ================= */
-  async function loadAll(){
-    /* Las lecturas se piden TODAS JUNTAS: antes eran hasta 7 round-trips secuenciales a Firestore
-       (players, partidos, motorConfig, playerScores, partidosArmado y los dos flags de migracion),
-       lo que dejaba la app visible pero vacia varios segundos. Se paralelizan solo los pedidos; el
-       orden en que se aplican abajo no cambia, porque el merge de puntaje/armado depende de que
-       `players`/`matches` ya esten normalizados.
-       Una cuenta "jugador" solo pide los dos documentos publicos: el resto son exclusivos de admin
-       (FR-004/FR-012/FR-014) y las reglas de Firestore los rechazarian igual. */
+  // Documentos que solo "admin" puede leer (FR-004/FR-012/FR-014). Una cuenta "jugador" nunca los
+  // pide: las reglas de Firestore los rechazarian igual, esto evita el pedido de red inutil.
+  const DOCS_SOLO_ADMIN = ['motorConfig','playerScores','partidosArmado',
+                           'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado'];
+
+  /* Arranca las lecturas SIN esperar a que se sepa el rol, para que viajen en paralelo con la
+     lectura de `userRoles` que hace resolveSession(). Antes eran dos fases en serie —– primero el
+     rol, despues los datos —– y eso era todo el hueco entre que aparece la app y aparecen los
+     jugadores (medido: ~1.4s, igual para admin que para jugador, porque el costo son los dos
+     round-trips, no la cantidad de documentos).
+     `players` y `partidos` son publicos para cualquier cuenta autenticada, asi que se piden siempre.
+     Los de admin se piden aca solo si la pista cacheada dice que esta cuenta es admin; es una
+     optimizacion, NO una decision de permisos: quien autoriza es Firestore, y quien habilita la
+     interfaz es siempre window.session (lo que devuelve resolveSession). Si la pista miente, el
+     pedido se rechaza y se descarta; si dice "jugador" y en realidad es admin, loadAll pide los
+     que falten por el camino lento. */
+  function iniciarLecturas(uid){
+    const claves = ['players','partidos'].concat(leerRolHint(uid) === 'admin' ? DOCS_SOLO_ADMIN : []);
+    const pedidos = {};
+    claves.forEach(clave => { pedidos[clave] = pedirDoc(clave); });
+    return pedidos;
+  }
+  function pedirDoc(clave){
+    return window.storage.get(clave, false)
+      .then(res => (res && res.value) || null)
+      .catch(e => { console.error('No se pudo leer ' + clave + ':', e); return null; });
+  }
+
+  /* Pista del rol de la ultima sesion de cada uid, para poder prefetchear los documentos de admin
+     sin esperar a resolveSession(). Deliberadamente NO se usa para habilitar nada en la interfaz:
+     un localStorage manipulado solo lograria disparar pedidos que Firestore rechaza. */
+  const ROL_HINT_KEY = 'organizador-futbol:rolHint';
+  function leerRolHint(uid){
+    try{ return (JSON.parse(localStorage.getItem(ROL_HINT_KEY) || '{}') || {})[uid] || null; }
+    catch(e){ return null; }
+  }
+  function guardarRolHint(uid, rol){
+    try{
+      const mapa = JSON.parse(localStorage.getItem(ROL_HINT_KEY) || '{}') || {};
+      mapa[uid] = rol;
+      localStorage.setItem(ROL_HINT_KEY, JSON.stringify(mapa));
+    }catch(e){ /* sin localStorage se pierde solo la optimizacion */ }
+  }
+
+  async function loadAll(pedidos){
+    /* Las lecturas van todas juntas: antes eran hasta 7 round-trips secuenciales a Firestore. El
+       orden en que se APLICAN abajo no cambia, porque el merge de puntaje/armado depende de que
+       `players`/`matches` ya esten normalizados. */
     const admin = isAdmin();
-    const soloAdmin = ['motorConfig','playerScores','partidosArmado',
-                       'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado'];
-    const claves = ['players','partidos'].concat(admin ? soloAdmin : []);
+    const claves = ['players','partidos'].concat(admin ? DOCS_SOLO_ADMIN : []);
+    pedidos = pedidos || {};
     const crudo = {};
     await Promise.all(claves.map(async (clave) => {
-      try{ const res = await window.storage.get(clave, false); crudo[clave] = (res && res.value) || null; }
-      catch(e){ console.error('No se pudo leer ' + clave + ':', e); crudo[clave] = null; }
+      // Si iniciarLecturas() ya lo pidio, se reusa ese pedido en vuelo en vez de repetirlo.
+      if(!pedidos[clave]) pedidos[clave] = pedirDoc(clave);
+      crudo[clave] = await pedidos[clave];
     }));
     const leerJson = (clave, porDefecto) => {
       if(!crudo[clave]) return porDefecto;
@@ -4471,9 +4511,12 @@
       if(!appLoaded){
         appLoaded = true;
         showLoadingState();
+        // Las dos cosas viajan a la vez: el rol y los datos publicos.
+        const pedidos = iniciarLecturas(user.uid);
         await resolveSession(user.uid);
         document.body.classList.toggle('role-jugador', !isAdmin());
-        await loadAll();
+        guardarRolHint(user.uid, window.session.rol);
+        await loadAll(pedidos);
       }
     }else{
       appRoot.style.display = 'none';
