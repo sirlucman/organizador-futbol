@@ -416,7 +416,7 @@
       <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
 
-    <div class="card-pin-wrap" id="formWrap">
+    <div class="card-pin-wrap admin-only" id="formWrap">
       <div class="index-card">
         <div class="pin"></div>
         <h2 id="formTitle">Ficha de jugador</h2>
@@ -1376,7 +1376,7 @@
             <div class="row-stats">${statsText}</div>
           </div>
           ${isAdmin() ? `
-          <div class="avg-chip">${avg !== null ? avg : '—'}</div>
+          <div class="avg-chip admin-only">${avg !== null ? avg : '—'}</div>
           <button class="switch ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
           <button class="icon-btn" title="Editar" onclick="window.__editPlayer('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
@@ -4408,8 +4408,6 @@
 
   window.auth.onAuthChange(async (user) => {
     if(user){
-      loginScreen.style.display = 'none';
-      appRoot.style.display = '';
       loginError.textContent = '';
       el('loginUsuario').value = '';
       el('loginPassword').value = '';
@@ -4417,6 +4415,8 @@
         appLoaded = true;
         await resolveSession(user.uid);
         document.body.classList.toggle('role-jugador', !isAdmin());
+        loginScreen.style.display = 'none';
+        appRoot.style.display = '';
         await loadAll();
       }
     }else{
