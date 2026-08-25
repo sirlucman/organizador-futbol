@@ -353,7 +353,10 @@
   .toast.toast--error{ background: var(--brick); }
 </style>
 </head>
-<body>
+<!-- Arranca con el rol más restringido (007-permisos-por-usuario): la clase se saca recién cuando
+     resolveSession() confirma que la cuenta es "admin". Así nada exclusivo de admin puede alcanzar
+     a pintarse antes de que se sepa el rol. -->
+<body class="role-jugador">
 
 <div class="login-screen" id="loginScreen" style="display:none;">
   <div class="login-card">
@@ -416,7 +419,7 @@
       <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
 
-    <div class="card-pin-wrap" id="formWrap">
+    <div class="card-pin-wrap admin-only" id="formWrap">
       <div class="index-card">
         <div class="pin"></div>
         <h2 id="formTitle">Ficha de jugador</h2>
@@ -979,18 +982,73 @@
   }
 
   /* ================= PERSISTENCIA ================= */
-  async function loadAll(){
-    try{ const res = await window.storage.get('players', false); players = res && res.value ? JSON.parse(res.value) : []; }
-    catch(e){ players = []; }
-    try{ const res2 = await window.storage.get('partidos', false); matches = res2 && res2.value ? JSON.parse(res2.value) : []; }
-    catch(e){ matches = []; }
-    if(isAdmin()){
-      try{ const res3 = await window.storage.get('motorConfig', false); motorConfig = normalizeMotorConfig(res3 && res3.value ? JSON.parse(res3.value) : null); }
-      catch(e){ motorConfig = defaultMotorConfig(); }
-    }else{
-      // "jugador" no puede ver la configuración del motor (FR-012); ni se solicita.
-      motorConfig = defaultMotorConfig();
-    }
+  // Documentos que solo "admin" puede leer (FR-004/FR-012/FR-014). Una cuenta "jugador" nunca los
+  // pide: las reglas de Firestore los rechazarian igual, esto evita el pedido de red inutil.
+  const DOCS_SOLO_ADMIN = ['motorConfig','playerScores','partidosArmado',
+                           'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado'];
+
+  /* Arranca las lecturas SIN esperar a que se sepa el rol, para que viajen en paralelo con la
+     lectura de `userRoles` que hace resolveSession(). Antes eran dos fases en serie —– primero el
+     rol, despues los datos —– y eso era todo el hueco entre que aparece la app y aparecen los
+     jugadores (medido: ~1.4s, igual para admin que para jugador, porque el costo son los dos
+     round-trips, no la cantidad de documentos).
+     `players` y `partidos` son publicos para cualquier cuenta autenticada, asi que se piden siempre.
+     Los de admin se piden aca solo si la pista cacheada dice que esta cuenta es admin; es una
+     optimizacion, NO una decision de permisos: quien autoriza es Firestore, y quien habilita la
+     interfaz es siempre window.session (lo que devuelve resolveSession). Si la pista miente, el
+     pedido se rechaza y se descarta; si dice "jugador" y en realidad es admin, loadAll pide los
+     que falten por el camino lento. */
+  function iniciarLecturas(uid){
+    const claves = ['players','partidos'].concat(leerRolHint(uid) === 'admin' ? DOCS_SOLO_ADMIN : []);
+    const pedidos = {};
+    claves.forEach(clave => { pedidos[clave] = pedirDoc(clave); });
+    return pedidos;
+  }
+  function pedirDoc(clave){
+    return window.storage.get(clave, false)
+      .then(res => (res && res.value) || null)
+      .catch(e => { console.error('No se pudo leer ' + clave + ':', e); return null; });
+  }
+
+  /* Pista del rol de la ultima sesion de cada uid, para poder prefetchear los documentos de admin
+     sin esperar a resolveSession(). Deliberadamente NO se usa para habilitar nada en la interfaz:
+     un localStorage manipulado solo lograria disparar pedidos que Firestore rechaza. */
+  const ROL_HINT_KEY = 'organizador-futbol:rolHint';
+  function leerRolHint(uid){
+    try{ return (JSON.parse(localStorage.getItem(ROL_HINT_KEY) || '{}') || {})[uid] || null; }
+    catch(e){ return null; }
+  }
+  function guardarRolHint(uid, rol){
+    try{
+      const mapa = JSON.parse(localStorage.getItem(ROL_HINT_KEY) || '{}') || {};
+      mapa[uid] = rol;
+      localStorage.setItem(ROL_HINT_KEY, JSON.stringify(mapa));
+    }catch(e){ /* sin localStorage se pierde solo la optimizacion */ }
+  }
+
+  async function loadAll(pedidos){
+    /* Las lecturas van todas juntas: antes eran hasta 7 round-trips secuenciales a Firestore. El
+       orden en que se APLICAN abajo no cambia, porque el merge de puntaje/armado depende de que
+       `players`/`matches` ya esten normalizados. */
+    const admin = isAdmin();
+    const claves = ['players','partidos'].concat(admin ? DOCS_SOLO_ADMIN : []);
+    pedidos = pedidos || {};
+    const crudo = {};
+    await Promise.all(claves.map(async (clave) => {
+      // Si iniciarLecturas() ya lo pidio, se reusa ese pedido en vuelo en vez de repetirlo.
+      if(!pedidos[clave]) pedidos[clave] = pedirDoc(clave);
+      crudo[clave] = await pedidos[clave];
+    }));
+    const leerJson = (clave, porDefecto) => {
+      if(!crudo[clave]) return porDefecto;
+      try{ return JSON.parse(crudo[clave]); }
+      catch(e){ console.error('JSON invalido en ' + clave + ':', e); return porDefecto; }
+    };
+
+    players = leerJson('players', []);
+    matches = leerJson('partidos', []);
+    motorConfig = admin ? normalizeMotorConfig(leerJson('motorConfig', null)) : defaultMotorConfig();
+
     // Puntaje ("scores") por jugador nunca falta en memoria (aunque esté vacío), para que
     // computeAvg/puntajeEnPosicion sigan funcionando igual para "jugador" (que no lo carga —
     // ver más abajo) que para un jugador real sin ningún puntaje cargado (FR-013).
@@ -1002,40 +1060,37 @@
 
     // El puntaje por jugador y los datos internos de armado de equipos (estrategia, sumas,
     // swaps, etc.) viven en documentos aparte, legibles solo por "admin" — ver data-model.md
-    // y research.md de 007-permisos-por-usuario. Si la cuenta es "jugador" ni se solicitan: las
-    // reglas de Firestore los rechazarían igual, esto solo evita el pedido de red innecesario.
-    if(isAdmin()){
-      try{
-        const resScores = await window.storage.get('playerScores', false);
-        const scoresById = resScores && resScores.value ? JSON.parse(resScores.value) : {};
-        players.forEach(p => { if(scoresById[p.id]) p.scores = scoresById[p.id]; });
-      }catch(e){ console.error(e); }
-      try{
-        const resArmado = await window.storage.get('partidosArmado', false);
-        const armadoById = resArmado && resArmado.value ? JSON.parse(resArmado.value) : {};
-        matches.forEach(m => {
-          const armado = armadoById[m.id];
-          if(!armado) return;
-          if(m.equipos) Object.assign(m.equipos, armado.equipos || {});
-          m.bloqueados = armado.bloqueados || [];
-        });
-      }catch(e){ console.error(e); }
+    // y research.md de 007-permisos-por-usuario.
+    if(admin){
+      const scoresById = leerJson('playerScores', {});
+      players.forEach(p => { if(scoresById[p.id]) p.scores = scoresById[p.id]; });
+      const armadoById = leerJson('partidosArmado', {});
+      matches.forEach(m => {
+        const armado = armadoById[m.id];
+        if(!armado) return;
+        if(m.equipos) Object.assign(m.equipos, armado.equipos || {});
+        m.bloqueados = armado.bloqueados || [];
+      });
     }
+
+    // Se pinta con lo que ya se tiene, antes de las migraciones: son escrituras que no cambian
+    // lo que se ve en el 99% de los arranques, y esperarlas volvia a dejar la pantalla vacia.
+    renderPlayersTab();
+    renderMatchesTab();
+    renderMotorTab();
+
+    if(!admin) return;
 
     // Migración única: los partidos finalizados antes de agregar ganados/empatados/perdidos no los tienen
     // acumulados. Se recalculan una sola vez a partir del historial guardado; de ahí en más el flujo normal
     // es que __finalizarPartido los sume incrementalmente al finalizar cada partido (FR-009/FR-010).
-    // Solo "admin" necesita chequear/correr esta migración; "jugador" ni la pide (las reglas de
-    // Firestore restringen este documento a admin, ver contracts/firestore-rules.md).
-    if(isAdmin()){
-      let migrado = false;
-      try{ const resM = await window.storage.get('statsGanadosEmpatadosPerdidosMigrado', false); migrado = !!(resM && resM.value); }
-      catch(e){ migrado = false; }
-      if(!migrado){
-        recomputeAllPlayerStatsFromMatches();
-        await savePlayers();
-        try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
-      }
+    // Solo "admin" la corre; "jugador" ni pide el flag (las reglas de Firestore lo restringen a admin).
+    let recalculado = false;
+    if(!crudo['statsGanadosEmpatadosPerdidosMigrado']){
+      recomputeAllPlayerStatsFromMatches();
+      await savePlayers();
+      try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
+      recalculado = true;
     }
 
     // Migración única (007-permisos-por-usuario): separa puntaje y armado interno en sus propios
@@ -1044,20 +1099,17 @@
     // `partidos`; savePlayers()/saveMatches() ya escriben en el formato separado, así que alcanza
     // con volver a guardar una vez. Solo la corre "admin": es quien tiene el puntaje/armado en
     // memoria para poder separarlo (una cuenta "jugador" nunca los llega a cargar).
-    if(isAdmin()){
-      let puntajeArmadoSeparado = false;
-      try{ const resSep = await window.storage.get('puntajeArmadoSeparadoMigrado', false); puntajeArmadoSeparado = !!(resSep && resSep.value); }
-      catch(e){ puntajeArmadoSeparado = false; }
-      if(!puntajeArmadoSeparado){
-        await savePlayers();
-        await saveMatches();
-        try{ await window.storage.set('puntajeArmadoSeparadoMigrado', 'true', false); }catch(e){ console.error(e); }
-      }
+    if(!crudo['puntajeArmadoSeparadoMigrado']){
+      await savePlayers();
+      await saveMatches();
+      try{ await window.storage.set('puntajeArmadoSeparadoMigrado', 'true', false); }catch(e){ console.error(e); }
     }
 
-    renderPlayersTab();
-    renderMatchesTab();
-    renderMotorTab();
+    // Solo si una migración cambió datos en memoria hay algo nuevo que mostrar.
+    if(recalculado){
+      renderPlayersTab();
+      renderMatchesTab();
+    }
   }
 
   // Recalcula partidos jugados/ganados/empatados/perdidos/goles/asistencias de todos los jugadores
@@ -1350,7 +1402,7 @@
         <div class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
           <p>Aún no hay jugadores en el plantel.</p>
-          ${isAdmin() ? `<button class="btn-primary" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
+          ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
         </div>`;
       return;
     }
@@ -1376,12 +1428,12 @@
             <div class="row-stats">${statsText}</div>
           </div>
           ${isAdmin() ? `
-          <div class="avg-chip">${avg !== null ? avg : '—'}</div>
-          <button class="switch ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
-          <button class="icon-btn" title="Editar" onclick="window.__editPlayer('${p.id}')">
+          <div class="avg-chip admin-only">${avg !== null ? avg : '—'}</div>
+          <button class="switch admin-only ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
+          <button class="icon-btn admin-only" title="Editar" onclick="window.__editPlayer('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </button>
-          <button class="icon-btn" title="Eliminar permanentemente" onclick="window.__deletePlayer('${p.id}')">
+          <button class="icon-btn admin-only" title="Eliminar permanentemente" onclick="window.__deletePlayer('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>` : ''}
         </div>`;
@@ -3302,7 +3354,7 @@
       const titulo = tieneNota
         ? `Puntaje de ${fullName(p)} en ${posAsignada}`
         : `${fullName(p)} no tiene puntaje cargado en ${posAsignada}: aporta su promedio general`;
-      const notaHtml = isAdmin() ? `<span class="team-nota-pos" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
+      const notaHtml = isAdmin() ? `<span class="team-nota-pos admin-only" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
       return `
         <div class="team-dupla-member">
           <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}${notaHtml}</span>
@@ -3446,7 +3498,7 @@
 
     // Elegir/ver la estrategia de armado es exclusivo de "admin" (FR-005, FR-008).
     const selectorEstrategia = isAdmin() ? `
-      <div class="field" style="max-width:340px; margin-bottom:12px;">
+      <div class="field admin-only" style="max-width:340px; margin-bottom:12px;">
         <label>Estrategia
           <span class="info-icon" tabindex="0" onclick="this.classList.toggle('show-tip')" onblur="this.classList.remove('show-tip')">?
             <span class="info-tip">${ESTRATEGIAS[estrategiaActual].descripcion}</span>
@@ -3824,7 +3876,7 @@
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="status-chip ${statusChipClass(m.estado)}">${m.estado}</span>
-              ${isAdmin() ? `<button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
+              ${isAdmin() ? `<button class="icon-btn admin-only" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>` : ''}
             </div>
@@ -4387,6 +4439,45 @@
   const loginError = el('loginError');
   let appLoaded = false; // evita volver a cargar los datos si onAuthChange dispara más de una vez
 
+  /* Borra todo lo que quedó renderizado y en memoria de la sesión anterior (007-permisos-por-usuario,
+     FR-004/FR-003). Sin esto, el DOM que dejó una sesión "admin" — puntajes, toggles de estado,
+     botones de editar/eliminar, diferencias de puntaje, estrategia — sigue en pantalla cuando entra
+     una cuenta "jugador", visible hasta que loadAll() lo reemplaza. La clase `role-jugador` tapa lo
+     que lleva `admin-only`, pero la restricción no puede depender de que cada elemento futuro se
+     acuerde de esa clase: el dato de la sesión anterior no debe sobrevivir al logout. */
+  function clearRenderedState(){
+    players = [];
+    matches = [];
+    motorConfig = defaultMotorConfig();
+    currentMatchId = null;
+    resultadoDraft = null;
+    editandoResultadoFinalizado = null;
+    ['stats','roster','matchList','convocadosList','convSummary','teamsSection',
+     'estrategiaCards','rulesList','rulesHint'].forEach(id => {
+      const node = el(id);
+      if(node) node.innerHTML = '';
+    });
+    closeForm();
+    // La solapa activa tambien sobrevive al logout: si el admin quedo en Configuracion, una cuenta
+    // "jugador" entraria viendo ese panel aunque su boton este oculto (FR-012). Se vuelve a Jugadores.
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    const tabJugadores = document.querySelector('.tab-btn[data-tab="jugadores"]');
+    if(tabJugadores) tabJugadores.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(pn => pn.classList.remove('active'));
+    const panelJ = el('panelJugadores');
+    if(panelJ) panelJ.classList.add('active');
+    const foot = el('footPartidos');
+    if(foot) foot.style.display = '';
+  }
+
+  /* Placeholder mientras loadAll() trae los datos (varias lecturas a Firestore). Sin esto la app
+     aparece completamente vacia por ~1.5s y parece colgada. No muestra ningun dato, asi que es
+     seguro pintarlo antes de conocer el rol. */
+  function showLoadingState(){
+    const roster = el('roster');
+    if(roster) roster.innerHTML = '<div class="empty-state"><p>Cargando el plantel...</p></div>';
+  }
+
   async function attemptLogin(){
     const usuario = el('loginUsuario').value;
     const password = el('loginPassword').value;
@@ -4408,22 +4499,33 @@
 
   window.auth.onAuthChange(async (user) => {
     if(user){
-      loginScreen.style.display = 'none';
-      appRoot.style.display = '';
       loginError.textContent = '';
       el('loginUsuario').value = '';
       el('loginPassword').value = '';
+      // La app se muestra ya, sin esperar el rol: el shell vacio no filtra nada porque `body`
+      // arranca en `role-jugador` (fail-closed) y los contenedores estan vacios — en la carga
+      // inicial nunca se renderizaron, y en un cambio de cuenta los vacio clearRenderedState().
+      // Esperar aca a resolveSession() dejaba la pantalla de login congelada ~2s.
+      loginScreen.style.display = 'none';
+      appRoot.style.display = '';
       if(!appLoaded){
         appLoaded = true;
+        showLoadingState();
+        // Las dos cosas viajan a la vez: el rol y los datos publicos.
+        const pedidos = iniciarLecturas(user.uid);
         await resolveSession(user.uid);
         document.body.classList.toggle('role-jugador', !isAdmin());
-        await loadAll();
+        guardarRolHint(user.uid, window.session.rol);
+        await loadAll(pedidos);
       }
     }else{
       appRoot.style.display = 'none';
       loginScreen.style.display = 'flex';
       appLoaded = false; // permite recalcular el rol si se loguea otra cuenta distinta después
-      document.body.classList.remove('role-jugador');
+      // Fail-closed: hasta que la próxima sesión resuelva su rol, se asume el más restringido.
+      document.body.classList.add('role-jugador');
+      window.session = { rol: 'jugador', jugadorId: null };
+      clearRenderedState();
     }
   });
 })();
