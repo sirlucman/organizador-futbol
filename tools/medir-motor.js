@@ -340,7 +340,7 @@ function perf() {
   });
   // El peor caso no está en los fixtures: es un plantel donde casi todos tienen secundaria, que es
   // lo que maximiza la cantidad de escenarios empatados y por lo tanto el trabajo del reparto.
-  let peor = { ms: 0, semilla: null, escenarios: 0, truncada: false };
+  let peor = { ms: 0, semilla: null, truncada: false };
   for (let s = 1; s <= 300; s++) {
     const plantel = plantelAlAzar(s, { cancha: O.cancha, mezcla: 0.95 });
     const unidades = F.unidadesDe(plantel, motor);

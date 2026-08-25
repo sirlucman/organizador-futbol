@@ -55,4 +55,5 @@ Flujo de trabajo para un desarrollo nuevo:
 1. Crear una rama a partir de `main`.
 2. (Opcional) Traer datos reales frescos a staging abriendo [`tools/sync-staging-data.html`](tools/sync-staging-data.html) y apretando el botón — copia `players`, `partidos` y `motorConfig` desde producción a staging. Solo lee de producción, nunca escribe ahí.
 3. Probar la rama abriendo `index.html` localmente (usa staging).
-4. Cuando funciona bien, mergear a `main` — se publica en GitHub Pages contra la base real, sin haberla tocado durante las pruebas.
+4. Si el cambio toca el motor de generación de equipos, correr `node tests/motor.test.js` (sin dependencias, devuelve 1 solo si hay una regresión). Ver [`tests/README.md`](tests/README.md), que además documenta [`tools/medir-motor.js`](tools/medir-motor.js) para medir cuánto cuesta un problema y comparar el motor contra el de un commit anterior.
+5. Cuando funciona bien, mergear a `main` — se publica en GitHub Pages contra la base real, sin haberla tocado durante las pruebas.
