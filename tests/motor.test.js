@@ -840,7 +840,7 @@ test('E4: el reparto elegido es el óptimo (fuerza bruta independiente)', () => 
    de la lógica del motor. Limitación conocida: por eso mismo, si hubiera remanente (más titulares
    que lugares en la formación) el espacio enumerado es el de los cupos que el motor terminó
    usando, no el de todos los cupos posibles. */
-function optimoConjunto(a) {
+function optimoConjunto(a, pin = {}) {
   const { motor, res, unidadesPorId: porId } = a;
   const r4 = x => Math.round(x * 10000) / 10000;
   const objetivo = motor.objetivoDiferencia(res.arquerosInfo);
@@ -936,13 +936,16 @@ function optimoConjunto(a) {
       }
       opciones[k].forEach(indices => {
         const enBlanco = new Set(indices);
-        let b = dB, n = dN;
+        let b = dB, n = dN, respetaBloqueos = true;
         porPos[k].forEach((id, i) => {
           const e = enBlanco.has(i) ? 'blanco' : 'negro';
+          // Un bloqueado no puede cambiar de equipo (FR-015), así que los repartos que lo mueven
+          // no son armados posibles y no entran en la comparación.
+          if (pin[id] && pin[id] !== e) respetaBloqueos = false;
           equipoDe[id] = e;
           if (esDupla(id)) { if (e === 'blanco') b++; else n++; }
         });
-        if (b <= duplas.blanco && n <= duplas.negro) rec(k + 1, equipoDe, b, n);
+        if (respetaBloqueos && b <= duplas.blanco && n <= duplas.negro) rec(k + 1, equipoDe, b, n);
       });
     })(0, {}, 0, 0);
   });
@@ -971,6 +974,7 @@ test('E4: el armado es el óptimo del espacio conjunto (posiciones × reparto)',
     ['partido testigo', F.PARTIDO_TESTIGO, { params: { diferenciaMaxima: 1 } }],
     ['4 duplas', F.plantelConDuplas({ duplas: 4, arqueros: 2 }), { params: { diferenciaMaxima: 1 } }],
     ['empate de encaje', F.PARTIDO_EMPATE_ENCAJE, { params: { diferenciaMaxima: 1 } }],
+    ['cancha de 9 con empate', F.PARTIDO_CANCHA9_EMPATE, { params: { diferenciaMaxima: 1 } }],
   ];
   casos.forEach(([nombre, plantel, config]) => {
     const a = armar(plantel, config, { estrategia: 4 });
@@ -984,13 +988,85 @@ test('E4: el armado es el óptimo del espacio conjunto (posiciones × reparto)',
   });
 });
 
-/* Sin este caso el test de arriba no probaría el desempate: si cada plantel tiene una sola
+/* Sin estos casos el test de arriba no probaría el desempate: si cada plantel tiene una sola
    partición óptima de encaje, no hay empate que desaprovechar y pasaría igual estando roto. */
-test('E4: el fixture del desempate tiene varias particiones empatadas en encaje', () => {
-  const a = armar(F.PARTIDO_EMPATE_ENCAJE, { params: { diferenciaMaxima: 1 } }, { estrategia: 4 });
-  const v = optimoConjunto(a);
-  ok(v.cantParticiones > 1,
-    `el fixture quedó con ${v.cantParticiones} partición(es) óptima(s): ya no ejercita el desempate`);
+test('E4: los fixtures del desempate tienen varias particiones empatadas en encaje', () => {
+  [['cancha de 8', F.PARTIDO_EMPATE_ENCAJE], ['cancha de 9', F.PARTIDO_CANCHA9_EMPATE]].forEach(([nombre, plantel]) => {
+    const v = optimoConjunto(armar(plantel, { params: { diferenciaMaxima: 1 } }, { estrategia: 4 }));
+    ok(v.cantParticiones > 1,
+      `el fixture de ${nombre} quedó con ${v.cantParticiones} partición(es) óptima(s): ya no ejercita el desempate`);
+  });
+});
+
+/* La formación 3-4-1 no estaba cubierta por ningún test: todos los demás planteles son de cancha
+   de 8. Lo que cambia no es solo el tamaño — el mediocampo pasa a 4 lugares por equipo y la
+   enumeración del reparto crece de 800 combinaciones a 2.800. */
+test('E4: en cancha de 9 se cumple la formación 3-4-1 y nadie queda en un puesto que no cubre', () => {
+  paraTodoOrden(F.PARTIDO_CANCHA9_EMPATE, { params: { diferenciaMaxima: 1 } }, a => {
+    ok(a.res.formacion.blanco.cumplida && a.res.formacion.negro.cumplida,
+      `formación incompleta: blanco ${JSON.stringify(a.res.formacion.blanco.faltantes)}, negro ${JSON.stringify(a.res.formacion.negro.faltantes)}`);
+    eq(a.res.blanco.length, a.res.negro.length, 'equipos con distinta cantidad de unidades');
+    a.unidades.forEach(u => {
+      ok(a.encajeDe(u.id) !== 'descubierta', `${u.id} quedó en ${a.res.posicionAsignada[u.id]}, que no cubre`);
+    });
+    ok(!a.res.enumeracionTruncada, 'la enumeración se truncó: el armado puede no ser el óptimo');
+  }, { estrategia: 4 });
+});
+
+/* Regresión concreta del desempate en cancha de 9 (FR-028). El motor anterior al arreglo dejaba el
+   ataque desparejo por 5 en este plantel (suma de cuadrados 28.25); el óptimo del espacio conjunto
+   es 0.25. Si el desempate se rompiera, este número se dispara y el test lo dice en puntos, que es
+   más legible que un "no era el óptimo". */
+test('E4: en cancha de 9 el desempate deja las líneas parejas (regresión, antes 28.25)', () => {
+  const a = armar(F.PARTIDO_CANCHA9_EMPATE, { params: { diferenciaMaxima: 1 } }, { estrategia: 4 });
+  // Sin `a.costoLineas()`, que redondea a un decimal y convierte el 0.25 de este plantel en 0.3.
+  const costo = a.motor.ORDEN_FORMACION.reduce((acc, pos) => {
+    const d = a.res.balanceLineas[pos].diferencia;
+    return acc + d * d;
+  }, 0);
+  ok(costo <= 0.25 + 1e-9,
+    `el costo de líneas fue ${costo} y el óptimo de este plantel es 0.25 ` +
+    `(el motor previo al arreglo daba 28.25)`);
+});
+
+/* El caso que la verificación de arriba no cubría: con titulares BLOQUEADOS el armado arranca
+   parcialmente fijo, así que la enumeración del reparto no lo decide todo y el refinamiento final
+   (FR-027) tiene trabajo. Era la zona de la que no había garantía medida — de hecho el refinamiento
+   existe justamente por ella. Se verifica que ahí también se llega al óptimo, sobre el mismo espacio
+   conjunto pero restringido a los repartos que no mueven de equipo a ningún bloqueado.
+
+   El bloqueo fija el EQUIPO y no la posición ("Bloquear en este equipo"), así que el espacio
+   enumerado deja libre el puesto de los bloqueados, igual que hace el motor. */
+test('E4: con titulares bloqueados el armado sigue siendo el óptimo del espacio conjunto', () => {
+  const config = { params: { diferenciaMaxima: 1 } };
+  [['cancha de 8', F.PARTIDO_EMPATE_ENCAJE], ['cancha de 9', F.PARTIDO_CANCHA9_EMPATE]].forEach(([cancha, plantel]) => {
+    [2, 4].forEach(porEquipo => {
+      const etiqueta = `${cancha}, ${porEquipo * 2} bloqueados`;
+      const previo = armar(plantel, config, { estrategia: 4 });
+      const prevTeamOf = {};
+      previo.res.blanco.forEach(id => { prevTeamOf[id] = 'blanco'; });
+      previo.res.negro.forEach(id => { prevTeamOf[id] = 'negro'; });
+      const bloqueados = [...previo.res.blanco.slice(0, porEquipo), ...previo.res.negro.slice(0, porEquipo)];
+      const a = armar(plantel, config, {
+        estrategia: 4, bloqueados, prevTeamOf, prevPosicionAsignada: previo.res.posicionAsignada,
+      });
+      bloqueados.forEach(id => {
+        const quedaEn = a.res.blanco.includes(id) ? 'blanco' : 'negro';
+        eq(quedaEn, prevTeamOf[id], `en "${etiqueta}" el bloqueado ${id} cambió de equipo`);
+      });
+      const pin = {};
+      bloqueados.forEach(id => {
+        if (a.res.posicionAsignada[id] !== 'Arquero') pin[id] = prevTeamOf[id];
+      });
+      const v = { ...optimoConjunto(a, pin), res: a.res };
+      eq(v.encajeMotor, v.encajeOptimo, `en "${etiqueta}" el motor no alcanzó el mejor encaje posible`);
+      ok(!a.motor.mejorCostoLex(v.mejorCosto, v.costoMotor),
+        `en "${etiqueta}" hay un armado mejor con el MISMO encaje (${v.cantParticiones} particiones, ${v.repartos} repartos):\n` +
+        `      motor  = ${JSON.stringify(v.costoMotor)}\n` +
+        `      óptimo = ${JSON.stringify(v.mejorCosto)}\n` +
+        `        unidad     motor                óptimo\n${comparativa(v)}`);
+    });
+  });
 });
 
 test('E4: la Estrategia 3 sigue devolviendo el balance por línea, sin optimizarlo', () => {

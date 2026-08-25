@@ -2162,8 +2162,10 @@
         todos los armados posibles, así que sumarla no cambiaría qué armado gana.
 
      2) Enumeración exacta en vez de búsqueda incremental. Con las posiciones ya resueltas, el
-        reparto es "de cada línea, cuáles de sus unidades van a Blanco": 400 combinaciones en
-        Fútbol 8 (3-3-1) y ~2.800 en Fútbol 9 (3-4-1). Se prueban todas. Hace falta porque los
+        reparto es "de cada línea, cuáles de sus unidades van a Blanco": 800 combinaciones en
+        Fútbol 8 (3-3-1) y 2.800 en Fútbol 9 (3-4-1) — C(6,3)·C(6,3)·C(2,1) y C(6,3)·C(8,4)·C(2,1)
+        respectivamente. Se prueban todas, y una vez por cada escenario de posiciones empatado en
+        encaje (ver `enumerarAsignacionesOptimas`). Hace falta porque los
         buenos armados salen de movimientos COMBINADOS: en el caso testigo, pasar al delantero
         fuerte al otro equipo empeora el total de 0.3 a -7.7 y cualquier búsqueda que pruebe de
         a un intercambio lo descarta en el primer paso — recién sirve junto con el re-reparto de
