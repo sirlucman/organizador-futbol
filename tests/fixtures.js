@@ -99,9 +99,11 @@ const PARTIDO_LINEAS_DESPAREJAS = {
  * Mejor armado del espacio conjunto, con el MISMO encaje: ninguna línea desparejo por más de 1,
  * suma de cuadrados 1.5, total +0.5 (dentro del margen de 1).
  *
- * Los puntajes son sintéticos (búsqueda aleatoria sembrada, semilla 4) y no un partido real: los
- * planteles reales de `PARTIDO_TESTIGO` y `PARTIDO_LINEAS_DESPAREJAS` tienen tan pocas posiciones
- * secundarias cargadas que sus clases de empate son de 1 y 2 escenarios, y el motor acierta.
+ * Los puntajes son sintéticos y no un partido real: los planteles reales de `PARTIDO_TESTIGO` y
+ * `PARTIDO_LINEAS_DESPAREJAS` tienen tan pocas posiciones secundarias cargadas que sus clases de
+ * empate son de 1 y 2 escenarios, y el motor acierta en ellos.
+ *
+ * Se regenera exacto con:  node tools/medir-motor.js volcar 4 --cancha=8 --mezcla=0.85
  */
 const PARTIDO_EMPATE_ENCAJE = {
   cancha: 'futbol8',
@@ -143,7 +145,10 @@ const PARTIDO_EMPATE_ENCAJE = {
  * tiene un solo lugar por equipo: con 10 escenarios de posiciones empatados en encaje, cuál se
  * elija decide quién juega ahí, y el motor anterior se quedaba con el primero que encontraba.
  *
- * Puntajes sintéticos (búsqueda aleatoria sembrada, semilla 147).
+ * Puntajes sintéticos. Se regenera exacto con:
+ *   node tools/medir-motor.js volcar 147 --cancha=9 --mezcla=0.6
+ * Se lo encontró comparando contra el motor previo al arreglo:
+ *   node tools/medir-motor.js comparar <commit> --cancha=9 --n=200 --mezcla=0.6
  */
 const PARTIDO_CANCHA9_EMPATE = {
   cancha: 'futbol9',

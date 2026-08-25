@@ -96,10 +96,21 @@ const DECLARACIONES = [
 /* Construye el motor con una configuración de reglas dada.
    `config` acepta las claves de reglas y sus params, por ejemplo:
      { puntaje: { enabled: true, params: { diferenciaMaxima: 0, ventajaSinArquero: 6 } } }
-   Las reglas que no se pasan quedan activas y sin params, que es el default del catálogo. */
-function cargarMotor(config = {}) {
-  const src = fs.readFileSync(INDEX, 'utf8');
-  const cuerpo = DECLARACIONES.map(n => extraer(src, n)).join('\n\n');
+   Las reglas que no se pasan quedan activas y sin params, que es el default del catálogo.
+
+   `opciones.index` permite cargar el motor de OTRO archivo en vez de `../index.html`. Sirve para
+   comparar el motor actual contra el de un commit anterior (ver tools/medir-motor.js): se vuelca esa
+   versión a un archivo temporal y se la carga desde acá. En ese caso hace falta
+   `opciones.omitirFaltantes`, porque una versión vieja no tiene las declaraciones que se agregaron
+   después y el recorte por nombre fallaría. Para los tests las dos opciones se dejan sin usar: ahí
+   una declaración que falta ES el error que se quiere ver. */
+function cargarMotor(config = {}, opciones = {}) {
+  const archivo = opciones.index || INDEX;
+  const src = fs.readFileSync(archivo, 'utf8');
+  const nombres = opciones.omitirFaltantes
+    ? DECLARACIONES.filter(n => new RegExp(`\\n[ \\t]*(function|const|let)[ \\t]+${n}\\b`).test(src))
+    : DECLARACIONES;
+  const cuerpo = nombres.map(n => extraer(src, n)).join('\n\n');
 
   const prelude = `
     const __config = arguments[0];
@@ -112,12 +123,12 @@ function cargarMotor(config = {}) {
       return r && r.params ? r.params[pk] : undefined;
     }
   `;
-  const exports = `return { ${DECLARACIONES.join(', ')} };`;
+  const exports = `return { ${nombres.join(', ')} };`;
 
   try {
     return new Function(`${prelude}\n${cuerpo}\n${exports}`)(config);
   } catch (e) {
-    throw new Error(`El código extraído de index.html no evaluó: ${e.message}`);
+    throw new Error(`El código extraído de ${archivo} no evaluó: ${e.message}`);
   }
 }
 
