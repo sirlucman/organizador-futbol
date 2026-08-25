@@ -353,7 +353,10 @@
   .toast.toast--error{ background: var(--brick); }
 </style>
 </head>
-<body>
+<!-- Arranca con el rol más restringido (007-permisos-por-usuario): la clase se saca recién cuando
+     resolveSession() confirma que la cuenta es "admin". Así nada exclusivo de admin puede alcanzar
+     a pintarse antes de que se sepa el rol. -->
+<body class="role-jugador">
 
 <div class="login-screen" id="loginScreen" style="display:none;">
   <div class="login-card">
@@ -1350,7 +1353,7 @@
         <div class="empty-state">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
           <p>Aún no hay jugadores en el plantel.</p>
-          ${isAdmin() ? `<button class="btn-primary" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
+          ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
         </div>`;
       return;
     }
@@ -1377,11 +1380,11 @@
           </div>
           ${isAdmin() ? `
           <div class="avg-chip admin-only">${avg !== null ? avg : '—'}</div>
-          <button class="switch ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
-          <button class="icon-btn" title="Editar" onclick="window.__editPlayer('${p.id}')">
+          <button class="switch admin-only ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
+          <button class="icon-btn admin-only" title="Editar" onclick="window.__editPlayer('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
           </button>
-          <button class="icon-btn" title="Eliminar permanentemente" onclick="window.__deletePlayer('${p.id}')">
+          <button class="icon-btn admin-only" title="Eliminar permanentemente" onclick="window.__deletePlayer('${p.id}')">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
           </button>` : ''}
         </div>`;
@@ -3302,7 +3305,7 @@
       const titulo = tieneNota
         ? `Puntaje de ${fullName(p)} en ${posAsignada}`
         : `${fullName(p)} no tiene puntaje cargado en ${posAsignada}: aporta su promedio general`;
-      const notaHtml = isAdmin() ? `<span class="team-nota-pos" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
+      const notaHtml = isAdmin() ? `<span class="team-nota-pos admin-only" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
       return `
         <div class="team-dupla-member">
           <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}${notaHtml}</span>
@@ -3446,7 +3449,7 @@
 
     // Elegir/ver la estrategia de armado es exclusivo de "admin" (FR-005, FR-008).
     const selectorEstrategia = isAdmin() ? `
-      <div class="field" style="max-width:340px; margin-bottom:12px;">
+      <div class="field admin-only" style="max-width:340px; margin-bottom:12px;">
         <label>Estrategia
           <span class="info-icon" tabindex="0" onclick="this.classList.toggle('show-tip')" onblur="this.classList.remove('show-tip')">?
             <span class="info-tip">${ESTRATEGIAS[estrategiaActual].descripcion}</span>
@@ -3824,7 +3827,7 @@
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="status-chip ${statusChipClass(m.estado)}">${m.estado}</span>
-              ${isAdmin() ? `<button class="icon-btn" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
+              ${isAdmin() ? `<button class="icon-btn admin-only" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>` : ''}
             </div>
@@ -4387,6 +4390,37 @@
   const loginError = el('loginError');
   let appLoaded = false; // evita volver a cargar los datos si onAuthChange dispara más de una vez
 
+  /* Borra todo lo que quedó renderizado y en memoria de la sesión anterior (007-permisos-por-usuario,
+     FR-004/FR-003). Sin esto, el DOM que dejó una sesión "admin" — puntajes, toggles de estado,
+     botones de editar/eliminar, diferencias de puntaje, estrategia — sigue en pantalla cuando entra
+     una cuenta "jugador", visible hasta que loadAll() lo reemplaza. La clase `role-jugador` tapa lo
+     que lleva `admin-only`, pero la restricción no puede depender de que cada elemento futuro se
+     acuerde de esa clase: el dato de la sesión anterior no debe sobrevivir al logout. */
+  function clearRenderedState(){
+    players = [];
+    matches = [];
+    motorConfig = defaultMotorConfig();
+    currentMatchId = null;
+    resultadoDraft = null;
+    editandoResultadoFinalizado = null;
+    ['stats','roster','matchList','convocadosList','convSummary','teamsSection',
+     'estrategiaCards','rulesList','rulesHint'].forEach(id => {
+      const node = el(id);
+      if(node) node.innerHTML = '';
+    });
+    closeForm();
+    // La solapa activa tambien sobrevive al logout: si el admin quedo en Configuracion, una cuenta
+    // "jugador" entraria viendo ese panel aunque su boton este oculto (FR-012). Se vuelve a Jugadores.
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
+    const tabJugadores = document.querySelector('.tab-btn[data-tab="jugadores"]');
+    if(tabJugadores) tabJugadores.classList.add('active');
+    document.querySelectorAll('.tab-panel').forEach(pn => pn.classList.remove('active'));
+    const panelJ = el('panelJugadores');
+    if(panelJ) panelJ.classList.add('active');
+    const foot = el('footPartidos');
+    if(foot) foot.style.display = '';
+  }
+
   async function attemptLogin(){
     const usuario = el('loginUsuario').value;
     const password = el('loginPassword').value;
@@ -4423,7 +4457,10 @@
       appRoot.style.display = 'none';
       loginScreen.style.display = 'flex';
       appLoaded = false; // permite recalcular el rol si se loguea otra cuenta distinta después
-      document.body.classList.remove('role-jugador');
+      // Fail-closed: hasta que la próxima sesión resuelva su rol, se asume el más restringido.
+      document.body.classList.add('role-jugador');
+      window.session = { rol: 'jugador', jugadorId: null };
+      clearRenderedState();
     }
   });
 })();
