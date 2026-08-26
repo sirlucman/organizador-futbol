@@ -220,7 +220,12 @@
   .teams-section h3{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
   .teams-subtitle{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
   .stale-banner{ background: #f5e3d0; border: 1px solid var(--clay); color: var(--ink); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
-  .teams-wrap{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 8px 0 16px; }
+  /* minmax(0,1fr) y no 1fr: una pista `1fr` es `minmax(auto,1fr)`, cuyo mínimo es el min-content
+     de lo que contiene. Con los inputs de goles/penal/asistencias visibles (carga de resultado),
+     ese min-content son ~426px por panel, así que la pista se negaba a achicarse y estiraba toda
+     la página — 206px de scroll horizontal a 600px de ancho. Con minmax(0,...) la pista sí puede
+     bajar del min-content y el contenido se acomoda dentro (Principio V). */
+  .teams-wrap{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; margin: 8px 0 16px; }
   .team-panel{ border-radius: 10px; padding: 14px 16px; }
   .team-panel.blanco{ background: var(--chalk); border: 1px solid var(--paper-line); }
   .team-panel.negro{ background: var(--ink); color: var(--chalk); }
@@ -258,8 +263,11 @@
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
 
-  @media (max-width: 560px){
-    .teams-wrap{ grid-template-columns: 1fr; }
+  /* 700px y no 560px: entre 561 y 700 las dos columnas dejan ~245px útiles por panel, y la fila
+     del jugador en modo carga de resultado necesita ~282px (badge + puntaje + 3 inputs + labels).
+     Dos columnas ahí no entran, por más que la pista pueda achicarse. */
+  @media (max-width: 700px){
+    .teams-wrap{ grid-template-columns: minmax(0,1fr); }
   }
 
   .modal-overlay{ position: fixed; inset: 0; background: rgba(32,29,26,0.45); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px; }
