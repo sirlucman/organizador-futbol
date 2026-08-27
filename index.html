@@ -197,7 +197,11 @@
   .ac-empty{ padding: 12px; font-size: 13px; color: var(--muted); }
 
   .convocados-list{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; overflow: hidden; }
-  .conv-row{ display:flex; align-items:center; gap:12px; padding: 11px 16px; border-bottom: 1px dashed var(--paper-line); }
+  /* flex-wrap: los .icon-btn de acción llevan flex-shrink:0 y no entraban a 360px — quedaban
+     con el borde derecho en 394px dentro de una fila que terminaba en 343. Y como
+     .convocados-list recorta con overflow:hidden, no producían scroll: quedaban recortados e
+     intocables, sin nada que delatara que estaban ahí (Principio V). */
+  .conv-row{ display:flex; align-items:center; gap:12px; padding: 11px 16px; border-bottom: 1px dashed var(--paper-line); flex-wrap: wrap; }
   .conv-row:last-child{ border-bottom:none; }
   .conv-num{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 22px; text-align:right; flex-shrink:0; }
   .conv-badge-role{ font-family: var(--font-mono); font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px; flex-shrink:0; }
@@ -231,7 +235,11 @@
   .team-panel.negro{ background: var(--ink); color: var(--chalk); }
   .team-panel h4{ font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
   .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; }
-  .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px dashed rgba(0,0,0,0.1); }
+  /* flex-wrap: en modo carga de resultado la fila suma badge + nombre + puntaje + 3 inputs con
+     flex-shrink:0, y con un plantel real no entra en los ~296px que quedan a 360px de viewport.
+     Arreglar el grid (minmax(0,1fr), más abajo) sacó el mínimo duro del PANEL, pero la FILA
+     seguía desbordando. Envuelve solo donde no entra: a 768px en una columna sigue en una línea. */
+  .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px dashed rgba(0,0,0,0.1); flex-wrap: wrap; }
   .team-player-row[draggable="true"]{ cursor: grab; }
   .team-player-row[draggable="true"]:active{ cursor: grabbing; }
   .team-panel{ transition: background-color .15s ease; }
@@ -263,10 +271,11 @@
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
 
-  /* 700px y no 560px: entre 561 y 700 las dos columnas dejan ~245px útiles por panel, y la fila
-     del jugador en modo carga de resultado necesita ~282px (badge + puntaje + 3 inputs + labels).
-     Dos columnas ahí no entran, por más que la pista pueda achicarse. */
-  @media (max-width: 700px){
+  /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
+     desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
+     carga de resultado envolvía a 701 y 768px igual que en un teléfono. Pasando a una columna
+     antes, la fila entra en una sola línea y el wrap no cuesta alto en tablet. */
+  @media (max-width: 900px){
     .teams-wrap{ grid-template-columns: minmax(0,1fr); }
   }
 
