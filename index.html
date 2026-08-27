@@ -4072,7 +4072,7 @@
         const p = players.find(pl => pl.id === unidad.ids[0]);
         if(!p) return '';
         // Crear un vínculo no tiene restricción de rol, igual que anotar a otro jugador (FR-001b).
-        const agregarBtn = !locked ? `<button class="btn-ghost" style="padding:4px 8px; font-size:12px; display:flex; align-items:center; gap:6px;" title="Agregar rotación" onclick="window.__openDuplaModal('${m.id}','${p.id}')">${ICON_DUPLA_CREAR} Agregar rotación</button>` : '';
+        const agregarBtn = !locked ? `<button class="btn-ghost" style="padding:4px 8px; font-size:12px; display:flex; align-items:center; gap:6px;" title="Agregar rotación" onclick="window.__openDuplaModal('${m.id}','${p.id}')">${ICON_DUPLA_CREAR} Rotación</button>` : '';
         return `
           ${seccion}
           <div class="conv-row">

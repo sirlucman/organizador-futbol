@@ -30,6 +30,11 @@
 
 - Q: Cuando se forma una dupla entre dos jugadores que ya están en la lista de suplentes en posiciones distintas, ¿qué posición ocupa la dupla en esa cola para futuras promociones? → A: La posición más temprana (mejor) de las dos; la otra posición simplemente se cierra, igual que si ese integrante hubiera dejado la cola.
 
+### Session 2026-08-27
+
+- Q: FR-001 citaba el literal "Agregar rotación" para el botón de la fila. ¿Se puede acortar a "Rotación"? → A: Sí, y el spec se actualiza con él. La etiqueta larga ocupaba ~150px en una fila de 360px y forzaba a los nombres de los jugadores a partirse en dos líneas ("Anibal / Leal"). La forma corta libera ~55px sin esconder nada: el ícono de las dos camisetas ya identifica la acción y el buscador que se abre sigue titulándose "Agregar rotación". Se descartó dejar sólo el ícono, que liberaba ~100px, porque haría depender el significado del atributo `title` — inalcanzable en una pantalla táctil, donde no hay hover.
+- Q: ¿Por qué se cambia el spec y no sólo el código? → A: Porque FR-001 citaba el string literal. Bajo el Principio I de la constitución, si el código dice una cosa y el spec otra es un bug a corregir explícitamente en uno de los dos; cambiar sólo el botón dejaba el requisito nombrando un texto que la aplicación ya no muestra.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Vincular a dos jugadores como dupla de rotación (Priority: P1)
@@ -124,7 +129,7 @@ Cada integrante de una dupla acumula sus propias estadísticas (partidos jugados
 
 ### Functional Requirements
 
-- **FR-001**: El sistema MUST ofrecer, en cada fila de un jugador convocado (titular o suplente) mientras la inscripción del partido está abierta, una opción "Agregar rotación" que abre un buscador de jugadores para formar la dupla. El buscador MUST mostrar tanto a jugadores YA convocados a ese partido (titulares o suplentes) como a jugadores NO convocados, excluyendo únicamente al propio jugador de esa fila y a cualquier jugador que ya integre otra dupla (FR-002).
+- **FR-001**: El sistema MUST ofrecer, en cada fila de un jugador convocado (titular o suplente) mientras la inscripción del partido está abierta, una opción "Rotación" que abre un buscador de jugadores para formar la dupla (el buscador se titula "Agregar rotación", que es la acción completa; la fila usa la forma corta por espacio horizontal). El buscador MUST mostrar tanto a jugadores YA convocados a ese partido (titulares o suplentes) como a jugadores NO convocados, excluyendo únicamente al propio jugador de esa fila y a cualquier jugador que ya integre otra dupla (FR-002).
 - **FR-001c**: Al vincularse con un jugador YA convocado, el sistema MUST actualizar la lista de convocatoria: ese jugador deja su lugar individual (titular o suplente) y pasa a compartir la vacante única de la dupla (ver FR-004/FR-004b/FR-005). Al vincularse con un jugador NO convocado, el sistema MUST incorporarlo directamente como integrante de la dupla, ocupando la vacante compartida, sin pasar por el flujo normal de anotación a la convocatoria.
 - **FR-001b**: Un usuario con perfil "admin" o "jugador" (ver `007-permisos-por-usuario`) MUST poder crear un vínculo de dupla sobre cualquier par de convocados, sin restricción de que alguno de los dos sea el propio jugador vinculado a la cuenta — mismo alcance que ya tiene "jugador" para anotar a otros a la convocatoria (FR-011 de `007-permisos-por-usuario`).
 - **FR-002**: El sistema MUST tratar el vínculo de dupla como exclusivo 1 a 1: un jugador no puede tener más de un compañero de rotación al mismo tiempo. Esto MUST reflejarse ocultando la opción en la interfaz (ver FR-001: un jugador ya vinculado no aparece como candidato en ningún buscador, ni su fila ofrece "Agregar rotación"), y no únicamente bloqueando el intento con un error.
