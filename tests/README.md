@@ -130,6 +130,26 @@ ausencia de un navegador no rompa a quien solo quiere correr el motor. Con
 `LAYOUT_STRICT=1` la ausencia sí falla, que es lo que conviene en CI: un test que
 nunca corre es peor que uno que falla, porque se lee como que todo está bien.
 
+### Mirarlo en un navegador de verdad
+
+```sh
+node tools/servir-fixture.js
+node tools/servir-fixture.js --rol=jugador --puerto=8123
+```
+
+Sirve la aplicación con los mismos datos y en los mismos estados que mide el
+test, reemplazando los `<script>` del CDN de Firebase por el doble. El login
+entra directo con cualquier credencial, no hay red y no se escribe nada.
+
+Existe porque los escenarios que importan no se pueden abrir contra staging sin
+modificarla: el principal es la pantalla de carga de resultado, que sólo aparece
+con la inscripción cerrada, y cerrarla en staging es una escritura real.
+
+Es la contraparte manual del test, y hace falta: **el test mide desborde, no
+estética**. Que una fila envuelva garantiza que nada quede inalcanzable, pero si
+la fila envuelta se lee bien es un juicio que ninguna aserción hace. Eso se mira
+acá, con el emulador de dispositivo del navegador.
+
 ### Que pase no alcanza
 
 Un test de layout verde no dice nada hasta que se lo ve fallar. Cuando se agrega un
