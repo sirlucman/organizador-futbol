@@ -132,4 +132,83 @@ function cargarMotor(config = {}, opciones = {}) {
   }
 }
 
-module.exports = { cargarMotor, extraer, DECLARACIONES };
+/* ---------------------------------------------------------------------------
+   Vistas: lo mismo que `cargarMotor`, pero para las funciones que producen
+   MARKUP, más el CSS del archivo.
+
+   Existe para que el test de layout (tests/layout.test.js) mida el HTML real
+   que la aplicación emite, con el CSS real, en vez de una copia a mano que se
+   desincroniza en el primer cambio. Mismo trato que el motor: se recorta por
+   nombre, no se toca index.html, y si una función se renombra el test falla
+   diciendo cuál.
+   --------------------------------------------------------------------------- */
+
+/* Declaraciones que hacen falta para renderizar una fila de equipo y una fila
+   de parámetro de regla — las dos zonas donde el layout se rompió. */
+const DECLARACIONES_VISTA = [
+  'POS_COLOR',
+  'posTextColor',
+  'posBadgeStyle',
+  'fullName',
+  'BOOT_ICON',
+  'ICON_DUPLA_CREAR',
+  'ICON_DUPLA_ELIMINAR',
+  'REGLAS_CATALOGO',
+  'isAdmin',
+  'esFilaEditable',
+  'renderLockBtn',
+  'renderStatsYPuntajeMiembro',
+  'renderTeamPlayerRow',
+  'renderTeamPlayerRowDupla',
+  'renderRuleParams',
+];
+
+/* El CSS vive en un único <style> dentro de index.html. Se lee de ahí y no se
+   copia: el test mide contra las reglas vigentes, no contra un snapshot. */
+function cargarCSS(opciones = {}) {
+  const src = fs.readFileSync(opciones.index || INDEX, 'utf8');
+  const desde = src.indexOf('<style>');
+  const hasta = src.indexOf('</style>', desde);
+  if (desde === -1 || hasta === -1) {
+    throw new Error('No se encontró el bloque <style> en index.html. Si el CSS se movió a un archivo aparte, hay que actualizar cargarCSS() en tests/harness.js.');
+  }
+  return src.slice(desde + '<style>'.length, hasta);
+}
+
+/* `sesion.rol` decide qué pinta cada vista (007-permisos-por-usuario): con
+   'admin' aparecen los inputs de carga de resultado y el puntaje, con 'jugador'
+   no. El layout hay que medirlo con el rol que produce la fila más cargada. */
+function cargarVistas(config = {}, opciones = {}) {
+  const archivo = opciones.index || INDEX;
+  const src = fs.readFileSync(archivo, 'utf8');
+  const nombres = [...DECLARACIONES, ...DECLARACIONES_VISTA];
+  const cuerpo = nombres.map(n => extraer(src, n)).join('\n\n');
+
+  const prelude = `
+    const __config = arguments[0], __estado = arguments[1];
+    function reglaEnabled(key){
+      const r = __config[key];
+      return r && r.enabled !== undefined ? !!r.enabled : true;
+    }
+    function reglaParam(key, pk){
+      const r = __config[key];
+      return r && r.params ? r.params[pk] : undefined;
+    }
+    /* Estado de módulo que las vistas leen. Son las mismas variables que
+       index.html declara arriba del IIFE; acá se inyectan como stub para poder
+       elegir el escenario a medir. */
+    const window = { session: { rol: __estado.rol || 'admin' } };
+    let resultadoDraft = __estado.resultadoDraft || null;
+    let editandoResultadoFinalizado = __estado.editandoResultadoFinalizado || null;
+    const players = __estado.players || [];
+  `;
+  const exports = `return { ${nombres.join(', ')} };`;
+
+  try {
+    return new Function(`${prelude}\n${cuerpo}\n${exports}`)(config, opciones.estado || {});
+  } catch (e) {
+    throw new Error(`El código de vistas extraído de ${archivo} no evaluó: ${e.message}`);
+  }
+}
+
+module.exports = { cargarMotor, cargarVistas, cargarCSS, extraer, DECLARACIONES, DECLARACIONES_VISTA };

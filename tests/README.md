@@ -1,10 +1,14 @@
-# Tests del motor de generación de equipos
+# Tests
 
 ```sh
-node tests/motor.test.js
+node tests/motor.test.js     # el motor de generación de equipos
+node tests/layout.test.js    # el layout responsive (Principio V)
 ```
 
-Sin dependencias: Node y nada más. Devuelve código de salida 1 solo si se rompe el comportamiento actual.
+Los dos devuelven código de salida 1 solo si se rompe el comportamiento actual.
+
+`motor.test.js` no tiene dependencias: Node y nada más. `layout.test.js` necesita
+un navegador y explica por qué más abajo.
 
 ## Cómo está armado
 
@@ -35,7 +39,71 @@ Hay dos tests clave, y hacen falta los dos porque el motor decide el armado en d
 
 `PARTIDO_LINEAS_DESPAREJAS` en [fixtures.js](fixtures.js) es el partido del 2026-08-24 que motivó la estrategia: la 3 lo cerró con la diferencia total en 0.3 y la defensa despareja por 6.5, porque el mejor arquero y el mejor delantero cayeron en el mismo equipo y la defensa tuvo que pagar esos 7 puntos. Tiene dos líneas de un solo lugar por equipo con diferencias grandes (9 contra 6 en el arco, 8 contra 4 en el ataque), que es justamente lo que no se puede emparejar repartiendo: solo se puede elegir si se suman o se cancelan.
 
-Las features `012-puntajes-coherentes-panel` y `015-minimo-diferencia-alcanzable` no tienen tests acá: son comportamiento de interfaz y de mensajes, no del motor. Se verifican a mano en el navegador contra staging.
+La feature `015-minimo-diferencia-alcanzable` no tiene tests acá: es comportamiento de mensajes, no del motor, y se verifica a mano en el navegador contra staging. De `012-puntajes-coherentes-panel`, el motor no tiene nada que decir, pero su FR-007 (que la fila de una dupla siga siendo operable en mobile) sí se verifica: es uno de los escenarios de [layout.test.js](layout.test.js).
+
+## El test de layout (Principio V)
+
+```sh
+node tests/layout.test.js
+LAYOUT_STRICT=1 node tests/layout.test.js
+```
+
+Verifica lo único que el Principio V de la constitución exige y que **no se puede
+verificar leyendo código**: que la interfaz no produzca scroll horizontal en
+ningún ancho desde el ancho mínimo soportado (360px, declarado en el principio)
+hacia arriba.
+
+Mide el markup real con el CSS real. `cargarVistas` y `cargarCSS` en
+[harness.js](harness.js) recortan de `index.html` las funciones de render
+(`renderTeamPlayerRow`, `renderRuleParams`, …) y el bloque `<style>`, con el
+mismo criterio que el harness del motor: por nombre, sin copiar nada. Un
+snapshot del CSS o una copia del HTML se desincronizan en el primer cambio y el
+test pasaría midiendo algo que ya no existe.
+
+Lo que el test sí escribe a mano son los **datos** del escenario y la **cadena de
+contenedores** que envuelve cada bloque, porque esa parte de `index.html` es
+markup estático y no hay función de la que recortarla. Si esa cadena cambia
+(`.teams-wrap` se muda de padre, por ejemplo), hay que actualizar
+`envolverEquipos`/`envolverRegla`.
+
+**Los anchos no son "los dispositivos populares"** sino los bordes donde el
+layout cambia de forma: el piso, cada breakpoint del CSS (480, 560, 700) medido
+de los dos lados, y la franja de tablet. Esa franja está porque es donde el
+desborde fue peor (+206px a 600px) y donde es más fácil no mirar: es tentador
+leer "responsive" como "mobile" y dar por sentado que arriba de 560px sobra
+lugar.
+
+**Dos comprobaciones, y hacen falta las dos.** El scroll horizontal es el
+síntoma que ve el usuario. Pero un elemento puede salirse de su contenedor sin
+producir scroll, si algo más arriba lo recorta: no scrollea y aun así esconde un
+control. Ese fue el bug de `.match-card-top`, donde los botones de admin
+quedaban con el borde derecho en 379px dentro de un contenedor que terminaba en
+325px.
+
+### La dependencia
+
+Es el único test del repo que depende de algo externo, y no se puede evitar:
+calcular un layout de CSS grid/flex requiere un motor de render. No hay forma de
+verificar este principio con Node solo.
+
+```sh
+npx playwright install chromium && npm i playwright
+```
+
+Si Playwright no está, el test **avisa y no falla** (código 0), para que la
+ausencia de un navegador no rompa a quien solo quiere correr el motor. Con
+`LAYOUT_STRICT=1` la ausencia sí falla, que es lo que conviene en CI: un test que
+nunca corre es peor que uno que falla, porque se lee como que todo está bien.
+
+### Que pase no alcanza
+
+Un test de layout verde no dice nada hasta que se lo ve fallar. Cuando se agrega
+un escenario, conviene revertir el fix que lo motiva y confirmar que el test lo
+atrapa. Los cinco escenarios actuales se validaron así contra el `index.html`
+previo al arreglo de `.teams-wrap`: dos fallaron, en 12 mediciones. Y ahí apareció
+algo que la verificación manual en el navegador no había encontrado — la fila de
+dupla desborda además a 390px y 768px, que en staging no se veía porque los
+partidos con dupla tenían la inscripción abierta y no pintaban los inputs.
 
 ## Medir, además de testear
 
