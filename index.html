@@ -332,6 +332,34 @@
   .rule-unit{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
   .rule-off-hint{ font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
 
+  /* En pantalla chica los inputs de carga de resultado van SIEMPRE en su propio
+     renglón y centrados, no sólo cuando no entran. Dejarlo al criterio del wrap
+     natural mezclaba filas de 39px con filas de 69px según el largo del nombre
+     (13 de 16 envolvían a 360px, 1 de 16 a 480px), y esa irregularidad se lee peor
+     que la línea extra. 560px es donde el envolvimiento natural llega a cero, así
+     que el corte no deja ninguna banda a medias.
+     `flex-basis:100%` es lo que fuerza el salto: el grupo ocupa el ancho completo
+     de la fila, que ya es `flex-wrap:wrap`. */
+  @media (max-width: 560px){
+    /* Listado de jugadores: los controles de administración (puntaje, activo/inactivo,
+       editar, eliminar) suman ~158px que no encogen, y con los gaps dejaban a
+       `.row-main` con 76px de ancho a 360px. Adentro de esos 76px se apilaban el
+       nombre en dos o tres líneas y las estadísticas en cuatro, con filas de 94 a
+       130px de alto. Bajando los controles a su propio renglón, `.row-main` recibe
+       el ancho completo menos el badge: nada se parte, las alturas quedan parejas
+       (102px) y el listado entero queda MÁS CORTO que antes (2164px contra 2299px).
+       El 46px es el badge (34) más el gap de la fila (12): es lo único que comparte
+       renglón con `.row-main`. */
+    .row{ flex-wrap: wrap; }
+    .row-main{ flex-basis: calc(100% - 46px); }
+    .row .avg-chip, .row .switch, .row .icon-btn{ margin-top: 2px; }
+
+    .team-stat-group{ flex-basis: 100%; justify-content: center; }
+    /* La fila de dupla anida los inputs un nivel más abajo, en un flex que no
+       envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
+    .team-dupla-member{ flex-wrap: wrap; }
+  }
+
   @media (max-width: 480px){
     .scores-grid{ grid-template-columns: repeat(2, 1fr); }
     .row-tags{ display: none; }
