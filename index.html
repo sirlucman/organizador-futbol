@@ -226,7 +226,33 @@
      la página — 206px de scroll horizontal a 600px de ancho. Con minmax(0,...) la pista sí puede
      bajar del min-content y el contenido se acomoda dentro (Principio V). */
   .teams-wrap{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; margin: 8px 0 16px; }
-  .team-panel{ border-radius: 10px; padding: 14px 16px; }
+  /* container-type: el layout de la fila depende del ancho del PANEL, no del
+     viewport. Medido sobre un plantel real, las filas envuelven según el panel y no
+     según la pantalla:
+
+         panel 328px → 13/16 filas     panel 398px →  3/16
+         panel 358px → 10/16           panel 448px →  1/16
+         panel 373px →  8/16           panel 528px →  0/16
+
+     Y 373px es el ancho del panel en TODA la banda de dos columnas, de 901px de
+     viewport para arriba, porque `.wrap` está topeado en max-width:760px. Es decir
+     que el mismo panel angosto aparece en un teléfono de 360px y en un monitor de
+     1400px: expresarlo con rangos de viewport pedía dos bloques disjuntos con
+     números mágicos, y con el ancho del panel es una sola condición. */
+  .team-panel{ border-radius: 10px; padding: 14px 16px; container-type: inline-size; }
+
+  /* Los inputs de carga van siempre en su propio renglón y centrados cuando el panel
+     es angosto, no sólo cuando no entran. Dejarlo al wrap natural mezclaba filas de
+     39px con filas de 69px según el largo del nombre, y esa irregularidad se lee peor
+     que la línea extra. El corte en 500px cubre los cinco anchos de panel donde
+     alguna fila envuelve (hasta 448) y deja afuera el primero donde ninguna lo hace
+     (528). */
+  @container (max-width: 500px){
+    .team-stat-group{ flex-basis: 100%; justify-content: center; }
+    /* La fila de dupla anida los inputs un nivel más abajo, en un flex que no
+       envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
+    .team-dupla-member{ flex-wrap: wrap; }
+  }
   .team-panel.blanco{ background: var(--chalk); border: 1px solid var(--paper-line); }
   .team-panel.negro{ background: var(--ink); color: var(--chalk); }
   .team-panel h4{ font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
@@ -354,10 +380,6 @@
     .row-main{ flex-basis: calc(100% - 46px); }
     .row .avg-chip, .row .switch, .row .icon-btn{ margin-top: 2px; }
 
-    .team-stat-group{ flex-basis: 100%; justify-content: center; }
-    /* La fila de dupla anida los inputs un nivel más abajo, en un flex que no
-       envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
-    .team-dupla-member{ flex-wrap: wrap; }
   }
 
   @media (max-width: 480px){
