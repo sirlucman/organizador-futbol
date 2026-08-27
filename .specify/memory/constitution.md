@@ -1,26 +1,28 @@
 <!--
 Sync Impact Report
-- Version change: 2.1.0 → 2.2.0
+- Version change: 2.2.0 → 2.3.0
 - Added principles: none
-- Modified principles: V. Responsive por diseño — declara el **ancho mínimo
-  soportado (360px)**. Antes el principio exigía "cualquier tamaño de pantalla"
-  sin declarar piso, así que no era medible: cada spec que necesitaba un número
-  lo fijaba localmente (009 FR-014) y el Constitution Check quedaba sin criterio
-  contra el cual pasar o fallar.
-- Added sections: none (el piso vive dentro del Principio V, no como sección
-  aparte, para que no se lo pueda leer separado de la obligación que acota)
+- Modified principles: V. Responsive por diseño — agrega el **criterio de
+  verificación**: qué se mide (scroll horizontal y elementos fuera de su
+  contenedor), en qué anchos (los bordes donde el layout cambia de forma, no
+  dispositivos), y con qué comando (`node tests/layout.test.js`). Antes el
+  principio declaraba el piso (v2.2.0) pero no cómo se comprobaba, así que el
+  paso de verificación seguía siendo una casilla.
+- Added sections: none
 - Removed sections: none
 - Deferred items:
-  - TODO(CRITERIO_DE_VERIFICACION): el principio sigue sin decir *cómo* se
-    verifica el cumplimiento (medición de scroll horizontal, en qué viewports,
-    con qué herramienta). Excluido a pedido explícito en esta enmienda.
   - TODO(OBJETIVO_TACTIL_MINIMO): el principio sigue sin fijar tamaño mínimo de
     objetivo táctil, pese a que la auditoría del 2026-08-26 encontró controles
-    de 16-24px. Excluido a pedido explícito en esta enmienda.
+    de 16-24px. Excluido a pedido explícito en la enmienda 2.2.0 y todavía
+    abierto.
   - TODO(REDACCION_ANCHOS_HARDCODEADOS): la frase "anchos/altos hardcodeados"
     se leyó como una prohibición literal de px en controles y produjo un
     requisito incumplible (009 FR-014, corregido el 2026-08-27). Conviene
     acotarla a *layout* en una enmienda futura.
+  - TODO(COBERTURA_DE_ESCENARIOS): el test de layout cubre hoy el panel de
+    equipos y los parámetros de reglas — las dos zonas donde el layout se rompió.
+    No cubre la lista de partidos, el listado de jugadores, la ficha de jugador,
+    los modales ni el login. Se van agregando a medida que se toquen.
 - Templates requiring follow-up: none
 -->
 
@@ -107,6 +109,26 @@ arriba, sin techo — incluida la franja de tablet, que no está exenta por no s
 incumplimiento. Ningún spec de feature necesita volver a declarar este número:
 se cita este principio.
 
+**Criterio de verificación.** Cumplir este principio se comprueba midiendo, no
+mirando. Una pantalla nueva o modificada cumple cuando, en cada ancho medido, se
+dan las dos cosas a la vez:
+
+1. la página no produce scroll horizontal (`scrollWidth === clientWidth`), y
+2. ningún elemento queda con su borde derecho fuera del viewport — un control
+   puede salirse de su contenedor sin producir scroll, si algo más arriba lo
+   recorta, y ahí queda inalcanzable sin que nada se note.
+
+Los anchos a medir son los bordes donde el layout cambia de forma —el ancho
+mínimo soportado, cada breakpoint del CSS medido de los dos lados, y la franja de
+tablet— y no una lista de dispositivos: un dispositivo popular puede caer lejos
+de todo borde y no probar nada.
+
+El comando es `node tests/layout.test.js`, y una pantalla que el test no cubre
+todavía se agrega ahí como escenario nuevo antes de considerarla verificada. Un
+escenario recién agregado MUST verse fallar al menos una vez —revirtiendo el
+arreglo que lo motiva— antes de darlo por bueno: un test de layout que nunca
+falló no demostró que mide algo.
+
 **Rationale**: El uso real de la aplicación ocurre mayormente desde dispositivos
 móviles (organizar partidos, ver formaciones, copiar información para compartir
 por WhatsApp, etc.), por lo que una funcionalidad que no se pueda operar
@@ -123,6 +145,15 @@ pantalla de carga de resultado obliga a apilar cada fila de jugador, subiéndola
 de 45px a 69px de alto, y ese costo vertical no se justifica por los
 dispositivos que hoy usan la app. La decisión y las mediciones vienen de la
 auditoría de conformance del Principio V del 2026-08-26.
+
+El criterio de verificación existe por lo que se encontró al auditarlo: los
+planes de feature que declaraban cumplimiento ("PASA", "Cumple") no habían
+medido nada, y no por descuido — el principio no decía qué medir, así que no
+había nada contra lo cual fallar. Verificar a ojo en el navegador tampoco alcanza:
+el desborde más grande del producto vivía a 600px de ancho, una franja que nadie
+abre cuando revisa "que ande en el celular", y la fila de dupla desbordaba en dos
+anchos que la revisión manual contra staging no llegó a mostrar porque dependían
+de un estado que los datos de prueba no tenían.
 
 ## Restricciones Técnicas y de Alcance
 
@@ -165,4 +196,4 @@ feature, se verifica que no viole ninguno de los Principios Core. Cualquier
 excepción (p. ej. una complejidad que rompe el Principio II) debe justificarse
 explícitamente en el plan de la feature, no asumirse en silencio.
 
-**Version**: 2.2.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-27
+**Version**: 2.3.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-27
