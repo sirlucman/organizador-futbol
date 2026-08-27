@@ -1,0 +1,40 @@
+<!-- @dsCard group="Components" viewport="700x360" name="Core" subtitle="Pill buttons, circular icon buttons, status badges, card fills" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Core</title><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:20px;background:var(--surface-page)}.row{display:flex;flex-wrap:wrap;gap:var(--space-md);align-items:center}.stack{display:flex;flex-direction:column;gap:var(--space-lg)}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--space-md)}.lbl{font:var(--type-eyebrow);letter-spacing:var(--letter-spacing-eyebrow);text-transform:uppercase;color:var(--color-mute)}</style>
+</head><body><div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { Button, IconButton, Badge, Card, Icon } = window.FootballAppDesignSystem_49d016;
+function Demo(){return (
+<div className="stack">
+  <div className="row">
+    <Button variant="primary" iconRight={<Icon name="arrow-right" size={18}/>}>Create team</Button>
+    <Button variant="secondary">Save draft</Button>
+    <Button variant="tertiary" iconLeft={<Icon name="calendar" size={18}/>}>Schedule</Button>
+    <Button variant="primary" disabled>Disabled</Button>
+  </div>
+  <div className="row">
+    <span className="lbl">Icon</span>
+    <IconButton label="Previous" icon={<Icon name="chevron-left"/>}/>
+    <IconButton label="Next" variant="outline" icon={<Icon name="chevron-right"/>}/>
+    <IconButton label="Add player" variant="primary" icon={<Icon name="plus"/>} size={48}/>
+    <span className="lbl" style={{marginLeft:'var(--space-lg)'}}>Badges</span>
+    <Badge tone="positive">Available</Badge>
+    <Badge tone="negative">Suspended</Badge>
+    <Badge tone="warning">Fitness</Badge>
+    <Badge tone="neutral">U21</Badge>
+    <Badge tone="ink">Captain</Badge>
+  </div>
+  <div className="grid">
+    <Card variant="content" eyebrow="Content" padding="var(--space-lg)"><span style={{font:'var(--type-body-sm)',color:'var(--color-body)'}}>White on sage</span></Card>
+    <Card variant="sage" eyebrow="Sage" padding="var(--space-lg)"><span style={{font:'var(--type-body-sm)',color:'var(--color-body)'}}>Feature surface</span></Card>
+    <Card variant="green" eyebrow="Green" padding="var(--space-lg)"><span style={{font:'var(--type-body-sm)',color:'var(--color-body)'}}>Pale tint</span></Card>
+    <Card variant="dark" eyebrow="Dark" padding="var(--space-lg)"><span style={{font:'var(--type-body-sm)'}}>Green on ink</span></Card>
+  </div>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

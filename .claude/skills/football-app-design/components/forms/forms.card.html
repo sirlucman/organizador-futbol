@@ -1,0 +1,29 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Forms" subtitle="Ink-hairline text inputs, error state, sage auth card" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Forms</title><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:20px;background:var(--surface-page)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:var(--space-xl);align-items:start}.col{display:flex;flex-direction:column;gap:var(--space-lg);background:var(--color-canvas);padding:var(--space-xl);border-radius:var(--radius-card)}</style>
+</head><body><div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { TextInput, AuthFormCard, Button, Icon } = window.FootballAppDesignSystem_49d016;
+function Demo(){const [v,setV]=React.useState('A. Ferreira');
+return (
+<div className="grid">
+  <div className="col">
+    <TextInput label="Player name" value={v} onChange={e=>setV(e.target.value)} hint="As printed on the registration sheet"/>
+    <TextInput label="Squad number" placeholder="1–99" iconLeft={<Icon name="hash" size={18} color="var(--color-mute)"/>}/>
+    <TextInput label="Email" type="email" value="coach@riverside" error="Enter a full club email address"/>
+    <TextInput label="Season" value="2026/27" disabled/>
+  </div>
+  <AuthFormCard title="Sign in" subtitle="Manage your squad, matches and reports."
+    submitLabel="Continue" footnote="Single sign-on available for clubs."
+    secondary={<Button variant="tertiary" fullWidth>Create an account</Button>}>
+    <TextInput label="Email" type="email" placeholder="coach@club.com"/>
+    <TextInput label="Password" type="password" placeholder="••••••••"/>
+  </AuthFormCard>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

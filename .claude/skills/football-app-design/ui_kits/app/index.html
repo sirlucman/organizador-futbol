@@ -1,0 +1,50 @@
+<!-- @dsCard group="Product app" viewport="1280x820" name="App shell — dashboard" subtitle="Sidebar, sticky header, stat cards, fixtures table, squad balance" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Football App — product</title><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;background:var(--color-canvas-soft)}#root{position:relative;min-height:100vh}#toasts{position:fixed;right:var(--space-xl);bottom:var(--space-xl);display:flex;flex-direction:column;gap:var(--space-md);z-index:80}</style>
+</head><body><div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel" data-presets="react" src="AppShell.jsx"></script>
+<script type="text/babel" data-presets="react" src="DashboardScreen.jsx"></script>
+<script type="text/babel" data-presets="react" src="SquadScreen.jsx"></script>
+<script type="text/babel" data-presets="react" src="MatchesScreen.jsx"></script>
+<script type="text/babel" data-presets="react" src="PlayerReportScreen.jsx"></script>
+<script type="text/babel" data-presets="react">
+const { Button, Modal, Toast, TextInput, Icon } = window.FootballAppDesignSystem_49d016;
+const TITLES = {dashboard:'Dashboard', squad:'Squad', matches:'Matches', report:'Player report'};
+function App(){
+  const [page,setPage]=React.useState('dashboard');
+  const [query,setQuery]=React.useState('');
+  const [player,setPlayer]=React.useState(null);
+  const [modal,setModal]=React.useState(false);
+  const [toast,setToast]=React.useState(null);
+  const [name,setName]=React.useState('');
+  const notify=(t)=>{setToast(t);window.clearTimeout(window.__at);window.__at=window.setTimeout(()=>setToast(null),4200);};
+  const actions = page==='squad'
+    ? <Button variant="primary" iconLeft={<Icon name="plus" size={18}/>} onClick={()=>setModal(true)}>Add player</Button>
+    : <Button variant="primary" onClick={()=>setPage('matches')}>Plan match</Button>;
+  const screens={
+    dashboard:<DashboardScreen onOpenMatches={()=>setPage('matches')}/>,
+    squad:<SquadScreen query={query} onSelectPlayer={p=>{setPlayer(p);setPage('report');}}/>,
+    matches:<MatchesScreen onPlan={sel=>notify({tone:'positive',title:'Lineup saved',message:sel.home+' vs '+sel.away+' — '+sel.formation+'.'})}/>,
+    report:<PlayerReportScreen player={player} onBack={()=>setPage('squad')}/>,
+  };
+  return (
+  <>
+    <AppShell page={page==='report'?'squad':page} setPage={setPage} title={TITLES[page]} actions={actions} onSearch={e=>{setQuery(e.target.value);setPage('squad');}}>
+      {screens[page]}
+    </AppShell>
+    <Modal open={modal} title="Add player" description="Register a player to the 2026/27 squad." onClose={()=>setModal(false)} style={{position:'fixed'}}
+      actions={<><Button variant="tertiary" onClick={()=>setModal(false)}>Cancel</Button>
+        <Button variant="primary" onClick={()=>{setModal(false);notify({tone:'positive',title:'Player added',message:(name||'New player')+' joined the squad.'});}}>Add player</Button></>}>
+      <TextInput label="Player name" placeholder="e.g. A. Ferreira" value={name} onChange={e=>setName(e.target.value)}/>
+      <TextInput label="Squad number" placeholder="1–99" iconLeft={<Icon name="hash" size={18} color="var(--color-mute)"/>}/>
+    </Modal>
+    {toast?<div id="toasts"><Toast tone={toast.tone} icon={<Icon name="check" size={18} color="var(--color-positive)"/>} title={toast.title} message={toast.message} onDismiss={()=>setToast(null)}/></div>:null}
+  </>);
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script></body></html>

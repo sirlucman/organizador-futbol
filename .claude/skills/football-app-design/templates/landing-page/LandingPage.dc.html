@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<!-- @template name="Landing page" description="Marketing landing page: sage hero with the match planner, feature cards, dark CTA band, ink footer." -->
+<helmet><script src="./ds-base.js"></script></helmet>
+<div style="background:#ffffff;font-family:Inter,system-ui,sans-serif;color:#111827">
+<header style="position:sticky;top:0;z-index:20;background:#ffffff;border-bottom:1px solid #f1f5f9">
+<div style="max-width:1200px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:32px">
+<span style="font-size:24px;line-height:31.2px;font-weight:900;letter-spacing:-0.48px">Football App</span>
+<nav style="display:flex;align-items:center;gap:24px;margin-left:16px">
+<a href="#" style="font-size:14px;line-height:20px;font-weight:600;color:#111827;text-decoration:none;border-bottom:2px solid #85b632;padding:8px 0">Product</a>
+<a href="#" style="font-size:14px;line-height:20px;font-weight:600;color:#111827;text-decoration:none;padding:8px 0">Pricing</a>
+<a href="#" style="font-size:14px;line-height:20px;font-weight:600;color:#111827;text-decoration:none;padding:8px 0">Support</a>
+</nav>
+<div style="display:flex;align-items:center;gap:8px;margin-left:auto">
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Button" variant="tertiary" hint-size="110px,48px">Log in</x-import>
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Button" variant="primary" hint-size="150px,48px">Create team</x-import>
+</div>
+</div>
+</header>
+<section style="background:#f1f5f9;padding:48px 24px">
+<div style="max-width:1200px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,0.9fr);gap:48px;align-items:center">
+<div style="display:flex;flex-direction:column;gap:24px">
+<span style="font-size:12px;line-height:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280">Team management</span>
+<h1 style="margin:0;font-size:64px;line-height:54.4px;font-weight:900;color:#111827;text-wrap:balance">Plan the match before the whistle.</h1>
+<p style="margin:0;font-size:20px;line-height:30px;color:#374151;max-width:52ch;text-wrap:pretty">Availability, formations and player reports in one place. Built for coaches who run the squad and the spreadsheet.</p>
+<div style="display:flex;flex-wrap:wrap;gap:12px">
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Button" variant="primary" hint-size="150px,48px">Create team</x-import>
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Button" variant="tertiary" hint-size="140px,48px">See a demo</x-import>
+</div>
+</div>
+<sc-if value="{{ showPlanner }}" hint-placeholder-val="{{ true }}">
+<div style="display:flex;justify-content:flex-end">
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.MatchPlannerCard" teams="{{ teamList }}" players="{{ playerList }}" hint-size="420px,520px"></x-import>
+</div>
+</sc-if>
+</div>
+</section>
+<section style="background:#ffffff;padding:48px 24px">
+<div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:32px">
+<div style="display:flex;flex-direction:column;gap:12px">
+<span style="font-size:12px;line-height:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280">Why coaches switch</span>
+<h2 style="margin:0;font-size:40px;line-height:34px;font-weight:900;color:#111827">Everything a matchday needs</h2>
+</div>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Card" variant="sage" eyebrow="Ask once" title="Availability" hint-size="100%,180px"><p style="margin:0;font-size:16px;line-height:24px;color:#374151">Send one request. See who is fit, who is away and who has not replied.</p></x-import>
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Card" variant="green" eyebrow="Drag the shape" title="Formations" hint-size="100%,180px"><p style="margin:0;font-size:16px;line-height:24px;color:#374151">Switch between 4-3-3 and 3-5-2 without rebuilding the squad list.</p></x-import>
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Card" variant="dark" eyebrow="Every match" title="Reports" hint-size="100%,180px"><p style="margin:0;font-size:16px;line-height:24px;color:#c3e07c">Ratings that survive the season, not a notebook that does not.</p></x-import>
+</div>
+</div>
+</section>
+<section style="background:#111827;padding:48px 24px">
+<div style="max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+<h2 style="margin:0;font-size:47px;line-height:70.5px;font-weight:400;letter-spacing:-0.108px;color:#85b632;text-wrap:balance">One accent. One green. One place for the squad.</h2>
+<p style="margin:0;font-size:20px;line-height:30px;color:#f1f5f9;max-width:52ch">Free for a single squad. Nothing to install.</p>
+<div style="display:flex">
+<x-import component-from-global-scope="FootballAppDesignSystem_49d016.Button" variant="primary" hint-size="150px,48px">Create team</x-import>
+</div>
+</div>
+</section>
+<footer style="background:#111827;color:#f1f5f9;font-size:14px;line-height:20px;padding:48px 24px;border-top:1px solid rgb(255 255 255 / 0.12)">
+<div style="max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:48px">
+<div style="flex:1 1 220px;min-width:220px;display:flex;flex-direction:column;gap:8px">
+<span style="font-size:24px;line-height:31.2px;font-weight:900;color:#85b632">Football App</span>
+<p style="margin:0;opacity:0.72;max-width:34ch">Squads, matches and player reports in one place.</p>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;min-width:140px">
+<span style="font-size:12px;line-height:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280">Product</span>
+<a href="#" style="color:#f1f5f9;text-decoration:none;opacity:0.82">Squad</a>
+<a href="#" style="color:#f1f5f9;text-decoration:none;opacity:0.82">Matches</a>
+<a href="#" style="color:#f1f5f9;text-decoration:none;opacity:0.82">Reports</a>
+</div>
+<div style="display:flex;flex-direction:column;gap:8px;min-width:140px">
+<span style="font-size:12px;line-height:16px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#6b7280">Club</span>
+<a href="#" style="color:#f1f5f9;text-decoration:none;opacity:0.82">Pricing</a>
+<a href="#" style="color:#f1f5f9;text-decoration:none;opacity:0.82">Support</a>
+</div>
+</div>
+</footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showPlanner&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Hero&quot;},&quot;teams&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Riverside FC, Northgate United, Eastvale Athletic&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Hero&quot;},&quot;players&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;A. Ferreira, J. Okafor, M. Lindqvist&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Hero&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const split = (s, fallback) => {
+      const v = (s ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+      return v.length ? v : fallback;
+    };
+    return {
+      showPlanner: this.props.showPlanner ?? true,
+      teamList: split(this.props.teams, ["Riverside FC", "Northgate United", "Eastvale Athletic"]),
+      playerList: split(this.props.players, ["A. Ferreira", "J. Okafor", "M. Lindqvist"]),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

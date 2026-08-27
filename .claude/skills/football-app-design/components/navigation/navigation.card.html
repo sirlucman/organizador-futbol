@@ -1,0 +1,31 @@
+<!-- @dsCard group="Components" viewport="700x420" name="Navigation" subtitle="Top nav, nav links, sidebar rows, dark footer" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Navigation</title><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:20px;background:var(--surface-page)}.wrap{display:flex;flex-direction:column;gap:var(--space-lg)}.split{display:grid;grid-template-columns:220px 1fr;gap:var(--space-lg);align-items:start}.side{display:flex;flex-direction:column;gap:var(--space-xxs);padding:var(--space-sm);background:var(--color-canvas);border-radius:var(--radius-lg)}</style>
+</head><body><div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { NavBar, NavLink, SidebarNavRow, Footer, Button, Badge, Icon } = window.FootballAppDesignSystem_49d016;
+function Demo(){return (
+<div className="wrap">
+  <NavBar sticky={false} brand="Football App"
+    links={<><NavLink active>Squad</NavLink><NavLink>Matches</NavLink><NavLink>Training</NavLink><NavLink>Reports</NavLink></>}
+    actions={<><Button variant="tertiary">Log in</Button><Button variant="primary">Create team</Button></>}
+    style={{borderRadius:'var(--radius-lg)',overflow:'hidden'}}/>
+  <div className="split">
+    <div className="side">
+      <SidebarNavRow active icon={<Icon name="layout-dashboard" size={18}/>} label="Dashboard"/>
+      <SidebarNavRow icon={<Icon name="users" size={18}/>} label="Squad" badge={<Badge tone="neutral">24</Badge>}/>
+      <SidebarNavRow icon={<Icon name="calendar" size={18}/>} label="Matches"/>
+      <SidebarNavRow icon={<Icon name="clipboard-list" size={18}/>} label="Reports"/>
+    </div>
+    <Footer brand="Football App" tagline="Squads, matches and player reports in one place."
+      columns={[{title:'Product',links:[{label:'Squad'},{label:'Matches'}]},{title:'Club',links:[{label:'Pricing'},{label:'Support'}]}]}
+      legal="© 2026 Football App" style={{borderRadius:'var(--radius-lg)',padding:'var(--space-xl)'}}/>
+  </div>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

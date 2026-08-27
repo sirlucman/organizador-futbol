@@ -1,0 +1,23 @@
+<!-- @dsCard group="Components" viewport="700x380" name="Data" subtitle="Squad data table and plan tier cards" -->
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><title>Data</title><link rel="stylesheet" href="../../styles.css">
+<style>body{margin:0;padding:20px;background:var(--surface-page)}.grid{display:grid;grid-template-columns:1.15fr 0.85fr;gap:var(--space-xl);align-items:start}</style>
+</head><body><div id="root"></div>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<script src="../../_ds_bundle.js"></script>
+<script type="text/babel">
+const { DataTable, PricingTier, Badge } = window.FootballAppDesignSystem_49d016;
+function Demo(){const rows=[{id:1,name:'A. Ferreira',pos:'ST',rating:'8.4',status:'Available',tone:'positive'},{id:2,name:'J. Okafor',pos:'CM',rating:'7.9',status:'Available',tone:'positive'},{id:3,name:'M. Lindqvist',pos:'CB',rating:'7.2',status:'Fitness',tone:'warning'},{id:4,name:'D. Osei',pos:'GK',rating:'8.1',status:'Suspended',tone:'negative'},{id:5,name:'R. Halversen',pos:'LB',rating:'6.8',status:'Available',tone:'positive'}];
+const [sel,setSel]=React.useState(2);
+return (
+<div className="grid">
+  <DataTable rows={rows} selectedId={sel} onRowClick={(r,id)=>setSel(id)}
+    columns={[{key:'name',label:'Player',strong:true},{key:'pos',label:'Pos',mute:true,width:'56px'},{key:'rating',label:'Rating',align:'right',width:'72px'},{key:'status',label:'Status',align:'right',render:r=><Badge tone={r.tone}>{r.status}</Badge>}]}/>
+  <PricingTier featured name="Club" price="£24" description="For clubs running more than one squad."
+    features={['Unlimited squads','Match planner','Evaluation reports']}
+    badge={<Badge tone="positive">Most picked</Badge>} ctaLabel="Start free trial"/>
+</div>);}
+ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script></body></html>

@@ -1,0 +1,16 @@
+:root {
+  /* The system elevates with SURFACE CONTRAST, not shadow.
+     Level 0 — flat: no shadow, no border (default).
+     Level 1 — hairline: 1px solid ink (tertiary buttons, inputs, planner card).
+     Level 2 — soft card: a white card on the sage canvas; the contrast IS the elevation. */
+  --elevation-flat: none;
+  --border-width-hairline: 1px;
+  --elevation-hairline: inset 0 0 0 var(--border-width-hairline) var(--color-ink);
+
+  /* DERIVED — the source spec asks for an "elevated shadow" on the modal surface and a
+     "medium shadow" on the toast but supplies no values. These are neutral ink-tinted
+     shadows kept deliberately soft so they read as lift, not as a new visual motif. */
+  --shadow-overlay: 0 24px 64px -12px rgb(17 24 39 / 0.24);
+  --shadow-floating: 0 12px 32px -8px rgb(17 24 39 / 0.18);
+  --scrim-overlay: rgb(17 24 39 / 0.4);
+}
