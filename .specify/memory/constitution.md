@@ -1,16 +1,26 @@
 <!--
 Sync Impact Report
-- Version change: 2.0.1 → 2.1.0
-- Added principles: V. Responsive por diseño — todo desarrollo debe funcionar
-  correctamente en cualquier tamaño de pantalla, incluyendo dispositivos
-  mobile, sin atarse a resoluciones fijas.
-- Modified principles: none (el principio V consolida y eleva a Core Principle
-  el requisito que antes vivía solo como bullet en "Restricciones Técnicas y
-  de Alcance")
-- Removed sections: bullet "La aplicación debe ser responsive y funcionar
-  correctamente en desktop y mobile" de "Restricciones Técnicas y de Alcance"
-  (movido/consolidado en el nuevo Principio V para evitar duplicación)
-- Deferred items: none
+- Version change: 2.1.0 → 2.2.0
+- Added principles: none
+- Modified principles: V. Responsive por diseño — declara el **ancho mínimo
+  soportado (360px)**. Antes el principio exigía "cualquier tamaño de pantalla"
+  sin declarar piso, así que no era medible: cada spec que necesitaba un número
+  lo fijaba localmente (009 FR-014) y el Constitution Check quedaba sin criterio
+  contra el cual pasar o fallar.
+- Added sections: none (el piso vive dentro del Principio V, no como sección
+  aparte, para que no se lo pueda leer separado de la obligación que acota)
+- Removed sections: none
+- Deferred items:
+  - TODO(CRITERIO_DE_VERIFICACION): el principio sigue sin decir *cómo* se
+    verifica el cumplimiento (medición de scroll horizontal, en qué viewports,
+    con qué herramienta). Excluido a pedido explícito en esta enmienda.
+  - TODO(OBJETIVO_TACTIL_MINIMO): el principio sigue sin fijar tamaño mínimo de
+    objetivo táctil, pese a que la auditoría del 2026-08-26 encontró controles
+    de 16-24px. Excluido a pedido explícito en esta enmienda.
+  - TODO(REDACCION_ANCHOS_HARDCODEADOS): la frase "anchos/altos hardcodeados"
+    se leyó como una prohibición literal de px en controles y produjo un
+    requisito incumplible (009 FR-014, corregido el 2026-08-27). Conviene
+    acotarla a *layout* en una enmienda futura.
 - Templates requiring follow-up: none
 -->
 
@@ -83,19 +93,36 @@ rediseñar el sistema. El acoplamiento temprano entre capas es la forma más com
 en que ese objetivo se rompe silenciosamente.
 
 ### V. Responsive por diseño
-Todo desarrollo de interfaz debe funcionar correctamente en cualquier tamaño de
-pantalla, con foco explícito en que sea utilizable desde una app mobile. Está
-prohibido diseñar o implementar pantallas, componentes o flujos atados a
-resoluciones fijas (anchos/altos hardcodeados, layouts que solo se verifican en
-desktop, etc.). Esto aplica a toda funcionalidad nueva y a cualquier
-modificación de una pantalla existente, sin excepción por tratarse de una
-feature "chica" o de bajo tráfico.
+Todo desarrollo de interfaz MUST funcionar correctamente en cualquier tamaño de
+pantalla desde el ancho mínimo soportado hacia arriba, con foco explícito en que
+sea utilizable desde una app mobile. Está prohibido diseñar o implementar
+pantallas, componentes o flujos atados a resoluciones fijas (anchos/altos
+hardcodeados, layouts que solo se verifican en desktop, etc.). Esto aplica a
+toda funcionalidad nueva y a cualquier modificación de una pantalla existente,
+sin excepción por tratarse de una feature "chica" o de bajo tráfico.
+
+**Ancho mínimo soportado: 360px.** La obligación corre de 360px de ancho hacia
+arriba, sin techo — incluida la franja de tablet, que no está exenta por no ser
+"mobile". Por debajo de 360px la interfaz PUEDE degradarse y eso no cuenta como
+incumplimiento. Ningún spec de feature necesita volver a declarar este número:
+se cita este principio.
 
 **Rationale**: El uso real de la aplicación ocurre mayormente desde dispositivos
 móviles (organizar partidos, ver formaciones, copiar información para compartir
 por WhatsApp, etc.), por lo que una funcionalidad que no se pueda operar
 cómodamente desde mobile no cumple su propósito, sin importar qué tan bien
 funcione en desktop.
+
+El piso existe porque "cualquier tamaño de pantalla" no es verificable: no se
+puede pasar ni fallar contra una obligación sin número. Sin él, el paso de
+verificación de este principio se volvió una casilla que se marcaba sin
+evidencia, y cada feature que necesitaba un ancho concreto lo fijaba por su
+cuenta. Se eligió 360px porque es el viewport de referencia de los Android en
+uso; 320px (iPhone SE) se dejó afuera a conciencia: se midió que cerrarlo en la
+pantalla de carga de resultado obliga a apilar cada fila de jugador, subiéndola
+de 45px a 69px de alto, y ese costo vertical no se justifica por los
+dispositivos que hoy usan la app. La decisión y las mediciones vienen de la
+auditoría de conformance del Principio V del 2026-08-26.
 
 ## Restricciones Técnicas y de Alcance
 
@@ -138,4 +165,4 @@ feature, se verifica que no viole ninguno de los Principios Core. Cualquier
 excepción (p. ej. una complejidad que rompe el Principio II) debe justificarse
 explícitamente en el plan de la feature, no asumirse en silencio.
 
-**Version**: 2.1.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-13
+**Version**: 2.2.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-27
