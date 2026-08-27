@@ -30,6 +30,11 @@ Dos problemas motivan esta feature:
 - Q: ¿La ventaja se resta del puntaje del equipo que sí tiene arquero, o se suma al que no lo tiene? → A: Es indistinto para el resultado: lo que define es el objetivo de diferencia entre los dos equipos. Se especifica como objetivo de diferencia, no como suma o resta a un equipo, para que un solo número gobierne todos los pasos del armado.
 - Q: En Estrategia 3, ¿se garantiza que la ventaja se cumpla? → A: Sí. Se resolvió implementando `010-refinamiento-objetivo` junto con esta feature (ver "Limitación conocida — CERRADA"). El resumen informa igual la ventaja otorgada y la diferencia lograda, porque el dato tiene que poder auditarse aunque se cumpla.
 
+### Session 2026-08-27
+
+- Q: FR-014 exigía «sin anchos ni altos fijos» y a la vez «igual que el resto de los parámetros de reglas», pero esos parámetros se pintan con `.rule-num`, que tiene `width:56px`. ¿Cuál de las dos manda? → A: Manda la reutilización del componente. Las dos cláusulas eran incumplibles a la vez, así que el requisito no se podía verificar: cualquier implementación violaba una mitad. Se reescribió para que pida lo que en realidad importaba — no inventar markup propio, y que la fila se pueda operar a 360px sin scroll horizontal. El ancho del input numérico en sí queda explícitamente fuera de alcance: 56px es dimensionado de control, no un layout atado a una resolución. El Principio V de la constitución habla de «layouts atados a resoluciones fijas», y un input de 56px para un valor de 0 a 20 no lo es.
+- Q: ¿De dónde sale el piso de 360px? → A: De la auditoría de conformance del Principio V (2026-08-26), donde se fijó 360px como ancho mínimo soportado al corregir el desborde horizontal del panel de equipos. La constitución todavía no declara ese piso; queda pendiente consolidarlo ahí para que no viva sólo en este spec.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Elegir cuánta ventaja recibe el equipo sin arquero fijo (Priority: P1)
@@ -113,7 +118,7 @@ El "admin" que configuró una ventaja de 6 y una diferencia aceptable de 0 no re
 - **FR-011**: El sistema MUST marcar como desactualizados los equipos ya generados de un partido cuando cambia el valor del parámetro, reutilizando el aviso de equipos desactualizados que ya existe.
 - **FR-012**: El sistema MUST conservar las configuraciones guardadas antes de esta feature, incorporando el parámetro nuevo con su valor inicial (0) sin que el usuario tenga que reconfigurar nada.
 - **FR-013**: La descripción del invariante de arqueros que se muestra en Configuración MUST dejar de presentar la compensación como parte del invariante, ya que pasa a ser un parámetro configurable.
-- **FR-014**: El campo nuevo MUST ser utilizable desde mobile, sin anchos ni altos fijos, igual que el resto de los parámetros de reglas (Principio V de la constitución).
+- **FR-014**: El campo nuevo MUST reutilizar el componente de parámetro numérico que ya usan las demás reglas, en vez de traer markup o estilos propios, y su fila MUST poder operarse a 360px de ancho sin producir scroll horizontal ni recortar la etiqueta (Principio V de la constitución). El dimensionado del control en sí (`.rule-num`) no es objeto de este requisito: lo que no puede estar atado a una resolución fija es el layout de la fila.
 
 ### Enmiendas a specs vigentes
 
