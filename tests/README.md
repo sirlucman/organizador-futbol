@@ -46,39 +46,74 @@ La feature `015-minimo-diferencia-alcanzable` no tiene tests acá: es comportami
 ```sh
 node tests/layout.test.js
 LAYOUT_STRICT=1 node tests/layout.test.js
+node tests/layout.test.js --solo=ficha      # un escenario, para iterar
 ```
 
 Verifica lo único que el Principio V de la constitución exige y que **no se puede
-verificar leyendo código**: que la interfaz no produzca scroll horizontal en
-ningún ancho desde el ancho mínimo soportado (360px, declarado en el principio)
-hacia arriba.
+verificar leyendo código**: que la interfaz no produzca scroll horizontal, ni deje
+ningún elemento fuera del viewport, en ningún ancho desde el ancho mínimo
+soportado (360px, declarado en el principio) hacia arriba.
 
-Mide el markup real con el CSS real. `cargarVistas` y `cargarCSS` en
-[harness.js](harness.js) recortan de `index.html` las funciones de render
-(`renderTeamPlayerRow`, `renderRuleParams`, …) y el bloque `<style>`, con el
-mismo criterio que el harness del motor: por nombre, sin copiar nada. Un
-snapshot del CSS o una copia del HTML se desincronizan en el primer cambio y el
-test pasaría midiendo algo que ya no existe.
+### Arranca la aplicación real, no una maqueta
 
-Lo que el test sí escribe a mano son los **datos** del escenario y la **cadena de
-contenedores** que envuelve cada bloque, porque esa parte de `index.html` es
-markup estático y no hay función de la que recortarla. Si esa cadena cambia
-(`.teams-wrap` se muda de padre, por ejemplo), hay que actualizar
-`envolverEquipos`/`envolverRegla`.
+No hay copia de markup ni snapshot del CSS. El test sirve el `index.html` del repo
+por HTTP y falsea **un solo global**: `firebase`. La aplicación hace
+`firebase.initializeApp` + `firestore()` + `auth()` y de ahí en adelante todo pasa
+por `window.storage`, `window.auth` y `resolveSession`, así que reemplazar ese
+objeto ([fixtures-app.js](fixtures-app.js)) hace arrancar el código real completo
+—los mismos renderers, el mismo CSS, los mismos contenedores— sin red y sin
+credenciales.
 
-**Los anchos no son "los dispositivos populares"** sino los bordes donde el
-layout cambia de forma: el piso, cada breakpoint del CSS (480, 560, 700) medido
-de los dos lados, y la franja de tablet. Esa franja está porque es donde el
-desborde fue peor (+206px a 600px) y donde es más fácil no mirar: es tentador
-leer "responsive" como "mobile" y dar por sentado que arriba de 560px sobra
-lugar.
+Esto reemplazó un primer intento que armaba el markup en Node recortando las
+funciones de render. Funcionaba, pero sólo servía para las que devuelven un
+string: las que pintan una pestaña entera escriben en un contenedor con
+`innerHTML`, y el markup de la fila del listado de jugadores está inline dentro de
+`renderPlayersTab`, sin función que aislar. Falsear `firebase` cubre todas por
+igual y no obliga a copiar ninguna cadena de contenedores.
 
-**Dos comprobaciones, y hacen falta las dos.** El scroll horizontal es el
-síntoma que ve el usuario. Pero un elemento puede salirse de su contenedor sin
-producir scroll, si algo más arriba lo recorta: no scrollea y aun así esconde un
-control. Ese fue el bug de `.match-card-top`, donde los botones de admin
-quedaban con el borde derecho en 379px dentro de un contenedor que terminaba en
-325px.
+Los datos salen de [fixtures-app.js](fixtures-app.js), que convierte
+`PARTIDO_TESTIGO` de [fixtures.js](fixtures.js) —el plantel real de staging— a la
+forma que la aplicación persiste. Se reusa a propósito: tiene los nombres largos
+de verdad (`Leandro "cuñado" Lauty`, `Juan (Hijo de Claudio)`), que es lo que
+empuja el ancho mínimo de una fila. Un fixture con nombres cortos no prueba nada.
+
+Hay tres partidos, uno por estado, porque cada estado pinta una fila distinta: sin
+inputs, con los tres inputs de carga de resultado, y con los stats de sólo lectura
+(que llevan `white-space:nowrap`). Y los escenarios se corren con los dos roles
+donde eso cambia el layout: `admin` pinta los controles de administración, que son
+los que más ancho piden.
+
+### Qué mide
+
+**Dos comprobaciones, y hacen falta las dos.** El scroll horizontal es el síntoma
+que ve el usuario. Pero un elemento puede salirse de su contenedor **sin** producir
+scroll, si algo más arriba lo recorta: no scrollea y aun así esconde un control.
+Ese fue el bug de `.match-card-top`, con los botones de admin en 379px dentro de un
+contenedor que terminaba en 325px.
+
+Se excluye lo invisible (`display:none`, `visibility:hidden`, `opacity:0`): un
+tooltip oculto que se sale del viewport no molesta a nadie. Lo `position:fixed` en
+cambio se mide igual —el toast, los overlays— porque ahí salirse del viewport es
+exactamente el bug que se busca.
+
+**Los anchos no son "los dispositivos populares"** sino los bordes donde el layout
+cambia de forma: el piso, cada breakpoint del CSS (480, 560, 700) medido de los dos
+lados, y la franja de tablet. Esa franja está porque es donde el desborde fue peor
+(+206px a 600px) y donde es más fácil no mirar: es tentador leer "responsive" como
+"mobile" y dar por sentado que arriba de 560px sobra lugar. Un dispositivo popular
+puede caer lejos de todo borde y no probar nada.
+
+### Los tres resultados
+
+`✗` es un desborde: la pantalla incumple el principio.
+
+`!` es distinto y no hay que confundirlo — el escenario no se pudo **preparar**, o
+sea el test no llegó a la pantalla y no midió nada. Suele significar que cambió un
+selector o un flujo, y lo que hay que arreglar es el escenario, no el CSS. Se
+reporta aparte por eso.
+
+`–` es un escenario salteado a propósito, cuando la pantalla no existe con los
+datos del fixture.
 
 ### La dependencia
 
@@ -97,13 +132,13 @@ nunca corre es peor que uno que falla, porque se lee como que todo está bien.
 
 ### Que pase no alcanza
 
-Un test de layout verde no dice nada hasta que se lo ve fallar. Cuando se agrega
-un escenario, conviene revertir el fix que lo motiva y confirmar que el test lo
-atrapa. Los cinco escenarios actuales se validaron así contra el `index.html`
-previo al arreglo de `.teams-wrap`: dos fallaron, en 12 mediciones. Y ahí apareció
-algo que la verificación manual en el navegador no había encontrado — la fila de
-dupla desborda además a 390px y 768px, que en staging no se veía porque los
-partidos con dupla tenían la inscripción abierta y no pintaban los inputs.
+Un test de layout verde no dice nada hasta que se lo ve fallar. Cuando se agrega un
+escenario, hay que revertir el fix que lo motiva y confirmar que lo atrapa — el
+Principio V lo exige, no es una sugerencia. Los escenarios se validaron así contra
+el `index.html` previo al arreglo de `.teams-wrap`, y ahí apareció algo que la
+verificación manual en el navegador no había encontrado: la fila de dupla desborda
+además a 390px y 768px, que contra staging no se veía porque los partidos con dupla
+tenían la inscripción abierta y no pintaban los inputs.
 
 ## Medir, además de testear
 
