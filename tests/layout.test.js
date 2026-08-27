@@ -56,6 +56,87 @@ function servir() {
   return new Promise(resolve => server.listen(0, '127.0.0.1', () => resolve({ server, puerto: server.address().port })));
 }
 
+/* Un invariante es una aserción de LAYOUT que no es desborde, y por eso MEDIR no
+   la ve: el contenido puede estar entero dentro del viewport y aun así alineado
+   mal. Se declara por escenario (campo `invariante`), corre dentro de la página en
+   cada ancho y devuelve la lista de problemas — vacía si está bien.
+
+   Hoy hay uno solo; si aparece un segundo conviene sacarlos a su propio módulo. */
+
+/* Los inputs de carga de resultado deben estar SIEMPRE en su propio renglón y
+   centrados por debajo de 560px, que es donde la fila queda estrecha. Dejarlo al
+   wrap natural mezclaba filas de 39px con filas de 69px según el largo del nombre,
+   y esa irregularidad se lee peor que la línea extra.
+
+   Deliberadamente NO asegura nada arriba de 560px. Entre 561 y 900px la fila entra
+   en una línea y está bien, pero arriba de 900px el panel vuelve a dos columnas y
+   8 de 16 filas envuelven otra vez — la misma irregularidad que se corrigió en
+   mobile, en una banda de escritorio. Está sin decidir qué hacer ahí, y asegurarlo
+   acá dejaría la suite roja de entrada: peor que una suite que dice qué cubre. */
+const INVARIANTE_INPUTS_DE_CARGA = () => {
+  if (document.documentElement.clientWidth > 560) return [];
+  const filas = [...document.querySelectorAll('.team-player-row:not(.team-player-row-dupla)')];
+  if (!filas.length) return ['no se encontró ninguna .team-player-row: ¿cambió el markup del panel de equipos?'];
+  const conGrupo = filas.filter(f => f.querySelector(':scope > .team-stat-group'));
+  if (!conGrupo.length) return ['ninguna fila tiene .team-stat-group: ¿se dejó de agrupar los inputs de carga?'];
+
+  const problemas = [];
+  for (const fila of conGrupo) {
+    const nombre = fila.querySelector(':scope > span:not([class])');
+    if (!nombre) continue;
+    const quien = nombre.textContent.trim().slice(0, 22);
+    const g = fila.querySelector(':scope > .team-stat-group').getBoundingClientRect();
+    if (g.top <= nombre.getBoundingClientRect().top + 2) {
+      problemas.push(`"${quien}": los inputs quedaron en el mismo renglón que el nombre`);
+      continue;
+    }
+    const panel = fila.closest('.team-panel').getBoundingClientRect();
+    const desvio = Math.round(((g.left + g.right) / 2) - ((panel.left + panel.right) / 2));
+    if (Math.abs(desvio) > 2) problemas.push(`"${quien}": los inputs no están centrados (desvío ${desvio}px)`);
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
+/* En el listado de jugadores, los controles de administración deben bajar a su
+   propio renglón por debajo de 560px, para que el nombre y las estadísticas tengan
+   el ancho completo. Sin eso `.row-main` quedaba con 76px a 360px y adentro se
+   apilaban el nombre en tres líneas y las estadísticas en cuatro, con filas de 94
+   a 130px. Nada de eso desborda, así que MEDIR no lo veía. */
+const INVARIANTE_FILA_DE_JUGADOR = () => {
+  if (document.documentElement.clientWidth > 560) return [];
+  const filas = [...document.querySelectorAll('.roster .row')];
+  if (!filas.length) return ['no se encontró ninguna .roster .row: ¿cambió el markup del listado?'];
+
+  const problemas = [];
+  for (const fila of filas) {
+    const badge = fila.querySelector(':scope > .badge');
+    const main = fila.querySelector(':scope > .row-main');
+    const nombre = fila.querySelector('.row-name');
+    if (!badge || !main || !nombre) continue;
+    const quien = nombre.textContent.trim().slice(0, 22);
+    /* El badge y el nombre comparten renglón: si `.row-main` se fue abajo, la fila
+       quedó en tres líneas en vez de dos y el listado crece ~40%. */
+    if (main.getBoundingClientRect().top > badge.getBoundingClientRect().top + 2) {
+      problemas.push(`"${quien}": el nombre bajó de renglón y dejó al badge solo arriba`);
+      continue;
+    }
+    if (nombre.getBoundingClientRect().height > 22) problemas.push(`"${quien}": el nombre quedó partido en más de una línea`);
+    const stats = fila.querySelector('.row-stats');
+    if (stats && stats.getBoundingClientRect().height > 20) problemas.push(`"${quien}": las estadísticas quedaron en más de una línea`);
+    /* Lo que de verdad hay que asegurar: que TODOS los controles bajen, no sólo que
+       el nombre entre. Con `flex-wrap` sola el nombre también entra, pero cuántos
+       controles suben depende del largo de cada nombre — a 480px quedaban 3 o 4
+       arriba en unas filas y 0 en otras, con alturas de 66 a 104px. Es la misma
+       irregularidad que el fix vino a sacar, y la primera versión de este
+       invariante la dejaba pasar por mirar sólo el nombre. */
+    const arriba = [...fila.children]
+      .filter(k => k !== main && !k.classList.contains('badge'))
+      .filter(k => Math.abs(k.getBoundingClientRect().top - main.getBoundingClientRect().top) < 25);
+    if (arriba.length) problemas.push(`"${quien}": ${arriba.length} control(es) quedaron en el renglón del nombre en vez de bajar`);
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
 /* ----------------------------------------------------------------- escenarios */
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
@@ -73,6 +154,7 @@ const ESCENARIOS = [
     }); } },
 
   { clave: 'jugadores', rol: 'admin', nombre: 'listado de jugadores (admin)',
+    invariante: INVARIANTE_FILA_DE_JUGADOR,
     async preparar(page) { await irAPestania(page, 'Jugadores'); } },
 
   { clave: 'jugadores-jugador', rol: 'jugador', nombre: 'listado de jugadores (rol jugador)',
@@ -107,6 +189,7 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
+    invariante: INVARIANTE_INPUTS_DE_CARGA,
     async preparar(page) { await abrirPartido(page, '2026-08-27'); } },
 
   { clave: 'partido-finalizado', rol: 'admin', nombre: 'detalle de partido · finalizado',
@@ -217,6 +300,7 @@ async function main() {
   const URL = `http://127.0.0.1:${puerto}/index.html`;
   const browser = await chromium.launch();
   const fallas = [];
+  const rotosInvariante = [];
   const rotos = [];
 
   console.log(`Layout responsive — Principio V · ancho mínimo soportado ${ANCHO_MINIMO}px`);
@@ -246,12 +330,15 @@ async function main() {
         continue;
       }
       const r = await page.evaluate(MEDIR);
+      const problemas = caso.invariante ? await page.evaluate(caso.invariante) : [];
       await ctx.close();
-      const mal = r.desborde > 0 || r.fuera.length > 0;
+      const mal = r.desborde > 0 || r.fuera.length > 0 || problemas.length > 0;
       marcas.push(mal ? `${w}✗` : `${w}·`);
-      if (mal) fallas.push({ caso: caso.nombre, ...r });
+      if (r.desborde > 0 || r.fuera.length > 0) fallas.push({ caso: caso.nombre, ...r });
+      if (problemas.length) rotosInvariante.push({ caso: caso.nombre, ancho: r.limite, problemas });
     }
-    const malEste = fallas.some(f => f.caso === caso.nombre) || rotos.some(f => f.caso === caso.nombre);
+    const malEste = fallas.some(f => f.caso === caso.nombre) || rotos.some(f => f.caso === caso.nombre)
+                 || rotosInvariante.some(f => f.caso === caso.nombre);
     console.log(`  ${malEste ? '✗' : '✓'} ${caso.nombre}`);
     if (malEste) console.log(`      ${marcas.join(' ')}`);
   }
@@ -266,8 +353,18 @@ async function main() {
     console.log('Suele significar que cambió un selector o un flujo — hay que actualizar el escenario.');
   }
 
-  if (fallas.length === 0 && rotos.length === 0) {
+  if (rotosInvariante.length) {
+    console.log(`\n✗ ${rotosInvariante.length} invariante(s) de alineación roto(s):\n`);
+    for (const r of rotosInvariante) {
+      console.log(`  ${r.caso} @ ${r.ancho}px`);
+      for (const p of r.problemas) console.log(`      ${p}`);
+    }
+    console.log('\nNo es desborde: el contenido entra, pero quedó alineado distinto de lo acordado.');
+  }
+
+  if (fallas.length === 0 && rotos.length === 0 && rotosInvariante.length === 0) {
     console.log(`\n✓ sin scroll horizontal ni elementos fuera del viewport en ningún ancho ≥ ${ANCHO_MINIMO}px`);
+    console.log('✓ invariantes de alineación cumplidos');
     process.exit(0);
   }
 

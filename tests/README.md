@@ -103,6 +103,36 @@ lados, y la franja de tablet. Esa franja está porque es donde el desborde fue p
 "mobile" y dar por sentado que arriba de 560px sobra lugar. Un dispositivo popular
 puede caer lejos de todo borde y no probar nada.
 
+### Los invariantes de alineación
+
+Además del desborde, un escenario puede declarar un **invariante**: una aserción de
+layout que el contenido puede violar estando entero dentro del viewport. Nada de
+esto produce scroll, así que la medición de desborde no lo ve — son dos preguntas
+distintas sobre la misma pantalla. Hay dos, los dos por debajo de 560px:
+
+- **Panel de equipos**: los inputs de carga de resultado, siempre en su propio
+  renglón y centrados. Dejarlo al wrap natural mezclaba filas de 39px con filas de
+  69px según el largo del nombre.
+- **Listado de jugadores**: los controles de administración, siempre en su propio
+  renglón. Sin eso `.row-main` quedaba con 76px de ancho a 360px —los controles
+  suman ~158px que no encogen— y adentro se apilaban el nombre en tres líneas y las
+  estadísticas en cuatro, con filas de 94 a 130px.
+
+**Un invariante flojo es peor que ninguno**, y el segundo lo fue en su primera
+versión: aseguraba que el nombre no se partiera, que también se cumple con
+`flex-wrap` sola. Pero sin el `flex-basis` el resultado es indeterminado — a 480px
+quedaban 3 o 4 controles arriba en unas filas y 0 en otras, con alturas de 66 a
+104px, o sea la misma irregularidad que el fix venía a sacar. Hay que asertar la
+propiedad que importa (que TODOS los controles bajen), no un síntoma que se cumple
+por casualidad.
+
+El del panel de equipos **no asegura nada arriba de 560px**, y es a propósito. Entre 561 y
+900px la fila entra en una línea; arriba de 900px el panel vuelve a dos columnas y
+8 de 16 filas envuelven otra vez — la misma irregularidad que se corrigió en
+mobile, en una banda de escritorio. Está sin decidir qué hacer ahí, y asegurarlo
+dejaría la suite roja de entrada, que es peor que una suite que dice exactamente
+qué cubre.
+
 ### Los tres resultados
 
 `✗` es un desborde: la pantalla incumple el principio.
@@ -153,12 +183,23 @@ acá, con el emulador de dispositivo del navegador.
 ### Que pase no alcanza
 
 Un test de layout verde no dice nada hasta que se lo ve fallar. Cuando se agrega un
-escenario, hay que revertir el fix que lo motiva y confirmar que lo atrapa — el
+escenario o un invariante, hay que revertir el fix que lo motiva y confirmar que lo
+atrapa — el
 Principio V lo exige, no es una sugerencia. Los escenarios se validaron así contra
 el `index.html` previo al arreglo de `.teams-wrap`, y ahí apareció algo que la
 verificación manual en el navegador no había encontrado: la fila de dupla desborda
 además a 390px y 768px, que contra staging no se veía porque los partidos con dupla
 tenían la inscripción abierta y no pintaban los inputs.
+
+Los dos invariantes se validaron igual. Quitándole el `flex-basis:100%` a
+`.team-stat-group`, el del panel falla en 430, 479, 481 y 559px y no en 360 ni 390,
+porque a esos anchos la fila envuelve sola — que es la respuesta correcta.
+Quitándole el `flex-basis` a `.row-main`, el del listado falla en los mismos cuatro
+anchos, nombrando la fila y cuántos controles quedaron arriba.
+
+Esa validación es la que atrapó la primera versión floja del segundo invariante.
+Sin ella habría entrado al repo un invariante que no asegura nada, que es peor que
+no tenerlo: ocupa el lugar de una garantía sin serlo.
 
 ## Medir, además de testear
 
