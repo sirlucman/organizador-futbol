@@ -19,10 +19,11 @@ Sync Impact Report
     se leyó como una prohibición literal de px en controles y produjo un
     requisito incumplible (009 FR-014, corregido el 2026-08-27). Conviene
     acotarla a *layout* en una enmienda futura.
-  - TODO(COBERTURA_DE_ESCENARIOS): el test de layout cubre hoy el panel de
-    equipos y los parámetros de reglas — las dos zonas donde el layout se rompió.
-    No cubre la lista de partidos, el listado de jugadores, la ficha de jugador,
-    los modales ni el login. Se van agregando a medida que se toquen.
+  - RESUELTO TODO(COBERTURA_DE_ESCENARIOS): el test de layout pasó a arrancar la
+    aplicación real (falseando `firebase`) y cubre las 14 pantallas del producto —
+    login, listado de jugadores en los dos roles, ficha, tooltip de ayuda, lista de
+    partidos, detalle en sus tres estados, configuración, los dos modales y el
+    toast. Una pantalla nueva se agrega como escenario ahí.
 - Templates requiring follow-up: none
 -->
 
