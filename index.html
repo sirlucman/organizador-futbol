@@ -3745,6 +3745,49 @@
         }
       }
     }
+    /* Reparto de duplas de rotación (011 FR-007/FR-007a, 013 FR-001). Es una restricción
+       dura que cambia el armado, así que el Principio III de la constitución pide que quede
+       en el resumen: hasta acá el administrador no tenía forma de saber que la regla actuó.
+       Se deriva de lo que EFECTIVAMENTE pasó —las duplas del armado guardado y en qué equipo
+       terminó cada una— y no del criterio que se quiso aplicar, para no afirmar un reparto
+       que un bloqueo pudo haber torcido (013 FR-005). Se usa `duplasSnapshot` y no `m.duplas`
+       por el mismo motivo que la info de arqueros: el resumen sigue explicando el armado que
+       se hizo aunque después se toque la convocatoria. */
+    const duplasDelArmado = (() => {
+      try{ return JSON.parse(eq.duplasSnapshot || '[]'); }
+      catch(e){ return (m.duplas || []); }
+    })();
+    if(duplasDelArmado.length > 0){
+      const enBlanco = duplasDelArmado.filter(par => eq.blanco.includes(par[0])).length;
+      const enNegro = duplasDelArmado.filter(par => eq.negro.includes(par[0])).length;
+      const ubicadas = enBlanco + enNegro;
+      // Una dupla de suplentes no entró a ningún equipo: no hay reparto que explicar.
+      if(ubicadas > 0){
+        // Con un solo arquero fijo, la que sobra va al equipo QUE LO TIENE, porque el otro
+        // ya recibe la ventaja de puntaje por rotar el arco (011 FR-007a).
+        const eqConArquero = (eq.arquerosInfo && eq.arquerosInfo.compensado)
+          ? (eq.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco')
+          : null;
+        const label = (k) => k === 'blanco' ? 'Blanco' : 'Negro';
+        const porArquero = eqConArquero
+          && Math.abs(enBlanco - enNegro) === 1
+          && (enBlanco > enNegro ? 'blanco' : 'negro') === eqConArquero;
+        const razonArquero = ` La que sobra fue al Equipo ${label(eqConArquero)}, que tiene arquero fijo, porque el otro ya recibe la ventaja de puntaje por rotar el arco.`;
+        const razonBloqueo = ' El reparto parejo cede ante los jugadores bloqueados, que no se mueven de equipo.';
+
+        if(ubicadas === 1){
+          const donde = label(enBlanco === 1 ? 'blanco' : 'negro');
+          explicaciones.push(`La dupla de rotación quedó en el Equipo ${donde}.${porArquero ? ' Es el que tiene arquero fijo: el otro ya recibe la ventaja de puntaje por rotar el arco.' : ''}`);
+        }else if(enBlanco === enNegro){
+          explicaciones.push(`Las ${ubicadas} duplas de rotación se repartieron en partes iguales: ${enBlanco} en cada equipo.`);
+        }else{
+          const conteo = `${enBlanco} en el Blanco y ${enNegro} en el Negro`;
+          const razon = porArquero ? razonArquero : (bloqueados.length > 0 ? razonBloqueo : '');
+          explicaciones.push(`Las ${ubicadas} duplas de rotación quedaron ${conteo}.${razon}`);
+        }
+      }
+    }
+
     (eq.arquerosExcedentes || []).forEach(s => {
       const p = players.find(pl => pl.id === s.playerId);
       if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} porque cada equipo lleva un solo arquero.`);

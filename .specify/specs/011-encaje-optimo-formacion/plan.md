@@ -26,22 +26,23 @@ Cuando el veredicto de un principio se apoya en código, se cita el `file:line`.
 - **Principio II**: FR-003 acota la decisión a las posiciones declaradas, sin meter el
   puntaje en el encaje; no se generaliza a "formaciones configurables" que ningún spec
   pide. **PASA**.
-- **Principio III**: parcialmente. El cumplimiento o incumplimiento de la formación se
-  informa (`index.html:3698` y `:3701`), y las reubicaciones de arqueros también
-  (`:3751` y `:3753`). Pero **el reparto de duplas de FR-007 / FR-007a no se explica en
-  ninguna parte**: de las 13 líneas que puede emitir "Por qué quedaron así", ninguna
-  menciona duplas. Es una restricción dura que cambia el armado sin dejar rastro para el
-  administrador. **NO PASA** — ver Hallazgos.
+- **Principio III**: el cumplimiento o incumplimiento de la formación se informa
+  (`index.html:3698` y `:3701`) y las reubicaciones de arqueros también (`:3751` y
+  `:3753`). El reparto de duplas de FR-007 / FR-007a **no se explicaba en ninguna parte**:
+  de las 13 líneas que podía emitir "Por qué quedaron así", ninguna las mencionaba. Era una
+  restricción dura que cambiaba el armado sin dejar rastro para el administrador.
+  **Corregido el 2026-08-27**: FR-014 lo exige y `index.html:3748-3785` lo emite, derivando
+  el reparto de lo que efectivamente pasó. **PASA desde 2026-08-27**.
 - **Principio IV (arquitectura desacoplada y modular)**: verificado por máquina, no por lectura: ninguna de las 41 declaraciones que `tests/harness.js` extrae del motor referencia `document`, `el(`, `innerHTML`, `querySelector`, `window.storage` ni `window.auth`. El motor no sabe nada de la interfaz ni de Firestore. **PASA**.
 - **Principio V (responsive)**: **NO APLICA** — el efecto visible es el contenido del
   resumen, que reusa `.explain-box`, sin layout nuevo.
 
 ## Hallazgos
 
-1. **Abierto — Principio III**. El reparto de duplas es efecto del motor y no está
-   reflejado en el resumen de generación. El principio dice que "ninguna estrategia,
-   regla o parámetro del motor se implementa sin que su efecto sea explicable y quede
-   reflejado en el resumen de generación", sin excepción por ser una restricción dura.
-   Dos salidas posibles, y la decisión no es de este documento: agregar la línea de
-   explicación, o enmendar el Principio III para que las restricciones duras no la
-   necesiten. Comparte causa con el mismo hallazgo en `013`.
+1. **Resuelto (2026-08-27) — Principio III**. El reparto de duplas es efecto del motor y
+   no estaba reflejado en el resumen; el principio no exceptúa a las restricciones duras.
+   De las dos salidas posibles se eligió agregar la explicación, no enmendar el principio:
+   FR-014 en este spec, FR-007 en `013`, y la implementación en `index.html:3748-3785`.
+   La explicación se deriva del reparto REAL y no del criterio buscado, porque un bloqueo
+   manual puede haberlo torcido (`013`, FR-005) y afirmar lo pretendido sería afirmar una
+   decisión que no ocurrió.

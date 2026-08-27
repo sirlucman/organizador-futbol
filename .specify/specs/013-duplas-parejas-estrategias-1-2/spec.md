@@ -30,6 +30,10 @@ Además, quedan tres estrategias con criterios distintos sobre la misma cuestió
 - Q: ¿Cambia el invariante de que los dos integrantes van juntos? → A: No. Sigue vigente y sigue teniendo prioridad (`008-duplas-rotacion`).
 - Q: ¿Los bloqueos manuales pueden violar la regla? → A: Sí. Un bloqueo es una decisión explícita del usuario y manda sobre el reparto parejo, igual que en la Estrategia 3.
 
+### Session 2026-08-27
+
+- Q: El reparto parejo de duplas ES esta feature entera, y no se informaba en ninguna parte. ¿Cómo se cierra? → A: Con FR-007, que remite a la explicación única definida en `011`, FR-014. Acá el incumplimiento del Principio III pesaba más que en `011`: allá el reparto es una de varias decisiones y el resto sí se explicaba; acá era el único cambio de comportamiento de la feature, así que su efecto era completamente invisible para el administrador.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Mismo criterio de duplas con cualquier estrategia (Priority: P1)
@@ -68,6 +72,7 @@ Un "admin" genera equipos con Estrategia 1 o con Estrategia 2 en un partido con 
 - **FR-004**: El sistema MUST seguir manteniendo a los dos integrantes de cada dupla en el mismo equipo, con prioridad sobre el reparto parejo (`008-duplas-rotacion`).
 - **FR-005**: Los bloqueos manuales de jugadores MUST prevalecer sobre el reparto parejo de duplas.
 - **FR-006**: El resultado MUST ser el mismo, en cuanto a cantidad de duplas por equipo, sin importar el orden de convocatoria de los titulares.
+- **FR-007**: El reparto de duplas de las Estrategias 1 y 2 MUST informarse en el resumen de generación con el mismo criterio y el mismo texto que el de la Estrategia 3 (`011-encaje-optimo-formacion`, FR-014). La explicación es única y no depende de la estrategia, por la misma razón que el criterio de reparto: si cada estrategia explicara distinto un comportamiento que ya es común, volvería la incoherencia que esta feature vino a sacar.
 
 ### Enmiendas a specs vigentes
 

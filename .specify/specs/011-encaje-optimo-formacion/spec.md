@@ -39,6 +39,11 @@ Un segundo problema apareció al analizar ese partido: **nada garantiza que las 
 - Q: ¿La regla de duplas parejas aplica a las otras estrategias? → A: En esta feature no, pero se extendió a las tres en `013-duplas-parejas-estrategias-1-2`, implementada el mismo día. La regla vive en un solo lugar del código y la usan las tres estrategias.
 - Q: ¿Cambia la fórmula de puntaje de las duplas o de los jugadores fuera de posición? → A: No. Esta feature no toca ningún puntaje. Al sacar el encaje de la dimensión del puntaje, dejan de hacer falta los ajustes que se habían considerado.
 
+### Session 2026-08-27
+
+- Q: El reparto de duplas cambia el armado y no aparecía en "Por qué quedaron así". ¿Es un incumplimiento del Principio III? → A: Sí. El principio dice que ninguna estrategia, regla o parámetro del motor se implementa sin que su efecto quede reflejado en el resumen, y no exceptúa a las restricciones duras. Lo detectó el Constitution Check retroactivo del 2026-08-27, que es el paso que esta feature no había pasado. Se resolvió agregando la explicación (FR-014), no enmendando el principio.
+- Q: ¿Por qué el resumen deriva el reparto de lo que pasó en vez de informar el criterio? → A: Porque el criterio puede no haberse cumplido: un bloqueo manual prevalece sobre el reparto parejo (`013`, FR-005). Informar "se repartieron en partes iguales" cuando un bloqueo lo impidió sería afirmar una decisión que no ocurrió, que es exactamente lo que el Principio III prohíbe.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Que la formación se cumpla siempre que sea posible (Priority: P1)
@@ -132,6 +137,7 @@ Sirve como criterio de aceptación concreto de las tres historias. Formación 3-
 - **FR-011**: El sistema MUST informar en el resumen los movimientos a posición secundaria y los lugares que quedaron descubiertos, reflejando la asignación final efectiva y no decisiones intermedias que quedaron sin efecto.
 - **FR-012**: El sistema MUST NOT modificar la forma de elegir arqueros, ni la fórmula de puntaje de los jugadores, ni el valor de puntaje de las duplas.
 - **FR-013**: El aviso "No se pudo completar la formación" MUST aparecer únicamente cuando no exista ninguna asignación que la complete con los titulares convocados.
+- **FR-014**: El sistema MUST informar en el resumen de generación cómo quedaron repartidas las duplas de rotación entre los dos equipos. Cuando el reparto no sea parejo, MUST indicar el motivo: que la cantidad impar se resolvió a favor del equipo con arquero fijo (FR-007a), o que un bloqueo manual lo impidió (`013-duplas-parejas-estrategias-1-2`, FR-005). El resumen MUST reflejar el reparto que efectivamente ocurrió y no el criterio que se buscó aplicar: si un bloqueo torció el reparto, informa el reparto real, no el pretendido.
 
 ### Enmiendas a specs vigentes
 
