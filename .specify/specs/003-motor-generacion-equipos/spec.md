@@ -38,6 +38,7 @@
 - Q: Al armar los dos equipos con Estrategia 3, ¿el motor procesa un equipo completo antes de empezar el otro, o decide lugar por lugar alternando entre ambos equipos a partir del mismo pool de titulares disponibles? → A: Lugar por lugar, alternando entre ambos equipos: se decide cada posición de la formación (ej. el primer Defensor) para ambos equipos antes de pasar a la siguiente, tomando siempre candidatos del pool global de titulares aún no asignados.
 - Q: Cuando dos o más lugares de la formación necesitan simultáneamente el recurso de emergencia de FR-019(c) ("cualquier titular disponible"), ¿en qué orden decide el motor cuál de esos lugares llena primero? → A: Orden de posición ascendente (Defensor, Volante, Delantero — el arco ya se resolvió antes), igual que el orden de visualización de FR-007.
 
+- Q: ¿Es cierto que el drag & drop de equipos no sirve en mobile? → A: No, y el spec lo afirmaba. Verificado a mano en producción el 2026-08-27: funciona en iOS y en Chrome sobre Android. La limitación que este spec declaraba en Assumptions, y el ítem del Roadmap que la citaba como motivo, nacieron de una suposición que nadie había probado. Corregidos los dos. Lo detectó la auditoría de conformance del Principio V, que llegó a la conclusión opuesta leyendo el código y tuvo que rectificar cuando se midió en un dispositivo.
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Generar equipos equilibrados automáticamente (Priority: P1)
@@ -126,14 +127,14 @@ Una vez generados los equipos, el administrador mueve jugadores entre equipos y 
 
 **Why this priority**: Es la vía de intervención manual que la aplicación garantiza siempre disponible sobre el resultado del motor; complementa pero no reemplaza a la generación automática (US1).
 
-**Independent Test**: Se puede probar moviendo jugadores entre equipos con drag & drop en desktop, bloqueando algunos, y regenerando para verificar que los bloqueados no cambien de equipo.
+**Independent Test**: Se puede probar moviendo jugadores entre equipos con drag & drop —en desktop y también desde un celular—, bloqueando algunos, y regenerando para verificar que los bloqueados no cambien de equipo.
 
 **Acceptance Scenarios**:
 
-1. **Given** equipos generados, **When** el administrador arrastra un jugador de un equipo a otro (drag & drop en desktop), **Then** el jugador pasa a integrar el equipo destino.
+1. **Given** equipos generados, **When** el administrador arrastra un jugador de un equipo a otro, **Then** el jugador pasa a integrar el equipo destino.
 2. **Given** un jugador bloqueado en su equipo, **When** se vuelve a ejecutar el algoritmo de generación, **Then** ese jugador nunca cambia de equipo, sin excepción.
 3. **Given** un jugador desbloqueado, **When** se regenera, **Then** el algoritmo puede reubicarlo libremente junto con el resto de los jugadores no bloqueados.
-4. **Given** un dispositivo táctil (celular/tablet), **When** el administrador intenta usar drag & drop, **Then** la interacción puede no responder igual que en desktop; no existe todavía una alternativa táctil equivalente (limitación conocida de esta versión, ver `Roadmap.md`).
+4. **Given** un dispositivo táctil (celular o tablet), **When** el administrador arrastra un jugador de un equipo a otro, **Then** el jugador pasa a integrar el equipo destino, igual que en desktop. Verificado a mano en producción el 2026-08-27 sobre iOS y sobre Chrome en Android.
 
 ---
 
@@ -189,7 +190,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-011**: El sistema MUST permitir elegir una estrategia por defecto global, aplicada al crear partidos nuevos, sin impedir elegir una estrategia distinta por partido. Esa estrategia por defecto MUST actualizarse sola con la última que el administrador elija en el selector de un partido, y MUST persistir entre sesiones. Cambiarla MUST NOT marcar como desactualizados los equipos ya generados de otros partidos: cada partido guarda su propia estrategia y se compara contra esa.
 - **FR-012**: Cuando la diferencia de puntaje entre equipos supere el `diferenciaMaxima` configurado, el sistema MUST resaltar esa métrica en el resumen y MUST agregar una explicación automática sugiriendo acciones correctivas, sin bloquear ninguna acción sobre el partido.
 - **FR-013**: El sistema MUST avisar cuando la configuración del motor cambie después de haber generado los equipos de un partido, ofreciendo regenerarlos.
-- **FR-014**: El sistema MUST permitir mover jugadores entre equipos manualmente (drag & drop en desktop) después de una generación.
+- **FR-014**: El sistema MUST permitir mover jugadores entre equipos manualmente, por arrastre, después de una generación. El requisito no distingue plataforma: se verificó que el arrastre funciona también en dispositivos táctiles (ver Assumptions).
 - **FR-015**: El sistema MUST permitir bloquear y desbloquear jugadores en su equipo, y MUST garantizar que un jugador bloqueado nunca cambie de equipo en ninguna regeneración.
 - **FR-016**: Ante un cambio en la lista de titulares, el sistema MUST regenerar los equipos respetando siempre a los jugadores bloqueados y recalculando el balance entre los jugadores libres.
 - **FR-017**: La arquitectura del motor MUST permitir incorporar nuevas estrategias y reglas sin modificar el funcionamiento de las existentes.
@@ -235,7 +236,7 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 
 - El modelo de datos de Jugador (posiciones, puntajes) y de Partido/Cancha (que determina la cantidad de titulares a balancear) están especificados en los specs de las features "Gestión de jugadores" y "Gestión de partidos" respectivamente.
 - La persistencia de la configuración del motor y de los equipos generados usa la misma capa de persistencia compartida (Cloud Firestore) que el resto de la aplicación.
-- No existe todavía una alternativa táctil equivalente al drag & drop para editar equipos manualmente en dispositivos móviles (ver `Roadmap.md`, sección "Mejoras de UX").
+- La edición manual de equipos por drag & drop funciona también en dispositivos móviles: se verificó a mano en producción sobre iOS y sobre Chrome en Android (2026-08-27). Está implementada con la API HTML5 de arrastre (`draggable` + `dataTransfer`), sin ningún handler de `pointer` ni de `touch`, y aun así los dos navegadores la disparan desde el gesto de arrastre del sistema. Este spec afirmaba lo contrario hasta esa verificación.
 
 ## Notas a futuro *(ideas, no planificadas ni especificadas)*
 
