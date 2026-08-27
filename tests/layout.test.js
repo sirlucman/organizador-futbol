@@ -64,17 +64,29 @@ function servir() {
    Hoy hay uno solo; si aparece un segundo conviene sacarlos a su propio módulo. */
 
 /* Los inputs de carga de resultado deben estar SIEMPRE en su propio renglón y
-   centrados por debajo de 560px, que es donde la fila queda estrecha. Dejarlo al
-   wrap natural mezclaba filas de 39px con filas de 69px según el largo del nombre,
-   y esa irregularidad se lee peor que la línea extra.
+   centrados cuando el panel es angosto, no sólo cuando no entran. Dejarlo al wrap
+   natural mezclaba filas de 39px con filas de 69px según el largo del nombre, y esa
+   irregularidad se lee peor que la línea extra.
 
-   Deliberadamente NO asegura nada arriba de 560px. Entre 561 y 900px la fila entra
-   en una línea y está bien, pero arriba de 900px el panel vuelve a dos columnas y
-   8 de 16 filas envuelven otra vez — la misma irregularidad que se corrigió en
-   mobile, en una banda de escritorio. Está sin decidir qué hacer ahí, y asegurarlo
-   acá dejaría la suite roja de entrada: peor que una suite que dice qué cubre. */
+   El umbral es el ancho del PANEL y no el del viewport, igual que la container
+   query del CSS: el mismo panel de 373px aparece en una columna a 360px de
+   viewport y en dos columnas a 1400px, porque `.wrap` está topeado en 760px.
+   Asertando sobre el panel, el invariante cubre las dos bandas con una sola regla
+   y no queda ningún ancho exento. */
 const INVARIANTE_INPUTS_DE_CARGA = () => {
-  if (document.documentElement.clientWidth > 560) return [];
+  /* Todo lo que el invariante usa vive acá adentro: lo que viaja al navegador es el
+     texto de esta función, así que una referencia a una constante del módulo llega
+     colgando y tira ReferenceError dentro de la página. */
+  const UMBRAL_PANEL_ANGOSTO = 500;
+  /* Una container query mide el CONTENT BOX del contenedor, no el border box: el
+     panel de 528px con 16px de padding por lado se evalúa como 496px, y por eso
+     matchea contra 500. Medir igual acá es lo que evita que el test y el CSS
+     discrepen justo en el borde del umbral, que es donde importa. */
+  const anchoDeContenido = (el) => {
+    const cs = getComputedStyle(el);
+    return el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  };
+
   const filas = [...document.querySelectorAll('.team-player-row:not(.team-player-row-dupla)')];
   if (!filas.length) return ['no se encontró ninguna .team-player-row: ¿cambió el markup del panel de equipos?'];
   const conGrupo = filas.filter(f => f.querySelector(':scope > .team-stat-group'));
@@ -85,12 +97,24 @@ const INVARIANTE_INPUTS_DE_CARGA = () => {
     const nombre = fila.querySelector(':scope > span:not([class])');
     if (!nombre) continue;
     const quien = nombre.textContent.trim().slice(0, 22);
+    const panelEl = fila.closest('.team-panel');
+    const panel = panelEl.getBoundingClientRect();
+    const anchoUtil = anchoDeContenido(panelEl);
+    const angosto = anchoUtil <= UMBRAL_PANEL_ANGOSTO;
     const g = fila.querySelector(':scope > .team-stat-group').getBoundingClientRect();
-    if (g.top <= nombre.getBoundingClientRect().top + 2) {
-      problemas.push(`"${quien}": los inputs quedaron en el mismo renglón que el nombre`);
+    const bajoDeLinea = g.top > nombre.getBoundingClientRect().top + 2;
+
+    if (angosto && !bajoDeLinea) {
+      problemas.push(`"${quien}": panel angosto (${Math.round(anchoUtil)}px útiles) y los inputs quedaron en el renglón del nombre`);
       continue;
     }
-    const panel = fila.closest('.team-panel').getBoundingClientRect();
+    /* El panel ancho es el otro lado de la misma moneda: si ahí la fila envuelve,
+       la irregularidad volvió por donde se la sacó. */
+    if (!angosto && bajoDeLinea) {
+      problemas.push(`"${quien}": panel ancho (${Math.round(anchoUtil)}px útiles) y los inputs bajaron de renglón habiendo lugar`);
+      continue;
+    }
+    if (!angosto) continue;
     const desvio = Math.round(((g.left + g.right) / 2) - ((panel.left + panel.right) / 2));
     if (Math.abs(desvio) > 2) problemas.push(`"${quien}": los inputs no están centrados (desvío ${desvio}px)`);
   }

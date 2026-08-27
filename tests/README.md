@@ -111,7 +111,8 @@ esto produce scroll, así que la medición de desborde no lo ve — son dos preg
 distintas sobre la misma pantalla. Hay dos, los dos por debajo de 560px:
 
 - **Panel de equipos**: los inputs de carga de resultado, siempre en su propio
-  renglón y centrados. Dejarlo al wrap natural mezclaba filas de 39px con filas de
+  renglón y centrados cuando el panel es angosto, y siempre en la misma línea que el
+  nombre cuando es ancho. Dejarlo al wrap natural mezclaba filas de 39px con filas de
   69px según el largo del nombre.
 - **Listado de jugadores**: los controles de administración, siempre en su propio
   renglón. Sin eso `.row-main` quedaba con 76px de ancho a 360px —los controles
@@ -126,12 +127,19 @@ quedaban 3 o 4 controles arriba en unas filas y 0 en otras, con alturas de 66 a
 propiedad que importa (que TODOS los controles bajen), no un síntoma que se cumple
 por casualidad.
 
-El del panel de equipos **no asegura nada arriba de 560px**, y es a propósito. Entre 561 y
-900px la fila entra en una línea; arriba de 900px el panel vuelve a dos columnas y
-8 de 16 filas envuelven otra vez — la misma irregularidad que se corrigió en
-mobile, en una banda de escritorio. Está sin decidir qué hacer ahí, y asegurarlo
-dejaría la suite roja de entrada, que es peor que una suite que dice exactamente
-qué cubre.
+El del panel de equipos asierta sobre el ancho del **panel**, no del viewport, igual
+que la container query que gobierna esa regla en el CSS. El dato que lo obliga: el
+panel mide 373px tanto a 901px de viewport como a 1400px, porque `.wrap` está
+topeado en `max-width:760px`. O sea que el mismo panel angosto aparece en un
+teléfono de 360px y en un monitor grande, y un umbral de viewport necesitaría dos
+rangos disjuntos para cubrir el mismo fenómeno. Midiendo el panel, no queda ningún
+ancho exento.
+
+**Ojo con el content box.** Una container query mide el content box del contenedor,
+no el border box: el panel de 528px con 16px de padding por lado se evalúa como
+496px y matchea contra un umbral de 500. El invariante mide igual (`clientWidth`
+menos los paddings), porque la primera versión comparaba el border box y discrepaba
+con el CSS justo en el borde del umbral — el único lugar donde importa.
 
 ### Los tres resultados
 
@@ -191,11 +199,12 @@ verificación manual en el navegador no había encontrado: la fila de dupla desb
 además a 390px y 768px, que contra staging no se veía porque los partidos con dupla
 tenían la inscripción abierta y no pintaban los inputs.
 
-Los dos invariantes se validaron igual. Quitándole el `flex-basis:100%` a
-`.team-stat-group`, el del panel falla en 430, 479, 481 y 559px y no en 360 ni 390,
-porque a esos anchos la fila envuelve sola — que es la respuesta correcta.
-Quitándole el `flex-basis` a `.row-main`, el del listado falla en los mismos cuatro
-anchos, nombrando la fila y cuántos controles quedaron arriba.
+Los dos invariantes se validaron igual, y el del panel en las dos direcciones:
+bajando el umbral de la container query a 0 falla donde el panel es angosto (360,
+390, 430, 479 y toda la banda de dos columnas); subiéndolo a 900 falla donde es
+ancho (600 a 900), avisando que los inputs bajaron habiendo lugar. Al del listado se
+le quitó el `flex-basis` de `.row-main` y falla nombrando la fila y cuántos controles
+quedaron arriba.
 
 Esa validación es la que atrapó la primera versión floja del segundo invariante.
 Sin ella habría entrado al repo un invariante que no asegura nada, que es peor que
