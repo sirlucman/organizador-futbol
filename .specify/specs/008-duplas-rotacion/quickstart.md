@@ -13,7 +13,7 @@ Validación manual (no hay suite de tests automatizada en este proyecto — ver 
 
 ### 1. Crear el vínculo y efecto sobre titulares/suplentes (User Story 1)
 
-1. Convocar a 16 jugadores (todos titulares) + 2 suplentes más. Con sesión "jugador", abrir "Agregar rotación" en la fila de un titular → verificar que el buscador muestra tanto convocados como no convocados, excluyendo solo a ese mismo jugador.
+1. Convocar a 16 jugadores (todos titulares) + 2 suplentes más. Con sesión "jugador", abrir "Rotación" en la fila de un titular → verificar que el buscador muestra tanto convocados como no convocados, excluyendo solo a ese mismo jugador.
 2. Vincular a dos TITULARES → verificar que uno libera su vacante y el primer suplente sube automáticamente a titular.
 3. Deshacer ese vínculo y vincular en cambio un TITULAR con un SUPLENTE → verificar que el suplente sale de la lista de suplentes sin liberar ninguna vacante adicional, y que el resto de suplentes conserva su orden relativo.
 4. Con la dupla activa, verificar que ambos integrantes aparecen agrupados en un único renglón de la convocatoria (uno arriba, otro abajo, dentro de un mismo recuadro — FR-016), con un botón "Quitar del partido" por integrante y un solo botón "Deshacer rotación" para el par. Intentar vincular a cualquiera de sus dos integrantes con un tercer jugador (desde cualquier sesión) → verificar que ninguno de los dos aparece como candidato.
