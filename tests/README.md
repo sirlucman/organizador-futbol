@@ -22,7 +22,9 @@ Si algún día el motor se extrae a su propio archivo (lo que el Principio IV de
 
 **BASELINE** — comportamiento actual, tiene que pasar hoy. Cuando un test de acá se rompe es una regresión y el runner devuelve 1.
 
-**PENDIENTE** — lo que exige `014-puntaje-dupla-por-posicion`, la única sin implementar (y pendiente de decisión: ver su spec). El resto (`009`, `010`, `011`, `012`, `013`) ya está implementado y sus casos viven en el bloque BASELINE. Falla a propósito y no hace fallar el runner. Cuando un pendiente pasa a `✓ ya cumple`, hay que moverlo al bloque BASELINE: pasa a ser comportamiento a preservar. El test `BUG vigente:` se borra cuando el pendiente que lo contradice queda cumplido.
+**PENDIENTE** — lo que exigen las features todavía sin implementar. Falla a propósito y no hace fallar el runner. Cuando un pendiente pasa a `✓ ya cumple`, hay que moverlo al bloque BASELINE: pasa a ser comportamiento a preservar. El test `BUG vigente:` se borra cuando el pendiente que lo contradice queda cumplido.
+
+**Hoy el bloque PENDIENTE está vacío**: `009` a `014` están implementadas y sus casos viven en BASELINE (`014 IMPLEMENTADA` en motor.test.js). La única feature sin implementar es `015-minimo-diferencia-alcanzable`, que sigue en `Draft` y no tiene casos escritos todavía.
 
 ## La Estrategia 4 ("Formación fija pareja")
 
