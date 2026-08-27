@@ -60,7 +60,9 @@ function servir() {
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
    deja en la pantalla a medir. El nombre es lo que se imprime al fallar, así que
-   describe la pantalla, no el mecanismo.
+   describe la pantalla, no el mecanismo. Si `preparar` no llega a la pantalla,
+   tira: el escenario se reporta como `!` y el runner devuelve 1. No hay salteo —
+   un escenario que no corre y no avisa es cobertura perdida en silencio.
    `rol` elige con qué cuenta se entra: 'admin' pinta los controles de
    administración (que son los que más ancho piden), 'jugador' no. */
 const ESCENARIOS = [
@@ -128,9 +130,11 @@ const ESCENARIOS = [
   { clave: 'modal-dupla', rol: 'admin', nombre: 'modal · crear dupla de rotación',
     async preparar(page) {
       await abrirPartido(page, '2026-09-03');
-      const boton = await page.$('.conv-row .icon-btn-dupla, .conv-row img.icon-dupla');
-      if (!boton) return { salteado: 'no hay botón de dupla en este partido' };
-      await boton.click();
+      /* waitForSelector y no page.$: si el botón no está, esto tira y el escenario se
+         reporta como `!`. Con page.$ + salteo, una carrera de timing bajaba la cobertura
+         sin que nada lo dijera — que es justo lo que un test no puede hacer. */
+      await page.waitForSelector('.conv-row img.icon-dupla', { timeout: 5000 });
+      await page.click('.conv-row img.icon-dupla');
       await page.waitForSelector('#duplaModal.open');
     } },
 
@@ -213,7 +217,6 @@ async function main() {
   const URL = `http://127.0.0.1:${puerto}/index.html`;
   const browser = await chromium.launch();
   const fallas = [];
-  const salteados = [];
   const rotos = [];
 
   console.log(`Layout responsive — Principio V · ancho mínimo soportado ${ANCHO_MINIMO}px`);
@@ -234,18 +237,14 @@ async function main() {
       await page.waitForSelector('#appRoot', { state: 'attached' });
       await page.waitForTimeout(600);
 
-      let salteado = null;
       try {
-        const r = await caso.preparar(page);
-        if (r && r.salteado) salteado = r.salteado;
+        await caso.preparar(page);
       } catch (e) {
         rotos.push({ caso: caso.nombre, ancho: w, error: e.message.split('\n')[0] });
         await ctx.close();
         marcas.push(`${w}!`);
         continue;
       }
-      if (salteado) { salteados.push({ caso: caso.nombre, motivo: salteado }); await ctx.close(); break; }
-
       const r = await page.evaluate(MEDIR);
       await ctx.close();
       const mal = r.desborde > 0 || r.fuera.length > 0;
@@ -253,15 +252,12 @@ async function main() {
       if (mal) fallas.push({ caso: caso.nombre, ...r });
     }
     const malEste = fallas.some(f => f.caso === caso.nombre) || rotos.some(f => f.caso === caso.nombre);
-    const salteadoEste = salteados.some(s => s.caso === caso.nombre);
-    console.log(`  ${salteadoEste ? '–' : malEste ? '✗' : '✓'} ${caso.nombre}`);
+    console.log(`  ${malEste ? '✗' : '✓'} ${caso.nombre}`);
     if (malEste) console.log(`      ${marcas.join(' ')}`);
   }
 
   await browser.close();
   server.close();
-
-  for (const s of salteados) console.log(`\n– salteado: ${s.caso} — ${s.motivo}`);
 
   if (rotos.length) {
     console.log(`\n! ${rotos.length} escenario(s) no se pudieron preparar (el test no llegó a medir):\n`);

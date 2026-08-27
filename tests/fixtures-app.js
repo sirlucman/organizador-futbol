@@ -37,6 +37,16 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     goles: 10 + i, asistencias: 4 + i,
   }));
 
+  /* Tres jugadores de más allá del cupo: el partido testigo da exactamente 16 unidades
+     (14 individuales + 2 duplas) y el cupo de Fútbol 8 son 16, así que sin esto la lista
+     de convocatoria nunca tiene suplentes y la sección "Suplentes" de renderConvocadosList
+     no se ejercita. Los nombres son largos a propósito, igual que los del testigo. */
+  ['Maximiliano Etchegaray', 'Bartolomé Villanueva', 'Juan Cruz Ibarrola'].forEach((nombre, i) => {
+    players.push({ id: `sup${i}`, nombre, apellido: '', estado: 'Activo',
+      principal: ['Volante', 'Defensor', 'Delantero'][i], secundarias: [], scores: { Volante: 5, Defensor: 5, Delantero: 5 },
+      partidosJugados: 4, partidosGanados: 2, partidosEmpatados: 1, partidosPerdidos: 1, goles: 2, asistencias: 1 });
+  });
+
   const ids = players.map(p => p.id);
   const titulares = ids.slice(0, 16);
   const equipos = {
