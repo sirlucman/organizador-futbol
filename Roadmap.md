@@ -21,7 +21,7 @@ El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`READM
 - Convocatoria con buscador autocompletado (+ TAB) y alta de jugador sin salir del flujo.
 - Titulares/suplentes automáticos según cupo de cancha, con reemplazo automático al bajarse un titular.
 - Motor de generación configurable (2 estrategias, reglas con prioridad/parámetros).
-- Edición manual de equipos (drag & drop en desktop, bloqueo de jugadores).
+- Edición manual de equipos (drag & drop, también desde el celular; bloqueo de jugadores).
 - Explicabilidad + resumen de métricas por generación.
 - Carga de resultado (goles/asistencias) y finalización de partido.
 - Estadísticas acumuladas por jugador (partidos jugados, goles, asistencias) visibles en el listado de jugadores.
@@ -70,7 +70,7 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
        - puntaje de dupla según la posición → .specify/specs/014-puntaje-dupla-por-posicion/ -->
 
 ### Mejoras de UX
-- Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino), ya que hoy el drag & drop nativo no responde igual en celular/tablet.
+- Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino). **El motivo original de este ítem era falso**: decía que el drag & drop nativo no responde igual en celular, y el 2026-08-27 se verificó a mano en producción que funciona tanto en iOS como en Chrome sobre Android. Queda como idea de ergonomía —tocar dos veces puede ser más cómodo que arrastrar en una pantalla chica— y no como la solución a un hueco funcional. Pendiente decidir si sobrevive con ese alcance más chico.
 - Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `.specify/memory/constitution.md`, sección "Restricciones Técnicas y de Alcance").
 - Nueva forma de presentación de equipos donde se muestre la estrategia: 3-2-2, 3-1-3 etc.
 
