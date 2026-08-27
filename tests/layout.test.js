@@ -239,9 +239,15 @@ const ESCENARIOS = [
       await abrirPartido(page, '2026-09-03');
       /* waitForSelector y no page.$: si el botón no está, esto tira y el escenario se
          reporta como `!`. Con page.$ + salteo, una carrera de timing bajaba la cobertura
-         sin que nada lo dijera — que es justo lo que un test no puede hacer. */
-      await page.waitForSelector('.conv-row img.icon-dupla', { timeout: 5000 });
-      await page.click('.conv-row img.icon-dupla');
+         sin que nada lo dijera — que es justo lo que un test no puede hacer.
+
+         `.btn-ghost` y no `img.icon-dupla`: DOS botones distintos de la fila llevan ese
+         ícono, "Agregar rotación" (abre el modal) y "Deshacer rotación" (rompe el vínculo).
+         El selector por ícono tomaba el primero del DOM, así que cuando el fixture pasó a
+         tener una dupla en la primera fila empezó a clickear Deshacer: el modal nunca se
+         abría y el escenario moría por timeout. */
+      await page.waitForSelector('.conv-row .btn-ghost', { timeout: 5000 });
+      await page.click('.conv-row .btn-ghost');
       await page.waitForSelector('#duplaModal.open');
     } },
 

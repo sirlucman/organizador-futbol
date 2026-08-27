@@ -21,7 +21,11 @@ const { PARTIDO_TESTIGO } = require('./fixtures.js');
    interpreta como "sin configurar" y resuelve con sus defaults. */
 function docsDesde(fixture = PARTIDO_TESTIGO) {
   const duplas = fixture.duplas || [];
-  const jugadores = [...fixture.individuales, ...duplas.flat()];
+  /* Las duplas van PRIMERO para que sus cuatro integrantes entren en el cupo de titulares.
+     Con ellas al final sólo la primera llegaba a un equipo, y el resumen de generación caía
+     siempre en el caso de una sola dupla ubicada — las ramas de reparto par y desparejo no se
+     ejercitaban nunca. */
+  const jugadores = [...duplas.flat(), ...fixture.individuales];
 
   /* Estadísticas acumuladas: existen para que la fila del listado pinte
      `.row-stats`, que es parte de lo que hay que medir (004 FR-006). */
@@ -49,16 +53,33 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
 
   const ids = players.map(p => p.id);
   const titulares = ids.slice(0, 16);
+  const duplasIds = duplas.map(([a, b]) => [a.id, b.id]);
+  /* Los equipos se arman respetando lo que el motor garantiza: los dos integrantes de una
+     dupla van juntos, y las duplas se reparten una por equipo (011 FR-007). Partirlas acá
+     produciría un armado que el motor nunca genera. */
+  const dA = duplasIds[0] || [], dB = duplasIds[1] || [];
+  const sueltos = titulares.filter(id => ![...dA, ...dB].includes(id));
   const equipos = {
-    blanco: titulares.slice(0, 8),
-    negro: titulares.slice(8, 16),
+    blanco: [...dA, ...sueltos.slice(0, 8 - dA.length)],
+    negro: [...dB, ...sueltos.slice(8 - dA.length, 16 - dA.length - dB.length)],
     sumaBlanco: 51.8, sumaNegro: 51.3,
     posicionAsignada: Object.fromEntries(titulares.map((id, i) => {
       const p = players.find(x => x.id === id);
       return [id, i % 8 === 0 ? 'Arquero' : p.principal];
     })),
+    /* Campos que el generador siempre escribe y el resumen lee. Sin ellos la explicación
+       renderizaba "Se mantuvieron NaN asignaciones; undefined jugadores cambiaron de
+       equipo": ruido de fixture que puede tapar un problema real. */
+    esPrimeraGeneracion: true,
+    cambios: 0,
+    estrategia: 'Formación fija pareja',
+    estrategiaKey: 'estrategia4',
   };
-  const duplasIds = duplas.map(([a, b]) => [a.id, b.id]);
+  /* Forma canónica de las duplas, igual que `canonicalDuplas` en index.html: es lo que el
+     armado guarda para poder detectar que la convocatoria cambió, y lo que el resumen usa
+     para explicar el reparto de duplas que realmente se hizo. Sin esto la explicación no
+     se renderiza y el escenario no prueba nada de eso. */
+  const duplasSnapshot = JSON.stringify(duplasIds.map(par => [...par].sort()).sort((a, b) => (a[0] + a[1]).localeCompare(b[0] + b[1])));
 
   /* Un partido por estado, porque cada estado pinta una fila distinta: sin
      inputs, con los tres inputs de carga de resultado, y con los stats de
@@ -66,13 +87,13 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
   const partidos = [
     { id: 'm-abierto', fecha: '2026-09-03', cancha: 'futbol8', estado: 'Inscripción abierta',
       convocados: ids, inscripcionCerrada: false, estrategia: 'estrategia4',
-      bloqueados: [titulares[1]], duplas: duplasIds, equipos },
+      bloqueados: [titulares[1]], duplas: duplasIds, equipos: { ...equipos, duplasSnapshot } },
     { id: 'm-cerrado', fecha: '2026-08-27', cancha: 'futbol8', estado: 'Equipos generados',
       convocados: ids, inscripcionCerrada: true, estrategia: 'estrategia4',
-      bloqueados: [], duplas: duplasIds, equipos },
+      bloqueados: [], duplas: duplasIds, equipos: { ...equipos, duplasSnapshot } },
     { id: 'm-finalizado', fecha: '2026-08-20', cancha: 'futbol8', estado: 'Finalizado',
       convocados: ids, inscripcionCerrada: true, estrategia: 'estrategia4',
-      bloqueados: [], duplas: duplasIds, equipos,
+      bloqueados: [], duplas: duplasIds, equipos: { ...equipos, duplasSnapshot },
       resultado: { finalizadoEn: 1756000000000,
         statsPorJugador: Object.fromEntries(titulares.map((id, i) => [id, { goles: i % 3, golesPenal: i % 2, asistencias: (i + 1) % 3 }])) } },
   ];
