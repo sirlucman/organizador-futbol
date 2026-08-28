@@ -77,7 +77,9 @@ const INVARIANTE_INPUTS_DE_CARGA = () => {
   /* Todo lo que el invariante usa vive acá adentro: lo que viaja al navegador es el
      texto de esta función, así que una referencia a una constante del módulo llega
      colgando y tira ReferenceError dentro de la página. */
-  const UMBRAL_PANEL_ANGOSTO = 500;
+  // Tiene que quedar igual al `@container (max-width: ...)` de `.team-stat-group` en index.html —
+  // ver el comentario ahí para de dónde sale el número (se remidió al agregar el gol en contra).
+  const UMBRAL_PANEL_ANGOSTO = 550;
   /* Una container query mide el CONTENT BOX del contenedor, no el border box: el
      panel de 528px con 16px de padding por lado se evalúa como 496px, y por eso
      matchea contra 500. Medir igual acá es lo que evita que el test y el CSS
