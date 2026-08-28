@@ -165,6 +165,12 @@
   .empty-state svg{ width: 40px; height:40px; opacity:0.35; margin-bottom: 10px; }
   .empty-state p{ font-size: 14px; margin: 4px 0 16px; }
 
+  /* BallLoader (design system, components/feedback) — pelota 3D que gira en el lugar. */
+  .ball-loader{ display:flex; flex-direction:column; align-items:center; gap:8px; padding: 50px 20px; }
+  .ball-loader canvas{ display:block; }
+  .ball-loader .ball-loader-shadow{ border-radius:9999px; background:rgb(17 24 39 / 0.16); filter:blur(3px); }
+  .ball-loader .ball-loader-caption{ font-family:var(--font-body); font-size:14px; font-weight:600; color:var(--muted); }
+
 
   .match-list{ display:flex; flex-direction:column; gap:10px; }
   .match-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 16px 18px; display:flex; flex-direction:column; gap: 12px; cursor:pointer; transition: box-shadow .15s ease; }
@@ -4843,12 +4849,235 @@
     if(panelJ) panelJ.classList.add('active');
   }
 
+  /* ===== BallLoader (design system, components/feedback/BallLoader.jsx) =====
+     Puerto sin React del mismo motor: una pelota de fútbol real (icosaedro truncado, 12
+     pentágonos + 20 hexágonos) renderizada en canvas con iluminación fija en espacio de vista —
+     gira la pelota, no el brillo. Los frames se pre-renderizan una vez a un atlas compartido, asi
+     que no importa si en algun momento hay mas de una instancia en pantalla.
+     No le agregues un `rotate` de CSS encima: eso hace girar la luz y rompe la ilusion de esfera. */
+  const PHI = (1 + Math.sqrt(5)) / 2;
+  const BALL_FRAME_SIZE = 208;
+  const BALL_FRAME_COUNT = 24;
+  const BALL_TEX_W = 384;
+  const BALL_TEX_H = 192;
+  const BALL_PENT_SCALE = 0.97418; // los pentágonos quedan un poco mas lejos del centro que los hexágonos
+  const BALL_SEAM = 0.012;
+
+  function ballNormalize(v){ const l = Math.hypot(v[0], v[1], v[2]); return [v[0]/l, v[1]/l, v[2]/l]; }
+  const BALL_AXIS = ballNormalize([0.2, 1, 0.14]);
+  const BALL_LIGHT = ballNormalize([-0.4, 0.5, 0.78]);
+  const BALL_HALF = ballNormalize([BALL_LIGHT[0], BALL_LIGHT[1], BALL_LIGHT[2] + 1]);
+
+  function ballFaceCentres(){
+    const pent = [], hex = [];
+    for(const a of [1,-1]) for(const b of [1,-1]){
+      pent.push([0, a, b*PHI], [a, b*PHI, 0], [a*PHI, 0, b]);
+      hex.push([a/PHI, 0, b*PHI], [0, a*PHI, b/PHI], [a*PHI, b/PHI, 0]);
+    }
+    for(const a of [1,-1]) for(const b of [1,-1]) for(const c of [1,-1]) hex.push([a,b,c]);
+    return pent.map(ballNormalize).concat(hex.map(ballNormalize)); // los primeros 12 son pentágonos
+  }
+
+  function ballRodrigues(a, t){
+    const c = Math.cos(t), s = Math.sin(t), k = 1-c, [x,y,z] = a;
+    return [
+      c+k*x*x, k*x*y-s*z, k*x*z+s*y,
+      k*y*x+s*z, c+k*y*y, k*y*z-s*x,
+      k*z*x-s*y, k*z*y+s*x, c+k*z*z,
+    ];
+  }
+
+  let BALL_TEXTURE = null;
+  function ballTexture(){
+    if(BALL_TEXTURE) return BALL_TEXTURE;
+    const C = ballFaceCentres();
+    const tex = new Uint8Array(BALL_TEX_W * BALL_TEX_H); // 0 hexágono · 1 pentágono · 2 costura
+    for(let y=0; y<BALL_TEX_H; y++){
+      const lat = Math.PI/2 - ((y+0.5)/BALL_TEX_H)*Math.PI;
+      const cy = Math.cos(lat), sy = Math.sin(lat);
+      for(let x=0; x<BALL_TEX_W; x++){
+        const lon = ((x+0.5)/BALL_TEX_W)*Math.PI*2 - Math.PI;
+        const dx = cy*Math.cos(lon), dy = sy, dz = cy*Math.sin(lon);
+        let d1=-2, d2=-2, i1=0;
+        for(let i=0; i<C.length; i++){
+          const c = C[i];
+          const d = (dx*c[0] + dy*c[1] + dz*c[2]) * (i<12 ? BALL_PENT_SCALE : 1);
+          if(d>d1){ d2=d1; d1=d; i1=i; } else if(d>d2) d2=d;
+        }
+        tex[y*BALL_TEX_W+x] = d1-d2 < BALL_SEAM ? 2 : (i1<12 ? 1 : 0);
+      }
+    }
+    BALL_TEXTURE = tex;
+    return tex;
+  }
+
+  function ballReadRGB(name, fallback){
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    const m = /^#?([0-9a-f]{6})$/i.exec(v);
+    if(!m) return fallback;
+    const n = parseInt(m[1], 16);
+    return [(n>>16)&255, (n>>8)&255, n&255];
+  }
+
+  function ballPalette(tone){
+    const ink = ballReadRGB('--ink', [17,24,39]);
+    const canvas = ballReadRGB('--chalk', [255,255,255]);
+    const muted = ballReadRGB('--muted', [107,114,128]);
+    const pale = ballReadRGB('--color-primary-pale', [228,240,196]); // no existe en la app; fallback fijo
+    return tone === 'night'
+      ? { hex: [26,33,47], pent: pale, seam: [10,14,22] }
+      : { hex: [Math.min(250,canvas[0]), Math.min(250,canvas[1]), Math.min(250,canvas[2])], pent: ink, seam: muted };
+  }
+
+  const BALL_ATLASES = new Map();
+  function ballAtlasFor(tone){
+    let a = BALL_ATLASES.get(tone);
+    if(a) return a;
+    const canvas = document.createElement('canvas');
+    canvas.width = BALL_FRAME_SIZE * BALL_FRAME_COUNT;
+    canvas.height = BALL_FRAME_SIZE;
+    // orden intercalado: la cobertura de ángulos se mantiene pareja mientras se van generando frames
+    const order = [], seen = new Set();
+    for(let step=BALL_FRAME_COUNT; step>=1; step=Math.floor(step/2)){
+      for(let i=0; i<BALL_FRAME_COUNT; i+=step) if(!seen.has(i)){ seen.add(i); order.push(i); }
+      if(step===1) break;
+    }
+    a = { canvas, done: new Uint8Array(BALL_FRAME_COUNT), queue: order, colors: ballPalette(tone) };
+    BALL_ATLASES.set(tone, a);
+    return a;
+  }
+
+  function ballRenderFrame(a, f){
+    const r = BALL_FRAME_SIZE/2;
+    const ctx = a.canvas.getContext('2d');
+    const img = ctx.createImageData(BALL_FRAME_SIZE, BALL_FRAME_SIZE);
+    const data = img.data;
+    const m = ballRodrigues(BALL_AXIS, -(f/BALL_FRAME_COUNT)*Math.PI*2);
+    const tex = ballTexture();
+    const { hex, pent, seam } = a.colors;
+    for(let py=0; py<BALL_FRAME_SIZE; py++){
+      const ny = -(py+0.5-r)/r;
+      for(let px=0; px<BALL_FRAME_SIZE; px++){
+        const i = (py*BALL_FRAME_SIZE+px)*4;
+        const nx = (px+0.5-r)/r;
+        const q = nx*nx + ny*ny;
+        if(q>=1){ data[i+3]=0; continue; }
+        const nz = Math.sqrt(1-q);
+        const dx = m[0]*nx + m[1]*ny + m[2]*nz;
+        const dy = m[3]*nx + m[4]*ny + m[5]*nz;
+        const dz = m[6]*nx + m[7]*ny + m[8]*nz;
+        let u = (((Math.atan2(dz,dx)+Math.PI)/(Math.PI*2))*BALL_TEX_W)|0;
+        let v = (((Math.PI/2 - Math.asin(dy<-1?-1:(dy>1?1:dy)))/Math.PI)*BALL_TEX_H)|0;
+        if(u<0) u=0; else if(u>=BALL_TEX_W) u=BALL_TEX_W-1;
+        if(v<0) v=0; else if(v>=BALL_TEX_H) v=BALL_TEX_H-1;
+        const t = tex[v*BALL_TEX_W+u];
+        const col = t===1 ? pent : (t===2 ? seam : hex);
+        let diff = nx*BALL_LIGHT[0] + ny*BALL_LIGHT[1] + nz*BALL_LIGHT[2];
+        if(diff<0) diff=0;
+        const sh = 0.5 + 0.6*diff;
+        let spec = 0;
+        const sp = nx*BALL_HALF[0] + ny*BALL_HALF[1] + nz*BALL_HALF[2];
+        if(sp>0.6){ let s=sp*sp; s*=s; s*=s; s*=s; spec = 0.34*s; }
+        const add = 255*spec;
+        const rr = col[0]*sh+add, gg = col[1]*sh+add, bb = col[2]*sh+add;
+        data[i] = rr>255?255:rr;
+        data[i+1] = gg>255?255:gg;
+        data[i+2] = bb>255?255:bb;
+        const edge = (1-Math.sqrt(q))*r;
+        data[i+3] = edge<1 ? edge*255 : 255;
+      }
+    }
+    ctx.putImageData(img, f*BALL_FRAME_SIZE, 0);
+    a.done[f] = 1;
+  }
+
+  const BALL_LIVE = new Set();
+  let ballRaf = 0;
+
+  function ballNearestReady(a, f){
+    for(let k=0; k<=BALL_FRAME_COUNT; k++){
+      const x = (f+k)%BALL_FRAME_COUNT, y = (f-k+BALL_FRAME_COUNT)%BALL_FRAME_COUNT;
+      if(a.done[x]) return x;
+      if(a.done[y]) return y;
+    }
+    return -1;
+  }
+
+  function ballTick(){
+    ballRaf = requestAnimationFrame(ballTick);
+    const start = performance.now();
+    for(const inst of BALL_LIVE){
+      const a = ballAtlasFor(inst.tone);
+      while(a.queue.length && performance.now()-start < 7) ballRenderFrame(a, a.queue.shift());
+      break;
+    }
+    const t = performance.now()/1000;
+    for(const inst of BALL_LIVE){
+      // Se auto-limpia: cuando loadAll() reemplaza el contenido de #roster, este canvas queda
+      // desconectado del DOM y la instancia se descarta sola, sin depender de un unmount explícito.
+      if(!inst.canvas.isConnected){ BALL_LIVE.delete(inst); continue; }
+      const a = ballAtlasFor(inst.tone);
+      const phase = inst.still ? 0 : (t/inst.spinSeconds) % 1;
+      const f = ballNearestReady(a, Math.floor(phase*BALL_FRAME_COUNT) % BALL_FRAME_COUNT);
+      if(f<0) continue;
+      if(inst.still && inst.painted===f) continue;
+      inst.painted = f;
+      const ctx = inst.canvas.getContext('2d');
+      ctx.clearRect(0, 0, inst.canvas.width, inst.canvas.height);
+      ctx.drawImage(a.canvas, f*BALL_FRAME_SIZE, 0, BALL_FRAME_SIZE, BALL_FRAME_SIZE, 0, 0, inst.canvas.width, inst.canvas.height);
+    }
+    if(!BALL_LIVE.size){ cancelAnimationFrame(ballRaf); ballRaf = 0; }
+  }
+
+  /* Arma el DOM del loader y lo pone a girar. `size` 20-24 en línea, 40 en cards, 88-96 en
+     pantallas de carga (ver BallLoader.prompt.md). No se usa `tone="night"` acá: el plantel
+     carga sobre fondo claro. */
+  function renderBallLoader({ size = 40, spinSeconds = 1.1, tone = 'classic', caption, shadow = false } = {}){
+    const wrap = document.createElement('div');
+    wrap.className = 'ball-loader';
+    wrap.setAttribute('role', 'status');
+    if(!caption) wrap.setAttribute('aria-label', 'Cargando');
+
+    const canvas = document.createElement('canvas');
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const px = Math.round(size * dpr);
+    canvas.width = px;
+    canvas.height = px;
+    canvas.style.width = size + 'px';
+    canvas.style.height = size + 'px';
+    wrap.appendChild(canvas);
+
+    if(shadow){
+      const sh = document.createElement('span');
+      sh.className = 'ball-loader-shadow';
+      sh.setAttribute('aria-hidden', 'true');
+      sh.style.width = (size*0.63) + 'px';
+      sh.style.height = Math.max(4, size*0.08) + 'px';
+      sh.style.marginTop = Math.max(6, size*0.11) + 'px';
+      wrap.appendChild(sh);
+    }
+
+    if(caption){
+      const cap = document.createElement('span');
+      cap.className = 'ball-loader-caption';
+      cap.textContent = caption;
+      wrap.appendChild(cap);
+    }
+
+    const still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    BALL_LIVE.add({ canvas, tone, spinSeconds, still, painted: -1 });
+    if(!ballRaf) ballRaf = requestAnimationFrame(ballTick);
+    return wrap;
+  }
+
   /* Placeholder mientras loadAll() trae los datos (varias lecturas a Firestore). Sin esto la app
      aparece completamente vacia por ~1.5s y parece colgada. No muestra ningun dato, asi que es
      seguro pintarlo antes de conocer el rol. */
   function showLoadingState(){
     const roster = el('roster');
-    if(roster) roster.innerHTML = '<div class="empty-state"><p>Cargando el plantel...</p></div>';
+    if(!roster) return;
+    roster.innerHTML = '';
+    roster.appendChild(renderBallLoader({ size: 92, caption: 'Cargando plantel', shadow: true }));
   }
 
   async function attemptLogin(){
