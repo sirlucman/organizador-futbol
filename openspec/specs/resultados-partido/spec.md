@@ -70,3 +70,57 @@ El sistema SHALL acumular, a nivel de jugador, un total de goles de penal a lo l
 #### Scenario: Recalcular totales incluye penales
 - **WHEN** el sistema recalcula las estadísticas acumuladas de los jugadores a partir del historial de partidos
 - **THEN** el total acumulado de goles de penal de cada jugador queda actualizado de forma consistente con la suma de sus goles de penal en cada partido
+
+### Requirement: Registro de goles en contra por jugador y partido
+El sistema SHALL permitir registrar, para cada jugador dentro del resultado de un partido, una cantidad de goles en contra, independiente de la cantidad de goles y goles de penal de ese mismo jugador.
+
+#### Scenario: Cargar un gol en contra
+- **WHEN** un administrador carga el resultado de un partido y asigna 1 gol en contra a un jugador
+- **THEN** el sistema persiste `golesEnContra = 1` para ese jugador en ese partido
+
+#### Scenario: Jugador sin goles en contra
+- **WHEN** un jugador no tiene ningún gol en contra cargado
+- **THEN** el sistema persiste `golesEnContra = 0` para ese jugador en ese partido
+
+### Requirement: El gol en contra suma para el equipo rival, no para el propio
+Un gol en contra de un jugador SHALL sumar al total de goles del equipo **rival** de ese jugador, no al de su propio equipo. Un gol en contra SHALL NOT sumar al total histórico de goles (`golesTotales`) del jugador que lo hizo.
+
+#### Scenario: El marcador del rival incluye el gol en contra
+- **WHEN** un jugador de un equipo convierte 1 gol en contra
+- **THEN** el total de goles mostrado para el equipo rival incluye ese gol, y el total de su propio equipo no lo incluye
+
+#### Scenario: El gol en contra no cuenta para el historial del jugador
+- **WHEN** un jugador convierte un gol en contra
+- **THEN** el total histórico de goles de ese jugador (visible en la pantalla "jugadores") no aumenta
+
+### Requirement: El gol en contra es independiente de los goles propios del jugador
+A diferencia del gol de penal, la cantidad de goles en contra de un jugador SHALL NOT estar limitada ni deshabilitada según la cantidad de goles propios de ese jugador en el partido.
+
+#### Scenario: Gol en contra sin goles propios
+- **WHEN** un jugador que no convirtió ningún gol propio en el partido carga un gol en contra
+- **THEN** el sistema permite cargarlo sin restricción
+
+### Requirement: Carga de goles en contra en la pantalla de resultado
+La pantalla de carga/edición del resultado del partido SHALL ofrecer, para cada jugador, un control numérico para los goles en contra, con el mismo ícono de gol existente pero de color rojo, siempre habilitado mientras la fila sea editable.
+
+#### Scenario: Control de gol en contra visible junto a los demás
+- **WHEN** un administrador abre la carga de resultado de un partido con registro no cerrado
+- **THEN** cada jugador del roster muestra un input de "gol en contra" con el ícono de gol en rojo, además de los de goles, penales y asistencias
+
+### Requirement: Visualización de goles en contra en la ficha del partido
+En el resumen de goleadores de un partido finalizado, un jugador que hizo al menos un gol en contra SHALL aparecer listado del lado de su propio equipo, en un renglón separado del de sus goles propios, mostrando la cantidad de goles en contra junto al ícono de gol en rojo y la abreviatura "(EC)". Esto SHALL mostrarse incluso cuando el jugador no tiene ningún gol propio en ese partido.
+
+#### Scenario: Jugador con gol en contra y goles propios en la ficha
+- **WHEN** un jugador anotó 2 goles propios y 1 gol en contra en un partido
+- **THEN** la ficha del partido lo muestra en la sección de su propio equipo en dos renglones: "Nombre 2⚽" y, debajo, "1🔴 (EC)" sin repetir el nombre
+
+#### Scenario: Jugador con solo gol en contra en la ficha
+- **WHEN** un jugador no anotó ningún gol propio pero sí 1 gol en contra en un partido
+- **THEN** la ficha del partido lo muestra en la sección de su propio equipo como "Nombre 1🔴 (EC)" en un único renglón, sin un "0⚽" inicial
+
+### Requirement: Dato de goles en contra preparado para estadísticas futuras por jugador
+El sistema SHALL acumular, a nivel de jugador, un total de goles en contra a lo largo de todos sus partidos, de forma análoga a como se acumulan hoy los goles de penal, aunque este total no se muestre todavía en ninguna pantalla.
+
+#### Scenario: Recalcular totales incluye goles en contra
+- **WHEN** el sistema recalcula las estadísticas acumuladas de los jugadores a partir del historial de partidos
+- **THEN** el total acumulado de goles en contra de cada jugador queda actualizado de forma consistente con la suma de sus goles en contra en cada partido
