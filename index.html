@@ -218,6 +218,8 @@
 
   .convocados-list{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: hidden; }
   .conv-row{ display:flex; align-items:center; gap:12px; padding: 11px 16px; border-bottom: 1px solid var(--paper-line); }
+  .conv-row[draggable="true"]{ cursor: grab; }
+  .conv-row[draggable="true"]:active{ cursor: grabbing; }
   .conv-row:last-child{ border-bottom:none; }
   .conv-num{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 22px; text-align:right; flex-shrink:0; }
   /* El corte entre titulares y suplentes se muestra una sola vez, como encabezado de
@@ -4357,10 +4359,19 @@
        como un badge en cada renglón, que además de redundante con la numeración y con el
        contador de arriba se comía ~69px de ancho en una pantalla de 360px. */
     const encabezado = (texto) => `<div class="conv-section">${texto}</div>`;
+    // FR-070/TC-042 — el drag and drop de la convocatoria depende solo de `isAdmin()`, a
+    // propósito NO de `locked`: a diferencia de agregar/quitar/vincular (bloqueados una vez
+    // cerrada la inscripción o finalizado el partido), reordenar la cola queda disponible en
+    // cualquier estado del partido. No "arreglar" esto para que respete `locked` también.
+    const puedeArrastrar = isAdmin();
     listEl.innerHTML = unidades.map((unidad, idx) => {
       const seccion = idx === 0 ? encabezado('Titulares')
                     : idx === req ? encabezado('Suplentes')
                     : '';
+      const leadId = unidad.ids[0];
+      const dragAttrs = puedeArrastrar
+        ? `draggable="true" ondragstart="window.__dragStartConvocatoria(event,'${m.id}','${leadId}')" ondragover="event.preventDefault()" ondrop="window.__dropOnConvocatoria(event,'${m.id}','${leadId}')"`
+        : '';
 
       if(unidad.ids.length === 1){
         const p = players.find(pl => pl.id === unidad.ids[0]);
@@ -4369,7 +4380,7 @@
         const agregarBtn = !locked ? `<button class="btn-ghost" style="padding:4px 8px; font-size:12px; display:flex; align-items:center; gap:6px;" title="Agregar rotación" onclick="window.__openDuplaModal('${m.id}','${p.id}')">${ICON_DUPLA_CREAR} Rotación</button>` : '';
         return `
           ${seccion}
-          <div class="conv-row">
+          <div class="conv-row" ${dragAttrs}>
             <span class="conv-num">${idx+1}</span>
             <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
             <div class="conv-name">${fullName(p)}</div>
@@ -4389,7 +4400,7 @@
         </button>` : '';
       return `
         ${seccion}
-        <div class="conv-row conv-row-dupla">
+        <div class="conv-row conv-row-dupla" ${dragAttrs}>
           <span class="conv-num">${idx+1}</span>
           <div class="conv-dupla-members">
             <div class="conv-dupla-member">
@@ -4407,6 +4418,42 @@
         </div>`;
     }).join('');
   }
+
+  // TD-08 — mueve la unidad completa (jugador o dupla) que empieza en `draggedLeadId` a la
+  // posición de la unidad que empieza en `targetLeadId`, dentro de `m.convocados`. Reusa
+  // `getUnidadesConvocatoria` (TC-014) para no separar nunca los dos integrantes de una dupla.
+  function moverUnidadConvocatoria(m, draggedLeadId, targetLeadId){
+    const unidades = getUnidadesConvocatoria(m);
+    const draggedUnidad = unidades.find(u => u.ids.includes(draggedLeadId));
+    const targetUnidad = unidades.find(u => u.ids.includes(targetLeadId));
+    if(!draggedUnidad || !targetUnidad || draggedUnidad === targetUnidad) return false;
+    const draggedIds = new Set(draggedUnidad.ids);
+    const resto = m.convocados.filter(id => !draggedIds.has(id));
+    const idxObjetivo = resto.indexOf(targetUnidad.ids[0]);
+    resto.splice(idxObjetivo, 0, ...draggedUnidad.ids);
+    m.convocados = resto;
+    return true;
+  }
+
+  // FR-070/FR-075 — mirror de window.__dragStartJugador/window.__dropOnTeam (equipos), pero
+  // sobre la cola de convocatoria en vez de sobre `m.equipos`.
+  window.__dragStartConvocatoria = function(e, matchId, playerId){
+    if(!isAdmin()) return; // TC-040
+    e.dataTransfer.setData('text/plain', playerId);
+  };
+
+  window.__dropOnConvocatoria = function(e, matchId, targetPlayerId){
+    e.preventDefault();
+    if(!isAdmin()) return; // TC-040/TC-042 — el único gate es admin, deliberadamente no `locked`
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if(!draggedId || draggedId === targetPlayerId) return;
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m) return;
+    if(moverUnidadConvocatoria(m, draggedId, targetPlayerId)){
+      saveMatches();
+      renderMatchDetail(); // vuelve a pintar convocatoria + resumen titulares/suplentes (mismo patrón que __addToMatch/__removeFromMatch)
+    }
+  };
 
   // Buscador de "Agregar rotación" (FR-001/FR-002): a diferencia de renderAutocomplete (que solo
   // ofrece NO convocados), incluye también convocados, y excluye a quien ya integre otra dupla.
