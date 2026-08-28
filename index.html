@@ -195,8 +195,16 @@
 
   .back-link{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); cursor: pointer; display:inline-flex; gap:6px; align-items:center; margin: 18px 0 14px; background:none; border:none; padding:0; }
   .back-link:hover{ color: var(--ink); }
-  .detail-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+  .detail-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
   .detail-header h2{ font-family: var(--font-display); font-size: 26px; text-transform: capitalize; margin: 0; }
+  /* El chip de estado va agrupado con el título (alineado a la izquierda, pegado a la fecha) en
+     vez de repartido por el flex del header entero — con justify-content:space-between sobre 4
+     hijos (título, chip, toggle, eliminar) el chip quedaba flotando a mitad de camino. Separando
+     "título + chip + meta" de "acciones" en dos grupos, el space-between solo actúa entre esos
+     dos grupos. */
+  .detail-header-main{ display:flex; align-items:center; flex-wrap: wrap; gap: 4px 10px; }
+  .detail-header-main .match-meta{ flex-basis: 100%; margin-top: 0; }
+  .detail-header-actions{ display:flex; align-items:center; gap: 10px; flex-shrink:0; }
 
   .autocomplete-wrap{ position: relative; margin-bottom: 16px; }
   .autocomplete-list{ position:absolute; top: calc(100% + 4px); left:0; right:0; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-control); box-shadow: 0 8px 16px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; z-index: 10; }
@@ -568,15 +576,17 @@
     <div id="matchDetailView" style="display:none;">
       <button class="back-link" id="btnVolverPartidos">← Volver a partidos</button>
       <div class="detail-header">
-        <div>
+        <div class="detail-header-main">
           <h2 id="detailFecha"></h2>
+          <span class="status-chip" id="detailEstado"></span>
           <div class="match-meta" id="detailMeta"></div>
         </div>
-        <span class="status-chip" id="detailEstado"></span>
-        <button class="btn-ghost admin-only" id="btnToggleInscripcion" style="display:none;"></button>
-        <button class="icon-btn admin-only" id="btnDeleteMatch" title="Eliminar partido">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-        </button>
+        <div class="detail-header-actions">
+          <button class="btn-ghost admin-only" id="btnToggleInscripcion" style="display:none;"></button>
+          <button class="icon-btn admin-only" id="btnDeleteMatch" title="Eliminar partido">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+          </button>
+        </div>
       </div>
 
       <div class="autocomplete-wrap">
