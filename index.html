@@ -275,7 +275,7 @@
   .team-panel.negro .team-player-row{ border-bottom-color: rgba(255,255,255,0.14); }
   .team-player-row:last-child{ border-bottom: none; }
   .team-avg{ font-family: var(--font-mono); font-size: 11.5px; opacity: 0.7; margin-left: auto; flex-shrink:0; }
-  .team-stat-label{ font-size: 9px; opacity: 0.55; margin-left: 6px; }
+  .team-stat-label{ font-size: 9px; opacity: 1; margin-left: 6px; }
   .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
   /* Ver el comentario en renderStatsYPuntajeMiembro: los inputs de carga bajan de
      línea juntos, no de a uno. El gap replica el de la fila que los contiene, para
@@ -300,6 +300,10 @@
   .team-dupla-marker{ opacity:0.65; display:flex; align-items:center; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
   .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
+  /* La pelota tiene detalle (blanco y negro) que la clase .icon-boot aplana mal: no lleva su
+     invert de fondo oscuro (ya se distingue igual sobre el panel negro) y va un poco más grande
+     y opaca, porque a 13px y atenuada como el resto de las etiquetas se perdía el dibujo. */
+  .icon-goal{ vertical-align: -3px; margin-left: 4px; display: inline-block; opacity: 1; }
   .stat-goal-icon{ margin-left: 3px; }
   .explain-box{ background: var(--paper); border: 1px solid var(--paper-line); border-radius: var(--radius-control); padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
@@ -1011,6 +1015,9 @@
   };
 
   const BOOT_ICON = '<img class="icon-boot" src="assets/boot-icon.png" alt="Asistencias" width="14" height="13">';
+  // El manual de marca prohíbe emoji: la ⚽ se reemplaza por la misma imagen (convertida a PNG),
+  // igual que ya se hace con BOOT_ICON.
+  const GOAL_ICON = '<img class="icon-goal" src="assets/goal-icon.png" alt="Goles" width="16" height="16">';
 
   // Íconos de dupla: imágenes provistas (dos camisetas con flecha de intercambio / tachadas),
   // con el fondo ya recortado a transparente. En el panel "Equipo Negro" (fondo oscuro) se
@@ -1478,7 +1485,7 @@
     if(players.length === 0){
       roster.innerHTML = `
         <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
           <p>Aún no hay jugadores en el plantel.</p>
           ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
         </div>`;
@@ -1493,7 +1500,7 @@
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
       const statsText = p.partidosJugados
-        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">⚽</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
+        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">${GOAL_ICON}</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
         : '—';
       // "jugador" ve el listado completo (incluidos los jugadores sin puntaje) y las estadísticas
       // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
@@ -3316,7 +3323,7 @@
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
       const st = m.resultado.statsPorJugador[p.id] || {goles:0, golesPenal:0, asistencias:0};
-      statsHtml = `<span class="team-stat-readonly">${st.goles}<span class="stat-goal-icon">⚽</span> · ${st.asistencias}${BOOT_ICON}</span>`;
+      statsHtml = `<span class="team-stat-readonly">${st.goles}</span><span class="stat-goal-icon">${GOAL_ICON}</span><span class="team-stat-readonly"> · ${st.asistencias}${BOOT_ICON}</span>`;
     }else if(cerrada && isAdmin()){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
       const g = draft ? draft.goles : 0;
@@ -3336,7 +3343,7 @@
          identidad arriba, carga de goles abajo (Principio V). */
       statsHtml = `
         <span class="team-stat-group">
-        <span class="team-stat-label">⚽</span>
+        ${GOAL_ICON}
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
         <span class="team-stat-label" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}">P</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesPenal" value="${pen}" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}" ${penalHabil?'':'disabled'}>
@@ -3644,7 +3651,7 @@
           </div>
         </div>
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
+          <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
         </div>
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
       `;
@@ -3892,7 +3899,7 @@
           <ul>${explicaciones.map(e => `<li>${e}</li>`).join('')}</ul>
         </div>` : ''}
       <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
+        <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
         ${!locked ? `<button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')">Regenerar equipos</button>` : ''}
         ${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? `<button class="btn-primary" onclick="window.__finalizarPartido('${m.id}')">Finalizar partido</button>` : ''}
         ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<button class="btn-ghost" onclick="window.__editarResultadoFinalizado('${m.id}')">Editar resultado</button>` : ''}
@@ -3986,7 +3993,7 @@
     if(matches.length === 0){
       container.innerHTML = `
         <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
           <p>Todavía no creaste ningún partido.</p>
         </div>`;
       return;
@@ -4025,7 +4032,7 @@
         .filter(x => x.p && x.goles > 0)
         .sort((a,b) => b.goles - a.goles);
       const scorersHtml = goleadores.length
-        ? goleadores.map(x => `<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">⚽</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`).join('')
+        ? goleadores.map(x => `<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">${GOAL_ICON}</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`).join('')
         : `<div class="scorer-empty">Sin goleadores</div>`;
       return `
         <div class="match-result-team ${claseEquipo}">
