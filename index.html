@@ -4,22 +4,31 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Organizador - Fútbol</title>
+<title>Football App</title>
 <style>
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap");
   :root{
-    --paper: #ECE7D8;
-    --paper-line: #C9C0AA;
-    --chalk: #FAF8F1;
-    --ink: #201D1A;
-    --muted: #8C8474;
-    --pitch: #2F5233;
-    --pitch-light: #4F7942;
-    --brick: #A83D2E;
-    --mustard: #B98B2A;
-    --clay: #BF6B3D;
-    --font-display: Georgia, 'Iowan Old Style', 'Times New Roman', serif;
-    --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --font-mono: ui-monospace, 'SF Mono', SFMono-Regular, Menlo, Consolas, monospace;
+    /* Football App design system — mapped onto the legacy variable names used
+       throughout this file so every selector below picks up the new brand
+       without a full rewrite. See .claude/skills/football-app-design/tokens/. */
+    --paper: #f1f5f9;       /* surface-page (sage) */
+    --paper-line: #e2e8f0;  /* subtle divider on white cards */
+    --chalk: #ffffff;       /* surface-card */
+    --ink: #111827;
+    --muted: #6b7280;
+    --pitch: #85b632;       /* color-primary */
+    --pitch-on: #111827;    /* text/icon color when sitting on --pitch (on-primary is ink, not white) */
+    --pitch-light: #a4cf49; /* primary hover/active */
+    --pitch-deep: #2a5d0a;  /* deep green for text-on-light accents */
+    --brick: #dc2626;       /* negative */
+    --mustard: #a16207;     /* warning content */
+    --clay: #fb923c;        /* tertiary accent (illustration/decorative only) */
+    --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --radius-card: 24px;
+    --radius-control: 12px;
+    --radius-pill: 9999px;
   }
 
   *{ box-sizing: border-box; }
@@ -27,7 +36,6 @@
 
   body{
     background: var(--paper);
-    background-image: repeating-linear-gradient(0deg, transparent, transparent 34px, rgba(0,0,0,0.035) 35px);
     font-family: var(--font-body);
     color: var(--ink);
     min-height: 100vh;
@@ -36,16 +44,15 @@
 
   .wrap{ max-width: 760px; margin: 0 auto; }
 
-  .clip{ width: 64px; height: 26px; background: linear-gradient(180deg, #d8d2bf, #b8b096); border-radius: 6px 6px 3px 3px; margin: 0 auto -14px; position: relative; box-shadow: 0 3px 4px rgba(0,0,0,0.25); }
-  .clip::after{ content:''; position:absolute; inset: 6px 8px; border-radius: 3px; background: rgba(0,0,0,0.15); }
+  .clip{ display: none; }
 
-  header{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 26px 24px 16px; box-shadow: 0 6px 0 rgba(0,0,0,0.06); position: relative; }
+  header{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 26px 24px 16px; box-shadow: 0 6px 0 rgba(0,0,0,0.06); position: relative; }
   .header-top{ display:flex; justify-content:space-between; align-items:flex-start; gap: 12px; flex-wrap: wrap; }
   .eyebrow{ font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
-  h1{ font-family: var(--font-display); font-size: 32px; letter-spacing: 0.06em; text-transform: uppercase; margin: 4px 0 2px; font-weight: 700; }
+  h1{ font-family: var(--font-display); font-size: 32px; letter-spacing: -0.96px; margin: 4px 0 2px; font-weight: 900; }
   .subtitle{ font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
 
-  .tabs{ display:flex; gap:4px; margin-top: 10px; border-top: 1px dashed var(--paper-line); padding-top: 4px; flex-wrap: wrap; }
+  .tabs{ display:flex; gap:4px; margin-top: 10px; border-top: 1px solid var(--paper-line); padding-top: 4px; flex-wrap: wrap; }
   .tab-btn{ font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; background: none; border: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab-btn.active{ color: var(--ink); border-bottom-color: var(--pitch); font-weight: 700; }
   .tab-btn.disabled{ opacity: 0.4; cursor: not-allowed; }
@@ -57,35 +64,33 @@
   body.role-jugador .admin-only{ display:none !important; }
 
   .stats{ display:flex; gap: 10px; flex-wrap: wrap; margin: 14px 0 4px; }
-  .stat{ font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; border: 1px dashed var(--paper-line); border-radius: 6px; color: var(--ink); background: var(--paper); }
-  .stat b{ color: var(--pitch); }
+  .stat{ font-family: var(--font-mono); font-size: 12px; padding: 6px 10px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); color: var(--ink); background: var(--paper); }
+  .stat b{ color: var(--pitch-deep); }
   .stat.inactive-count b{ color: var(--brick); }
 
   .controls{ display:flex; gap:10px; margin: 18px 0 14px; flex-wrap: wrap; align-items:center; }
   .search{ flex: 1 1 200px; position: relative; }
-  .search input{ width:100%; padding: 10px 12px 10px 34px; border: 1px solid var(--paper-line); border-radius: 8px; background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
+  .search input{ width:100%; padding: 10px 12px 10px 34px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
   .search input:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
   .search svg{ position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; opacity:0.5; }
 
-  .filters{ display:flex; gap:6px; flex-wrap: wrap; }
-  .chip-btn{ font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.03em; padding: 8px 12px; border-radius: 20px; border: 1px solid var(--paper-line); background: var(--chalk); color: var(--muted); cursor: pointer; transition: all .15s ease; }
-  .chip-btn:hover{ border-color: var(--pitch); }
-  .chip-btn.active{ background: var(--pitch); border-color: var(--pitch); color: var(--chalk); }
+  .filter-select{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 30px 9px 12px; border-radius: var(--radius-control); border: 1px solid var(--ink); background: var(--chalk) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/16px 16px; color: var(--ink); cursor: pointer; appearance: none; -webkit-appearance: none; }
+  .filter-select:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
 
-  .btn-primary{ font-family: var(--font-body); font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: 8px; border: none; background: var(--pitch); color: var(--chalk); cursor: pointer; white-space: nowrap; transition: background .15s ease, transform .1s ease; }
+  .btn-primary{ font-family: var(--font-body); font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: var(--radius-card); border: none; background: var(--pitch); color: var(--pitch-on); cursor: pointer; white-space: nowrap; transition: background .15s ease, transform .1s ease; }
   .btn-primary:hover{ background: var(--pitch-light); }
   .btn-primary:active{ transform: translateY(1px); }
-  .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: 8px; border: 1px solid var(--paper-line); background: transparent; color: var(--muted); cursor: pointer; }
+  .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: var(--radius-control); border: 1px solid var(--paper-line); background: transparent; color: var(--muted); cursor: pointer; }
   .btn-ghost:hover{ border-color: var(--ink); color: var(--ink); }
 
   /* ---------- Ficha de jugador (compartida: alta normal y alta rápida) ---------- */
   .card-pin-wrap{ display: none; margin: 10px 0 20px; }
-  .card-pin-wrap.open{ display:block; animation: dropIn .25s ease; }
-  @keyframes dropIn{ from{ opacity:0; transform: translateY(-10px) rotate(-1.2deg); } to{ opacity:1; transform: translateY(0) rotate(-0.6deg); } }
+  .card-pin-wrap.open{ display:block; animation: dropIn .2s ease; }
+  @keyframes dropIn{ from{ opacity:0; transform: translateY(-10px); } to{ opacity:1; transform: translateY(0); } }
 
-  .index-card{ background: var(--chalk); border: 1px dashed var(--paper-line); border-radius: 6px; padding: 22px 20px 18px; position: relative; transform: rotate(-0.6deg); box-shadow: 0 8px 16px rgba(0,0,0,0.10); }
-  .pin{ width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #e2503f, var(--brick)); position: absolute; top: -7px; left: 24px; box-shadow: 0 2px 3px rgba(0,0,0,0.35); }
-  .index-card h2{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 14px; }
+  .index-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 22px 20px 18px; position: relative; }
+  .pin{ display: none; }
+  .index-card h2{ font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 14px; }
 
   .field-row{ display:flex; gap:12px; margin-bottom: 12px; flex-wrap: wrap; }
   .field{ flex: 1 1 160px; }
@@ -95,7 +100,7 @@
     position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
     width: 250px; max-width: 70vw;
     background: var(--ink); color: var(--chalk);
-    padding: 10px 12px; border-radius: 8px;
+    padding: 10px 12px; border-radius: var(--radius-control);
     font-family: var(--font-body); font-size: 12.5px; line-height: 1.4;
     text-transform: none; letter-spacing: 0; font-weight: 400;
     box-shadow: 0 6px 18px rgba(0,0,0,0.28);
@@ -104,29 +109,29 @@
   }
   .info-tip::after{ content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:6px solid transparent; border-top-color: var(--ink); }
   .info-icon:hover .info-tip, .info-icon:focus .info-tip, .info-icon.show-tip .info-tip{ opacity: 1; visibility: visible; }
-  .field input[type=text], .field input[type=date], .field select{ width:100%; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--paper); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
+  .field input[type=text], .field input[type=date], .field select{ width:100%; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--paper); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
   .field input:focus, .field select:focus{ outline: 2px solid var(--pitch-light); outline-offset:1px; }
 
   .pos-badges{ display:flex; gap:6px; flex-wrap: wrap; }
-  .pos-toggle{ font-family: var(--font-mono); font-size: 11.5px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--paper-line); background: var(--paper); color: var(--muted); cursor: pointer; user-select: none; }
+  .pos-toggle{ font-family: var(--font-mono); font-size: 11.5px; padding: 6px 10px; border-radius: var(--radius-control); border: 1px solid var(--paper-line); background: var(--paper); color: var(--muted); cursor: pointer; user-select: none; }
   .pos-toggle.disabled{ opacity: 0.35; cursor: not-allowed; }
   .pos-toggle.on{ color: var(--chalk); border-color: transparent; }
 
   .scores-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .score-field label{ font-size: 10px; }
   .score-input-wrap{ position: relative; }
-  .score-field input{ width:100%; padding: 7px 22px 7px 8px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--paper); font-family: var(--font-mono); font-size: 14px; text-align:center; }
+  .score-field input{ width:100%; padding: 7px 22px 7px 8px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--paper); font-family: var(--font-mono); font-size: 14px; text-align:center; }
   .clear-score{ position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); font-size: 15px; line-height:1; padding: 2px; }
   .clear-score:hover{ color: var(--brick); }
   .scores-hint{ font-size: 12.5px; color: var(--muted); padding: 8px 0; grid-column: 1 / -1; }
 
   .avg-preview{ margin-top: 12px; font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
-  .avg-preview b{ color: var(--pitch); font-size:14px; }
+  .avg-preview b{ color: var(--pitch-deep); font-size:14px; }
   .error-msg{ color: var(--brick); font-size: 12.5px; margin-top: 8px; font-weight: 600; min-height: 1px; }
   .card-actions{ display:flex; gap:10px; margin-top: 16px; justify-content: flex-end; }
 
-  .roster{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; overflow: hidden; }
-  .row{ display:flex; align-items:center; gap: 12px; padding: 13px 16px; border-bottom: 1px dashed var(--paper-line); }
+  .roster{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: hidden; }
+  .row{ display:flex; align-items:center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--paper-line); }
   .row:last-child{ border-bottom:none; }
   .row.inactive{ opacity: 0.5; }
 
@@ -134,11 +139,11 @@
   .row-main{ flex: 1 1 auto; min-width: 0; }
   .row-name{ font-weight: 600; font-size: 15px; }
   .row-tags{ display:flex; gap:5px; margin-top: 3px; flex-wrap: wrap; }
-  .tag{ font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 4px; background: var(--paper); color: var(--muted); border: 1px solid var(--paper-line); }
+  .tag{ font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--paper); color: var(--muted); border: 1px solid var(--paper-line); }
   .row-stats{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
-  .avg-chip{ font-family: var(--font-mono); font-size: 13px; font-weight: 700; min-width: 38px; text-align:center; padding: 4px 6px; border-radius: 6px; background: var(--paper); border: 1px solid var(--paper-line); flex-shrink:0; }
+  .avg-chip{ font-family: var(--font-mono); font-size: 13px; font-weight: 700; min-width: 38px; text-align:center; padding: 4px 6px; border-radius: var(--radius-control); background: var(--paper); border: 1px solid var(--paper-line); flex-shrink:0; }
 
-  .switch{ width: 38px; height: 20px; border-radius: 20px; background: var(--paper-line); position: relative; cursor: pointer; flex-shrink:0; transition: background .15s ease; border: none; padding: 0; }
+  .switch{ width: 38px; height: 20px; border-radius: var(--radius-pill); background: var(--paper-line); position: relative; cursor: pointer; flex-shrink:0; transition: background .15s ease; border: none; padding: 0; }
   .switch.on{ background: var(--pitch); }
   .switch::after{ content:''; position:absolute; top:2px; left:2px; width: 16px; height:16px; border-radius:50%; background: var(--chalk); transition: transform .15s ease; }
   .switch.on::after{ transform: translateX(18px); }
@@ -161,7 +166,7 @@
   .footnote{ text-align:center; font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 18px; }
 
   .match-list{ display:flex; flex-direction:column; gap:10px; }
-  .match-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 16px 18px; display:flex; flex-direction:column; gap: 12px; cursor:pointer; transition: box-shadow .15s ease; }
+  .match-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 16px 18px; display:flex; flex-direction:column; gap: 12px; cursor:pointer; transition: box-shadow .15s ease; }
   .match-card:hover{ box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
   /* flex-wrap: el grupo derecho (chip de estado + acciones de admin) se comprime por flex-shrink,
      pero el .status-chip no encoge (flex-shrink:0) y los botones se salían de la tarjeta: 19px de
@@ -169,16 +174,22 @@
   .match-card-top{ display:flex; justify-content:space-between; align-items:center; gap: 10px; flex-wrap: wrap; }
   .match-date{ font-family: var(--font-display); font-size: 17px; text-transform: capitalize; }
   .match-meta{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
-  .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: 20px; background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
-  .status-chip.open{ background: var(--pitch); color: var(--chalk); border-color: var(--pitch); }
+  .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
+  .status-chip.open{ background: var(--pitch); color: var(--pitch-on); border-color: var(--pitch); }
   .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
 
-  .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px dashed var(--paper-line); }
-  .match-result-team{ border-radius: 8px; padding: 10px 12px; text-align:center; }
-  .match-result-team.blanco{ background: var(--paper); border: 1px solid var(--paper-line); }
+  .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
+  /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
+     de la página), este bloque vive DENTRO de la tarjeta blanca del partido en la lista — ahí
+     "blanco sobre blanco" lo hace desaparecer. Por eso el equipo blanco usa acá la variante
+     Card "sage" (para notarse como bloque aparte) y el negro sigue en la variante "dark", con
+     el número de goles en el verde de marca sobre tinta. */
+  .match-result-team{ border-radius: var(--radius-control); padding: 10px 12px; text-align:center; }
+  .match-result-team.blanco{ background: var(--paper); }
   .match-result-team.negro{ background: var(--ink); color: var(--chalk); }
   .match-result-name{ font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
   .match-result-goals{ font-family: var(--font-display); font-size: 26px; line-height: 1.3; }
+  .match-result-team.negro .match-result-goals{ color: var(--pitch); }
   .match-result-scorers{ font-family: var(--font-mono); font-size: 11px; margin-top: 6px; display:flex; flex-direction:column; gap: 2px; }
   .match-result-scorers .scorer-empty{ opacity: 0.55; }
   @media (max-width: 480px){ .match-result{ grid-template-columns: 1fr; } }
@@ -189,20 +200,20 @@
   .detail-header h2{ font-family: var(--font-display); font-size: 26px; text-transform: capitalize; margin: 0; }
 
   .autocomplete-wrap{ position: relative; margin-bottom: 16px; }
-  .autocomplete-list{ position:absolute; top: calc(100% + 4px); left:0; right:0; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 8px; box-shadow: 0 8px 16px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; z-index: 10; }
-  .ac-item{ padding: 10px 12px; cursor: pointer; display:flex; align-items:center; gap:8px; border-bottom: 1px dashed var(--paper-line); font-size: 14px; }
+  .autocomplete-list{ position:absolute; top: calc(100% + 4px); left:0; right:0; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-control); box-shadow: 0 8px 16px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; z-index: 10; }
+  .ac-item{ padding: 10px 12px; cursor: pointer; display:flex; align-items:center; gap:8px; border-bottom: 1px solid var(--paper-line); font-size: 14px; }
   .ac-item:last-child{ border-bottom: none; }
   .ac-item:hover{ background: var(--paper); }
   .ac-pos-dot{ width: 8px; height:8px; border-radius:50%; flex-shrink:0; }
   .ac-empty{ padding: 12px; font-size: 13px; color: var(--muted); }
 
-  .convocados-list{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; overflow: hidden; }
-  .conv-row{ display:flex; align-items:center; gap:12px; padding: 11px 16px; border-bottom: 1px dashed var(--paper-line); }
+  .convocados-list{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: hidden; }
+  .conv-row{ display:flex; align-items:center; gap:12px; padding: 11px 16px; border-bottom: 1px solid var(--paper-line); }
   .conv-row:last-child{ border-bottom:none; }
   .conv-num{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 22px; text-align:right; flex-shrink:0; }
   /* El corte entre titulares y suplentes se muestra una sola vez, como encabezado de
      sección, en vez de repetirse como badge en cada renglón (ver renderConvocadosList). */
-  .conv-section{ font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 9px 16px 5px; background: var(--paper); border-bottom: 1px dashed var(--paper-line); }
+  .conv-section{ font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 9px 16px 5px; background: var(--paper); border-bottom: 1px solid var(--paper-line); }
   .conv-pos-badge{ width: 26px; height: 26px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--chalk); flex-shrink:0; }
   .conv-name{ flex: 1 1 auto; font-size: 14.5px; font-weight: 600; }
   .conv-summary{ display:flex; gap:10px; margin-top: 14px; flex-wrap: wrap; }
@@ -210,16 +221,16 @@
   /* Dupla de rotación agrupada en un mismo renglón: un integrante arriba, el otro abajo, dentro
      de un único recuadro — se ve como una sola unidad, no como dos filas sueltas. */
   .conv-row-dupla{ align-items: stretch; }
-  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px dashed var(--paper-line); border-radius:8px; padding:8px 10px; background: var(--paper); }
+  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--paper-line); border-radius: var(--radius-control); padding:8px 10px; background: var(--paper); }
   .conv-dupla-member{ display:flex; align-items:center; gap:10px; }
   .conv-dupla-member .conv-pos-badge{ width:22px; height:22px; }
   .conv-dupla-member .conv-name{ font-size: 14px; }
 
   /* ---------- Equipos (Slice 3) ---------- */
-  .teams-section{ margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--paper-line); }
-  .teams-section h3{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; }
+  .teams-section{ margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--paper-line); }
+  .teams-section h3{ font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 4px; }
   .teams-subtitle{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
-  .stale-banner{ background: #f5e3d0; border: 1px solid var(--clay); color: var(--ink); padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
+  .stale-banner{ background: #f5e3d0; border: 1px solid var(--clay); color: var(--ink); padding: 10px 14px; border-radius: var(--radius-control); font-size: 13px; margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   /* minmax(0,1fr) y no 1fr: una pista `1fr` es `minmax(auto,1fr)`, cuyo mínimo es el min-content
      de lo que contiene. Con los inputs de goles/penal/asistencias visibles (carga de resultado),
      ese min-content son ~426px por panel, así que la pista se negaba a achicarse y estiraba toda
@@ -239,7 +250,7 @@
      que el mismo panel angosto aparece en un teléfono de 360px y en un monitor de
      1400px: expresarlo con rangos de viewport pedía dos bloques disjuntos con
      números mágicos, y con el ancho del panel es una sola condición. */
-  .team-panel{ border-radius: 10px; padding: 14px 16px; container-type: inline-size; }
+  .team-panel{ border-radius: var(--radius-card); padding: 14px 16px; container-type: inline-size; }
 
   /* Los inputs de carga van siempre en su propio renglón y centrados cuando el panel
      es angosto, no sólo cuando no entran. Dejarlo al wrap natural mezclaba filas de
@@ -253,23 +264,27 @@
        envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
     .team-dupla-member{ flex-wrap: wrap; }
   }
-  .team-panel.blanco{ background: var(--chalk); border: 1px solid var(--paper-line); }
+  /* Card "content" (blanco) y Card "dark" (negro) del design system: el blanco no lleva borde
+     — el contraste contra el fondo salvia de la página ya funciona como elevación — y en el
+     negro el título va en el verde de marca sobre tinta, como pide la variante "dark". */
+  .team-panel.blanco{ background: var(--chalk); }
   .team-panel.negro{ background: var(--ink); color: var(--chalk); }
-  .team-panel h4{ font-family: var(--font-display); text-transform: uppercase; letter-spacing: 0.05em; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
+  .team-panel.negro h4{ color: var(--pitch); }
+  .team-panel h4{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
   .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; }
   /* flex-wrap: en modo carga de resultado la fila suma badge + nombre + puntaje + 3 inputs con
      flex-shrink:0, y con un plantel real no entra en los ~296px que quedan a 360px de viewport.
      Arreglar el grid (minmax(0,1fr), más abajo) sacó el mínimo duro del PANEL, pero la FILA
      seguía desbordando. Envuelve solo donde no entra: a 768px en una columna sigue en una línea. */
-  .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px dashed rgba(0,0,0,0.1); flex-wrap: wrap; }
+  .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px solid rgba(0,0,0,0.1); flex-wrap: wrap; }
   .team-player-row[draggable="true"]{ cursor: grab; }
   .team-player-row[draggable="true"]:active{ cursor: grabbing; }
   .team-panel{ transition: background-color .15s ease; }
   .team-panel.negro .team-player-row{ border-bottom-color: rgba(255,255,255,0.14); }
   .team-player-row:last-child{ border-bottom: none; }
   .team-avg{ font-family: var(--font-mono); font-size: 11.5px; opacity: 0.7; margin-left: auto; flex-shrink:0; }
-  .team-stat-label{ font-size: 9px; opacity: 0.55; margin-left: 6px; }
-  .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 4px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
+  .team-stat-label{ font-size: 9px; opacity: 1; margin-left: 6px; }
+  .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
   /* Ver el comentario en renderStatsYPuntajeMiembro: los inputs de carga bajan de
      línea juntos, no de a uno. El gap replica el de la fila que los contiene, para
      que agrupar no cambie cómo se ven cuando SÍ entran en una línea. */
@@ -293,8 +308,12 @@
   .team-dupla-marker{ opacity:0.65; display:flex; align-items:center; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
   .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
+  /* La pelota tiene detalle (blanco y negro) que la clase .icon-boot aplana mal: no lleva su
+     invert de fondo oscuro (ya se distingue igual sobre el panel negro) y va un poco más grande
+     y opaca, porque a 13px y atenuada como el resto de las etiquetas se perdía el dibujo. */
+  .icon-goal{ vertical-align: -3px; margin-left: 4px; display: inline-block; opacity: 1; }
   .stat-goal-icon{ margin-left: 3px; }
-  .explain-box{ background: var(--paper); border: 1px dashed var(--paper-line); border-radius: 8px; padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
+  .explain-box{ background: var(--paper); border: 1px solid var(--paper-line); border-radius: var(--radius-control); padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
 
@@ -308,19 +327,19 @@
 
   .modal-overlay{ position: fixed; inset: 0; background: rgba(32,29,26,0.45); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px; }
   .modal-overlay.open{ display:flex; }
-  .modal-card{ background: var(--chalk); border-radius: 10px; padding: 22px; max-width: 440px; width:100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
-  .modal-card h3{ font-family: var(--font-display); font-size: 18px; text-transform: uppercase; letter-spacing: 0.04em; margin: 0 0 14px; }
+  .modal-card{ background: var(--chalk); border-radius: var(--radius-card); padding: 22px; max-width: 440px; width:100%; max-height: 88vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.25); }
+  .modal-card h3{ font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 14px; }
   .modal-hint{ font-size: 12px; color: var(--muted); margin: -8px 0 14px; }
 
   /* ---------- Configuración (Slice 4) ---------- */
   .motor-intro{ font-size: 14px; color: var(--ink); margin: 4px 0 14px; line-height: 1.55; }
-  .motor-block{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
-  .motor-block h3{ font-family: var(--font-display); font-size: 17px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
-  .motor-step{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background: var(--pitch); color: var(--chalk); font-family: var(--font-mono); font-size: 13px; font-weight:700; flex-shrink:0; }
+  .motor-block{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 18px 20px; margin-bottom: 16px; }
+  .motor-block h3{ font-family: var(--font-display); font-size: 17px; font-weight: 600; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
+  .motor-step{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background: var(--pitch); color: var(--pitch-on); font-family: var(--font-mono); font-size: 13px; font-weight:700; flex-shrink:0; }
   .motor-block-hint{ font-size: 12.5px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
 
   /* tarjetas de estrategia (elección tipo radio) */
-  .estrategia-card{ display:flex; gap: 12px; align-items:flex-start; border: 1.5px solid var(--paper-line); border-radius: 8px; padding: 13px 15px; margin-bottom: 10px; cursor:pointer; transition: border-color .15s ease, background .15s ease; }
+  .estrategia-card{ display:flex; gap: 12px; align-items:flex-start; border: 1.5px solid var(--paper-line); border-radius: var(--radius-control); padding: 13px 15px; margin-bottom: 10px; cursor:pointer; transition: border-color .15s ease, background .15s ease; }
   .estrategia-card:last-child{ margin-bottom:0; }
   .estrategia-card:hover{ border-color: var(--pitch-light); }
   .estrategia-card.selected{ border-color: var(--pitch); background: #eef3ec; }
@@ -331,18 +350,18 @@
   .estrategia-desc{ font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
 
   .rules-list{ display:flex; flex-direction:column; gap: 10px; }
-  .rule-card{ border: 1px solid var(--paper-line); border-radius: 8px; padding: 13px 15px; background: var(--paper); transition: opacity .15s ease; }
+  .rule-card{ border: 1px solid var(--paper-line); border-radius: var(--radius-control); padding: 13px 15px; background: var(--paper); transition: opacity .15s ease; }
   .rule-card.off{ background: var(--chalk); }
   /* Regla fija: no lleva switch. Se distingue con borde izquierdo, fondo propio y candado. */
   .rule-card.fixed{ border-color: var(--pitch-light); border-left: 4px solid var(--pitch); background: #eef3ec; }
-  .rule-fixed-tag{ font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing:0.04em; color: var(--pitch); border:1px solid var(--pitch-light); border-radius:4px; padding:1px 6px; margin-left:7px; white-space:nowrap; vertical-align: middle; }
-  .rule-locked{ display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; color: var(--pitch); cursor: help; padding-top:2px; }
+  .rule-fixed-tag{ font-family: var(--font-mono); font-size: 9px; text-transform: uppercase; letter-spacing:0.04em; color: var(--pitch-deep); border:1px solid var(--pitch-light); border-radius: 8px; padding:1px 6px; margin-left:7px; white-space:nowrap; vertical-align: middle; }
+  .rule-locked{ display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; color: var(--pitch-deep); cursor: help; padding-top:2px; }
   .rule-locked svg{ width:17px; height:17px; }
   .rule-locked span{ font-family: var(--font-mono); font-size: 9px; letter-spacing:0.04em; text-transform:uppercase; }
   .rule-top{ display:flex; align-items:flex-start; gap: 10px; }
   .rule-order{ display:flex; flex-direction:column; gap: 2px; flex-shrink:0; margin-top:2px; }
-  .rule-order button{ background:none; border:1px solid var(--paper-line); border-radius:4px; cursor:pointer; color: var(--muted); width:22px; height:16px; line-height:1; display:flex; align-items:center; justify-content:center; font-size:10px; padding:0; }
-  .rule-order button:hover:not(:disabled){ border-color: var(--pitch); color: var(--pitch); }
+  .rule-order button{ background:none; border:1px solid var(--paper-line); border-radius: 8px; cursor:pointer; color: var(--muted); width:22px; height:16px; line-height:1; display:flex; align-items:center; justify-content:center; font-size:10px; padding:0; }
+  .rule-order button:hover:not(:disabled){ border-color: var(--pitch); color: var(--pitch-deep); }
   .rule-order button:disabled{ opacity:0.3; cursor:not-allowed; }
   .rule-main{ flex: 1 1 auto; min-width:0; }
   .rule-name{ font-weight: 700; font-size: 14.5px; }
@@ -354,7 +373,7 @@
   .rule-params{ border-left: 2px solid var(--paper-line); padding: 2px 0 2px 12px; display:flex; flex-direction:column; gap:8px; }
   .rule-param-row{ display:flex; align-items:center; gap:8px; font-size: 13px; color: var(--ink); cursor:pointer; }
   .rule-param-row input[type=checkbox]{ width:16px; height:16px; accent-color: var(--pitch); cursor:pointer; flex-shrink:0; }
-  .rule-num{ width: 56px; padding: 5px 6px; border: 1px solid var(--paper-line); border-radius: 6px; background: var(--chalk); font-family: var(--font-mono); font-size: 13px; text-align:center; }
+  .rule-num{ width: 56px; padding: 5px 6px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-mono); font-size: 13px; text-align:center; }
   .rule-unit{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
   .rule-off-hint{ font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
 
@@ -392,30 +411,38 @@
   .login-screen{
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: url('assets/fondo-login.jpeg') center/cover no-repeat;
+    gap: 28px;
+    background: var(--ink);
     padding: 16px;
+  }
+  .login-wordmark{
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 28px;
+    color: var(--pitch);
+    letter-spacing: -0.48px;
   }
   .login-card{
     width: 100%;
     max-width: 320px;
     background: var(--chalk);
     border: 1px solid var(--paper-line);
-    border-radius: 10px;
+    border-radius: var(--radius-card);
     padding: 26px 22px 20px;
-    box-shadow: 0 10px 24px rgba(0,0,0,0.25);
   }
-  .login-card h2{ font-family: var(--font-display); font-size: 20px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 18px; text-align: center; }
+  .login-card h2{ font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0 0 18px; text-align: center; }
   .login-card .field{ margin-bottom: 14px; }
-  .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: 8px; background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
+  .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
   .login-card input:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
 
   .toast{
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
     max-width: min(90vw, 360px);
     background: var(--ink); color: var(--chalk);
-    padding: 12px 18px; border-radius: 8px;
+    padding: 12px 18px; border-radius: var(--radius-control);
     font-family: var(--font-body); font-size: 13.5px; line-height: 1.4; text-align: center;
     box-shadow: 0 8px 20px rgba(0,0,0,0.28);
     z-index: 80; opacity: 0; visibility: hidden; transition: opacity .18s ease, transform .18s ease;
@@ -430,8 +457,8 @@
 <body class="role-jugador">
 
 <div class="login-screen" id="loginScreen" style="display:none;">
+  <div class="login-wordmark">Football App</div>
   <div class="login-card">
-    <h2>Organizador de Partidos</h2>
     <div class="field">
       <label>Usuario</label>
       <input type="text" id="loginUsuario" autocomplete="username">
@@ -452,7 +479,7 @@
   <header>
     <div class="header-top">
       <div>
-        <h1>Organizador de Partidos</h1>
+        <h1>Football App</h1>
         <div id="appVersion" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted);opacity:0.7;">v1.0.54</div>
       </div>
       <button class="btn-ghost" id="btnLogout">Cerrar sesión</button>
@@ -474,19 +501,18 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="searchInput" placeholder="Buscar por nombre o apellido...">
       </div>
-      <div class="filters" id="filters">
-        <button class="chip-btn active" data-filter="todos">Todos</button>
-        <button class="chip-btn" data-filter="Arquero">Arquero</button>
-        <button class="chip-btn" data-filter="Defensor">Defensor</button>
-        <button class="chip-btn" data-filter="Volante">Volante</button>
-        <button class="chip-btn" data-filter="Delantero">Delantero</button>
-      </div>
-      <div class="filters" id="filtersEstado">
-        <button class="chip-btn active" data-filter="todos">Todos</button>
-        <button class="chip-btn" data-filter="Activo">Activos</button>
-        <button class="chip-btn" data-filter="Inactivo">Inactivos</button>
-      </div>
-      <button class="btn-ghost admin-only" id="btnCargarPrueba" title="Solo para probar el prototipo, no es parte de la spec">+ Jugadores de prueba</button>
+      <select class="filter-select" id="filters">
+        <option value="todos">Todas las posiciones</option>
+        <option value="Arquero">Arquero</option>
+        <option value="Defensor">Defensor</option>
+        <option value="Volante">Volante</option>
+        <option value="Delantero">Delantero</option>
+      </select>
+      <select class="filter-select" id="filtersEstado">
+        <option value="todos">Todos</option>
+        <option value="Activo">Activos</option>
+        <option value="Inactivo">Inactivos</option>
+      </select>
       <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
 
@@ -602,7 +628,7 @@
     <div id="confirmMessage" style="font-size:14px; color:var(--ink); margin-bottom:16px;"></div>
     <div class="card-actions">
       <button class="btn-ghost" id="btnConfirmCancel">Cancelar</button>
-      <button class="btn-primary" id="btnConfirmOk" style="background:var(--brick);">Eliminar</button>
+      <button class="btn-primary" id="btnConfirmOk">Eliminar</button>
     </div>
   </div>
 </div>
@@ -750,7 +776,7 @@
   function isAdmin(){ return window.session.rol === 'admin'; }
 
   const POSITIONS = ['Arquero','Defensor','Volante','Delantero'];
-  const POS_COLOR = { Arquero: '#C23B2E', Defensor: '#D9791F', Volante: '#E0B400', Delantero: '#3D7A3E' }; // Rojo, Naranja, Amarillo, Verde
+  const POS_COLOR = { Arquero: '#dc2626', Defensor: '#fb923c', Volante: '#facc15', Delantero: '#16a34a' }; // Rojo (negative), Naranja (tertiary), Amarillo (warning), Verde (positive) — paleta del design system, no el verde de marca
   function posTextColor(pos){ return pos === 'Volante' ? 'var(--ink)' : 'var(--chalk)'; } // el amarillo necesita texto oscuro para que se lea
   function posBadgeStyle(pos){ return `background:${POS_COLOR[pos] || 'var(--muted)'}; color:${POS_COLOR[pos] ? posTextColor(pos) : 'var(--chalk)'};`; }
   const CANCHAS = {
@@ -999,11 +1025,14 @@
       return;
     }
     navigator.clipboard.writeText(texto)
-      .then(() => window.__showToast('\u00a1Formaci\u00f3n copiada al portapapeles!', 'ok'))
+      .then(() => window.__showToast('Formaci\u00f3n copiada al portapapeles.', 'ok'))
       .catch(() => window.__showToast('No se pudo copiar la formaci\u00f3n. Intent\u00e1 de nuevo.', 'error'));
   };
 
   const BOOT_ICON = '<img class="icon-boot" src="assets/boot-icon.png" alt="Asistencias" width="14" height="13">';
+  // El manual de marca prohíbe emoji: la ⚽ se reemplaza por la misma imagen (convertida a PNG),
+  // igual que ya se hace con BOOT_ICON.
+  const GOAL_ICON = '<img class="icon-goal" src="assets/goal-icon.png" alt="Goles" width="16" height="16">';
 
   // Íconos de dupla: imágenes provistas (dos camisetas con flecha de intercambio / tachadas),
   // con el fondo ya recortado a transparente. En el panel "Equipo Negro" (fondo oscuro) se
@@ -1298,7 +1327,7 @@
     confirmCallback = onConfirm;
     const okBtn = el('btnConfirmOk');
     okBtn.textContent = opts.okLabel || 'Eliminar';
-    okBtn.style.background = opts.okColor || 'var(--brick)';
+    okBtn.style.background = opts.okColor || 'var(--pitch)';
     el('confirmModal').classList.add('open');
   }
   el('btnConfirmCancel').addEventListener('click', () => {
@@ -1471,7 +1500,7 @@
     if(players.length === 0){
       roster.innerHTML = `
         <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
           <p>Aún no hay jugadores en el plantel.</p>
           ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__loadTestPlayers()">Cargar jugadores de prueba</button>` : ''}
         </div>`;
@@ -1486,7 +1515,7 @@
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
       const statsText = p.partidosJugados
-        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">⚽</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
+        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">${GOAL_ICON}</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
         : '—';
       // "jugador" ve el listado completo (incluidos los jugadores sin puntaje) y las estadísticas
       // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
@@ -1572,26 +1601,17 @@
   }
 
   el('btnNuevo').addEventListener('click', () => openForm(null));
-  el('btnCargarPrueba').addEventListener('click', () => window.__loadTestPlayers());
   el('btnCancelar').addEventListener('click', closeForm);
   el('btnGuardar').addEventListener('click', validateAndSave);
   el('fPrincipal').addEventListener('change', () => { renderSecBadges('main'); refreshScoresSection('main'); });
   el('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; renderPlayersTab(); });
-  document.querySelectorAll('#filters .chip-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#filters .chip-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      renderPlayersTab();
-    });
+  el('filters').addEventListener('change', (e) => {
+    currentFilter = e.target.value;
+    renderPlayersTab();
   });
-  document.querySelectorAll('#filtersEstado .chip-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#filtersEstado .chip-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentEstadoFilter = btn.dataset.filter;
-      renderPlayersTab();
-    });
+  el('filtersEstado').addEventListener('change', (e) => {
+    currentEstadoFilter = e.target.value;
+    renderPlayersTab();
   });
 
   // Duplas de rotación (008-duplas-rotacion): devuelve el id del compañero de rotación de
@@ -3230,7 +3250,7 @@
         renderPlayersTab();
         renderMatchesTab();
       },
-      { okLabel: 'Finalizar', okColor: 'var(--pitch)' }
+      { okLabel: 'Finalizar', okColor: 'var(--pitch-deep)' }
     );
   };
 
@@ -3275,7 +3295,7 @@
         renderPlayersTab();
         renderMatchesTab();
       },
-      { okLabel: 'Guardar', okColor: 'var(--pitch)' }
+      { okLabel: 'Guardar', okColor: 'var(--pitch-deep)' }
     );
   };
 
@@ -3309,7 +3329,7 @@
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
       const st = m.resultado.statsPorJugador[p.id] || {goles:0, golesPenal:0, asistencias:0};
-      statsHtml = `<span class="team-stat-readonly">${st.goles}<span class="stat-goal-icon">⚽</span> · ${st.asistencias}${BOOT_ICON}</span>`;
+      statsHtml = `<span class="team-stat-readonly">${st.goles}</span><span class="stat-goal-icon">${GOAL_ICON}</span><span class="team-stat-readonly"> · ${st.asistencias}${BOOT_ICON}</span>`;
     }else if(cerrada && isAdmin()){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
       const g = draft ? draft.goles : 0;
@@ -3329,7 +3349,7 @@
          identidad arriba, carga de goles abajo (Principio V). */
       statsHtml = `
         <span class="team-stat-group">
-        <span class="team-stat-label">⚽</span>
+        ${GOAL_ICON}
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
         <span class="team-stat-label" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}">P</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesPenal" value="${pen}" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}" ${penalHabil?'':'disabled'}>
@@ -3637,7 +3657,7 @@
           </div>
         </div>
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
+          <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
         </div>
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
       `;
@@ -3885,7 +3905,7 @@
           <ul>${explicaciones.map(e => `<li>${e}</li>`).join('')}</ul>
         </div>` : ''}
       <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')">📋 Copiar</button>
+        <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
         ${!locked ? `<button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')">Regenerar equipos</button>` : ''}
         ${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? `<button class="btn-primary" onclick="window.__finalizarPartido('${m.id}')">Finalizar partido</button>` : ''}
         ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<button class="btn-ghost" onclick="window.__editarResultadoFinalizado('${m.id}')">Editar resultado</button>` : ''}
@@ -3979,7 +3999,7 @@
     if(matches.length === 0){
       container.innerHTML = `
         <div class="empty-state">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>
           <p>Todavía no creaste ningún partido.</p>
         </div>`;
       return;
@@ -4018,7 +4038,7 @@
         .filter(x => x.p && x.goles > 0)
         .sort((a,b) => b.goles - a.goles);
       const scorersHtml = goleadores.length
-        ? goleadores.map(x => `<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">⚽</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`).join('')
+        ? goleadores.map(x => `<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">${GOAL_ICON}</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`).join('')
         : `<div class="scorer-empty">Sin goleadores</div>`;
       return `
         <div class="match-result-team ${claseEquipo}">
