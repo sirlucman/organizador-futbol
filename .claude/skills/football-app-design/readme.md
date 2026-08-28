@@ -183,6 +183,11 @@ rebote, sin resorte, sin decoración de slide-in, sin parallax.
   en tinta bosque.
 - **Disabled** es 40% de opacidad con `not-allowed`; sin cambio de color.
 
+`tokens/motion.css` restringe el movimiento a color y opacidad — sin transform continuo. **`BallLoader`
+es la única excepción deliberada**: su giro es el comportamiento entero del componente, no una
+decoración encima de otra cosa. No lo "arregles" a color/opacidad ni le agregues una rotación CSS
+extra (spinnea la luz fija y rompe la ilusión de esfera).
+
 ---
 
 ## Iconografía
@@ -228,14 +233,14 @@ actualizá `thumbnail.html` más la prop `brand` en `NavBar` / `Footer`.
 
 ## Componentes
 
-21 componentes en siete grupos. El inventario refleja el bloque `components:` de la spec y sus
-superficies de ejemplo `ex-*` auto-derivadas uno a uno — no se agregó nada más excepto `Icon`.
+22 componentes en siete grupos. El inventario refleja el bloque `components:` de la spec y sus
+superficies de ejemplo `ex-*` auto-derivadas uno a uno — las únicas adiciones son `Icon` y `BallLoader`.
 
 **`components/core/`** — `Button` · `IconButton` · `Badge` · `Card` · `Icon`
 **`components/navigation/`** — `NavBar` · `NavLink` · `SidebarNavRow` · `Footer`
 **`components/forms/`** — `TextInput` · `AuthFormCard`
 **`components/layout/`** — `HeroBand` · `ContentBand`
-**`components/feedback/`** — `Modal` · `Toast` · `EmptyState`
+**`components/feedback/`** — `Modal` · `Toast` · `EmptyState` · `BallLoader`
 **`components/data/`** — `DataTable` · `PricingTier`
 **`components/football/`** — `MatchPlannerCard` · `TeamCompositionCard` · `MatchSummary`
 
@@ -254,6 +259,10 @@ Cómo mapea la spec a estos: `button-primary/secondary/tertiary` → variantes d
 
 - **`Icon`** — un wrapper sobre el set de Lucide que lo reemplaza. Hace falta porque la fuente no
   define ningún sistema de glifos, y cada otro componente referencia íconos por slot.
+- **`BallLoader`** — el único indicador de carga del sistema: una pelota de fútbol 3D que gira en el
+  lugar, renderizada en canvas con iluminación fija (el brillo no gira con la pelota). La fuente no
+  documenta ningún loader; se agregó porque la app necesita uno. Sin ring de progreso, sin bounce —
+  un solo comportamiento, tres tamaños (20–24px en línea, 40px en cards, 88–96px en pantallas de carga).
 
 ---
 
@@ -315,7 +324,7 @@ que consume esto, redirigí la línea `base` de ese archivo hacia el árbol `_ds
 | `tokens/motion.css` | Tokens derivados de duración / easing / press-scale |
 | `tokens/base.css` | Resets de elementos, colores de links, anillo de focus-visible |
 | `guidelines/*.card.html` | 21 tarjetas específimen de fundamentos (Colores, Tipografía, Espaciado, Forma, Marca) |
-| `components/<group>/` | 21 componentes — `.jsx` + `.d.ts` + `.prompt.md` + una card por grupo |
+| `components/<group>/` | 22 componentes — `.jsx` + `.d.ts` + `.prompt.md` + una card por grupo |
 | `ui_kits/marketing/` | Recreación del sitio de marketing — landing, pricing, sign-in |
 | `ui_kits/app/` | Recreación de la app de producto — shell, dashboard, plantel, planificador de partido, reporte de jugador |
 | `templates/landing-page/` | Template de partida copiable — landing page de marketing (`LandingPage.dc.html`) |
