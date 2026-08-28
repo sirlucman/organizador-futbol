@@ -4,7 +4,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Organizador - Fútbol</title>
+<title>Football App</title>
 <style>
   @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap");
   :root{
@@ -74,10 +74,8 @@
   .search input:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
   .search svg{ position:absolute; left:10px; top:50%; transform:translateY(-50%); width:14px; height:14px; opacity:0.5; }
 
-  .filters{ display:flex; gap:6px; flex-wrap: wrap; }
-  .chip-btn{ font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.03em; padding: 8px 12px; border-radius: var(--radius-pill); border: 1px solid var(--paper-line); background: var(--chalk); color: var(--muted); cursor: pointer; transition: all .15s ease; }
-  .chip-btn:hover{ border-color: var(--pitch); }
-  .chip-btn.active{ background: var(--pitch); border-color: var(--pitch); color: var(--pitch-on); }
+  .filter-select{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 30px 9px 12px; border-radius: var(--radius-control); border: 1px solid var(--ink); background: var(--chalk) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 8px center/16px 16px; color: var(--ink); cursor: pointer; appearance: none; -webkit-appearance: none; }
+  .filter-select:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
 
   .btn-primary{ font-family: var(--font-body); font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: var(--radius-card); border: none; background: var(--pitch); color: var(--pitch-on); cursor: pointer; white-space: nowrap; transition: background .15s ease, transform .1s ease; }
   .btn-primary:hover{ background: var(--pitch-light); }
@@ -403,10 +401,19 @@
   .login-screen{
     min-height: 100vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: url('assets/fondo-login.jpeg') center/cover no-repeat;
+    gap: 28px;
+    background: var(--ink);
     padding: 16px;
+  }
+  .login-wordmark{
+    font-family: var(--font-display);
+    font-weight: 900;
+    font-size: 28px;
+    color: var(--pitch);
+    letter-spacing: -0.48px;
   }
   .login-card{
     width: 100%;
@@ -415,7 +422,6 @@
     border: 1px solid var(--paper-line);
     border-radius: var(--radius-card);
     padding: 26px 22px 20px;
-    box-shadow: 0 10px 24px rgba(0,0,0,0.25);
   }
   .login-card h2{ font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0 0 18px; text-align: center; }
   .login-card .field{ margin-bottom: 14px; }
@@ -441,8 +447,8 @@
 <body class="role-jugador">
 
 <div class="login-screen" id="loginScreen" style="display:none;">
+  <div class="login-wordmark">Football App</div>
   <div class="login-card">
-    <h2>Organizador de Partidos</h2>
     <div class="field">
       <label>Usuario</label>
       <input type="text" id="loginUsuario" autocomplete="username">
@@ -463,7 +469,7 @@
   <header>
     <div class="header-top">
       <div>
-        <h1>Organizador de Partidos</h1>
+        <h1>Football App</h1>
         <div id="appVersion" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted);opacity:0.7;">v1.0.53</div>
       </div>
       <button class="btn-ghost" id="btnLogout">Cerrar sesión</button>
@@ -485,18 +491,18 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
         <input type="text" id="searchInput" placeholder="Buscar por nombre o apellido...">
       </div>
-      <div class="filters" id="filters">
-        <button class="chip-btn active" data-filter="todos">Todos</button>
-        <button class="chip-btn" data-filter="Arquero">Arquero</button>
-        <button class="chip-btn" data-filter="Defensor">Defensor</button>
-        <button class="chip-btn" data-filter="Volante">Volante</button>
-        <button class="chip-btn" data-filter="Delantero">Delantero</button>
-      </div>
-      <div class="filters" id="filtersEstado">
-        <button class="chip-btn active" data-filter="todos">Todos</button>
-        <button class="chip-btn" data-filter="Activo">Activos</button>
-        <button class="chip-btn" data-filter="Inactivo">Inactivos</button>
-      </div>
+      <select class="filter-select" id="filters">
+        <option value="todos">Todas las posiciones</option>
+        <option value="Arquero">Arquero</option>
+        <option value="Defensor">Defensor</option>
+        <option value="Volante">Volante</option>
+        <option value="Delantero">Delantero</option>
+      </select>
+      <select class="filter-select" id="filtersEstado">
+        <option value="todos">Todos</option>
+        <option value="Activo">Activos</option>
+        <option value="Inactivo">Inactivos</option>
+      </select>
       <button class="btn-ghost admin-only" id="btnCargarPrueba" title="Solo para probar el prototipo, no es parte de la spec">+ Jugadores de prueba</button>
       <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
@@ -1010,7 +1016,7 @@
       return;
     }
     navigator.clipboard.writeText(texto)
-      .then(() => window.__showToast('\u00a1Formaci\u00f3n copiada al portapapeles!', 'ok'))
+      .then(() => window.__showToast('Formaci\u00f3n copiada al portapapeles.', 'ok'))
       .catch(() => window.__showToast('No se pudo copiar la formaci\u00f3n. Intent\u00e1 de nuevo.', 'error'));
   };
 
@@ -1591,21 +1597,13 @@
   el('btnGuardar').addEventListener('click', validateAndSave);
   el('fPrincipal').addEventListener('change', () => { renderSecBadges('main'); refreshScoresSection('main'); });
   el('searchInput').addEventListener('input', (e) => { searchTerm = e.target.value; renderPlayersTab(); });
-  document.querySelectorAll('#filters .chip-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#filters .chip-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentFilter = btn.dataset.filter;
-      renderPlayersTab();
-    });
+  el('filters').addEventListener('change', (e) => {
+    currentFilter = e.target.value;
+    renderPlayersTab();
   });
-  document.querySelectorAll('#filtersEstado .chip-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('#filtersEstado .chip-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      currentEstadoFilter = btn.dataset.filter;
-      renderPlayersTab();
-    });
+  el('filtersEstado').addEventListener('change', (e) => {
+    currentEstadoFilter = e.target.value;
+    renderPlayersTab();
   });
 
   // Duplas de rotación (008-duplas-rotacion): devuelve el id del compañero de rotación de
