@@ -1,17 +1,12 @@
 <!--
 Sync Impact Report
-- Version change: 2.2.0 → 2.3.0
-- Added principles: none
-- Modified principles: V. Responsive por diseño — agrega el **criterio de
-  verificación**: qué se mide (scroll horizontal y elementos fuera de su
-  contenedor), en qué anchos (los bordes donde el layout cambia de forma, no
-  dispositivos), y con qué comando (`node tests/layout.test.js`). Antes el
-  principio declaraba el piso (v2.2.0) pero no cómo se comprobaba, así que el
-  paso de verificación seguía siendo una casilla.
+- Version change: 2.3.0 → 2.4.0
+- Added principles: VI. Design system como fuente de verdad de UI
+- Modified principles: none
 - Added sections: none
 - Removed sections: none
 - Deferred items:
-  - TODO(OBJETIVO_TACTIL_MINIMO): el principio sigue sin fijar tamaño mínimo de
+  - TODO(OBJETIVO_TACTIL_MINIMO): el principio V sigue sin fijar tamaño mínimo de
     objetivo táctil, pese a que la auditoría del 2026-08-26 encontró controles
     de 16-24px. Excluido a pedido explícito en la enmienda 2.2.0 y todavía
     abierto.
@@ -19,11 +14,6 @@ Sync Impact Report
     se leyó como una prohibición literal de px en controles y produjo un
     requisito incumplible (009 FR-014, corregido el 2026-08-27). Conviene
     acotarla a *layout* en una enmienda futura.
-  - RESUELTO TODO(COBERTURA_DE_ESCENARIOS): el test de layout pasó a arrancar la
-    aplicación real (falseando `firebase`) y cubre las 14 pantallas del producto —
-    login, listado de jugadores en los dos roles, ficha, tooltip de ayuda, lista de
-    partidos, detalle en sus tres estados, configuración, los dos modales y el
-    toast. Una pantalla nueva se agrega como escenario ahí.
 - Templates requiring follow-up: none
 -->
 
@@ -156,6 +146,24 @@ abre cuando revisa "que ande en el celular", y la fila de dupla desbordaba en do
 anchos que la revisión manual contra staging no llegó a mostrar porque dependían
 de un estado que los datos de prueba no tenían.
 
+### VI. Design system como fuente de verdad de UI
+Toda interfaz nueva o modificada se construye a partir del design system de Football App,
+documentado como skill en `.claude/skills/football-app-design/` (tokens de color, tipografía,
+spacing, radios, elevación y motion; componentes; guidelines). Ninguna pantalla, componente o
+estilo se implementa con colores, tipografías, radios de borde, sombras o iconografía
+inventados por fuera de ese sistema — toda decisión visual se resuelve consultando primero esos
+tokens/componentes, en ese orden: 1) un token o componente existente que cubra el caso, 2) una
+combinación de tokens existentes, 3) recién si ninguno de los dos alcanza, una excepción
+documentada explícitamente en el plan de la feature (mismo criterio que el Principio II para
+complejidad) en vez de asumirse en silencio.
+
+**Rationale**: La migración de la interfaz al design system (2026-08-28) mostró que, sin una
+regla explícita, cada pantalla nueva puede reintroducir colores, tipografías o radios propios
+—como ya existían antes de esa migración— y erosionar gradualmente la consistencia lograda,
+feature a feature. Fijar el manual de diseño como fuente de verdad de UI hace por lo visual lo
+mismo que el Principio I hace por el comportamiento: sin él, la migración queda en un evento
+puntual en vez de un estándar sostenido.
+
 ## Restricciones Técnicas y de Alcance
 
 - Persistencia centralizada y compartida en Cloud Firestore, sin almacenamiento
@@ -197,4 +205,4 @@ feature, se verifica que no viole ninguno de los Principios Core. Cualquier
 excepción (p. ej. una complejidad que rompe el Principio II) debe justificarse
 explícitamente en el plan de la feature, no asumirse en silencio.
 
-**Version**: 2.3.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-27
+**Version**: 2.4.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-28
