@@ -1217,6 +1217,16 @@
       try{ await window.storage.set('puntajeArmadoSeparadoMigrado', 'true', false); }catch(e){ console.error(e); }
     }
 
+    // Migración única (FR-060): a los jugadores guardados antes de esta feature les falta `orden`.
+    // Se les asigna una vez, en el orden alfabético actual (mismo criterio que ya se usaba por
+    // default), para que el modo Manual arranque desde un punto conocido y estable.
+    if(!crudo['ordenJugadoresMigrado']){
+      [...players].sort(alfabetico).forEach((p, idx) => { p.orden = idx; });
+      await savePlayers();
+      try{ await window.storage.set('ordenJugadoresMigrado', 'true', false); }catch(e){ console.error(e); }
+      recalculado = true;
+    }
+
     // Solo si una migración cambió datos en memoria hay algo nuevo que mostrar.
     if(recalculado){
       renderPlayersTab();
@@ -1712,7 +1722,9 @@
       const idx = players.findIndex(pl => pl.id === editingId);
       players[idx] = { ...players[idx], ...data };
     }else{
-      players.push({ id: uid('p'), estado:'Activo', ...data });
+      // FR-061 — un jugador nuevo se ubica al final del orden manual existente.
+      const ordenSiguiente = players.reduce((max, p) => Math.max(max, p.orden ?? -1), -1) + 1;
+      players.push({ id: uid('p'), estado:'Activo', orden: ordenSiguiente, ...data });
     }
     savePlayers();
     closeForm();
