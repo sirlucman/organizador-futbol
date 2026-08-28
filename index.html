@@ -716,9 +716,11 @@
     },
     set: async (key, value) => {
       if(!db) return;
-      try{
-        await db.collection('data').doc(key).set({ value });
-      }catch(e){ console.error('Firestore set error:', e); }
+      // No traga el error acá: cada llamador ya lo envuelve en su propio try/catch (savePlayers,
+      // saveMatches, saveMotorConfig, los flags de migración), y el drag and drop del listado de
+      // Jugadores (FR-053) necesita poder detectar una falla real para revertir el orden visible
+      // y avisar con un toast — con el error tragado acá, esa detección nunca era posible.
+      await db.collection('data').doc(key).set({ value });
     }
   };
 
