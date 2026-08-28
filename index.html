@@ -132,6 +132,8 @@
 
   .roster{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: hidden; }
   .row{ display:flex; align-items:center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--paper-line); }
+  .row[draggable="true"]{ cursor: grab; }
+  .row[draggable="true"]:active{ cursor: grabbing; }
   .row:last-child{ border-bottom:none; }
   .row.inactive{ opacity: 0.5; }
 
@@ -514,6 +516,7 @@
         <option value="Activo">Activos</option>
         <option value="Inactivo">Inactivos</option>
       </select>
+      <select class="filter-select" id="ordenModo"></select>
       <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
 
@@ -772,6 +775,11 @@
   function isAdmin(){ return window.session.rol === 'admin'; }
 
   const POSITIONS = ['Arquero','Defensor','Volante','Delantero'];
+  // Orden de listado de jugadores (FR-001): modos de orden disponibles para el listado de
+  // Jugadores y mapa de posición reusado por el orden "por posición" (FR-030/FR-031), igual al
+  // que ya usa `ordenarPorPosicion` en la pantalla de equipos (index.html ~3638).
+  const ORDEN_MODOS = ['manual', 'puntaje_asc', 'puntaje_desc', 'posicion_asc', 'posicion_desc'];
+  const ORDEN_POSICION = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
   const POS_COLOR = { Arquero: '#dc2626', Defensor: '#fb923c', Volante: '#facc15', Delantero: '#16a34a' }; // Rojo (negative), Naranja (tertiary), Amarillo (warning), Verde (positive) — paleta del design system, no el verde de marca
   function posTextColor(pos){ return pos === 'Volante' ? 'var(--ink)' : 'var(--chalk)'; } // el amarillo necesita texto oscuro para que se lea
   function posBadgeStyle(pos){ return `background:${POS_COLOR[pos] || 'var(--muted)'}; color:${POS_COLOR[pos] ? posTextColor(pos) : 'var(--chalk)'};`; }
@@ -965,6 +973,7 @@
   let currentFilter = 'todos';
   let currentEstadoFilter = 'todos';
   let searchTerm = '';
+  let playersSortMode = 'manual'; // FR-051 — persistido, compartido por todos los usuarios
 
   let currentMatchId = null;
   let matchSearchTerm = '';
@@ -1083,7 +1092,8 @@
   // Documentos que solo "admin" puede leer (FR-004/FR-012/FR-014). Una cuenta "jugador" nunca los
   // pide: las reglas de Firestore los rechazarian igual, esto evita el pedido de red inutil.
   const DOCS_SOLO_ADMIN = ['motorConfig','playerScores','partidosArmado',
-                           'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado'];
+                           'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado',
+                           'ordenJugadoresMigrado'];
 
   /* Arranca las lecturas SIN esperar a que se sepa el rol, para que viajen en paralelo con la
      lectura de `userRoles` que hace resolveSession(). Antes eran dos fases en serie —– primero el
@@ -1097,7 +1107,7 @@
      pedido se rechaza y se descarta; si dice "jugador" y en realidad es admin, loadAll pide los
      que falten por el camino lento. */
   function iniciarLecturas(uid){
-    const claves = ['players','partidos'].concat(leerRolHint(uid) === 'admin' ? DOCS_SOLO_ADMIN : []);
+    const claves = ['players','partidos','playersSortMode'].concat(leerRolHint(uid) === 'admin' ? DOCS_SOLO_ADMIN : []);
     const pedidos = {};
     claves.forEach(clave => { pedidos[clave] = pedirDoc(clave); });
     return pedidos;
@@ -1129,7 +1139,7 @@
        orden en que se APLICAN abajo no cambia, porque el merge de puntaje/armado depende de que
        `players`/`matches` ya esten normalizados. */
     const admin = isAdmin();
-    const claves = ['players','partidos'].concat(admin ? DOCS_SOLO_ADMIN : []);
+    const claves = ['players','partidos','playersSortMode'].concat(admin ? DOCS_SOLO_ADMIN : []);
     pedidos = pedidos || {};
     const crudo = {};
     await Promise.all(claves.map(async (clave) => {
@@ -1146,6 +1156,10 @@
     players = leerJson('players', []);
     matches = leerJson('partidos', []);
     motorConfig = admin ? normalizeMotorConfig(leerJson('motorConfig', null)) : defaultMotorConfig();
+    // playersSortMode (FR-051) es un string plano, no JSON — mismo formato que los flags de
+    // migración — y a diferencia de `motorConfig` se pide y se lee para CUALQUIER sesión (TC-013),
+    // porque FR-052 necesita que un no-admin sepa qué modo está activo para aplicar su fallback.
+    playersSortMode = ORDEN_MODOS.includes(crudo['playersSortMode']) ? crudo['playersSortMode'] : 'manual';
 
     // Puntaje ("scores") por jugador nunca falta en memoria (aunque esté vacío), para que
     // computeAvg/puntajeEnPosicion sigan funcionando igual para "jugador" (que no lo carga —
@@ -1253,6 +1267,9 @@
   }
   // Separa el puntaje por posición (`p.scores`) del resto de los campos de Jugador antes de guardar:
   // `players` (público) no lleva puntaje, `playerScores` (solo admin) sí — ver data-model.md → Jugador.
+  // Devuelve `true`/`false` (en vez de relanzar el error) para no romper a quienes ya la llaman
+  // sin mirar el resultado; el drag and drop del listado (FR-053) es el único llamador que hoy
+  // necesita saber si falló, para revertir el orden visible y avisar con un toast.
   async function savePlayers(){
     try{
       const scoresById = {};
@@ -1263,7 +1280,8 @@
       });
       await window.storage.set('players', JSON.stringify(publicPlayers), false);
       await window.storage.set('playerScores', JSON.stringify(scoresById), false);
-    }catch(e){ console.error(e); }
+      return true;
+    }catch(e){ console.error(e); return false; }
   }
   // Separa los datos internos de armado de equipos (estrategia utilizada, sumas de puntaje,
   // swaps, info de arqueros, jugadores bloqueados) del resto de cada partido antes de guardar:
@@ -1471,8 +1489,49 @@
   }
 
   /* ================= JUGADORES: listado y alta/edición normal ================= */
+  const alfabetico = (a, b) => (a.apellido+a.nombre).localeCompare(b.apellido+b.nombre);
+
+  // FR-052 — si el modo global persistido es por puntaje pero quien mira no es admin, no puede
+  // calcular ese orden (no tiene `scores`), así que ve Manual en su lugar, sin tocar el valor
+  // global que dejó el admin.
+  function effectiveSortMode(){
+    if(playersSortMode.startsWith('puntaje') && !isAdmin()) return 'manual';
+    return playersSortMode;
+  }
+
+  // FR-020/FR-021/FR-022/FR-030/FR-031 — un único comparador para los cinco modos de orden;
+  // en todos los casos el desempate es el orden alfabético ya existente.
+  function sortRoster(list, mode){
+    const copia = [...list];
+    if(mode === 'puntaje_asc' || mode === 'puntaje_desc'){
+      const signo = mode === 'puntaje_asc' ? 1 : -1;
+      return copia.sort((a, b) => {
+        const avgA = computeAvg(a.scores), avgB = computeAvg(b.scores);
+        if(avgA === null && avgB === null) return alfabetico(a, b);
+        if(avgA === null) return 1; // sin puntaje siempre al final (FR-021)
+        if(avgB === null) return -1;
+        if(avgA !== avgB) return (avgA - avgB) * signo;
+        return alfabetico(a, b);
+      });
+    }
+    if(mode === 'posicion_asc' || mode === 'posicion_desc'){
+      const signo = mode === 'posicion_asc' ? 1 : -1;
+      return copia.sort((a, b) => {
+        const posA = ORDEN_POSICION[a.principal] ?? 99, posB = ORDEN_POSICION[b.principal] ?? 99;
+        if(posA !== posB) return (posA - posB) * signo;
+        return alfabetico(a, b);
+      });
+    }
+    // 'manual' (default): por `orden`; sin `orden` (dato legacy no migrado todavía) al final.
+    return copia.sort((a, b) => {
+      const ordenA = a.orden ?? Infinity, ordenB = b.orden ?? Infinity;
+      if(ordenA !== ordenB) return ordenA - ordenB;
+      return alfabetico(a, b);
+    });
+  }
+
   function getFiltered(){
-    return players.filter(p => {
+    const filtrados = players.filter(p => {
       if(currentFilter !== 'todos' && p.principal !== currentFilter) return false;
       if(currentEstadoFilter !== 'todos' && p.estado !== currentEstadoFilter) return false;
       if(searchTerm){
@@ -1480,10 +1539,25 @@
         if(!full.includes(normalize(searchTerm))) return false;
       }
       return true;
-    }).sort((a,b) => (a.apellido+a.nombre).localeCompare(b.apellido+b.nombre));
+    });
+    return sortRoster(filtrados, effectiveSortMode()); // TC-010
+  }
+
+  const ORDEN_MODO_LABELS = { manual: 'Manual', puntaje_asc: 'Puntaje ↑', puntaje_desc: 'Puntaje ↓', posicion_asc: 'Posición ↑', posicion_desc: 'Posición ↓' };
+
+  // FR-001/FR-002 — el selector siempre muestra Manual + Posición (públicos); Puntaje solo se
+  // agrega para admin, ya que el puntaje mismo es un dato solo-admin (FR-013 en la Spec).
+  function renderOrdenModoSelect(){
+    const select = el('ordenModo');
+    const modosVisibles = isAdmin() ? ORDEN_MODOS : ORDEN_MODOS.filter(m => !m.startsWith('puntaje'));
+    const modoActual = effectiveSortMode();
+    select.innerHTML = modosVisibles.map(m =>
+      `<option value="${m}" ${m === modoActual ? 'selected' : ''}>${ORDEN_MODO_LABELS[m]}</option>`
+    ).join('');
   }
 
   function renderPlayersTab(){
+    renderOrdenModoSelect();
     const total = players.length;
     const activos = players.filter(p => p.estado === 'Activo').length;
     el('stats').innerHTML = `
@@ -1507,6 +1581,10 @@
       roster.innerHTML = `<div class="empty-state"><p>No hay jugadores que coincidan con la búsqueda o el filtro.</p></div>`;
       return;
     }
+    // FR-010/FR-012/FR-013 — el drag and drop del listado solo está activo para admin y solo
+    // mientras el modo de orden es Manual; en cualquier otro caso (no-admin, u otro modo) las
+    // filas no son arrastrables.
+    const puedeArrastrar = isAdmin() && effectiveSortMode() === 'manual';
     roster.innerHTML = list.map(p => {
       const avg = computeAvg(p.scores);
       const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
@@ -1514,10 +1592,13 @@
       const statsText = p.partidosJugados
         ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">${GOAL_ICON}</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
         : '—';
+      const dragAttrs = puedeArrastrar
+        ? `draggable="true" ondragstart="window.__dragStartRosterRow(event,'${p.id}')" ondragover="event.preventDefault()" ondrop="window.__dropOnRosterRow(event,'${p.id}')"`
+        : '';
       // "jugador" ve el listado completo (incluidos los jugadores sin puntaje) y las estadísticas
       // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
       return `
-        <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}">
+        <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}" ${dragAttrs}>
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
           <div class="row-main">
             <div class="row-name">${fullName(p)}</div>
@@ -1536,6 +1617,47 @@
         </div>`;
     }).join('');
   }
+
+  // FR-010/FR-011 — reusa el mismo patrón de drag and drop nativo ya usado para mover jugadores
+  // entre equipos (window.__dragStartJugador/window.__dropOnTeam).
+  window.__dragStartRosterRow = function(e, playerId){
+    if(!isAdmin()) return; // TC-040
+    e.dataTransfer.setData('text/plain', playerId);
+  };
+
+  window.__dropOnRosterRow = async function(e, targetPlayerId){
+    e.preventDefault();
+    if(!isAdmin()) return; // TC-040
+    const draggedId = e.dataTransfer.getData('text/plain');
+    if(!draggedId || draggedId === targetPlayerId) return;
+
+    // TC-041 — valida que tanto el id arrastrado como el objetivo existan en el listado
+    // actualmente visible antes de mutar nada (evita reordenar contra un id obsoleto o ajeno).
+    const visibleIds = getFiltered().map(p => p.id);
+    if(!visibleIds.includes(draggedId) || !visibleIds.includes(targetPlayerId)) return;
+
+    // FR-053 — guarda el `orden` previo de cada jugador tocado para poder revertir si falla el guardado.
+    const ordenPrevio = new Map(players.map(p => [p.id, p.orden]));
+
+    // TD-05 — resecuencia como enteros consecutivos (0,1,2,...) el subconjunto visible, tras
+    // insertar el arrastrado en la posición del objetivo; FR-041 hace que esto solo reordene el
+    // subconjunto visible, preservando el orden relativo de quienes no están filtrados.
+    const sinArrastrado = visibleIds.filter(id => id !== draggedId);
+    const idxObjetivo = sinArrastrado.indexOf(targetPlayerId);
+    sinArrastrado.splice(idxObjetivo, 0, draggedId);
+    sinArrastrado.forEach((id, idx) => {
+      const p = players.find(pl => pl.id === id);
+      if(p) p.orden = idx;
+    });
+
+    renderPlayersTab();
+    const guardado = await savePlayers();
+    if(!guardado){
+      players.forEach(p => { if(ordenPrevio.has(p.id)) p.orden = ordenPrevio.get(p.id); });
+      renderPlayersTab();
+      window.__showToast('No se pudo guardar el nuevo orden. Intentá de nuevo.', 'error');
+    }
+  };
 
   window.__toggleEstado = function(id){
     if(!isAdmin()) return; // FR-003
@@ -1609,6 +1731,11 @@
   el('filtersEstado').addEventListener('change', (e) => {
     currentEstadoFilter = e.target.value;
     renderPlayersTab();
+  });
+  el('ordenModo').addEventListener('change', (e) => { // FR-003/FR-051
+    playersSortMode = e.target.value;
+    renderPlayersTab();
+    window.storage.set('playersSortMode', playersSortMode, false).catch(err => console.error(err));
   });
 
   // Duplas de rotación (008-duplas-rotacion): devuelve el id del compañero de rotación de
