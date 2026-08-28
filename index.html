@@ -254,10 +254,13 @@
   /* Los inputs de carga van siempre en su propio renglón y centrados cuando el panel
      es angosto, no sólo cuando no entran. Dejarlo al wrap natural mezclaba filas de
      39px con filas de 69px según el largo del nombre, y esa irregularidad se lee peor
-     que la línea extra. El corte en 500px cubre los cinco anchos de panel donde
-     alguna fila envuelve (hasta 448) y deja afuera el primero donde ninguna lo hace
-     (528). */
-  @container (max-width: 500px){
+     que la línea extra. El corte en 550px cubre los anchos de panel donde alguna fila
+     envuelve (hasta 536) y deja afuera el primero donde ninguna lo hace (556) — remedido
+     al agregar el cuarto par ícono+input de "gol en contra" (spec resultados-partido),
+     que corrió el punto de corte respecto de los 500px/448px/528px de cuando sólo había
+     tres pares (goles, penal, asistencias). Ver `tests/layout.test.js` → `UMBRAL_PANEL_ANGOSTO`,
+     que tiene que quedar igual a este valor. */
+  @container (max-width: 550px){
     .team-stat-group{ flex-basis: 100%; justify-content: center; }
     /* La fila de dupla anida los inputs un nivel más abajo, en un flex que no
        envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
@@ -1026,6 +1029,8 @@
   // El manual de marca prohíbe emoji: la ⚽ se reemplaza por la misma imagen (convertida a PNG),
   // igual que ya se hace con BOOT_ICON.
   const GOAL_ICON = '<img class="icon-goal" src="assets/goal-icon.png" alt="Goles" width="16" height="16">';
+  // Mismo ícono de gol, con los gajos recoloreados a rojo (--brick) — usado para goles en contra.
+  const RED_GOAL_ICON = '<img class="icon-goal icon-goal-red" src="assets/goal-icon-red.png" alt="Gol en contra" width="16" height="16">';
 
   // Íconos de dupla: imágenes provistas (dos camisetas con flecha de intercambio / tachadas),
   // con el fondo ya recortado a transparente. En el panel "Equipo Negro" (fondo oscuro) se
@@ -1211,15 +1216,15 @@
   // finalizado, para que las estadísticas acumuladas queden consistentes con el nuevo resultado.
   function recomputeAllPlayerStatsFromMatches(){
     const totales = {};
-    players.forEach(p => { totales[p.id] = { pj: 0, g: 0, e: 0, pe: 0, goles: 0, golesPenal: 0, asistencias: 0 }; });
+    players.forEach(p => { totales[p.id] = { pj: 0, g: 0, e: 0, pe: 0, goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 }; });
     matches.forEach(m => {
       if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos || !m.equipos.blanco || !m.equipos.negro) return;
       const stats = m.resultado.statsPorJugador || {};
-      const golesPorEquipo = { blanco: 0, negro: 0 };
-      Object.entries(stats).forEach(([playerId, st]) => {
-        const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
-        golesPorEquipo[equipo] += (st.goles || 0);
-      });
+      // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
+      const golesPorEquipo = {
+        blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats),
+        negro: totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats),
+      };
       Object.entries(stats).forEach(([playerId, st]) => {
         if(!totales[playerId]) return;
         const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
@@ -1227,6 +1232,7 @@
         totales[playerId].pj++;
         totales[playerId].goles += (st.goles || 0);
         totales[playerId].golesPenal += (st.golesPenal || 0);
+        totales[playerId].golesEnContra += (st.golesEnContra || 0);
         totales[playerId].asistencias += (st.asistencias || 0);
         if(golesPorEquipo[equipo] > golesPorEquipo[rival]) totales[playerId].g++;
         else if(golesPorEquipo[equipo] < golesPorEquipo[rival]) totales[playerId].pe++;
@@ -1238,6 +1244,7 @@
       p.partidosJugados = t.pj;
       p.golesTotales = t.goles;
       p.golesPenalTotales = t.golesPenal;
+      p.golesEnContraTotales = t.golesEnContra;
       p.asistenciasTotales = t.asistencias;
       p.partidosGanados = t.g;
       p.partidosEmpatados = t.e;
@@ -3200,7 +3207,7 @@
     if(!m.inscripcionCerrada || m.estado === 'Finalizado') return;
     if(resultadoDraft && resultadoDraft.matchId === m.id) return;
     const stats = {};
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => { stats[id] = { goles: 0, golesPenal: 0, asistencias: 0 }; });
+    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => { stats[id] = { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 }; });
     resultadoDraft = { matchId: m.id, stats };
   }
 
@@ -3215,11 +3222,11 @@
         m.resultado = { statsPorJugador: {...resultadoDraft.stats}, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
         // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
-        const golesPorEquipo = { blanco: 0, negro: 0 };
-        Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
-          const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
-          golesPorEquipo[equipo] += (st.goles || 0);
-        });
+        // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
+        const golesPorEquipo = {
+          blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, resultadoDraft.stats),
+          negro: totalGolesEquipo(m.equipos.negro, m.equipos.blanco, resultadoDraft.stats),
+        };
         Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
           const p = players.find(pl => pl.id === playerId);
           if(!p) return;
@@ -3228,6 +3235,8 @@
           p.partidosJugados = (p.partidosJugados || 0) + 1;
           p.golesTotales = (p.golesTotales || 0) + (st.goles || 0);
           p.golesPenalTotales = (p.golesPenalTotales || 0) + (st.golesPenal || 0);
+          // Un gol en contra no suma al historial de goles propios del jugador (spec resultados-partido).
+          p.golesEnContraTotales = (p.golesEnContraTotales || 0) + (st.golesEnContra || 0);
           p.asistenciasTotales = (p.asistenciasTotales || 0) + (st.asistencias || 0);
           // Ganado/perdido/empatado según el resultado del equipo del jugador frente al rival (FR-009).
           if(golesPorEquipo[equipo] > golesPorEquipo[rival]) p.partidosGanados = (p.partidosGanados || 0) + 1;
@@ -3251,8 +3260,8 @@
     if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
     const stats = {};
     [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = m.resultado.statsPorJugador[id] || { goles: 0, golesPenal: 0, asistencias: 0 };
-      stats[id] = { goles: st.goles || 0, golesPenal: st.golesPenal || 0, asistencias: st.asistencias || 0 };
+      const st = m.resultado.statsPorJugador[id] || { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 };
+      stats[id] = { goles: st.goles || 0, golesPenal: st.golesPenal || 0, golesEnContra: st.golesEnContra || 0, asistencias: st.asistencias || 0 };
     });
     resultadoDraft = { matchId: m.id, stats };
     editandoResultadoFinalizado = m.id;
@@ -3289,15 +3298,25 @@
     );
   };
 
+  // Total de goles de un equipo: sus propios goles (que ya incluyen los de penal) más los goles
+  // en contra que los jugadores del equipo RIVAL metieron en su propio arco (spec resultados-partido
+  // → "goles en contra"). Un gol en contra no suma para quien lo hizo, suma para el rival.
+  function totalGolesEquipo(idsPropio, idsRival, stats){
+    const propios = idsPropio.reduce((s,id) => s + ((stats[id]||{}).goles||0), 0);
+    const enContraDelRival = idsRival.reduce((s,id) => s + ((stats[id]||{}).golesEnContra||0), 0);
+    return propios + enContraDelRival;
+  }
+
   function teamHeaderTotalText(ids, sumaPts, m){
     let text = `${Math.round(sumaPts*10)/10} pts`;
+    const idsRival = ids === m.equipos.blanco ? m.equipos.negro : m.equipos.blanco;
     let goles = null;
     if(resultadoDraft && resultadoDraft.matchId === m.id){
       // Mientras hay un borrador activo (carga inicial o edición de un resultado finalizado), el
       // total del equipo tiene que reflejar lo que se está tipeando, no el resultado ya guardado.
-      goles = ids.reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0);
+      goles = totalGolesEquipo(ids, idsRival, resultadoDraft.stats);
     }else if(m.estado === 'Finalizado' && m.resultado){
-      goles = ids.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
+      goles = totalGolesEquipo(ids, idsRival, m.resultado.statsPorJugador);
     }
     if(goles !== null) text += ` · ${goles} gol${goles===1?'':'es'}`;
     return text;
@@ -3332,6 +3351,9 @@
       // Los penales de un jugador no pueden superar sus propios goles (spec resultados-partido).
       const penalHabil = g > 0;
       const pen = (draft && penalHabil) ? Math.min(draft.golesPenal || 0, g) : 0;
+      // El gol en contra es independiente de los goles propios del jugador: a diferencia del penal,
+      // no se deshabilita ni se clampa contra `g` (spec resultados-partido → "goles en contra").
+      const gec = draft ? (draft.golesEnContra || 0) : 0;
       /* Los tres pares etiqueta+input van dentro de un contenedor propio para que
          viajen como UNA unidad cuando la fila envuelve. Sueltos, cada fila cortaba
          en un punto distinto según el largo del nombre y la columna de inputs
@@ -3343,6 +3365,8 @@
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
         <span class="team-stat-label" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}">P</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesPenal" value="${pen}" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}" ${penalHabil?'':'disabled'}>
+        <span class="team-stat-label" title="Gol en contra">${RED_GOAL_ICON}</span>
+        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesEnContra" value="${gec}" title="Gol en contra">
         <span class="team-stat-label">${BOOT_ICON}</span>
         <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>
         </span>`;
@@ -3631,8 +3655,8 @@
       // explicación de armado (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
       let golesBlanco = null, golesNegro = null;
       if(m.estado === 'Finalizado' && m.resultado){
-        golesBlanco = eq.blanco.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
-        golesNegro = eq.negro.reduce((s,id) => s + ((m.resultado.statsPorJugador[id]||{}).goles||0), 0);
+        golesBlanco = totalGolesEquipo(eq.blanco, eq.negro, m.resultado.statsPorJugador);
+        golesNegro = totalGolesEquipo(eq.negro, eq.blanco, m.resultado.statsPorJugador);
       }
       section.innerHTML = `
         <h3>Equipos</h3>
@@ -4021,26 +4045,42 @@
   function matchResultSummaryHtml(m){
     if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return '';
     const stats = m.resultado.statsPorJugador || {};
-    function equipoHtml(ids, nombre, claseEquipo){
-      const goles = ids.reduce((s,id) => s + ((stats[id]||{}).goles||0), 0);
+    // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
+    const totalBlanco = totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats);
+    const totalNegro = totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats);
+    function equipoHtml(ids, nombre, claseEquipo, totalGoles){
       const goleadores = ids
-        .map(id => ({ p: players.find(pl => pl.id === id), goles: (stats[id]||{}).goles || 0, golesPenal: (stats[id]||{}).golesPenal || 0 }))
-        .filter(x => x.p && x.goles > 0)
+        .map(id => ({ p: players.find(pl => pl.id === id), goles: (stats[id]||{}).goles || 0, golesPenal: (stats[id]||{}).golesPenal || 0, golesEnContra: (stats[id]||{}).golesEnContra || 0 }))
+        // Un jugador con solo goles en contra (sin goles propios) igual aparece, del lado de su
+        // propio equipo, aunque su gol haya sumado para el rival (spec resultados-partido).
+        .filter(x => x.p && (x.goles > 0 || x.golesEnContra > 0))
         .sort((a,b) => b.goles - a.goles);
+      // Los goles a favor y los goles en contra de un mismo jugador van en renglones separados:
+      // arriba los goles a favor (si tiene), abajo los en contra (si tiene) — nunca mezclados en
+      // la misma línea (spec resultados-partido). El nombre solo se repite en el renglón de en
+      // contra cuando ese jugador no tiene renglón de goles a favor (0 goles propios).
       const scorersHtml = goleadores.length
-        ? goleadores.map(x => `<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">${GOAL_ICON}</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`).join('')
+        ? goleadores.map(x => {
+            const lineas = [];
+            if(x.goles > 0) lineas.push(`<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">${GOAL_ICON}</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`);
+            if(x.golesEnContra > 0){
+              const prefijo = x.goles > 0 ? '' : `${fullName(x.p)} `;
+              lineas.push(`<div>${prefijo}${x.golesEnContra}<span class="stat-goal-icon">${RED_GOAL_ICON}</span> (EC)</div>`);
+            }
+            return lineas.join('');
+          }).join('')
         : `<div class="scorer-empty">Sin goleadores</div>`;
       return `
         <div class="match-result-team ${claseEquipo}">
           <div class="match-result-name">${nombre}</div>
-          <div class="match-result-goals">${goles}</div>
+          <div class="match-result-goals">${totalGoles}</div>
           <div class="match-result-scorers">${scorersHtml}</div>
         </div>`;
     }
     return `
       <div class="match-result" onclick="event.stopPropagation()">
-        ${equipoHtml(m.equipos.blanco, 'Equipo Blanco', 'blanco')}
-        ${equipoHtml(m.equipos.negro, 'Equipo Negro', 'negro')}
+        ${equipoHtml(m.equipos.blanco, 'Equipo Blanco', 'blanco', totalBlanco)}
+        ${equipoHtml(m.equipos.negro, 'Equipo Negro', 'negro', totalNegro)}
       </div>`;
   }
 
