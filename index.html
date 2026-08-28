@@ -179,11 +179,17 @@
   .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
+  /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
+     de la página), este bloque vive DENTRO de la tarjeta blanca del partido en la lista — ahí
+     "blanco sobre blanco" lo hace desaparecer. Por eso el equipo blanco usa acá la variante
+     Card "sage" (para notarse como bloque aparte) y el negro sigue en la variante "dark", con
+     el número de goles en el verde de marca sobre tinta. */
   .match-result-team{ border-radius: var(--radius-control); padding: 10px 12px; text-align:center; }
-  .match-result-team.blanco{ background: var(--paper); border: 1px solid var(--paper-line); }
+  .match-result-team.blanco{ background: var(--paper); }
   .match-result-team.negro{ background: var(--ink); color: var(--chalk); }
   .match-result-name{ font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; letter-spacing: 0.05em; opacity: 0.7; }
   .match-result-goals{ font-family: var(--font-display); font-size: 26px; line-height: 1.3; }
+  .match-result-team.negro .match-result-goals{ color: var(--pitch); }
   .match-result-scorers{ font-family: var(--font-mono); font-size: 11px; margin-top: 6px; display:flex; flex-direction:column; gap: 2px; }
   .match-result-scorers .scorer-empty{ opacity: 0.55; }
   @media (max-width: 480px){ .match-result{ grid-template-columns: 1fr; } }
@@ -258,8 +264,12 @@
        envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
     .team-dupla-member{ flex-wrap: wrap; }
   }
-  .team-panel.blanco{ background: var(--chalk); border: 1px solid var(--paper-line); }
+  /* Card "content" (blanco) y Card "dark" (negro) del design system: el blanco no lleva borde
+     — el contraste contra el fondo salvia de la página ya funciona como elevación — y en el
+     negro el título va en el verde de marca sobre tinta, como pide la variante "dark". */
+  .team-panel.blanco{ background: var(--chalk); }
   .team-panel.negro{ background: var(--ink); color: var(--chalk); }
+  .team-panel.negro h4{ color: var(--pitch); }
   .team-panel h4{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
   .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; }
   /* flex-wrap: en modo carga de resultado la fila suma badge + nombre + puntaje + 3 inputs con
@@ -503,7 +513,6 @@
         <option value="Activo">Activos</option>
         <option value="Inactivo">Inactivos</option>
       </select>
-      <button class="btn-ghost admin-only" id="btnCargarPrueba" title="Solo para probar el prototipo, no es parte de la spec">+ Jugadores de prueba</button>
       <button class="btn-primary admin-only" id="btnNuevo">+ Nuevo jugador</button>
     </div>
 
@@ -619,7 +628,7 @@
     <div id="confirmMessage" style="font-size:14px; color:var(--ink); margin-bottom:16px;"></div>
     <div class="card-actions">
       <button class="btn-ghost" id="btnConfirmCancel">Cancelar</button>
-      <button class="btn-primary" id="btnConfirmOk" style="background:var(--brick);">Eliminar</button>
+      <button class="btn-primary" id="btnConfirmOk">Eliminar</button>
     </div>
   </div>
 </div>
@@ -1318,7 +1327,7 @@
     confirmCallback = onConfirm;
     const okBtn = el('btnConfirmOk');
     okBtn.textContent = opts.okLabel || 'Eliminar';
-    okBtn.style.background = opts.okColor || 'var(--brick)';
+    okBtn.style.background = opts.okColor || 'var(--pitch)';
     el('confirmModal').classList.add('open');
   }
   el('btnConfirmCancel').addEventListener('click', () => {
@@ -1592,7 +1601,6 @@
   }
 
   el('btnNuevo').addEventListener('click', () => openForm(null));
-  el('btnCargarPrueba').addEventListener('click', () => window.__loadTestPlayers());
   el('btnCancelar').addEventListener('click', closeForm);
   el('btnGuardar').addEventListener('click', validateAndSave);
   el('fPrincipal').addEventListener('change', () => { renderSecBadges('main'); refreshScoresSection('main'); });
