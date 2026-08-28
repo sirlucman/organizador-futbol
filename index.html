@@ -163,7 +163,6 @@
   .empty-state svg{ width: 40px; height:40px; opacity:0.35; margin-bottom: 10px; }
   .empty-state p{ font-size: 14px; margin: 4px 0 16px; }
 
-  .footnote{ text-align:center; font-family: var(--font-mono); font-size: 11px; color: var(--muted); margin-top: 18px; }
 
   .match-list{ display:flex; flex-direction:column; gap:10px; }
   .match-card{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 16px 18px; display:flex; flex-direction:column; gap: 12px; cursor:pointer; transition: box-shadow .15s ease; }
@@ -194,7 +193,7 @@
   .match-result-scorers .scorer-empty{ opacity: 0.55; }
   @media (max-width: 480px){ .match-result{ grid-template-columns: 1fr; } }
 
-  .back-link{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); cursor: pointer; display:inline-flex; gap:6px; align-items:center; margin-bottom: 14px; background:none; border:none; padding:0; }
+  .back-link{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); cursor: pointer; display:inline-flex; gap:6px; align-items:center; margin: 18px 0 14px; background:none; border:none; padding:0; }
   .back-link:hover{ color: var(--ink); }
   .detail-header{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
   .detail-header h2{ font-family: var(--font-display); font-size: 26px; text-transform: capitalize; margin: 0; }
@@ -488,7 +487,6 @@
       <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn" data-tab="partidos">Partidos</button>
       <button class="tab-btn admin-only" data-tab="motor">Configuración</button>
-      <button class="tab-btn disabled" title="Próximo slice" disabled>Historial</button>
     </div>
   </header>
 
@@ -552,7 +550,6 @@
     </div>
 
     <div class="roster" id="roster"></div>
-    <div class="footnote">Los datos se guardan automáticamente. Podés desactivar un jugador (reversible, conserva su historial) o eliminarlo del plantel de forma permanente.</div>
   </div>
 
   <!-- ================= TAB PARTIDOS ================= -->
@@ -614,11 +611,7 @@
       <div class="motor-block-hint" id="rulesHint"></div>
       <div class="rules-list" id="rulesList"></div>
     </div>
-
-    <div class="footnote">Las reglas marcadas como fijas son parte del funcionamiento del motor y no se pueden apagar. Todo se guarda solo.</div>
   </div>
-
-  <div class="footnote" id="footPartidos">Los titulares y suplentes se recalculan solos según el orden de convocatoria.</div>
 </div>
 
 <!-- Modal: confirmación genérica (para acciones destructivas) -->
@@ -1349,9 +1342,6 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       const panelId = tab === 'jugadores' ? 'panelJugadores' : (tab === 'motor' ? 'panelMotor' : 'panelPartidos');
       el(panelId).classList.add('active');
-      // la nota al pie de partidos no aplica al tab Motor
-      const foot = el('footPartidos');
-      if(foot) foot.style.display = (tab === 'motor') ? 'none' : '';
     });
   });
 
@@ -4613,8 +4603,6 @@
     document.querySelectorAll('.tab-panel').forEach(pn => pn.classList.remove('active'));
     const panelJ = el('panelJugadores');
     if(panelJ) panelJ.classList.add('active');
-    const foot = el('footPartidos');
-    if(foot) foot.style.display = '';
   }
 
   /* Placeholder mientras loadAll() trae los datos (varias lecturas a Firestore). Sin esto la app
