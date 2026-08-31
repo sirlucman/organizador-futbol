@@ -234,7 +234,10 @@ prueba('"NFR-007" todo valor visual de la cancha sale de un token o de la lista 
      escritos en crudo porque llevan alfa, y `var()` no puede aportar el canal alfa de un token de
      color sólido sin un token de triple aparte que el sistema no define. */
   const HEX_PERMITIDOS = ['#ffffff', '#111827'];             // --chalk y --ink
-  const RGB_PERMITIDOS = ['255 255 255', '17 24 39', '42 93 10']; // --chalk, --ink, --pitch-deep
+  /* `133 182 50` es --pitch (#85b632) con alfa, y lo agrega la rebanada 2: los tres realces de
+     drop lo usan como tinte. Misma razón que los otros tres: `var()` no puede aportar el canal
+     alfa de un token de color sólido sin un token de triple que el design system no define. */
+  const RGB_PERMITIDOS = ['255 255 255', '17 24 39', '42 93 10', '133 182 50']; // --chalk, --ink, --pitch-deep, --pitch
 
   const hex = [...new Set(bloque.match(/#[0-9a-fA-F]{3,8}/g) || [])];
   const noDeclaradosHex = hex.filter(h => !HEX_PERMITIDOS.includes(h.toLowerCase()));

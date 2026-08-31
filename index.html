@@ -446,6 +446,39 @@
      con el del handoff—. Así que se usa el del handoff y se borró el derivado.
      Ver OPEN-Q-03 y OPEN-Q-04 del Implementation Plan. */
 
+  /* --- El selector de equipo y los realces de drop (rebanada 2) ---
+     docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md
+
+     El selector aparece sólo en una columna, donde se ve un equipo por vez. Su geometría sale
+     literal del handoff (§ Selector segmentado) y los realces de la tabla de drag-over de
+     § Arrastre, en su variante compacta `6a` (TC-033). */
+  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--paper); }
+  .equipo-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
+  .equipo-tabs[data-visible="negro"] .equipo-tabs-thumb{ left: 50%; }
+  .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: var(--radius-pill); }
+  .equipo-tab:hover{ opacity: 0.7; }
+  .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
+
+  /* Los tres realces son hermanos que se dibujan por encima y NO capturan el puntero: si lo
+     capturaran se comerían el `dragover` que los mantiene vivos y parpadearían (TC-034). */
+  .drop-realce{ position: absolute; pointer-events: none; display: none; }
+  .equipo-tab.drop-activo .drop-realce,
+  .camiseta.drop-activo .drop-realce,
+  .cancha.drop-activo > .drop-realce{ display: block; }
+
+  .equipo-tab .drop-realce{ inset: -2px; border-radius: var(--radius-pill); background: rgb(133 182 50 / 0.28); box-shadow: inset 0 0 0 2px var(--pitch-light); }
+  .camiseta .drop-realce{ inset: -4px -3px; border-radius: 15px; background: rgb(133 182 50 / 0.3); box-shadow: inset 0 0 0 2px var(--pitch-light); }
+  /* El realce del campo entero es DERIVADO: el handoff da el de la línea y el de la camiseta,
+     pero la vista `6a` no dibuja el campo como zona de drop —ahí la zona es la pestaña— y la `4a`,
+     que sí lo hace, no tabula su estilo. Se toma el tratamiento de la camiseta (tinte verde y
+     anillo de 2px) con el radio propio de la cancha, y el tinte baja de 0.3 a 0.16 porque acá
+     cubre todo el campo y a 0.3 se come la lectura de las camisetas (Implementation Plan, TC-031). */
+  .cancha > .drop-realce{ inset: 0; border-radius: var(--radius-field); background: rgb(133 182 50 / 0.16); box-shadow: inset 0 0 0 2px var(--pitch-light); }
+
+  .camiseta{ position: relative; }
+  .camiseta[draggable="true"]{ cursor: grab; }
+  .camiseta[draggable="true"]:active{ cursor: grabbing; }
+
   /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
      desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
      carga de resultado envolvía a 701 y 768px igual que en un teléfono. Pasando a una columna
