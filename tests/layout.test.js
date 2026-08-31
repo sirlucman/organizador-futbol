@@ -296,7 +296,10 @@ const ESCENARIOS = [
   /* --- la cancha (rebanada 1 de "Equipos en el campo") --- */
 
   { clave: 'cancha-8', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 8',
-    spec: ['S-01', 'S-03', 'NFR-001', 'NFR-006'],
+    /* `S-01f` es la propiedad de no-superposición: la satisface INVARIANTE_CANCHA, que corre en
+       los trece anchos y sobre las dos canchas. Se declara acá porque los invariantes no llevan
+       lista propia de identificadores. */
+    spec: ['S-01', 'S-01f', 'S-03', 'NFR-001', 'NFR-006'],
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y],
     /* La línea de base se toma DESPUÉS de que la aplicación cargó y ANTES de entrar al partido.
        Al arrancar, la aplicación corre sus migraciones y escribe `players`, `playerScores` y
@@ -319,7 +322,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-9', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 9 (fila de cuatro)',
-    spec: ['S-01a', 'S-03a', 'S-06', 'S-06a', 'S-06b', 'S-06c', 'S-06d', 'NFR-001', 'NFR-002'],
+    spec: ['S-01a', 'S-01f', 'S-03a', 'S-06', 'S-06a', 'S-06b', 'S-06c', 'S-06d', 'NFR-001', 'NFR-002'],
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y],
     async preparar(page) { await abrirPartido(page, '2026-09-10'); },
     async comprobar(page) {
