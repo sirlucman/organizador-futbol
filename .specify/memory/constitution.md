@@ -1,11 +1,23 @@
 <!--
 Sync Impact Report
-- Version change: 2.3.0 → 2.4.0
-- Added principles: VI. Design system como fuente de verdad de UI
-- Modified principles: none
+- Version change: 2.4.0 → 2.5.0
+- Added principles: none
+- Modified principles: I. Los specs de feature como fuente de verdad — se reconoce
+  `docs/<nombre-feature>/` (metodología de tres documentos: Concept Note, Spec,
+  Implementation Plan) como destino obligatorio de las features nuevas. Las specs
+  vigentes en `.specify/specs/` y `openspec/specs/` siguen siendo fuente de verdad
+  de lo ya construido y no se migran. Se agrega la regla de declaración explícita
+  cuando una Spec nueva reemplaza parte de una vieja.
 - Added sections: none
+- Modified sections: Flujo de Trabajo SDD — separa el flujo de features nuevas
+  (Concept Note → Spec → Implementation Plan) del mantenimiento de las specs
+  existentes con speckit.
 - Removed sections: none
 - Deferred items:
+  - TODO(MIGRACION_SPECS_LEGADO): la enmienda 2.5.0 acepta a conciencia la
+    coexistencia de tres ubicaciones de specs (`docs/`, `.specify/specs/`,
+    `openspec/specs/`). Si en la práctica genera confusión, la unificación se
+    decide en una enmienda futura.
   - TODO(OBJETIVO_TACTIL_MINIMO): el principio V sigue sin fijar tamaño mínimo de
     objetivo táctil, pese a que la auditoría del 2026-08-26 encontró controles
     de 16-24px. Excluido a pedido explícito en la enmienda 2.2.0 y todavía
@@ -22,26 +34,53 @@ Sync Impact Report
 ## Core Principles
 
 ### I. Los specs de feature como fuente de verdad
-La fuente de verdad sobre qué hace la aplicación hoy es el conjunto de specs de
-feature vigentes en `.specify/specs/<NNN-nombre-feature>/spec.md` (estructura
-nativa de spec-kit, creada vía `/speckit-specify`). Ninguna funcionalidad se
-considera parte del producto, y ningún trabajo de implementación se inicia, si
-antes no está reflejada en el spec de su feature. `Roadmap.md` es el backlog de
-ideas y zonas grises **no decididas**: vive ahí hasta que se decide encararla,
-momento en el cual se crea o actualiza el spec de la feature correspondiente vía
-`/speckit-specify` y se retira del Roadmap. El código nunca es la fuente de
-verdad sobre el comportamiento esperado — si el código y el spec de una feature
-difieren, es un bug a corregir (en el código o en el spec, explícitamente).
-El marco general de producto (objetivo, alcance, contexto) vive en
-`README.md`, que no es fuente de verdad sobre comportamiento — solo da
+La fuente de verdad sobre qué hace la aplicación hoy es el conjunto de **specs de
+feature vigentes**. Ninguna funcionalidad se considera parte del producto, y
+ningún trabajo de implementación se inicia, si antes no está reflejada en el spec
+vigente de su feature.
+
+Un spec vigente vive en uno de estos tres lugares:
+
+- `docs/<nombre-feature>/` — **destino obligatorio de toda feature nueva**, con la
+  metodología de tres documentos: Concept Note (por qué y en qué dirección), Spec
+  (qué debe hacer el sistema y cómo debe comportarse) e Implementation Plan (qué
+  construir, dónde y en qué orden), producidos vía
+  `/engineering-methodology:staged-engineering-doc`. Una feature PUEDE saltear el
+  Concept Note cuando la dirección ya está decidida, declarándolo en su Spec.
+- `.specify/specs/<NNN-nombre-feature>/spec.md` — specs de features ya
+  construidas, en la estructura nativa de spec-kit. **Siguen siendo fuente de
+  verdad del comportamiento que describen** y se mantienen con el flujo speckit.
+  No se migran.
+- `openspec/specs/<nombre-feature>/` — ídem, para las features documentadas en
+  ese formato.
+
+Cuando una Spec nueva en `docs/` modifica comportamiento ya especificado en
+`.specify/` o en `openspec/`, **MUST declararlo explícitamente**, nombrando la
+spec y la parte que reemplaza; esa parte queda marcada como reemplazada en la
+spec vieja. Sin esa declaración, dos specs vigentes se contradicen y el principio
+deja de sostenerse.
+
+`Roadmap.md` es el backlog de ideas y zonas grises **no decididas**: vive ahí
+hasta que se decide encararla, momento en el cual se crea la documentación de la
+feature correspondiente y se la retira del Roadmap. El código nunca es la fuente
+de verdad sobre el comportamiento esperado — si el código y el spec de una
+feature difieren, es un bug a corregir (en el código o en el spec,
+explícitamente). El marco general de producto (objetivo, alcance, contexto) vive
+en `README.md`, que no es fuente de verdad sobre comportamiento — solo da
 contexto para entender los specs de feature.
 
 **Rationale**: Este proyecto es un ejercicio de Spec-Driven Development. Si el
 spec deja de ser autoritativo, se pierde la trazabilidad entre decisión e
-implementación y el flujo `/speckit-specify` → `/speckit-plan` →
-`/speckit-tasks` → `/speckit-implement` deja de tener sentido. Usar la
-estructura nativa de specs por feature (en vez de un documento monolítico)
-mantiene esa trazabilidad 1:1 entre feature, spec, plan y tareas.
+implementación. Lo que cambia en la enmienda 2.5.0 no es esa exigencia sino
+*dónde vive el spec*: la práctica se movió a la metodología de tres documentos
+hace dos features (`docs/goles-en-contra/`, `docs/orden-jugadores/`) mientras
+este principio seguía nombrando únicamente a `.specify/`, de modo que el trabajo
+real quedaba formalmente fuera del producto. Se reconoce el destino nuevo sin
+migrar lo existente, porque migrar dieciséis specs de features ya construidas no
+mejora el producto (Principio II) y la trazabilidad de cada una se conserva donde
+está. El costo aceptado es la coexistencia de tres ubicaciones; la regla de
+declaración explícita de reemplazo es lo que impide que ese costo se vuelva
+ambigüedad.
 
 ### II. Simplicidad ante todo
 Se implementa lo que el spec de la feature pide para la versión actual, ni más
@@ -178,12 +217,16 @@ puntual en vez de un estándar sostenido.
 
 - Toda idea nueva entra primero a `Roadmap.md`, no directo a un spec ni al
   código.
-- Cuando se decide encarar una idea del Roadmap, se crea o actualiza el spec de
-  la feature correspondiente en `.specify/specs/` vía `/speckit-specify` antes
-  de iniciar `/speckit-plan` o cualquier implementación.
-- El flujo de trabajo esperado por feature es: `/speckit-specify` →
-  (`/speckit-clarify` opcional) → `/speckit-plan` → `/speckit-tasks` →
-  (`/speckit-analyze`/`/speckit-checklist` opcionales) → `/speckit-implement`.
+- Cuando se decide encarar una idea del Roadmap, se documenta la feature antes de
+  iniciar cualquier implementación, y se la retira del Roadmap.
+- **Features nuevas**: el flujo es Concept Note → Spec → Implementation Plan en
+  `docs/<nombre-feature>/`, vía
+  `/engineering-methodology:staged-engineering-doc`. Cada documento se revisa
+  antes de pasar al siguiente.
+- **Features ya especificadas en `.specify/specs/`**: se mantienen con el flujo
+  speckit — `/speckit-specify` → (`/speckit-clarify` opcional) → `/speckit-plan`
+  → `/speckit-tasks` → (`/speckit-analyze` / `/speckit-checklist` opcionales) →
+  `/speckit-implement`.
 - Ningún paso del flujo se saltea para ir directo a escribir código cuando el
   cambio afecta comportamiento visible para el usuario o el modelo de datos.
 
@@ -205,4 +248,4 @@ feature, se verifica que no viole ninguno de los Principios Core. Cualquier
 excepción (p. ej. una complejidad que rompe el Principio II) debe justificarse
 explícitamente en el plan de la feature, no asumirse en silencio.
 
-**Version**: 2.4.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-28
+**Version**: 2.5.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-31
