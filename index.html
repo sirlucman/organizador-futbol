@@ -300,8 +300,6 @@
      Arreglar el grid (minmax(0,1fr), más abajo) sacó el mínimo duro del PANEL, pero la FILA
      seguía desbordando. Envuelve solo donde no entra: a 768px en una columna sigue en una línea. */
   .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px solid rgba(0,0,0,0.1); flex-wrap: wrap; }
-  .team-player-row[draggable="true"]{ cursor: grab; }
-  .team-player-row[draggable="true"]:active{ cursor: grabbing; }
   .team-panel{ transition: background-color .15s ease; }
   .team-panel.negro .team-player-row{ border-bottom-color: rgba(255,255,255,0.14); }
   .team-player-row:last-child{ border-bottom: none; }
@@ -1829,7 +1827,7 @@
   }
 
   // FR-010/FR-011 — reusa el mismo patrón de drag and drop nativo ya usado para mover jugadores
-  // entre equipos (window.__dragStartJugador/window.__dropOnTeam).
+  // entre equipos (window.__dragStartJugador/window.__dropEnCancha).
   window.__dragStartRosterRow = function(e, playerId){
     if(!isAdmin()) return; // TC-040
     e.dataTransfer.setData('text/plain', playerId);
@@ -3781,7 +3779,7 @@
     const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
     const lockBtn = renderLockBtn(m, p.id, editable, bloqueado);
     return `
-      <div class="team-player-row" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${p.id}')"` : ''}>
+      <div class="team-player-row">
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
         <span style="flex:1 1 auto;">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
         ${puntajeHtml}
@@ -3828,7 +3826,7 @@
       ? `<span class="team-avg team-avg-unidad" title="Puntaje de la dupla: es el que suma al total del equipo">${valorUnidad === null ? 'sin puntaje' : valorUnidad}</span>`
       : '';
     return `
-      <div class="team-player-row team-player-row-dupla" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${pA.id}')"` : ''}>
+      <div class="team-player-row team-player-row-dupla">
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
         <div class="team-dupla-members">
           ${miembroHtml(pA)}
@@ -4264,13 +4262,6 @@
   window.__dragStartJugador = function(e, playerId){
     if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
     e.dataTransfer.setData('text/plain', playerId);
-  };
-
-  window.__dropOnTeam = function(e, matchId, targetTeam){
-    e.preventDefault();
-    if(!isAdmin()) return; // FR-008
-    const playerId = e.dataTransfer.getData('text/plain');
-    if(playerId) window.__moverJugadorManual(matchId, playerId, targetTeam);
   };
 
   // Mueve un único id de un equipo a otro (misma lógica que ya existía). Extraída de
@@ -5006,7 +4997,7 @@
     return true;
   }
 
-  // FR-070/FR-075 — mirror de window.__dragStartJugador/window.__dropOnTeam (equipos), pero
+  // FR-070/FR-075 — mirror de window.__dragStartJugador/window.__dropEnCancha (equipos), pero
   // sobre la cola de convocatoria en vez de sobre `m.equipos`.
   window.__dragStartConvocatoria = function(e, matchId, playerId){
     if(!isAdmin()) return; // TC-040
