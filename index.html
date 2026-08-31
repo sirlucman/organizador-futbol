@@ -3956,10 +3956,13 @@
     const completos = grupo.map(fullName).join(' / ');
     const secundaria = grupo.some(j => j.principal !== posAsignada);
 
+    const arrastrable = esFilaEditable(m);
     const partes = [completos];
     if(esUnidadDupla) partes.push('dupla de rotación');
     partes.push(secundaria ? posAsignada + ' (posición secundaria)' : posAsignada);
     if(admin && valor === null) partes.push('sin puntaje');
+    // El `title` anuncia el gesto sin desplazar lo que ya llevaba (FR-003).
+    if(arrastrable) partes.push('arrastrala al otro equipo para pasarlo');
     const titulo = escaparHtml(partes.join(' · '));
 
     const puntajeHtml = (admin && valor !== null)
@@ -3970,7 +3973,7 @@
     const bloqueado = (m.bloqueados || []).includes(p.id);
     const accion = bloqueado ? 'Desbloquear a ' + completos : 'Bloquear a ' + completos + ' en este equipo';
     const candadoHtml = esFilaEditable(m)
-      ? '<button type="button" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
+      ? '<button type="button" draggable="false" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
         + ' aria-label="' + escaparHtml(accion) + '" title="' + escaparHtml(accion) + '"'
         + ' onclick="window.__toggleBloqueo(\'' + m.id + '\',\'' + p.id + '\')">'
         + '<span class="cand-badge">' + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</span></button>'
@@ -3981,11 +3984,19 @@
         + ICON_ROTACION + '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(grupo[1])) + '</span></div>'
       : '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(p)) + '</span>';
 
-    return '<div class="camiseta ' + equipo + '-eq" title="' + titulo + '">'
+    /* El `draggable` va en el contenedor y el candado lleva `draggable="false"`, para que
+       activarlo siga siendo un click y no el arranque de un arrastre (FR-007b). */
+    const arrastreAttrs = arrastrable
+      ? ' draggable="true" ondragstart="window.__dragStartJugador(event,\'' + p.id + '\')"'
+        + ' ondragend="window.__dragFin()"'
+        + ' ondragover="window.__dragSobre(event,this)"'
+        + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
+      : '';
+    return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
       + puntajeHtml + candadoHtml
-      + '</div>' + nombreHtml + '</div>';
+      + '</div>' + nombreHtml + '<span class="drop-realce"></span></div>';
   }
 
   /* El campo de un equipo, con sus marcas y la capa de camisetas repartidas en líneas.
@@ -4003,8 +4014,13 @@
       '<div class="cancha-linea">' + subfilas.map(sf =>
         '<div class="cancha-subfila">' + sf.map(g => renderCamiseta(g, m, equipo)).join('') + '</div>'
       ).join('') + '</div>').join('');
-    return '<div class="cancha" data-max-fila="' + maxFila + '">' + MARCAS_CANCHA
-      + '<div class="cancha-lineas">' + lineasHtml + '</div></div>';
+    const dropAttrs = esFilaEditable(m)
+      ? ' ondragover="window.__dragSobre(event,this)"'
+        + ' ondrop="window.__dropEnCancha(event,\'' + m.id + '\',\'' + equipo + '\')"'
+      : '';
+    return '<div class="cancha" data-max-fila="' + maxFila + '"' + dropAttrs + '>' + MARCAS_CANCHA
+      + '<div class="cancha-lineas">' + lineasHtml + '</div>'
+      + (dropAttrs ? '<span class="drop-realce"></span>' : '') + '</div>';
   }
 
   window.__toggleBloqueo = function(matchId, playerId){
@@ -4061,9 +4077,16 @@
   /* Las dos pestañas. Se dibujan también para el rol jugador, que puede mirar el otro equipo
      aunque no pueda mover a nadie (FR-038). */
   function renderSelectorEquipo(m){
+    const editable = esFilaEditable(m);
     const tab = (equipo, etiqueta) => {
       const activo = equipoVisibleCancha === equipo;
-      return '<button type="button" class="equipo-tab"'
+      /* Sólo la pestaña del equipo que NO se está viendo recibe el drop: soltar sobre la propia
+         no hace nada (FR-013), y con rol jugador no hay drop en ninguna (FR-038b). */
+      const dropAttrs = (editable && !activo)
+        ? ' ondragover="window.__dragSobre(event,this)"'
+          + ' ondrop="window.__dropEnPestana(event,\'' + m.id + '\',\'' + equipo + '\')"'
+        : '';
+      return '<button type="button" class="equipo-tab"' + dropAttrs
         + ' aria-pressed="' + (activo ? 'true' : 'false') + '"'
         + ' onclick="window.__verEquipo(\'' + m.id + '\',\'' + equipo + '\')">'
         + etiqueta + '<span class="drop-realce"></span></button>';
@@ -4168,6 +4191,75 @@
     moverUnJugadorDeEquipo(m, idB, equipoA);
     if(parB) moverUnJugadorDeEquipo(m, parB, equipoA);
   }
+
+  /* --- Realce de la zona bajo el puntero ---
+     `dragover` hay que CANCELARLO para que el navegador acepte el drop; es la parte
+     contraintuitiva de esta API y sin eso el drop nunca llega.
+
+     Se limpia todo y se marca la zona actual en cada `dragover`, en vez de emparejar
+     `dragenter`/`dragleave`: esos dos disparan también al entrar y salir de los hijos, y
+     llevar la cuenta de eso a mano es la fuente clásica de realces que parpadean o quedan
+     pegados. Así el estado se recalcula solo. Lo que queda suelto —salir de toda zona hacia el
+     fondo de la página— lo cierra `dragend`, que siempre dispara (FR-008, FR-014, FR-015). */
+  function limpiarRealces(){
+    document.querySelectorAll('.drop-activo').forEach(x => x.classList.remove('drop-activo'));
+  }
+
+  window.__dragSobre = function(e, el){
+    if(!isAdmin()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(el.classList.contains('drop-activo')) return;
+    limpiarRealces();
+    el.classList.add('drop-activo');
+  };
+
+  window.__dragFin = function(){ limpiarRealces(); };
+
+  /* Los tres drops comparten camino: validar rol y estado, resolver qué movimiento corresponde
+     con la función pura, y aplicarlo por la ruta de escritura que ya existía.
+
+     La guarda de rol está acá y no sólo en el render: una vista que apenas deja de marcar la
+     camiseta como arrastrable deja la acción alcanzable desde la consola (TC-040). Y el
+     identificador se valida contra el reparto antes de tocar nada, porque el `dataTransfer` lo
+     puede llenar cualquier cosa que se arrastre desde afuera (TC-041). */
+  function aplicarDrop(e, matchId, destino){
+    e.preventDefault();
+    e.stopPropagation();
+    limpiarRealces();
+    if(!isAdmin()) return;                                   // TC-040, FR-042
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !m.equipos || !esFilaEditable(m)) return;        // TC-040
+    const idArrastrado = e.dataTransfer.getData('text/plain');
+    const mov = resolverDestinoDrop(m, idArrastrado, destino);
+    if(!mov) return;                                          // FR-005, FR-013, FR-025
+    /* Soltar sobre la pestaña revela además ese equipo, para que el resultado del movimiento
+       quede a la vista y no detrás de un toque (FR-034). Se hace ANTES de mover para que el
+       repintado que dispara el movimiento ya muestre el equipo correcto: un solo render. */
+    if(destino.clase === 'pestana'){
+      equipoVisibleCancha = destino.equipo;
+      partidoDelEquipoVisible = matchId;
+    }
+    if(mov.tipo === 'intercambiar'){
+      intercambiarUnidades(m, idArrastrado, mov.idDestino);
+      saveMatches();
+      renderMatchesTab();
+    } else {
+      window.__moverJugadorManual(matchId, idArrastrado, mov.equipo);
+    }
+  }
+
+  window.__dropEnCancha = function(e, matchId, equipo){
+    aplicarDrop(e, matchId, { clase: 'cancha', equipo: equipo });
+  };
+  /* La camiseta gana sobre la cancha que la contiene (FR-012): `aplicarDrop` corta la
+     propagación, así que el manejador del campo no llega a correr. */
+  window.__dropEnCamiseta = function(e, matchId, playerId){
+    aplicarDrop(e, matchId, { clase: 'camiseta', id: playerId });
+  };
+  window.__dropEnPestana = function(e, matchId, equipo){
+    aplicarDrop(e, matchId, { clase: 'pestana', equipo: equipo });
+  };
 
   window.__dragStartJugador = function(e, playerId){
     if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
