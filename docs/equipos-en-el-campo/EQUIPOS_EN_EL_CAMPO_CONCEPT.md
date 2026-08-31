@@ -4,7 +4,9 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** *not yet written* · **Implementation plan:** *not yet written*
+> **Spec (rebanada 1 · la cancha):** [rebanada-1-cancha/CANCHA_SPEC.md](./rebanada-1-cancha/CANCHA_SPEC.md)
+>
+> **Implementation plan (rebanada 1):** *not yet written* · **Rebanadas 2 a 7:** *not yet written*
 
 ## 1. TL;DR
 
@@ -615,6 +617,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 ---
 
-*Next document: Spec de la rebanada 1 (`docs/equipos-en-el-campo/`). El Concept
-Note cubre el rediseño completo; cada rebanada de `D-08` recibe su propia Spec e
-Implementation Plan.*
+*Next document: Implementation Plan de la rebanada 1
+(`docs/equipos-en-el-campo/rebanada-1-cancha/`). El Concept Note cubre el rediseño
+completo; cada rebanada de `D-08` recibe su propia Spec e Implementation Plan, en
+su subcarpeta `rebanada-N-<nombre>/`.*
