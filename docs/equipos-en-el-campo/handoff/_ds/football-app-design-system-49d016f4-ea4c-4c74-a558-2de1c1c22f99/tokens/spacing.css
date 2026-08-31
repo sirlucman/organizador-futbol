@@ -1,0 +1,27 @@
+:root {
+  /* 4 px base unit */
+  --space-xxs: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+
+  /* Semantic spacing */
+  --space-card-padding: var(--space-xl);
+  --space-band-padding-y: var(--space-3xl);
+  --space-band-padding-x: var(--space-xl);
+  --space-button-padding: var(--space-md) var(--space-xl);
+  --space-input-padding: var(--space-md) var(--space-lg);
+  --space-badge-padding: var(--space-xs) var(--space-md);
+  --space-nav-padding: var(--space-md) var(--space-xl);
+  --space-cell-padding: var(--space-md) var(--space-lg);
+
+  /* Layout */
+  --container-max: 1200px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+  --touch-target-min: 48px;
+}
