@@ -33,6 +33,7 @@ const DECLARACIONES = [
   'MAX_POR_SUBFILA',
   'posicionAsignadaDe',
   'escaparHtml',
+  'fullName',
   'nombreCorto',
   'agruparEnLineasDeCancha',
   'partirLineaEnSubfilas',
@@ -186,6 +187,10 @@ console.log('\n\x1b[1mNOMBRE Y ESCAPADO\x1b[0m\n');
 prueba('"S-01" el nombre de la camiseta es el primer nombre más la inicial del último apellido', () => {
   eq(C.nombreCorto({ nombre: 'Nicolás', apellido: 'Vallejos' }), 'Nicolás V.', 'caso típico');
   eq(C.nombreCorto({ nombre: 'Juan Cruz', apellido: 'de la Vega' }), 'Juan V.', 'apellido de varias palabras: la última identifica');
+  eq(C.nombreCorto({ nombre: 'Lucas Manoukian', apellido: '' }), 'Lucas M.',
+     'con el nombre entero en el campo `nombre` —como el plantel testigo— el apellido se abrevia, no se pierde');
+  eq(C.nombreCorto({ nombre: 'Juan (Hijo de Claudio)', apellido: '' }), 'Juan C.',
+     'la inicial es la primera LETRA del último token, no su primer carácter');
 });
 
 prueba('"S-01" un jugador sin apellido muestra sólo su nombre', () => {
