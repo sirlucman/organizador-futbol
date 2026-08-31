@@ -4026,6 +4026,80 @@
     renderMatchesTab();
   };
 
+  /* ------------------------------------------------------------------ EL SELECTOR DE EQUIPO
+     Rebanada 2 de "Equipos en el campo".
+
+     En una sola columna los dos equipos no se apilan: se ve uno por vez, con dos pestañas
+     arriba. Reemplaza el apilado que fijó el FR-054 de la rebanada 1, y la razón no es
+     estética — con las canchas apiladas, en un teléfono el destino de todo movimiento queda
+     fuera de pantalla y alcanzarlo depende de cómo cada navegador desplace durante un arrastre,
+     que es justo lo que no se puede verificar sin un teléfono a mano. */
+
+  /* Estado de PANTALLA, no del partido: no se persiste (TC-035). Guardarlo en Firestore
+     agregaría un campo que NFR-005 prohíbe, y guardarlo en el DOM lo perdería en cada
+     repintado. `partidoDelEquipoVisible` es lo que hace que abrir otro partido vuelva a
+     empezar por el Blanco (FR-033). */
+  let equipoVisibleCancha = 'blanco';
+  let partidoDelEquipoVisible = null;
+
+  /* El mismo punto de corte que `.teams-wrap` usa para pasar a una columna. El literal queda
+     duplicado entre el CSS y este archivo porque no hay forma de compartirlo; lo que impide que
+     se desincronicen son los escenarios S-04a (900px) y S-04b (901px) de layout.test.js, que
+     fallan si discrepan (TC-015). */
+  const ANCHO_UNA_COLUMNA = 900;
+  function enUnaColumna(){
+    return window.matchMedia('(max-width: ' + ANCHO_UNA_COLUMNA + 'px)').matches;
+  }
+
+  /* Cruzar el punto de corte cambia la ESTRUCTURA y no sólo el estilo —en una columna hay
+     selector y una cancha; en dos, dos canchas y ningún selector—, y eso lo decide el render.
+     Por eso hay que volver a pintar cuando el modo cambia; el CSS solo no alcanza. */
+  window.matchMedia('(max-width: ' + ANCHO_UNA_COLUMNA + 'px)').addEventListener('change', () => {
+    if(document.querySelector('.teams-wrap')) renderMatchesTab();
+  });
+
+  /* Las dos pestañas. Se dibujan también para el rol jugador, que puede mirar el otro equipo
+     aunque no pueda mover a nadie (FR-038). */
+  function renderSelectorEquipo(m){
+    const tab = (equipo, etiqueta) => {
+      const activo = equipoVisibleCancha === equipo;
+      return '<button type="button" class="equipo-tab"'
+        + ' aria-pressed="' + (activo ? 'true' : 'false') + '"'
+        + ' onclick="window.__verEquipo(\'' + m.id + '\',\'' + equipo + '\')">'
+        + etiqueta + '<span class="drop-realce"></span></button>';
+    };
+    return '<div class="equipo-tabs" data-visible="' + equipoVisibleCancha + '">'
+      + '<span class="equipo-tabs-thumb"></span>'
+      + tab('blanco', 'Equipo Blanco') + tab('negro', 'Equipo Negro') + '</div>';
+  }
+
+  window.__verEquipo = function(matchId, equipo){
+    if(equipo !== 'blanco' && equipo !== 'negro') return;
+    equipoVisibleCancha = equipo;
+    partidoDelEquipoVisible = matchId;
+    renderMatchesTab();
+  };
+
+  /* La zona de los dos equipos: el selector cuando corresponde, y las canchas o las listas.
+     `paneles` es { blanco: {header, contenido}, negro: {...} }, porque el encabezado difiere
+     entre la vista de admin (total de puntaje) y la de jugador (goles).
+
+     En una columna se dibuja UNA sola cancha, no las dos con una escondida: un elemento con
+     `display:none` devuelve rectángulos de cero, y el invariante de layout compara rectángulos,
+     así que dos canchas escondidas le harían reportar solapamientos que no existen. */
+  function renderZonaEquipos(m, paneles){
+    if(partidoDelEquipoVisible !== m.id){
+      equipoVisibleCancha = 'blanco';
+      partidoDelEquipoVisible = m.id;
+    }
+    const unaColumna = enUnaColumna() && mostrarCanchaDeEquipos(m);
+    const panel = equipo => '<div class="team-panel ' + equipo + '"><h4>' + paneles[equipo].header
+      + '</h4>' + paneles[equipo].contenido + '</div>';
+    const visibles = unaColumna ? [equipoVisibleCancha] : ['blanco', 'negro'];
+    return (unaColumna ? renderSelectorEquipo(m) : '')
+      + '<div class="teams-wrap">' + visibles.map(panel).join('') + '</div>';
+  }
+
   /* ------------------------------------------------------------------ EL ARRASTRE
      Rebanada 2 de "Equipos en el campo".
      docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md
@@ -4217,20 +4291,18 @@
       }
       section.innerHTML = `
         <h3>Equipos</h3>
-        <div class="teams-wrap">
-          <div class="team-panel blanco">
-            <h4>Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}</h4>
-            ${mostrarCanchaDeEquipos(m)
+        ${renderZonaEquipos(m, {
+          blanco: {
+            header: `Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
+            contenido: mostrarCanchaDeEquipos(m)
               ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
-              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-          </div>
-          <div class="team-panel negro">
-            <h4>Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}</h4>
-            ${mostrarCanchaDeEquipos(m)
+              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('') },
+          negro: {
+            header: `Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}`,
+            contenido: mostrarCanchaDeEquipos(m)
               ? renderCanchaEquipo(m, negroPlayers, 'negro')
-              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-          </div>
-        </div>
+              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
+        })}
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
         </div>
@@ -4444,9 +4516,6 @@
       if(chips) balanceLineasHtml = `<div class="conv-summary">${chips}</div>`;
     }
 
-    const dragAttrsBlanco = !locked ? `ondragover="event.preventDefault()" ondrop="window.__dropOnTeam(event,'${m.id}','blanco')"` : '';
-    const dragAttrsNegro = !locked ? `ondragover="event.preventDefault()" ondrop="window.__dropOnTeam(event,'${m.id}','negro')"` : '';
-
     section.innerHTML = `
       <h3>Equipos</h3>
       ${selectorEstrategia}
@@ -4456,20 +4525,18 @@
           <span>La convocatoria, la estrategia o la configuración del motor cambiaron desde la última generación. Estos equipos pueden no reflejar la configuración actual.</span>
           <button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')" style="white-space:nowrap;">Regenerar equipos</button>
         </div>` : ''}
-      <div class="teams-wrap">
-        <div class="team-panel blanco" ${dragAttrsBlanco}>
-          <h4>Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span></h4>
-          ${mostrarCanchaDeEquipos(m)
+      ${renderZonaEquipos(m, {
+        blanco: {
+          header: `Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
+          contenido: mostrarCanchaDeEquipos(m)
             ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
-            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-        </div>
-        <div class="team-panel negro" ${dragAttrsNegro}>
-          <h4>Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span></h4>
-          ${mostrarCanchaDeEquipos(m)
+            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('') },
+        negro: {
+          header: `Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span>`,
+          contenido: mostrarCanchaDeEquipos(m)
             ? renderCanchaEquipo(m, negroPlayers, 'negro')
-            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-        </div>
-      </div>
+            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
+      })}
       <div class="conv-summary">
         <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${ventajaOtorgada > 0 ? ` <span style="opacity:0.7;">(buscada: ${ventajaOtorgada} a favor del ${eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro'})</span>` : ''}${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(desvío aceptable ≤ ${diffObjetivo})</span>` : ''}</div>
         <div class="stat">Sin puntaje — Blanco: <b>${sinPuntajeBlanco}</b></div>
