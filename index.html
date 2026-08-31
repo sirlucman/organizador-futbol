@@ -4090,11 +4090,15 @@
         <div class="teams-wrap">
           <div class="team-panel blanco">
             <h4>Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}</h4>
-            ${agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+            ${mostrarCanchaDeEquipos(m)
+              ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
+              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
           </div>
           <div class="team-panel negro">
             <h4>Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}</h4>
-            ${agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+            ${mostrarCanchaDeEquipos(m)
+              ? renderCanchaEquipo(m, negroPlayers, 'negro')
+              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
           </div>
         </div>
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -4325,11 +4329,15 @@
       <div class="teams-wrap">
         <div class="team-panel blanco" ${dragAttrsBlanco}>
           <h4>Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span></h4>
-          ${agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+          ${mostrarCanchaDeEquipos(m)
+            ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
+            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
         </div>
         <div class="team-panel negro" ${dragAttrsNegro}>
           <h4>Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span></h4>
-          ${agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+          ${mostrarCanchaDeEquipos(m)
+            ? renderCanchaEquipo(m, negroPlayers, 'negro')
+            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
         </div>
       </div>
       <div class="conv-summary">
