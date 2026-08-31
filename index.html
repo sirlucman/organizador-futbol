@@ -385,20 +385,35 @@
   .camiseta-fig path{ fill: var(--chip-bg); stroke: var(--chip-stroke); stroke-width: 1.2; }
   .cancha .blanco-eq{ --chip-bg: #ffffff; --chip-stroke: rgb(17 24 39 / 0.32); }
   .cancha .negro-eq{ --chip-bg: #111827; --chip-stroke: rgb(255 255 255 / 0.3); }
-  .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 700; font-size: var(--chip-name); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
+  /* Peso 500 y no el 700 del handoff: decisión de producto posterior al handoff — los nombres en
+     negrita sobre el césped pesaban demasiado y competían con las camisetas. Es una desviación
+     deliberada de TC-033, que pide tomar las medidas del handoff literales, y queda anotada como
+     tal. El text-shadow es lo que sostiene la legibilidad sobre el verde, no el peso. */
+  .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 500; font-size: var(--chip-name); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
   /* Puntaje: sólo para admin (FR-024). Sin puntaje calculable no se dibuja la píldora y el
      `title` de la camiseta lo dice — "sin puntaje" no entra en una píldora de 26px (FR-025). */
-  .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: 24px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: 11px; line-height: 18px; text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
-  /* Candado: 24px de lado es el piso de NFR-004, el mismo objetivo que tenía el `.icon-btn` de
-     la fila que esta cancha reemplaza. El dibujo es de 20px y el padding completa el objetivo. */
-  .camiseta-candado{ position: absolute; top: -5px; left: -6px; width: 24px; height: 24px; padding: 2px; display: flex; align-items: center; justify-content: center; border: none; border-radius: var(--radius-pill); cursor: pointer; background: rgb(17 24 39 / 0.32); color: #ffffff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.6); }
-  .camiseta-candado svg{ width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.4; fill: none; }
-  .camiseta-candado.fijado{ background: var(--pitch-pale); color: var(--pitch-deep); box-shadow: inset 0 0 0 1.5px rgb(42 93 10 / 0.35), 0 2px 6px rgb(17 24 39 / 0.35); }
-  .camiseta-candado:hover{ background: var(--ink); }
-  .camiseta-candado.fijado:hover{ background: #ffffff; }
+  .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: var(--pill-min); padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: var(--pill-fs); line-height: calc(var(--pill-fs) + 6px); text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
+  /* Candado. Dos tamaños distintos a propósito: el BOTÓN mide siempre 24px de lado —el piso de
+     NFR-004, el mismo objetivo táctil que tenía el `.icon-btn` de la fila que esta cancha
+     reemplaza— y la insignia VISIBLE va adentro, más chica y proporcional a la camiseta. Sin esa
+     separación, respetar el objetivo táctil sobre una camiseta de 42px dibujaba un candado que
+     tapaba un tercio del dibujo. */
+  .camiseta-candado{ position: absolute; top: calc((var(--cand-size) - 24px) / 2 - 4px); left: calc((var(--cand-size) - 24px) / 2 - 5px); width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; }
+  .cand-badge{ width: var(--cand-size); height: var(--cand-size); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-pill); background: rgb(17 24 39 / 0.32); color: #ffffff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.6); }
+  .cand-badge svg{ width: calc(var(--cand-size) * 0.64); height: calc(var(--cand-size) * 0.64); display: block; }
+  .cand-badge svg path{ fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .cand-badge svg rect{ fill: currentColor; stroke: none; }
+  .camiseta-candado.fijado .cand-badge{ background: var(--pitch-pale); color: var(--pitch-deep); box-shadow: inset 0 0 0 1.5px rgb(42 93 10 / 0.35), 0 2px 6px rgb(17 24 39 / 0.35); }
+  .camiseta-candado:hover .cand-badge{ background: var(--ink); }
+  .camiseta-candado.fijado:hover .cand-badge{ background: #ffffff; }
   /* Cápsula de dupla: reemplaza al nombre, no se suma. La dupla es UNA unidad de armado y viaja
      como una sola camiseta, con el puntaje de la unidad (FR-020, FR-026, FR-027). */
-  .camiseta-dupla{ display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px 4px; border-radius: 12px; background: rgb(17 24 39 / 0.34); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3); max-width: 100%; }
+  /* `min-width: 0` no es decorativo: la cápsula es un flex item cuya `min-width` automática es su
+     ancho de contenido, y adentro los nombres van con `nowrap`. Sin esto la cápsula se niega a
+     achicarse, ignora su `max-width` y se sale de la columna — con dos nombres largos se metía
+     sobre la camiseta vecina. Los nombres sueltos no tienen el problema porque su `overflow:
+     hidden` ya lleva su mínimo automático a cero. */
+  .camiseta-dupla{ display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px 4px; border-radius: 12px; background: rgb(17 24 39 / 0.34); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3); max-width: 100%; min-width: 0; }
   .camiseta-dupla .camiseta-nombre{ line-height: 14px; }
   .camiseta-dupla svg{ width: 12px; height: 12px; stroke: var(--pitch-light); stroke-width: 2.2; fill: none; }
 
@@ -412,24 +427,24 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; }
   }
-  /* Por debajo de ~340px de panel útil el handoff se queda sin escalón diseñado: a 360px de
-     viewport quedan ~296px y la fila de cuatro de la cancha de 9 pide 338. Estos valores se
-     derivaron midiendo, como fija D-13, y se validan mirándolos en la aplicación real: el test
-     dice si entra, no si se lee. */
-  @container (max-width: 340px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 88px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; }
-    .cancha:is([data-max-fila="4"]){ --chip-w: 70px; --chip-size: 42px; --chip-name: 10.5px; --row-pad: 4px; --row-gap: 2px; }
-    .cancha:is([data-max-fila="5"]){ --chip-w: 56px; --chip-size: 36px; --chip-name: 10.5px; --row-pad: 4px; --row-gap: 2px; }
-  }
+  /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
+     olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
+     había que derivar medidas más chicas. No desborda: las columnas son flex items y se encogen
+     solas — con `--chip-w: 80px` y 296px de panel útil, la columna se resuelve en 69.5px y la
+     CAMISETA sigue midiendo 48px. Se probaron las dos configuraciones sobre la aplicación real y
+     el escalón derivado (columna 70px, camiseta 42px) era peor en las dos dimensiones que
+     importan: camisetas más chicas Y más nombres cortados —a 360px y a 390px, contra sólo 360px
+     con el del handoff—. Así que se usa el del handoff y se borró el derivado.
+     Ver OPEN-Q-03 y OPEN-Q-04 del Implementation Plan. */
 
   /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
      desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
@@ -1121,14 +1136,23 @@
 
   /* Nombre para la camiseta: primer nombre + inicial del último apellido con punto
      ("Nicolás V."). El apellido es opcional —hay jugadores cargados sólo con nombre— y puede
-     tener varias palabras: se usa la última, que es la que identifica. Mostrar el nombre completo
-     es una opción de configuración diferida a la rebanada 7 (Concept Note §14).
+     tener varias palabras: se usa la última, que es la que identifica.
+
+     Se parte del NOMBRE COMPLETO y no de los dos campos por separado: la ficha tiene `nombre` y
+     `apellido` aparte, pero nada obliga a usarlos así y hay planteles cargados con el nombre
+     entero en `nombre` — el partido testigo es uno. Mirando sólo `apellido`, "Lucas Manoukian"
+     se dibujaba como "Lucas", perdiendo el apellido en vez de abreviarlo.
+
+     La inicial es la primera LETRA del último token, no su primer carácter: hay nombres reales
+     con paréntesis y comillas ("Juan (Hijo de Claudio)"), y ahí el primer carácter no es la
+     inicial de nadie. Mostrar el nombre completo es una opción de configuración diferida a la
+     rebanada 7 (Concept Note §14).
      (Spec de la cancha, FR-022, A-01.) */
   function nombreCorto(p){
-    const nombre = (p.nombre || '').trim().split(/\s+/)[0] || '';
-    const apellidos = (p.apellido || '').trim().split(/\s+/).filter(Boolean);
-    const ultimo = apellidos[apellidos.length - 1];
-    return ultimo ? nombre + ' ' + ultimo[0].toUpperCase() + '.' : nombre;
+    const palabras = fullName(p).split(/\s+/).filter(Boolean);
+    if(palabras.length <= 1) return palabras[0] || '';
+    const letra = palabras[palabras.length - 1].match(/[\p{L}]/u);
+    return letra ? palabras[0] + ' ' + letra[0].toUpperCase() + '.' : palabras[0];
   }
 
   let toastTimeoutId = null;
@@ -3859,8 +3883,12 @@
      (§ Camiseta). Los adornos —puntaje, candado— se posicionan contra el cuadro que la contiene,
      no contra el dibujo, así que achicar la camiseta no los descoloca. */
   const CAMISETA_PATH = 'M18 3 C20 7 22 8 24 8 C26 8 28 7 30 3 L38 6 L46 15 L37 22 L34.5 19 L34.5 39 A2 2 0 0 1 32.5 41 L15.5 41 A2 2 0 0 1 13.5 39 L13.5 19 L11 22 L2 15 L10 6 Z';
-  const ICON_CANDADO_CERRADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
-  const ICON_CANDADO_ABIERTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>';
+  /* Candado con el CUERPO RELLENO y sólo el arco trazado. La versión de la lista es todo trazo,
+     que a 16px de la fila se lee bien; sobre la camiseta el ícono queda en unos 11px y ahí un
+     rectángulo de 9 unidades de alto con trazo grueso se rellena solo y deja un bloque, no un
+     candado. Relleno el cuerpo, la silueta se reconoce al tamaño que la cancha necesita. */
+  const ICON_CANDADO_CERRADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
+  const ICON_CANDADO_ABIERTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 8.6-1.7"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
   const ICON_ROTACION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
   /* Las marcas del campo, iguales para los dos equipos. Todas en porcentajes, así que el dibujo
      es el mismo a cualquier ancho; el lado de abajo espeja al de arriba vía la clase `abajo`. */
@@ -3912,7 +3940,7 @@
       ? '<button type="button" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
         + ' aria-label="' + escaparHtml(accion) + '" title="' + escaparHtml(accion) + '"'
         + ' onclick="window.__toggleBloqueo(\'' + m.id + '\',\'' + p.id + '\')">'
-        + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</button>'
+        + '<span class="cand-badge">' + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</span></button>'
       : '';
 
     const nombreHtml = esUnidadDupla
