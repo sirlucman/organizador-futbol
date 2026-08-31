@@ -81,9 +81,45 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
      se renderiza y el escenario no prueba nada de eso. */
   const duplasSnapshot = JSON.stringify(duplasIds.map(par => [...par].sort()).sort((a, b) => (a[0] + a[1]).localeCompare(b[0] + b[1])));
 
+  /* Fútbol 9 con el MISMO plantel: nueve unidades de armado por equipo, en la formación
+     1 ARQ / 3 DEF / 4 VOL / 1 DEL que el motor produce para esa cancha. Es la única forma de
+     ejercitar la fila de cuatro camisetas, que es el caso más ancho de la cancha y el que decide
+     el escalón de medidas a 360px (Spec de la cancha, S-01a, S-06).
+
+     Se reusa el plantel testigo y NO `PARTIDO_CANCHA9_EMPATE`, aunque ese fixture ya sea de
+     cancha de 9: sus nombres son sintéticos y cortos ("Jugador 10"), y lo que empuja el ancho de
+     una camiseta son los nombres largos de verdad. Un fixture de 9 con nombres cortos mediría el
+     caso equivocado.
+
+     La dupla se ubica a propósito como PRIMER volante, o sea dentro de la fila de cuatro: la
+     cápsula de dos nombres es más ancha que un nombre solo, así que es el peor caso y el que
+     conviene mirar primero. */
+  /* Los sueltos del partido de 8 son sólo doce —`titulares` corta en dieciséis ids y cuatro se
+     los llevan las duplas—, y para nueve por equipo hacen falta dieciséis. Así que acá los
+     sueltos salen del plantel COMPLETO, incluidos los tres jugadores de más allá del cupo de 8. */
+  const duplaBlanco = dA, duplaNegro = dB;
+  const sueltos9 = ids.filter(id => ![...dA, ...dB].includes(id)).map(id => [id]);
+  const unidadesBlanco9 = [sueltos9[0], sueltos9[1], sueltos9[2], sueltos9[3], duplaBlanco, sueltos9[4], sueltos9[5], sueltos9[6], sueltos9[7]];
+  const unidadesNegro9 = [sueltos9[8], sueltos9[9], sueltos9[10], sueltos9[11], duplaNegro, sueltos9[12], sueltos9[13], sueltos9[14], sueltos9[15]];
+  const FORMACION_9 = ['Arquero', 'Defensor', 'Defensor', 'Defensor', 'Volante', 'Volante', 'Volante', 'Volante', 'Delantero'];
+  const posicion9 = {};
+  [unidadesBlanco9, unidadesNegro9].forEach(equipo => equipo.forEach((unidad, i) => {
+    unidad.forEach(id => { posicion9[id] = FORMACION_9[i]; });
+  }));
+  const equipos9 = {
+    blanco: unidadesBlanco9.flat(),
+    negro: unidadesNegro9.flat(),
+    sumaBlanco: 59.5, sumaNegro: 58,
+    posicionAsignada: posicion9,
+    esPrimeraGeneracion: true, cambios: 0,
+    estrategia: 'Formación fija pareja', estrategiaKey: 'estrategia4',
+    duplasSnapshot,
+  };
+
   /* Un partido por estado, porque cada estado pinta una fila distinta: sin
      inputs, con los tres inputs de carga de resultado, y con los stats de
-     sólo lectura (que llevan white-space:nowrap). */
+     sólo lectura (que llevan white-space:nowrap). Los dos últimos son de la cancha: el de
+     fútbol 9 y uno sin equipos generados, que es el estado en que la cancha NO se dibuja. */
   const partidos = [
     { id: 'm-abierto', fecha: '2026-09-03', cancha: 'futbol8', estado: 'Inscripción abierta',
       convocados: ids, inscripcionCerrada: false, estrategia: 'estrategia4',
@@ -96,6 +132,14 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
       bloqueados: [], duplas: duplasIds, equipos: { ...equipos, duplasSnapshot },
       resultado: { finalizadoEn: 1756000000000,
         statsPorJugador: Object.fromEntries(titulares.map((id, i) => [id, { goles: i % 3, golesPenal: i % 2, asistencias: (i + 1) % 3 }])) } },
+    { id: 'm-nueve', fecha: '2026-09-10', cancha: 'futbol9', estado: 'Inscripción abierta',
+      convocados: ids, inscripcionCerrada: false, estrategia: 'estrategia4',
+      bloqueados: [equipos9.blanco[0]], duplas: duplasIds, equipos: equipos9 },
+    /* Sin `equipos`: la tarjeta no pinta ni cancha ni lista, y es el estado que verifica que la
+       cancha no aparece antes de que el motor reparta (Spec de la cancha, S-10c). */
+    { id: 'm-sin-equipos', fecha: '2026-09-17', cancha: 'futbol8', estado: 'Inscripción abierta',
+      convocados: ids, inscripcionCerrada: false, estrategia: 'estrategia4',
+      bloqueados: [], duplas: duplasIds },
   ];
 
   return {
@@ -115,13 +159,18 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
    único argumento, que es lo que admite addInitScript. */
 function fakeFirebase({ datos, rol }) {
   const docs = datos;
+  /* Registro de escrituras. La cancha es presentación pura y no debe agregar ni un campo nuevo a
+     lo que se persiste (Spec de la cancha, NFR-006): con esto un escenario puede abrir la
+     pantalla, mirar `window.__escrituras` y comparar el conjunto de claves contra el esperado.
+     Es una lista y no un contador porque también interesa el ORDEN cuando algo escribe de más. */
+  window.__escrituras = [];
   const doc = (col, key) => ({
     get: async () => {
       if (col === 'userRoles') return { exists: true, data: () => ({ rol, jugadorId: null }) };
       const value = docs[key];
       return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
     },
-    set: async (obj) => { docs[key] = obj && obj.value; },
+    set: async (obj) => { window.__escrituras.push(key); docs[key] = obj && obj.value; },
   });
   const auth = () => ({
     setPersistence: async () => {},

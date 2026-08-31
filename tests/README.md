@@ -2,13 +2,34 @@
 
 ```sh
 node tests/motor.test.js     # el motor de generación de equipos
+node tests/cancha.test.js    # la cancha: agrupado en líneas, sub-filas, nombre y escapado
 node tests/layout.test.js    # el layout responsive (Principio V)
 ```
 
 Los dos devuelven código de salida 1 solo si se rompe el comportamiento actual.
 
-`motor.test.js` no tiene dependencias: Node y nada más. `layout.test.js` necesita
-un navegador y explica por qué más abajo.
+`motor.test.js` y `cancha.test.js` no tienen dependencias: Node y nada más.
+`layout.test.js` necesita un navegador y explica por qué más abajo.
+
+## El test de la cancha
+
+`cancha.test.js` cubre la parte de la cancha (rebanada 1 de
+[equipos-en-el-campo](../docs/equipos-en-el-campo/)) que **no** necesita medir píxeles:
+que las unidades de armado caigan en la línea correcta y en orden de dibujo, que una línea
+de cinco o más se parta en dos sub-filas, que la dupla ocupe una sola posición, cómo se
+abrevia el nombre y cómo se escapa.
+
+Usa el mismo `extraer` de [harness.js](harness.js) que el motor, pero con lista propia de
+declaraciones: el sandbox del motor no necesita nada de la cancha. Dos detalles que ese
+recortador impone y que conviene saber antes de tocar `index.html`: corta un `const` en el
+primer salto de línea a profundidad cero (así que una función de varias líneas va como
+`function`), y no distingue una expresión regular de un string — un `"` dentro de `/.../`
+le abre un string que cierra cientos de líneas después. Por eso `escaparHtml` escribe su
+comilla como `\x22`.
+
+Cada caso lleva el identificador de su escenario de la Spec en el título, entre comillas
+("S-02a"), que es la convención de binding de [AGENTS.md](../AGENTS.md): los gates del
+Implementation Plan la buscan con `grep`.
 
 ## Cómo está armado
 
@@ -107,8 +128,14 @@ puede caer lejos de todo borde y no probar nada.
 
 ### Los invariantes de alineación
 
-Además del desborde, un escenario puede declarar un **invariante**: una aserción de
-layout que el contenido puede violar estando entero dentro del viewport. Nada de
+Además del desborde, un escenario puede declarar uno o varios **invariantes**: aserciones
+de layout que el contenido puede violar estando entero dentro del viewport. (`invariante`
+para uno solo, `invariantes` para varios — los escenarios de la cancha declaran dos.)
+
+Y puede declarar un **`comprobar(page)`**, para lo que no es layout: que la cancha aparezca
+donde tiene que aparecer y no donde no, que el candado haga lo que dice, que abrir la
+pantalla no escriba nada. No depende del ancho, así que corre una sola vez por escenario y
+no trece. Nada de
 esto produce scroll, así que la medición de desborde no lo ve — son dos preguntas
 distintas sobre la misma pantalla. Hay dos, los dos por debajo de 560px:
 
@@ -116,6 +143,14 @@ distintas sobre la misma pantalla. Hay dos, los dos por debajo de 560px:
   renglón y centrados cuando el panel es angosto, y siempre en la misma línea que el
   nombre cuando es ancho. Dejarlo al wrap natural mezclaba filas de 39px con filas de
   69px según el largo del nombre.
+- **La cancha**: que ninguna camiseta de una misma línea se encime con su vecina ni se
+  salga del césped, y que el nombre no baje del cuerpo mínimo de 10.5px que fija el
+  handoff. Nada de eso desborda la página: las camisetas pueden estar todas dentro del
+  viewport y aun así pisarse.
+- **El candado de la cancha**: que tenga nombre accesible —es solo-ícono— y que su
+  objetivo táctil no baje de los 24px que tenía el botón de la lista que reemplaza. Por
+  eso el botón mide 24px y la insignia visible va adentro, más chica: respetar el objetivo
+  dibujando el candado a 24px tapaba un tercio de una camiseta de 42px.
 - **Listado de jugadores**: los controles de administración, siempre en su propio
   renglón. Sin eso `.row-main` quedaba con 76px de ancho a 360px —los controles
   suman ~158px que no encogen— y adentro se apilaban el nombre en tres líneas y las

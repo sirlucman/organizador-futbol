@@ -399,9 +399,19 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 - **FR-052** — El sistema tomará los valores de cada escalón de la tabla de
   variables por vista de [`handoff/README.md` § Cancha](../handoff/README.md) para
   los anchos que el handoff diseñó.
-- **FR-053** — Donde el ancho útil del panel sea menor que el más chico que el
-  handoff diseñó, el sistema aplicará un escalón derivado por medición, que cumpla
-  `FR-051` y `NFR-002` (`D-03`, `D-13`).
+- **FR-053** — ~~Donde el ancho útil del panel sea menor que el más chico que el
+  handoff diseñó, el sistema aplicará un escalón derivado por medición.~~
+  **Sin efecto tras la implementación (2026-08-31).** El requisito se escribió sobre
+  la premisa de `D-03`: que la cancha de 9 desborda a 360 px y hay que derivar
+  medidas más chicas. Medido sobre la aplicación real, **no desborda**: las columnas
+  de una línea son elementos flexibles y se encogen solas, de modo que con el escalón
+  más chico del handoff la columna se resuelve en 69.5 px y la camiseta conserva sus
+  48 px. Se implementaron y compararon las dos configuraciones: el escalón derivado
+  (columna 70 px, camiseta 42 px) resultó peor en las dos dimensiones que importan
+  —camisetas más chicas y más nombres recortados, a 360 px **y** a 390 px, contra sólo
+  360 px con el del handoff—. El sistema usa los escalones del handoff en todo el
+  rango; no hay escalón derivado. `FR-051` y `NFR-002` siguen vigentes y se verifican
+  igual. Ver `OPEN-Q-03` y `OPEN-Q-04` del Implementation Plan.
 - **FR-054** — El sistema apilará las dos canchas verticalmente cuando el layout de
   la tarjeta pase a una sola columna, con el mismo punto de corte que hoy usa
   `.teams-wrap` ([`index.html:344-346`](../../../index.html#L344-L346)).
@@ -782,6 +792,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-08-31 | Lucas Manoukian | `FR-053` queda sin efecto: la premisa de `D-03` —que la cancha de 9 desborda a 360 px— no se sostiene contra la implementación, porque las columnas son flexibles y se encogen. Se usan los escalones del handoff en todo el rango. Descubierto al ejecutar el gate del Principio V: el escenario nuevo **pasaba** con el escalón revertido, que es exactamente lo que ese gate existe para detectar. Self-critique: no corresponde (enmienda posterior a la implementación). |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Self-critique: passed (2🔴 / 6🟡 / 1🔵), todos resueltos antes de guardar. Los dos 🔴: una cita fabricada a `.specify/specs/006-panel-equipos/`, carpeta que no existe (006 es `copiar-formacion`) — reemplazada por las dos specs reales que esta Spec pisa en su parte de presentación; y TC-020, TC-030 y TC-031 sin criterio de cumplimiento en §11.3 — agregados como AC-23 y AC-24. Los 🟡: bandas de numeración de AC solapadas entre §11.2 y §11.3 (renumeradas a 11.1→AC-01.., 11.2→AC-10.., 11.3→AC-20.., 11.4→AC-40..), FR-023 y FR-024 compuestas (partidas), TC-013 prescribía un mecanismo de CSS en vez de una prohibición (reescrita), NFR-005 citaba un "navegador de referencia" inexistente (anclada al Chromium de Playwright que el repo ya usa), y dos afirmaciones sin verificar sin marcador (etiquetadas). El 🔵: OPEN-Q-05 se pudo cerrar a medias durante la pasada y quedó reformulada. |
 
 ---

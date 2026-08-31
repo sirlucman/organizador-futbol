@@ -10,6 +10,21 @@
 
 **Input**: Detectado al analizar el partido testigo de `011-encaje-optimo-formacion`: el panel muestra "sin puntaje" para jugadores que el motor sí puntuó.
 
+> **⚠️ Parcialmente reemplazada (2026-08-31).** La **ubicación** de los números que
+> describe esta spec —"al lado de su nombre" para la nota de cada integrante de una
+> dupla, "en la columna de puntaje" para el valor de la unidad— fue reemplazada, en la
+> pantalla de **equipos generados con la inscripción abierta**, por
+> [`docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md):
+> ahí ya no hay filas ni columnas, sino una cancha con camisetas, y el número va en la
+> píldora de la camiseta.
+>
+> **Lo que NO se reemplaza y sigue vigente acá:** la regla de fondo, que es *qué* número
+> se muestra. Para una dupla se muestra el valor de la **unidad** —el que el motor usó y
+> el que suma al total del equipo—, no la nota individual de cada integrante. La Spec de
+> la cancha la conserva explícitamente en su `FR-027`. Las pantallas de carga de
+> resultado y de partido finalizado siguen usando la lista de filas que esta spec
+> describe, sin cambios.
+
 ## Contexto
 
 En el panel de equipos generados, cada jugador muestra su puntaje en la posición asignada, y el encabezado del equipo muestra el total. Con las Estrategias 2 y 3, un jugador sin nota cargada en esa posición se muestra como "sin puntaje", y hay dos contadores ("Sin puntaje — Blanco: N", "Sin puntaje — Negro: N").

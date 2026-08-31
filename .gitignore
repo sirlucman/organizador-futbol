@@ -1,2 +1,9 @@
 .claude/settings.local.json
 .DS_Store
+
+# Playwright: dependencia OPCIONAL de desarrollo, sólo la necesita tests/layout.test.js.
+# El repositorio no versiona dependencias — la aplicación carga Firebase por CDN — y el
+# Implementation Plan de la cancha declara `Supply-chain: none` sobre esa base.
+node_modules/
+package.json
+package-lock.json

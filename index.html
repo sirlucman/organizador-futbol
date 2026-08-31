@@ -23,11 +23,14 @@
     --brick: #dc2626;       /* negative */
     --mustard: #a16207;     /* warning content */
     --clay: #fb923c;        /* tertiary accent (illustration/decorative only) */
+    --pitch-grass: #417513; /* green-700 — el césped de la cancha */
+    --pitch-pale: #e4f0c4;  /* green-100 / color-primary-pale — candado fijado */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --radius-card: 24px;
     --radius-control: 12px;
+    --radius-field: 16px;   /* radius-lg — la cancha */
     --radius-pill: 9999px;
   }
 
@@ -336,6 +339,112 @@
   .explain-box{ background: var(--paper); border: 1px solid var(--paper-line); border-radius: var(--radius-control); padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
+
+
+  /* ------------------------------------------------------------------ LA CANCHA
+     Rebanada 1 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md
+
+     La geometría sale literal del handoff (docs/equipos-en-el-campo/handoff/README.md,
+     § Cancha y § Camiseta): proporción fija 68:105 y todas las marcas en porcentajes, así que
+     el campo se dibuja igual a cualquier ancho. Los valores no se redondean a ojo — el handoff
+     es hi-fi y sus medidas son finales (TC-033). */
+
+  .cancha{ position: relative; width: 100%; aspect-ratio: 68 / 105; background: var(--pitch-grass); border-radius: var(--radius-field); overflow: hidden; }
+  .cancha > .c-marca{ position: absolute; border: 2px solid rgb(255 255 255 / 0.42); }
+  .c-perim{ inset: 3% 4%; }
+  .c-medio{ left: 4%; right: 4%; top: 50%; height: 2px; border: none; background: rgb(255 255 255 / 0.42); }
+  .c-circulo{ left: 50%; top: 50%; width: 27%; aspect-ratio: 1 / 1; transform: translate(-50%, -50%); border-radius: 50%; }
+  .c-punto{ left: 50%; top: 50%; width: 7px; height: 7px; transform: translate(-50%, -50%); border: none; border-radius: 50%; background: rgb(255 255 255 / 0.55); }
+  .c-area, .c-areachica, .c-arco, .c-semi{ left: 50%; transform: translateX(-50%); }
+  .c-area{ top: 3%; width: 52%; height: 14.5%; border-top: none; }
+  .c-areachica{ top: 3%; width: 24%; height: 5.2%; border-top: none; }
+  .c-arco{ top: 1.2%; width: 12%; height: 1.8%; border-bottom: none; background: rgb(255 255 255 / 0.1); }
+  .c-semi{ top: 17.5%; width: 19%; height: 4.4%; border-top: none; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
+  .c-penal{ left: 50%; top: 11.5%; width: 5px; height: 5px; transform: translate(-50%, -50%); border: none; border-radius: 50%; background: rgb(255 255 255 / 0.5); }
+  /* El lado de abajo espeja el de arriba: mismas medidas, anclado por `bottom`. */
+  .c-marca.abajo{ top: auto; }
+  .c-area.abajo{ bottom: 3%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; }
+  .c-areachica.abajo{ bottom: 3%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; }
+  .c-arco.abajo{ bottom: 1.2%; border-bottom: 2px solid rgb(255 255 255 / 0.42); border-top: none; }
+  .c-semi.abajo{ bottom: 17.5%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .c-penal.abajo{ bottom: 11.5%; transform: translate(-50%, 50%); }
+
+  /* Capa de jugadores. `space-evenly` reparte el alto entre las líneas que HAY, así que un
+     equipo sin arquero asignado no deja un hueco abajo (FR-012). */
+  .cancha-lineas{ position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-evenly; padding: 2% 0 1%; }
+  .cancha-linea{ display: flex; flex-direction: column; gap: 4px; }
+  .cancha-subfila{ display: flex; align-items: flex-start; justify-content: center; gap: var(--row-gap); padding: 0 var(--row-pad); }
+
+  /* La camiseta. `--chip-w` es el ancho de la COLUMNA y `--chip-size` el lado del dibujo: cuando
+     hay que apretar una fila se angosta la columna antes que la camiseta, que es lo que el
+     handoff hace para la fila de cuatro volantes de la cancha de 9. */
+  .camiseta{ display: flex; flex-direction: column; align-items: center; gap: 4px; width: var(--chip-w); border-radius: 13px; min-width: 0; }
+  .camiseta-fig{ position: relative; width: var(--chip-size); height: var(--chip-size); }
+  .camiseta-fig svg{ width: 100%; height: 100%; filter: drop-shadow(0 3px 7px rgb(17 24 39 / 0.35)); display: block; }
+  .camiseta-fig path{ fill: var(--chip-bg); stroke: var(--chip-stroke); stroke-width: 1.2; }
+  .cancha .blanco-eq{ --chip-bg: #ffffff; --chip-stroke: rgb(17 24 39 / 0.32); }
+  .cancha .negro-eq{ --chip-bg: #111827; --chip-stroke: rgb(255 255 255 / 0.3); }
+  /* Peso 500 y no el 700 del handoff: decisión de producto posterior al handoff — los nombres en
+     negrita sobre el césped pesaban demasiado y competían con las camisetas. Es una desviación
+     deliberada de TC-033, que pide tomar las medidas del handoff literales, y queda anotada como
+     tal. El text-shadow es lo que sostiene la legibilidad sobre el verde, no el peso. */
+  .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 500; font-size: var(--chip-name); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
+  /* Puntaje: sólo para admin (FR-024). Sin puntaje calculable no se dibuja la píldora y el
+     `title` de la camiseta lo dice — "sin puntaje" no entra en una píldora de 26px (FR-025). */
+  .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: var(--pill-min); padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: var(--pill-fs); line-height: calc(var(--pill-fs) + 6px); text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
+  /* Candado. Dos tamaños distintos a propósito: el BOTÓN mide siempre 24px de lado —el piso de
+     NFR-004, el mismo objetivo táctil que tenía el `.icon-btn` de la fila que esta cancha
+     reemplaza— y la insignia VISIBLE va adentro, más chica y proporcional a la camiseta. Sin esa
+     separación, respetar el objetivo táctil sobre una camiseta de 42px dibujaba un candado que
+     tapaba un tercio del dibujo. */
+  .camiseta-candado{ position: absolute; top: calc((var(--cand-size) - 24px) / 2 - 4px); left: calc((var(--cand-size) - 24px) / 2 - 5px); width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; }
+  .cand-badge{ width: var(--cand-size); height: var(--cand-size); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-pill); background: rgb(17 24 39 / 0.32); color: #ffffff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.6); }
+  .cand-badge svg{ width: calc(var(--cand-size) * 0.64); height: calc(var(--cand-size) * 0.64); display: block; }
+  .cand-badge svg path{ fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+  .cand-badge svg rect{ fill: currentColor; stroke: none; }
+  .camiseta-candado.fijado .cand-badge{ background: var(--pitch-pale); color: var(--pitch-deep); box-shadow: inset 0 0 0 1.5px rgb(42 93 10 / 0.35), 0 2px 6px rgb(17 24 39 / 0.35); }
+  .camiseta-candado:hover .cand-badge{ background: var(--ink); }
+  .camiseta-candado.fijado:hover .cand-badge{ background: #ffffff; }
+  /* Cápsula de dupla: reemplaza al nombre, no se suma. La dupla es UNA unidad de armado y viaja
+     como una sola camiseta, con el puntaje de la unidad (FR-020, FR-026, FR-027). */
+  /* `min-width: 0` no es decorativo: la cápsula es un flex item cuya `min-width` automática es su
+     ancho de contenido, y adentro los nombres van con `nowrap`. Sin esto la cápsula se niega a
+     achicarse, ignora su `max-width` y se sale de la columna — con dos nombres largos se metía
+     sobre la camiseta vecina. Los nombres sueltos no tienen el problema porque su `overflow:
+     hidden` ya lleva su mínimo automático a cero. */
+  .camiseta-dupla{ display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px 4px; border-radius: 12px; background: rgb(17 24 39 / 0.34); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3); max-width: 100%; min-width: 0; }
+  .camiseta-dupla .camiseta-nombre{ line-height: 14px; }
+  .camiseta-dupla svg{ width: 12px; height: 12px; stroke: var(--pitch-light); stroke-width: 2.2; fill: none; }
+
+  /* --- Escalones de medidas ---
+     Dos ejes: cuántas camisetas tiene la fila más ancha (lo escribe el render en
+     `data-max-fila`, porque una container query no puede contarlas) y cuánto mide el panel.
+     El ancho es del PANEL y no de la ventana: `.wrap` está topeado en 760px, así que en la banda
+     de dos columnas cada panel queda con ~341px útiles tanto a 901px de viewport como a 1400px —
+     el mismo ancho angosto que en un teléfono. Una media query necesitaría dos rangos disjuntos
+     para cubrir el mismo fenómeno (TC-013). Es la misma razón por la que `.team-panel` ya declara
+     `container-type: inline-size` para los inputs de carga.
+     Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
+     del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; }
+  @container (max-width: 380px){
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; }
+  }
+  @container (max-width: 360px){
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; }
+  }
+  /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
+     olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
+     había que derivar medidas más chicas. No desborda: las columnas son flex items y se encogen
+     solas — con `--chip-w: 80px` y 296px de panel útil, la columna se resuelve en 69.5px y la
+     CAMISETA sigue midiendo 48px. Se probaron las dos configuraciones sobre la aplicación real y
+     el escalón derivado (columna 70px, camiseta 42px) era peor en las dos dimensiones que
+     importan: camisetas más chicas Y más nombres cortados —a 360px y a 390px, contra sólo 360px
+     con el del handoff—. Así que se usa el del handoff y se borró el derivado.
+     Ver OPEN-Q-03 y OPEN-Q-04 del Implementation Plan. */
 
   /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
      desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
@@ -1007,6 +1116,44 @@
   const uid = (p) => (p||'id') + '_' + Date.now() + '_' + Math.floor(Math.random()*10000);
   const normalize = (s) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const fullName = (p) => ((p.nombre || '') + ' ' + (p.apellido || '')).trim(); // el apellido es opcional
+
+  /* Escapa texto que viene de un jugador antes de interpolarlo en HTML. Toda la interfaz se arma
+     con plantillas de cadena, así que un nombre con `<` o `&` se inyecta crudo. La cancha además
+     mete el nombre dentro de ATRIBUTOS (`title`, `aria-label`), donde una comilla doble rompe el
+     markup sin necesidad de ningún `<script>` — es el sink que antes no existía. `&` va primero:
+     invertido, re-escaparía los tres reemplazos siguientes.
+
+     Va como `function` y no como `const`: `tests/harness.js` recorta declaraciones por nombre y
+     corta un `const` en el primer salto de línea a profundidad cero, así que una arrow de dos
+     líneas llegaría truncada al sandbox de los tests. Por lo mismo la comilla doble se escribe
+     `\x22` y no literal: el recortador no distingue una expresión regular de un string, y un `"`
+     dentro de `/.../` le abre un string que recién cierra cientos de líneas más abajo.
+     (Spec de la cancha, TC-041, S-20.) */
+  function escaparHtml(s){
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\x22/g, '&quot;');
+  }
+
+  /* Nombre para la camiseta: primer nombre + inicial del último apellido con punto
+     ("Nicolás V."). El apellido es opcional —hay jugadores cargados sólo con nombre— y puede
+     tener varias palabras: se usa la última, que es la que identifica.
+
+     Se parte del NOMBRE COMPLETO y no de los dos campos por separado: la ficha tiene `nombre` y
+     `apellido` aparte, pero nada obliga a usarlos así y hay planteles cargados con el nombre
+     entero en `nombre` — el partido testigo es uno. Mirando sólo `apellido`, "Lucas Manoukian"
+     se dibujaba como "Lucas", perdiendo el apellido en vez de abreviarlo.
+
+     La inicial es la primera LETRA del último token, no su primer carácter: hay nombres reales
+     con paréntesis y comillas ("Juan (Hijo de Claudio)"), y ahí el primer carácter no es la
+     inicial de nadie. Mostrar el nombre completo es una opción de configuración diferida a la
+     rebanada 7 (Concept Note §14).
+     (Spec de la cancha, FR-022, A-01.) */
+  function nombreCorto(p){
+    const palabras = fullName(p).split(/\s+/).filter(Boolean);
+    if(palabras.length <= 1) return palabras[0] || '';
+    const letra = palabras[palabras.length - 1].match(/[\p{L}]/u);
+    return letra ? palabras[0] + ' ' + letra[0].toUpperCase() + '.' : palabras[0];
+  }
 
   let toastTimeoutId = null;
   window.__showToast = function(mensaje, tipo){
@@ -3570,6 +3717,17 @@
       </button>`;
   }
 
+  /* Dónde va la cancha y dónde sigue la lista de filas. Es un predicado de ESTADO, no de rol: el
+     jugador ve la misma cancha que el admin, sin puntajes ni candados (FR-060). La carga de
+     resultado y el partido finalizado conservan la lista hasta las rebanadas 4 y 6 (FR-042), así
+     que la frontera se corre desde acá y desde ningún otro lado. (Spec de la cancha, FR-040.) */
+  function mostrarCanchaDeEquipos(m){
+    const finalizado = m.estado === 'Finalizado';
+    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
+    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
+    return !cerrada && !finalizado;
+  }
+
   function esFilaEditable(m){
     const finalizado = m.estado === 'Finalizado';
     const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
@@ -3676,6 +3834,144 @@
 
   function renderFilaEquipo(grupo, m){
     return grupo.length === 2 ? renderTeamPlayerRowDupla(grupo[0], grupo[1], m) : renderTeamPlayerRow(grupo[0], m);
+  }
+
+  /* --- LA CANCHA (rebanada 1 de "Equipos en el campo") ---
+     docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md */
+
+  /* Reparte las unidades de armado de un equipo en las líneas de la cancha, ya en ORDEN DE
+     DIBUJO: Ataque arriba, Arco abajo — el inverso de ORDEN_LINEAS. Las líneas vacías no se
+     devuelven, así que el alto se reparte entre las que quedan (FR-012): un equipo sin arquero
+     asignado no deja un hueco abajo.
+
+     La posición sale de `posicionAsignadaDe`, la misma precedencia que usa la lista: la del
+     motor, si no la override manual, si no la principal declarada. Con la Estrategia 1, que no
+     asigna posiciones, todas caen en la principal — y ahí una línea puede quedar con cinco o
+     más, que es lo que resuelve `partirLineaEnSubfilas`. El handoff sólo diseñó líneas de 3 y 4.
+
+     El orden dentro de cada línea es el de `grupos`, que ya llega ordenado, así que dos
+     renderizados del mismo reparto dan el mismo orden (FR-015). Una posición fuera del catálogo
+     no rompe el render: cae al final, debajo del arco.
+     (Spec de la cancha, FR-010, FR-011, FR-012, FR-015.) */
+  function agruparEnLineasDeCancha(m, grupos){
+    const porLinea = new Map(ORDEN_LINEAS.map(pos => [pos, []]));
+    grupos.forEach(grupo => {
+      const pos = posicionAsignadaDe(grupo[0], m);
+      if(!porLinea.has(pos)) porLinea.set(pos, []);
+      porLinea.get(pos).push(grupo);
+    });
+    return [...porLinea.entries()]
+      .filter(entrada => entrada[1].length > 0)
+      .sort((a, b) => ORDEN_LINEAS.indexOf(b[0]) - ORDEN_LINEAS.indexOf(a[0]))
+      .map(entrada => ({ pos: entrada[0], unidades: entrada[1] }));
+  }
+
+  /* Una línea de hasta cuatro camisetas va en un renglón; de cinco en adelante se parte en dos
+     sub-filas centradas, con la de arriba llevando la mitad redondeada hacia arriba (FR-014).
+
+     El corte se decide acá y no con `flex-wrap` a propósito: el wrap corta donde el ancho manda,
+     que cambia con el largo de los nombres, así que dos equipos con el mismo reparto se verían
+     partidos en lugares distintos. Acá el corte depende sólo de cuántos son. */
+  const MAX_POR_SUBFILA = 4;
+  function partirLineaEnSubfilas(unidades){
+    if(unidades.length <= MAX_POR_SUBFILA) return [unidades];
+    const arriba = Math.ceil(unidades.length / 2);
+    return [unidades.slice(0, arriba), unidades.slice(arriba)];
+  }
+
+  /* Silueta de la camiseta: un solo `path` sobre un viewBox de 48x44, literal del handoff
+     (§ Camiseta). Los adornos —puntaje, candado— se posicionan contra el cuadro que la contiene,
+     no contra el dibujo, así que achicar la camiseta no los descoloca. */
+  const CAMISETA_PATH = 'M18 3 C20 7 22 8 24 8 C26 8 28 7 30 3 L38 6 L46 15 L37 22 L34.5 19 L34.5 39 A2 2 0 0 1 32.5 41 L15.5 41 A2 2 0 0 1 13.5 39 L13.5 19 L11 22 L2 15 L10 6 Z';
+  /* Candado con el CUERPO RELLENO y sólo el arco trazado. La versión de la lista es todo trazo,
+     que a 16px de la fila se lee bien; sobre la camiseta el ícono queda en unos 11px y ahí un
+     rectángulo de 9 unidades de alto con trazo grueso se rellena solo y deja un bloque, no un
+     candado. Relleno el cuerpo, la silueta se reconoce al tamaño que la cancha necesita. */
+  const ICON_CANDADO_CERRADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
+  const ICON_CANDADO_ABIERTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 8.6-1.7"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
+  const ICON_ROTACION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+  /* Las marcas del campo, iguales para los dos equipos. Todas en porcentajes, así que el dibujo
+     es el mismo a cualquier ancho; el lado de abajo espeja al de arriba vía la clase `abajo`. */
+  const MARCAS_CANCHA = [
+    '<div class="c-marca c-perim"></div>',
+    '<div class="c-marca c-medio"></div>',
+    '<div class="c-marca c-circulo"></div>',
+    '<div class="c-marca c-punto"></div>',
+    '<div class="c-marca c-area"></div>', '<div class="c-marca c-area abajo"></div>',
+    '<div class="c-marca c-areachica"></div>', '<div class="c-marca c-areachica abajo"></div>',
+    '<div class="c-marca c-arco"></div>', '<div class="c-marca c-arco abajo"></div>',
+    '<div class="c-marca c-semi"></div>', '<div class="c-marca c-semi abajo"></div>',
+    '<div class="c-marca c-penal"></div>', '<div class="c-marca c-penal abajo"></div>'
+  ].join('');
+
+  /* Una camiseta por UNIDAD de armado: la dupla de rotación es una sola camiseta con la cápsula
+     de dos nombres, no dos camisetas (FR-020, FR-026).
+
+     Todo lo que viene del jugador pasa por `escaparHtml`, tanto en el contenido como en los
+     atributos. El `title` carga lo que en la lista ocupaba columnas propias y acá no entra: el
+     nombre completo, la posición asignada, si esa posición es secundaria y si la unidad quedó sin
+     puntaje calculable (FR-023, FR-023b, FR-025).
+     (Spec de la cancha, FR-020 a FR-034, FR-060.) */
+  function renderCamiseta(grupo, m, equipo){
+    const p = grupo[0];
+    const esUnidadDupla = grupo.length === 2;
+    const posAsignada = posicionAsignadaDe(p, m);
+    const admin = isAdmin();
+    // El mismo número que la lista pone en la columna de puntaje: el de la UNIDAD, que es el que
+    // suma al total del equipo. No se recalcula acá (012-puntajes-coherentes-panel, FR-027).
+    const valor = admin ? valorDePuntaje(grupo, m) : null;
+    const completos = grupo.map(fullName).join(' / ');
+    const secundaria = grupo.some(j => j.principal !== posAsignada);
+
+    const partes = [completos];
+    if(esUnidadDupla) partes.push('dupla de rotación');
+    partes.push(secundaria ? posAsignada + ' (posición secundaria)' : posAsignada);
+    if(admin && valor === null) partes.push('sin puntaje');
+    const titulo = escaparHtml(partes.join(' · '));
+
+    const puntajeHtml = (admin && valor !== null)
+      ? '<span class="camiseta-puntaje">' + valor + '</span>' : '';
+
+    // El candado es sólo de admin y sólo con el partido abierto: el mismo predicado que gobierna
+    // la fila de la lista. La guarda de rol está además dentro de `__toggleBloqueo` (FR-034).
+    const bloqueado = (m.bloqueados || []).includes(p.id);
+    const accion = bloqueado ? 'Desbloquear a ' + completos : 'Bloquear a ' + completos + ' en este equipo';
+    const candadoHtml = esFilaEditable(m)
+      ? '<button type="button" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
+        + ' aria-label="' + escaparHtml(accion) + '" title="' + escaparHtml(accion) + '"'
+        + ' onclick="window.__toggleBloqueo(\'' + m.id + '\',\'' + p.id + '\')">'
+        + '<span class="cand-badge">' + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</span></button>'
+      : '';
+
+    const nombreHtml = esUnidadDupla
+      ? '<div class="camiseta-dupla"><span class="camiseta-nombre">' + escaparHtml(nombreCorto(grupo[0])) + '</span>'
+        + ICON_ROTACION + '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(grupo[1])) + '</span></div>'
+      : '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(p)) + '</span>';
+
+    return '<div class="camiseta ' + equipo + '-eq" title="' + titulo + '">'
+      + '<div class="camiseta-fig">'
+      + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
+      + puntajeHtml + candadoHtml
+      + '</div>' + nombreHtml + '</div>';
+  }
+
+  /* El campo de un equipo, con sus marcas y la capa de camisetas repartidas en líneas.
+
+     `data-max-fila` lleva cuántas camisetas tiene la fila más ancha una vez resueltas las
+     sub-filas. Lo escribe el render porque una container query mide anchos pero no puede contar
+     camisetas, y el escalón de medidas depende de las dos cosas (TC-013).
+     (Spec de la cancha, FR-001 a FR-004.) */
+  function renderCanchaEquipo(m, playersDelEquipo, equipo){
+    const lineas = agruparEnLineasDeCancha(m, agruparFilasDeEquipo(m, playersDelEquipo));
+    const filas = lineas.map(l => partirLineaEnSubfilas(l.unidades));
+    const maxFila = filas.reduce((max, subfilas) =>
+      subfilas.reduce((n, sf) => Math.max(n, sf.length), max), 1);
+    const lineasHtml = filas.map(subfilas =>
+      '<div class="cancha-linea">' + subfilas.map(sf =>
+        '<div class="cancha-subfila">' + sf.map(g => renderCamiseta(g, m, equipo)).join('') + '</div>'
+      ).join('') + '</div>').join('');
+    return '<div class="cancha" data-max-fila="' + maxFila + '">' + MARCAS_CANCHA
+      + '<div class="cancha-lineas">' + lineasHtml + '</div></div>';
   }
 
   window.__toggleBloqueo = function(matchId, playerId){
@@ -3822,11 +4118,15 @@
         <div class="teams-wrap">
           <div class="team-panel blanco">
             <h4>Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}</h4>
-            ${agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+            ${mostrarCanchaDeEquipos(m)
+              ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
+              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
           </div>
           <div class="team-panel negro">
             <h4>Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}</h4>
-            ${agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+            ${mostrarCanchaDeEquipos(m)
+              ? renderCanchaEquipo(m, negroPlayers, 'negro')
+              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
           </div>
         </div>
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
@@ -4057,11 +4357,15 @@
       <div class="teams-wrap">
         <div class="team-panel blanco" ${dragAttrsBlanco}>
           <h4>Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span></h4>
-          ${agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+          ${mostrarCanchaDeEquipos(m)
+            ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
+            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
         </div>
         <div class="team-panel negro" ${dragAttrsNegro}>
           <h4>Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span></h4>
-          ${agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
+          ${mostrarCanchaDeEquipos(m)
+            ? renderCanchaEquipo(m, negroPlayers, 'negro')
+            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
         </div>
       </div>
       <div class="conv-summary">

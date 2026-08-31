@@ -8,6 +8,19 @@
 
 **Input**: User description: "Separar a los jugadores que hoy se anotan como 'dupla' (típicamente padre e hijo) en dos jugadores independientes, en vez de un único jugador combinado, para poder calcular estadísticas individuales correctas. Agregar la posibilidad de configurar, antes del armado de equipos, qué jugador rota con quién." (ver `feature-description-duplas-rotacion.md` para el detalle original completo).
 
+> **⚠️ Parcialmente reemplazada (2026-08-31).** La **fila de dupla del panel de equipos**
+> —un renglón con un integrante arriba y el otro abajo, compartiendo posición y candado—
+> fue reemplazada, en la pantalla de **equipos generados con la inscripción abierta**, por
+> [`docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md):
+> ahí la dupla es **una sola camiseta** con una cápsula de dos nombres y un ícono de
+> rotación (`FR-026`).
+>
+> **Lo que NO se reemplaza y sigue vigente acá:** todo lo demás. Que la dupla sea una
+> unidad de armado que viaja entera, que sus dos integrantes vayan siempre al mismo
+> equipo y a la misma posición, que el candado aplique a los dos a la vez, y cómo se
+> calcula su puntaje. Las pantallas de carga de resultado y de partido finalizado siguen
+> usando la fila de dupla que esta spec describe, sin cambios.
+
 ## Clarifications
 
 ### Session 2026-08-15
