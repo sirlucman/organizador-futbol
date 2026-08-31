@@ -23,11 +23,14 @@
     --brick: #dc2626;       /* negative */
     --mustard: #a16207;     /* warning content */
     --clay: #fb923c;        /* tertiary accent (illustration/decorative only) */
+    --pitch-grass: #417513; /* green-700 — el césped de la cancha */
+    --pitch-pale: #e4f0c4;  /* green-100 / color-primary-pale — candado fijado */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --radius-card: 24px;
     --radius-control: 12px;
+    --radius-field: 16px;   /* radius-lg — la cancha */
     --radius-pill: 9999px;
   }
 
@@ -336,6 +339,97 @@
   .explain-box{ background: var(--paper); border: 1px solid var(--paper-line); border-radius: var(--radius-control); padding: 10px 14px; font-size: 13px; color: var(--ink); margin-top: 4px; }
   .explain-box ul{ margin: 6px 0 0; padding-left: 18px; }
   .explain-box li{ margin-bottom: 3px; }
+
+
+  /* ------------------------------------------------------------------ LA CANCHA
+     Rebanada 1 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md
+
+     La geometría sale literal del handoff (docs/equipos-en-el-campo/handoff/README.md,
+     § Cancha y § Camiseta): proporción fija 68:105 y todas las marcas en porcentajes, así que
+     el campo se dibuja igual a cualquier ancho. Los valores no se redondean a ojo — el handoff
+     es hi-fi y sus medidas son finales (TC-033). */
+
+  .cancha{ position: relative; width: 100%; aspect-ratio: 68 / 105; background: var(--pitch-grass); border-radius: var(--radius-field); overflow: hidden; }
+  .cancha > .c-marca{ position: absolute; border: 2px solid rgb(255 255 255 / 0.42); }
+  .c-perim{ inset: 3% 4%; }
+  .c-medio{ left: 4%; right: 4%; top: 50%; height: 2px; border: none; background: rgb(255 255 255 / 0.42); }
+  .c-circulo{ left: 50%; top: 50%; width: 27%; aspect-ratio: 1 / 1; transform: translate(-50%, -50%); border-radius: 50%; }
+  .c-punto{ left: 50%; top: 50%; width: 7px; height: 7px; transform: translate(-50%, -50%); border: none; border-radius: 50%; background: rgb(255 255 255 / 0.55); }
+  .c-area, .c-areachica, .c-arco, .c-semi{ left: 50%; transform: translateX(-50%); }
+  .c-area{ top: 3%; width: 52%; height: 14.5%; border-top: none; }
+  .c-areachica{ top: 3%; width: 24%; height: 5.2%; border-top: none; }
+  .c-arco{ top: 1.2%; width: 12%; height: 1.8%; border-bottom: none; background: rgb(255 255 255 / 0.1); }
+  .c-semi{ top: 17.5%; width: 19%; height: 4.4%; border-top: none; border-radius: 0 0 50% 50% / 0 0 100% 100%; }
+  .c-penal{ left: 50%; top: 11.5%; width: 5px; height: 5px; transform: translate(-50%, -50%); border: none; border-radius: 50%; background: rgb(255 255 255 / 0.5); }
+  /* El lado de abajo espeja el de arriba: mismas medidas, anclado por `bottom`. */
+  .c-marca.abajo{ top: auto; }
+  .c-area.abajo{ bottom: 3%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; }
+  .c-areachica.abajo{ bottom: 3%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; }
+  .c-arco.abajo{ bottom: 1.2%; border-bottom: 2px solid rgb(255 255 255 / 0.42); border-top: none; }
+  .c-semi.abajo{ bottom: 17.5%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
+  .c-penal.abajo{ bottom: 11.5%; transform: translate(-50%, 50%); }
+
+  /* Capa de jugadores. `space-evenly` reparte el alto entre las líneas que HAY, así que un
+     equipo sin arquero asignado no deja un hueco abajo (FR-012). */
+  .cancha-lineas{ position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-evenly; padding: 2% 0 1%; }
+  .cancha-linea{ display: flex; flex-direction: column; gap: 4px; }
+  .cancha-subfila{ display: flex; align-items: flex-start; justify-content: center; gap: var(--row-gap); padding: 0 var(--row-pad); }
+
+  /* La camiseta. `--chip-w` es el ancho de la COLUMNA y `--chip-size` el lado del dibujo: cuando
+     hay que apretar una fila se angosta la columna antes que la camiseta, que es lo que el
+     handoff hace para la fila de cuatro volantes de la cancha de 9. */
+  .camiseta{ display: flex; flex-direction: column; align-items: center; gap: 4px; width: var(--chip-w); border-radius: 13px; min-width: 0; }
+  .camiseta-fig{ position: relative; width: var(--chip-size); height: var(--chip-size); }
+  .camiseta-fig svg{ width: 100%; height: 100%; filter: drop-shadow(0 3px 7px rgb(17 24 39 / 0.35)); display: block; }
+  .camiseta-fig path{ fill: var(--chip-bg); stroke: var(--chip-stroke); stroke-width: 1.2; }
+  .cancha .blanco-eq{ --chip-bg: #ffffff; --chip-stroke: rgb(17 24 39 / 0.32); }
+  .cancha .negro-eq{ --chip-bg: #111827; --chip-stroke: rgb(255 255 255 / 0.3); }
+  .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 700; font-size: var(--chip-name); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
+  /* Puntaje: sólo para admin (FR-024). Sin puntaje calculable no se dibuja la píldora y el
+     `title` de la camiseta lo dice — "sin puntaje" no entra en una píldora de 26px (FR-025). */
+  .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: 24px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: 11px; line-height: 18px; text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
+  /* Candado: 24px de lado es el piso de NFR-004, el mismo objetivo que tenía el `.icon-btn` de
+     la fila que esta cancha reemplaza. El dibujo es de 20px y el padding completa el objetivo. */
+  .camiseta-candado{ position: absolute; top: -5px; left: -6px; width: 24px; height: 24px; padding: 2px; display: flex; align-items: center; justify-content: center; border: none; border-radius: var(--radius-pill); cursor: pointer; background: rgb(17 24 39 / 0.32); color: #ffffff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.6); }
+  .camiseta-candado svg{ width: 12px; height: 12px; stroke: currentColor; stroke-width: 2.4; fill: none; }
+  .camiseta-candado.fijado{ background: var(--pitch-pale); color: var(--pitch-deep); box-shadow: inset 0 0 0 1.5px rgb(42 93 10 / 0.35), 0 2px 6px rgb(17 24 39 / 0.35); }
+  .camiseta-candado:hover{ background: var(--ink); }
+  .camiseta-candado.fijado:hover{ background: #ffffff; }
+  /* Cápsula de dupla: reemplaza al nombre, no se suma. La dupla es UNA unidad de armado y viaja
+     como una sola camiseta, con el puntaje de la unidad (FR-020, FR-026, FR-027). */
+  .camiseta-dupla{ display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px 4px; border-radius: 12px; background: rgb(17 24 39 / 0.34); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3); max-width: 100%; }
+  .camiseta-dupla .camiseta-nombre{ line-height: 14px; }
+  .camiseta-dupla svg{ width: 12px; height: 12px; stroke: var(--pitch-light); stroke-width: 2.2; fill: none; }
+
+  /* --- Escalones de medidas ---
+     Dos ejes: cuántas camisetas tiene la fila más ancha (lo escribe el render en
+     `data-max-fila`, porque una container query no puede contarlas) y cuánto mide el panel.
+     El ancho es del PANEL y no de la ventana: `.wrap` está topeado en 760px, así que en la banda
+     de dos columnas cada panel queda con ~341px útiles tanto a 901px de viewport como a 1400px —
+     el mismo ancho angosto que en un teléfono. Una media query necesitaría dos rangos disjuntos
+     para cubrir el mismo fenómeno (TC-013). Es la misma razón por la que `.team-panel` ya declara
+     `container-type: inline-size` para los inputs de carga.
+     Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
+     del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; }
+  @container (max-width: 380px){
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; }
+  }
+  @container (max-width: 360px){
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; }
+  }
+  /* Por debajo de ~340px de panel útil el handoff se queda sin escalón diseñado: a 360px de
+     viewport quedan ~296px y la fila de cuatro de la cancha de 9 pide 338. Estos valores se
+     derivaron midiendo, como fija D-13, y se validan mirándolos en la aplicación real: el test
+     dice si entra, no si se lee. */
+  @container (max-width: 340px){
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 88px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 70px; --chip-size: 42px; --chip-name: 10.5px; --row-pad: 4px; --row-gap: 2px; }
+    .cancha:is([data-max-fila="5"]){ --chip-w: 56px; --chip-size: 36px; --chip-name: 10.5px; --row-pad: 4px; --row-gap: 2px; }
+  }
 
   /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
      desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
@@ -3760,6 +3854,7 @@
     const arriba = Math.ceil(unidades.length / 2);
     return [unidades.slice(0, arriba), unidades.slice(arriba)];
   }
+
 
   window.__toggleBloqueo = function(matchId, playerId){
     if(!isAdmin()) return; // FR-006/FR-008: bloquear jugadores es parte del armado, exclusivo de admin.
