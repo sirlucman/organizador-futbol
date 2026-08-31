@@ -1008,6 +1008,35 @@
   const normalize = (s) => (s || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'');
   const fullName = (p) => ((p.nombre || '') + ' ' + (p.apellido || '')).trim(); // el apellido es opcional
 
+  /* Escapa texto que viene de un jugador antes de interpolarlo en HTML. Toda la interfaz se arma
+     con plantillas de cadena, así que un nombre con `<` o `&` se inyecta crudo. La cancha además
+     mete el nombre dentro de ATRIBUTOS (`title`, `aria-label`), donde una comilla doble rompe el
+     markup sin necesidad de ningún `<script>` — es el sink que antes no existía. `&` va primero:
+     invertido, re-escaparía los tres reemplazos siguientes.
+
+     Va como `function` y no como `const`: `tests/harness.js` recorta declaraciones por nombre y
+     corta un `const` en el primer salto de línea a profundidad cero, así que una arrow de dos
+     líneas llegaría truncada al sandbox de los tests. Por lo mismo la comilla doble se escribe
+     `\x22` y no literal: el recortador no distingue una expresión regular de un string, y un `"`
+     dentro de `/.../` le abre un string que recién cierra cientos de líneas más abajo.
+     (Spec de la cancha, TC-041, S-20.) */
+  function escaparHtml(s){
+    return String(s === null || s === undefined ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\x22/g, '&quot;');
+  }
+
+  /* Nombre para la camiseta: primer nombre + inicial del último apellido con punto
+     ("Nicolás V."). El apellido es opcional —hay jugadores cargados sólo con nombre— y puede
+     tener varias palabras: se usa la última, que es la que identifica. Mostrar el nombre completo
+     es una opción de configuración diferida a la rebanada 7 (Concept Note §14).
+     (Spec de la cancha, FR-022, A-01.) */
+  function nombreCorto(p){
+    const nombre = (p.nombre || '').trim().split(/\s+/)[0] || '';
+    const apellidos = (p.apellido || '').trim().split(/\s+/).filter(Boolean);
+    const ultimo = apellidos[apellidos.length - 1];
+    return ultimo ? nombre + ' ' + ultimo[0].toUpperCase() + '.' : nombre;
+  }
+
   let toastTimeoutId = null;
   window.__showToast = function(mensaje, tipo){
     let toast = el('appToast');
@@ -3570,6 +3599,17 @@
       </button>`;
   }
 
+  /* Dónde va la cancha y dónde sigue la lista de filas. Es un predicado de ESTADO, no de rol: el
+     jugador ve la misma cancha que el admin, sin puntajes ni candados (FR-060). La carga de
+     resultado y el partido finalizado conservan la lista hasta las rebanadas 4 y 6 (FR-042), así
+     que la frontera se corre desde acá y desde ningún otro lado. (Spec de la cancha, FR-040.) */
+  function mostrarCanchaDeEquipos(m){
+    const finalizado = m.estado === 'Finalizado';
+    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
+    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
+    return !cerrada && !finalizado;
+  }
+
   function esFilaEditable(m){
     const finalizado = m.estado === 'Finalizado';
     const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
@@ -3676,6 +3716,49 @@
 
   function renderFilaEquipo(grupo, m){
     return grupo.length === 2 ? renderTeamPlayerRowDupla(grupo[0], grupo[1], m) : renderTeamPlayerRow(grupo[0], m);
+  }
+
+  /* --- LA CANCHA (rebanada 1 de "Equipos en el campo") ---
+     docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md */
+
+  /* Reparte las unidades de armado de un equipo en las líneas de la cancha, ya en ORDEN DE
+     DIBUJO: Ataque arriba, Arco abajo — el inverso de ORDEN_LINEAS. Las líneas vacías no se
+     devuelven, así que el alto se reparte entre las que quedan (FR-012): un equipo sin arquero
+     asignado no deja un hueco abajo.
+
+     La posición sale de `posicionAsignadaDe`, la misma precedencia que usa la lista: la del
+     motor, si no la override manual, si no la principal declarada. Con la Estrategia 1, que no
+     asigna posiciones, todas caen en la principal — y ahí una línea puede quedar con cinco o
+     más, que es lo que resuelve `partirLineaEnSubfilas`. El handoff sólo diseñó líneas de 3 y 4.
+
+     El orden dentro de cada línea es el de `grupos`, que ya llega ordenado, así que dos
+     renderizados del mismo reparto dan el mismo orden (FR-015). Una posición fuera del catálogo
+     no rompe el render: cae al final, debajo del arco.
+     (Spec de la cancha, FR-010, FR-011, FR-012, FR-015.) */
+  function agruparEnLineasDeCancha(m, grupos){
+    const porLinea = new Map(ORDEN_LINEAS.map(pos => [pos, []]));
+    grupos.forEach(grupo => {
+      const pos = posicionAsignadaDe(grupo[0], m);
+      if(!porLinea.has(pos)) porLinea.set(pos, []);
+      porLinea.get(pos).push(grupo);
+    });
+    return [...porLinea.entries()]
+      .filter(entrada => entrada[1].length > 0)
+      .sort((a, b) => ORDEN_LINEAS.indexOf(b[0]) - ORDEN_LINEAS.indexOf(a[0]))
+      .map(entrada => ({ pos: entrada[0], unidades: entrada[1] }));
+  }
+
+  /* Una línea de hasta cuatro camisetas va en un renglón; de cinco en adelante se parte en dos
+     sub-filas centradas, con la de arriba llevando la mitad redondeada hacia arriba (FR-014).
+
+     El corte se decide acá y no con `flex-wrap` a propósito: el wrap corta donde el ancho manda,
+     que cambia con el largo de los nombres, así que dos equipos con el mismo reparto se verían
+     partidos en lugares distintos. Acá el corte depende sólo de cuántos son. */
+  const MAX_POR_SUBFILA = 4;
+  function partirLineaEnSubfilas(unidades){
+    if(unidades.length <= MAX_POR_SUBFILA) return [unidades];
+    const arriba = Math.ceil(unidades.length / 2);
+    return [unidades.slice(0, arriba), unidades.slice(arriba)];
   }
 
   window.__toggleBloqueo = function(matchId, playerId){
