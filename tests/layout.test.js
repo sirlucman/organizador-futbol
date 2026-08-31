@@ -163,6 +163,77 @@ const INVARIANTE_FILA_DE_JUGADOR = () => {
   return [...new Set(problemas)].slice(0, 4);
 };
 
+/* Sobre la cancha, "entra" no alcanza: las camisetas pueden estar todas dentro del viewport y aun
+   así encimarse unas con otras, o quedar con el nombre en un cuerpo que no se lee. Ninguna de las
+   dos cosas produce desborde, así que MEDIR no las ve.
+
+   El umbral de 10.5px no es una opinión: es el cuerpo más chico que el handoff especifica para el
+   nombre, y NFR-002 lo fija como piso. Por debajo de eso el diseño ya no dice nada. */
+const INVARIANTE_CANCHA = () => {
+  const canchas = [...document.querySelectorAll('.cancha')];
+  if (!canchas.length) return ['no se encontró ninguna .cancha: ¿cambió el markup del panel de equipos?'];
+
+  const problemas = [];
+  for (const cancha of canchas) {
+    const campo = cancha.getBoundingClientRect();
+    for (const fila of cancha.querySelectorAll('.cancha-subfila')) {
+      const camisetas = [...fila.querySelectorAll(':scope > .camiseta')];
+      /* La caja que importa NO es la de la columna: las columnas son flex items y nunca se
+         solapan entre sí —flex las encoge antes—, así que compararlas no puede fallar nunca y el
+         invariante no probaría nada. Lo que sí puede encimarse son los ADORNOS, que están en
+         `position: absolute` y sobresalen de la columna a propósito: el candado por la izquierda,
+         la píldora de puntaje por la derecha. Con las columnas apretadas, la píldora de una
+         camiseta y el candado de la siguiente son lo primero que choca. Se mide la unión de la
+         camiseta con sus adornos. */
+      const cajas = camisetas.map(c => {
+        const partes = [c.querySelector('.camiseta-fig'), c.querySelector('.camiseta-puntaje'), c.querySelector('.camiseta-candado')]
+          .filter(Boolean).map(e => e.getBoundingClientRect());
+        return {
+          n: (c.querySelector('.camiseta-nombre') || {}).textContent || '?',
+          b: { left: Math.min(...partes.map(r => r.left)), right: Math.max(...partes.map(r => r.right)) },
+        };
+      });
+      /* Encimarse con la vecina: se comparan sólo pares ADYACENTES, que es donde puede pasar. */
+      for (let i = 1; i < cajas.length; i++) {
+        if (cajas[i].b.left < cajas[i - 1].b.right - 0.5) {
+          problemas.push(`"${cajas[i - 1].n}" y "${cajas[i].n}" se enciman (${Math.round(cajas[i - 1].b.right - cajas[i].b.left)}px)`);
+        }
+      }
+      /* Salirse del campo: la camiseta puede no desbordar la página y aun así quedar pisando el
+         borde del césped, que se lee como un error de dibujo. */
+      for (const { n, b } of cajas) {
+        if (b.left < campo.left - 0.5 || b.right > campo.right + 0.5) {
+          problemas.push(`"${n}" se sale del campo (${Math.round(b.left)}..${Math.round(b.right)} contra ${Math.round(campo.left)}..${Math.round(campo.right)})`);
+        }
+      }
+    }
+    for (const nombre of cancha.querySelectorAll('.camiseta-nombre')) {
+      const fs = parseFloat(getComputedStyle(nombre).fontSize);
+      if (fs < 10.5) problemas.push(`"${nombre.textContent}" quedó en ${fs}px, por debajo del piso de 10.5px`);
+    }
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
+/* El candado es el único control de la cancha y es solo-ícono: sin nombre accesible no se puede
+   saber qué hace. Y su objetivo táctil no puede achicarse respecto del botón de la lista que
+   reemplaza, que medía 24px (NFR-003, NFR-004). */
+const INVARIANTE_CANCHA_A11Y = () => {
+  const candados = [...document.querySelectorAll('.camiseta-candado')];
+  if (!candados.length) return [];  // sin admin o con el partido cerrado no hay candados, y está bien
+  const problemas = [];
+  for (const c of candados) {
+    const etiqueta = (c.getAttribute('aria-label') || '').trim();
+    if (!etiqueta) problemas.push('un candado quedó sin aria-label: es solo-ícono, no se puede saber qué hace');
+    if (!(c.getAttribute('title') || '').trim()) problemas.push(`el candado "${etiqueta}" quedó sin title`);
+    const b = c.getBoundingClientRect();
+    if (b.width < 24 - 0.5 || b.height < 24 - 0.5) {
+      problemas.push(`el candado "${etiqueta}" mide ${Math.round(b.width)}x${Math.round(b.height)}px, por debajo del piso de 24px`);
+    }
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
 /* ----------------------------------------------------------------- escenarios */
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
@@ -215,11 +286,163 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
-    invariante: INVARIANTE_INPUTS_DE_CARGA,
+    spec: ['S-10'], invariante: INVARIANTE_INPUTS_DE_CARGA,
     async preparar(page) { await abrirPartido(page, '2026-08-27'); } },
 
   { clave: 'partido-finalizado', rol: 'admin', nombre: 'detalle de partido · finalizado',
+    spec: ['S-10a'],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); } },
+
+  /* --- la cancha (rebanada 1 de "Equipos en el campo") --- */
+
+  { clave: 'cancha-8', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 8',
+    spec: ['S-01', 'S-03', 'NFR-001', 'NFR-006'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y],
+    /* La línea de base se toma DESPUÉS de que la aplicación cargó y ANTES de entrar al partido.
+       Al arrancar, la aplicación corre sus migraciones y escribe `players`, `playerScores` y
+       `ordenJugadoresMigrado`; eso es de siempre y no tiene nada que ver con la cancha. Lo que
+       NFR-006 pide es que dibujar la cancha no agregue ninguna escritura, no que la aplicación
+       no escriba nunca. */
+    async preparar(page) {
+      await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
+      await abrirPartido(page, '2026-09-03');
+    },
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        if (!document.querySelector('.cancha')) problemas.push('no se dibujó ninguna cancha con la inscripción abierta');
+        if (document.querySelector('.team-player-row')) problemas.push('quedó una fila de la lista vieja en la pantalla de equipos generados (D-12)');
+        const nuevas = (window.__escrituras || []).slice(window.__escrituras_base || 0);
+        if (nuevas.length) problemas.push(`dibujar la cancha escribió: ${[...new Set(nuevas)].join(', ')} (NFR-006)`);
+        return problemas;
+      });
+    } },
+
+  { clave: 'cancha-9', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 9 (fila de cuatro)',
+    spec: ['S-01a', 'S-03a', 'S-06', 'S-06a', 'S-06b', 'S-06c', 'S-06d', 'NFR-001', 'NFR-002'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y],
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        const cancha = document.querySelector('.cancha');
+        if (!cancha) return ['no se dibujó la cancha de fútbol 9'];
+        if (cancha.getAttribute('data-max-fila') !== '4') {
+          problemas.push(`la cancha de 9 debería tener una fila de cuatro, y data-max-fila dice ${cancha.getAttribute('data-max-fila')}`);
+        }
+        const lineas = cancha.querySelectorAll('.cancha-linea');
+        if (lineas.length !== 4) problemas.push(`se dibujaron ${lineas.length} líneas y la formación 1/3/4/1 tiene cuatro`);
+        return problemas;
+      });
+    } },
+
+  { clave: 'cancha-jugador', rol: 'jugador', nombre: 'equipos generados sobre la cancha (rol jugador)',
+    spec: ['S-05', 'S-04c'],
+    invariantes: [INVARIANTE_CANCHA],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      return page.evaluate(async () => {
+        const problemas = [];
+        if (!document.querySelector('.cancha')) problemas.push('el rol jugador no ve la cancha');
+        if (document.querySelector('.camiseta-puntaje')) problemas.push('el rol jugador ve puntajes sobre las camisetas (FR-024)');
+        if (document.querySelector('.camiseta-candado')) problemas.push('el rol jugador ve candados (FR-030)');
+        /* Esconder el botón no alcanza: la acción tiene que estar cerrada también en el handler,
+           que es lo que un rol sin permiso puede invocar desde la consola (FR-034, TC-040). */
+        const antes = (window.__escrituras || []).length;
+        const camiseta = document.querySelector('.camiseta');
+        const idPartido = 'm-abierto';
+        if (window.__toggleBloqueo && camiseta) {
+          window.__toggleBloqueo(idPartido, 'nilo');
+          await new Promise(r => setTimeout(r, 150));
+          if ((window.__escrituras || []).length > antes) {
+            problemas.push('__toggleBloqueo escribió con rol jugador: la guarda de rol no está en el handler (FR-034)');
+          }
+        }
+        return problemas;
+      });
+    } },
+
+  { clave: 'cancha-candado', rol: 'admin', nombre: 'candado sobre la camiseta',
+    /* Cuatro anchos y no trece: lo que se prueba es comportamiento. Los cuatro cubren igual los
+       cuatro escalones de medidas, que es lo único sensible al ancho acá (el tamaño del candado). */
+    anchos: [360, 390, 901, 1200],
+    spec: ['S-04', 'S-04a', 'S-04b', 'S-04d', 'NFR-003', 'NFR-004', 'NFR-005'],
+    invariantes: [INVARIANTE_CANCHA_A11Y],
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async comprobar(page) {
+      const problemas = [];
+      /* S-04: fijar a un jugador desde su camiseta. Se elige uno SIN fijar, se lo toca, y se
+         comprueba que quedó fijado y que el resto del reparto no se movió. */
+      const estado = async () => page.evaluate(() => ({
+        fijados: [...document.querySelectorAll('.camiseta-candado.fijado')].map(c => c.getAttribute('aria-label')),
+        nombres: [...document.querySelectorAll('.camiseta-nombre')].map(n => n.textContent),
+      }));
+      const inicial = await estado();
+      const libre = await page.$('.camiseta-candado:not(.fijado)');
+      if (!libre) return ['no había ningún candado sin fijar para probar S-04'];
+      await libre.click(); await page.waitForTimeout(300);
+      const despues = await estado();
+      if (despues.fijados.length !== inicial.fijados.length + 1) {
+        problemas.push(`tocar un candado libre dejó ${despues.fijados.length} fijados y había ${inicial.fijados.length}`);
+      }
+      if (JSON.stringify(despues.nombres) !== JSON.stringify(inicial.nombres)) {
+        problemas.push('fijar a un jugador movió el reparto: los nombres cambiaron de lugar');
+      }
+      /* S-04b y S-04d: tocar dos veces el MISMO candado vuelve al estado inicial, sin duplicar
+         al jugador en la lista de bloqueados. */
+      const mismo = await page.$('.camiseta-candado.fijado');
+      await mismo.click(); await page.waitForTimeout(300);
+      const vuelta = await estado();
+      if (vuelta.fijados.length !== inicial.fijados.length) {
+        problemas.push(`dos toques sobre el mismo candado no volvieron al estado inicial (${vuelta.fijados.length} vs ${inicial.fijados.length})`);
+      }
+      /* S-04a: el candado de una dupla aplica a los dos integrantes. La dupla es una sola
+         camiseta, así que lo observable es que su aria-label nombre a los dos. */
+      const etiquetaDupla = await page.evaluate(() => {
+        const capsula = document.querySelector('.camiseta-dupla');
+        if (!capsula) return null;
+        const boton = capsula.closest('.camiseta').querySelector('.camiseta-candado');
+        return boton ? boton.getAttribute('aria-label') : null;
+      });
+      if (etiquetaDupla && !etiquetaDupla.includes('/')) {
+        problemas.push(`el candado de la dupla nombra a un solo jugador: "${etiquetaDupla}" (FR-032)`);
+      }
+      /* NFR-005: repintar tras alternar un candado, con 18 titulares, por debajo de 100ms. */
+      const ms = await page.evaluate(async () => {
+        const t0 = performance.now();
+        window.__toggleBloqueo('m-nueve', 'nilo');
+        await new Promise(r => requestAnimationFrame(r));
+        return performance.now() - t0;
+      });
+      if (ms > 100) problemas.push(`repintar tras alternar un candado tardó ${Math.round(ms)}ms, por encima del techo de 100ms (NFR-005)`);
+      return problemas;
+    } },
+
+  { clave: 'partido-editando', rol: 'admin', nombre: 'detalle de partido · finalizado, editando el resultado',
+    /* La pantalla no la toca esta rebanada —conserva la lista—, así que acá se verifica sólo eso.
+       El layout de la lista con inputs ya lo miden `partido-cerrado` y `partido-finalizado`. */
+    anchos: [360, 900, 1200], spec: ['S-10b'],
+    async preparar(page) {
+      await abrirPartido(page, '2026-08-20');
+      await page.click('button:has-text("Editar resultado")');
+      await page.waitForTimeout(400);
+    },
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        if (document.querySelector('.cancha')) problemas.push('se dibujó la cancha editando un resultado finalizado (FR-042)');
+        if (!document.querySelector('.team-player-row')) problemas.push('desapareció la lista de filas al editar un resultado finalizado');
+        return problemas;
+      });
+    } },
+
+  { clave: 'partido-sin-equipos', rol: 'admin', nombre: 'detalle de partido · sin equipos generados',
+    anchos: [360, 1200], spec: ['S-10c'],
+    async preparar(page) { await abrirPartido(page, '2026-09-17'); },
+    async comprobar(page) {
+      return page.evaluate(() =>
+        document.querySelector('.cancha') ? ['se dibujó una cancha sin que el motor hubiera repartido los equipos'] : []);
+    } },
 
   { clave: 'partido-jugador', rol: 'jugador', nombre: 'detalle de partido · finalizado (rol jugador)',
     async preparar(page) { await abrirPartido(page, '2026-08-20'); } },
@@ -266,11 +489,27 @@ async function irAPestania(page, texto) {
   await page.waitForTimeout(350);
 }
 
+/* Se clickea `.match-card-top` y NO el centro de la tarjeta, y después se espera a que el detalle
+   esté visible de verdad.
+
+   Las dos cosas salieron del mismo hallazgo. La tarjeta de un partido finalizado mide 256px de
+   alto —lleva el resumen del resultado— contra los 71px de las demás, así que su centro cae sobre
+   `.match-result`, y desde ahí el click no llega al `onclick` de la tarjeta. Como el escenario
+   sólo dormía medio segundo y medía lo que hubiera en pantalla, `partido-finalizado` y
+   `partido-jugador` venían midiendo la LISTA de partidos creyendo que medían el detalle: pasaban
+   en verde sin haber llegado nunca a la pantalla que dicen medir.
+
+   La espera explícita es la parte que impide que vuelva a pasar en silencio: si el detalle no
+   abre, el escenario se reporta como `!` (no se pudo preparar) en vez de medir otra pantalla. */
 async function abrirPartido(page, fechaIso) {
   await irAPestania(page, 'Partidos');
   const dia = String(Number(fechaIso.slice(8, 10)));
-  await page.click(`.match-card:has-text(" ${dia} de ")`);
-  await page.waitForTimeout(500);
+  await page.click(`.match-card:has-text(" ${dia} de ") .match-card-top`);
+  await page.waitForFunction(() => {
+    const v = document.getElementById('matchDetailView');
+    return v && v.style.display !== 'none';
+  }, null, { timeout: 5000 });
+  await page.waitForTimeout(300);
 }
 
 /* ------------------------------------------------------------------- medición */
@@ -336,11 +575,17 @@ async function main() {
   const rotos = [];
 
   console.log(`Layout responsive — Principio V · ancho mínimo soportado ${ANCHO_MINIMO}px`);
-  console.log(`${casos.length} escenarios × ${ANCHOS.length} anchos (${ANCHOS[0]}–${ANCHOS[ANCHOS.length - 1]}px), sobre la aplicación real\n`);
+  const mediciones = casos.reduce((n, c) => n + (c.anchos || ANCHOS).length, 0);
+  console.log(`${casos.length} escenarios · ${mediciones} mediciones (${ANCHOS[0]}–${ANCHOS[ANCHOS.length - 1]}px), sobre la aplicación real\n`);
 
   for (const caso of casos) {
     const marcas = [];
-    for (const w of ANCHOS) {
+    /* Un escenario puede acotar los anchos que mide. Se usa sólo para los escenarios de
+       COMPORTAMIENTO —que el candado haga lo que dice, que la cancha no aparezca donde no va—,
+       cuya respuesta no depende del ancho: medirlos trece veces multiplica el tiempo de la suite
+       sin agregar cobertura. Los escenarios de layout propiamente dichos NO lo declaran y siguen
+       corriendo en los trece anchos, que es lo que exige el Principio V. */
+    for (const w of (caso.anchos || ANCHOS)) {
       const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
       const page = await ctx.newPage();
       /* Los tres <script> del CDN de Firebase no se descargan: el global lo
@@ -362,7 +607,18 @@ async function main() {
         continue;
       }
       const r = await page.evaluate(MEDIR);
-      const problemas = caso.invariante ? await page.evaluate(caso.invariante) : [];
+      /* `invariante` (uno) e `invariantes` (varios) conviven: los escenarios viejos declaran uno
+         solo y la cancha necesita dos, el de geometría y el de accesibilidad. */
+      const declarados = caso.invariantes || (caso.invariante ? [caso.invariante] : []);
+      let problemas = [];
+      for (const inv of declarados) problemas = problemas.concat(await page.evaluate(inv));
+      /* `comprobar` es para lo que no es layout: que la cancha aparezca donde tiene que aparecer,
+         que el candado haga lo que dice, que abrir la pantalla no escriba. No depende del ancho,
+         así que corre UNA vez por escenario y no trece. */
+      if (caso.comprobar && w === ANCHOS[0]) {
+        try { problemas = problemas.concat(await caso.comprobar(page)); }
+        catch (e) { problemas.push('la comprobación de comportamiento tiró: ' + e.message.split('\n')[0]); }
+      }
       await ctx.close();
       const mal = r.desborde > 0 || r.fuera.length > 0 || problemas.length > 0;
       marcas.push(mal ? `${w}✗` : `${w}·`);
