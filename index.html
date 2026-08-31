@@ -3993,6 +3993,75 @@
     renderMatchesTab();
   };
 
+  /* ------------------------------------------------------------------ EL ARRASTRE
+     Rebanada 2 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md
+
+     La decisión de QUÉ hace un drop vive separada del manejador del evento, en las tres
+     funciones puras de abajo (Implementation Plan, TD-05). No es prolijidad: el navegador no
+     deja sintetizar un arrastre nativo de punta a punta desde un test, así que con la decisión
+     metida adentro del `drop` la mayoría de los escenarios de la Spec no tendría test
+     ejecutable y AC-50 no se podría cumplir de verdad. Acá no hay DOM ni efectos. */
+
+  /* A qué equipo pertenece una unidad de armado, o null si no está en el reparto.
+     Es la validación que impide que un `dataTransfer` con contenido ajeno escriba algo: ese
+     canal lo puede llenar otra aplicación, otra pestaña o el propio sistema, y el manejador
+     que había antes lo consumía sin mirar más que si estaba vacío (FR-025, TC-041). */
+  function unidadDelPartido(m, playerId){
+    if(!m || !m.equipos || !playerId) return null;
+    if((m.equipos.blanco || []).includes(playerId)) return 'blanco';
+    if((m.equipos.negro || []).includes(playerId)) return 'negro';
+    return null;
+  }
+
+  /* Qué movimiento corresponde a soltar `idArrastrado` sobre `destino`, o null si no
+     corresponde ninguno. `destino` es { clase: 'cancha' | 'camiseta' | 'pestana', equipo, id }.
+
+     Devuelve null —y no un error— para todo drop que simplemente no hace nada: sobre el propio
+     equipo (FR-013) o con identificadores ajenos al partido (FR-025). Soltar en el lugar
+     equivocado es parte del uso normal, no una condición excepcional.
+     (Spec del arrastre, FR-010 a FR-013.) */
+  function resolverDestinoDrop(m, idArrastrado, destino){
+    const origen = unidadDelPartido(m, idArrastrado);
+    if(!origen || !destino) return null;
+    /* La camiseta gana sobre la cancha que la contiene (FR-012). Se resuelve acá, por orden de
+       evaluación, y además en el manejador con `stopPropagation`. */
+    if(destino.clase === 'camiseta'){
+      const equipoDestino = unidadDelPartido(m, destino.id);
+      if(!equipoDestino || equipoDestino === origen) return null;
+      return { tipo: 'intercambiar', idDestino: destino.id };
+    }
+    /* Cancha y pestaña deciden lo mismo: mover al equipo que representan. Lo único que las
+       distingue es que la pestaña, además, revela el destino, y de eso se ocupa el manejador
+       (FR-010, FR-034). */
+    if(destino.clase === 'cancha' || destino.clase === 'pestana'){
+      if(destino.equipo !== 'blanco' && destino.equipo !== 'negro') return null;
+      if(destino.equipo === origen) return null;
+      return { tipo: 'mover', equipo: destino.equipo };
+    }
+    return null;
+  }
+
+  /* Intercambia dos unidades de equipo. Cada una viaja con su pareja de dupla, y el movimiento
+     lo aplica `moverUnJugadorDeEquipo`, que es la misma función que usa el movimiento simple:
+     los totales se recalculan con el criterio que ya existía y la posición asignada no se toca
+     (FR-011, FR-017, FR-021, FR-022, FR-024).
+
+     Los dos equipos se leen ANTES de mover a nadie. Mover la primera unidad cambiaría el equipo
+     de la segunda si estuvieran en el mismo, cosa que `resolverDestinoDrop` ya descartó — pero
+     esta función no se apoya en eso, porque también se la llama desde los tests. */
+  function intercambiarUnidades(m, idA, idB){
+    const equipoA = unidadDelPartido(m, idA);
+    const equipoB = unidadDelPartido(m, idB);
+    if(!equipoA || !equipoB || equipoA === equipoB) return;
+    const parA = getDuplaPartner(m, idA);
+    const parB = getDuplaPartner(m, idB);
+    moverUnJugadorDeEquipo(m, idA, equipoB);
+    if(parA) moverUnJugadorDeEquipo(m, parA, equipoB);
+    moverUnJugadorDeEquipo(m, idB, equipoA);
+    if(parB) moverUnJugadorDeEquipo(m, parB, equipoA);
+  }
+
   window.__dragStartJugador = function(e, playerId){
     if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
     e.dataTransfer.setData('text/plain', playerId);
