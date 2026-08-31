@@ -8,7 +8,7 @@
 >
 > **Spec de la rebanada anterior:** [rebanada-1-cancha/CANCHA_SPEC.md](../rebanada-1-cancha/CANCHA_SPEC.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [ARRASTRE_IMPLEMENTATION_PLAN.md](./ARRASTRE_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5
 > *Sources & Origins* del Concept Note y en la Spec de la rebanada 1, que ya
@@ -160,7 +160,7 @@ El Concept Note fija que el armado es "la cancha con camisetas arrastrables"
 (§8.1) pero no fija el mecanismo del arrastre ni su alcance. Las cuatro
 decisiones siguientes se resolvieron con el propietario el 2026-08-31, antes de
 escribir esta Spec, y se registran acá porque ninguna existe aguas arriba. Las
-tres primeras se recomiendan además como filas `D-18` a `D-20` del Concept Note
+cuatro se recomiendan además como filas `D-*` nuevas de la §10 del Concept Note
 (ver §17).
 
 | # | Decisión | Fundamento | Encoda en |
@@ -1007,7 +1007,7 @@ esa Spec.
 | OPEN-Q-04 | La anotación recíproca en los documentos reemplazados —`003-motor-generacion-equipos` y la Spec de la rebanada 1 por esta Spec; `012-puntajes-coherentes-panel` y `008-duplas-rotacion` por la rebanada 1— sigue sin hacerse en sus propios archivos. ¿La hace el Plan de esta rebanada, o una tarea aparte? | Lucas Manoukian | Implementation Plan | El Principio I pide la declaración explícita de los dos lados. Es la misma pregunta que la `OPEN-Q-05` de la rebanada 1 dejó abierta, ahora con dos documentos más en la lista. Conviene cerrarla de una vez para los cuatro |
 | OPEN-Q-05 | Con el selector ya construido, ¿la rebanada 3 lo conserva donde está, lo mueve, o lo extiende a las otras pantallas que el handoff también dibuja con selector (`6b`, partido finalizado)? | Lucas Manoukian | Spec de la rebanada 3 | Esta rebanada lo introduce sólo donde hay cancha y equipos generados. El handoff lo usa además en `6b` y en `8d`, que son de las rebanadas 4 y 6. Queda anotado para que esas Specs no lo reinventen |
 | OPEN-Q-06 | ¿El subtítulo de la tarjeta (`FR-043`) debe decir textos distintos en una y en dos columnas, o uno solo que cubra los dos casos? | Lucas Manoukian | Implementation Plan | El handoff propone para el compacto "Arrastrá una camiseta a otro lugar, o sobre la pestaña del otro equipo para pasarlo", que menciona un gesto —mover de lugar dentro del equipo— que esta rebanada no implementa. El Plan redacta el texto final y no lo copia del handoff sin contrastarlo |
-| OPEN-Q-07 | Las cuatro decisiones de §3.4 son decisiones de producto, y por la separación de tres documentos (`MD-01`) su lugar es la §10 del Concept Note, no una sección inventada de esta Spec. ¿Se enmienda el Concept Note agregando `D-18` a `D-21`, y §3.4 pasa a citarlas como heredadas? | Lucas Manoukian | Concept Note revision | Levantado por la auto-crítica del 2026-08-31 como hallazgo 🟡. No bloquea: las decisiones están registradas, fundamentadas y trazadas desde cada `TC-*` y `FR-*` que las encoda, así que nada se pierde. Lo que se gana enmendando es que la rebanada 3 —que hereda el selector y el no-objetivo de mover dentro del equipo— las lea donde corresponde y no dentro de la Spec de otra rebanada |
+| OPEN-Q-07 | Las cuatro decisiones de §3.4 son decisiones de producto, y por la separación de tres documentos (`MD-01`) su lugar es la §10 del Concept Note, no una sección inventada de esta Spec. ¿Se enmienda el Concept Note agregando una fila `D-*` por cada una, y §3.4 pasa a citarlas como heredadas? | Lucas Manoukian | Concept Note revision | Levantado por la auto-crítica del 2026-08-31 como hallazgo 🟡. No bloquea: las decisiones están registradas, fundamentadas y trazadas desde cada `TC-*` y `FR-*` que las encoda, así que nada se pierde. Lo que se gana enmendando es que la rebanada 3 —que hereda el selector y el no-objetivo de mover dentro del equipo— las lea donde corresponde y no dentro de la Spec de otra rebanada |
 
 ## 17. Handoff to the Implementation Plan
 
@@ -1033,13 +1033,14 @@ esa Spec.
 - **El Plan debe arrastrar la deuda de verificación** del único marcador
   `[UNVERIFIED]` de esta Spec: el de §4.5 (el ranking vigente del CWE Top 25 no se
   consultó).
-- **Recomendación aguas arriba (no bloqueante):** las decisiones 1, 2 y 4 de §3.4
-  tienen alcance mayor que esta rebanada. La 1 sienta el precedente del gesto
-  para la carga por toque de la rebanada 6; la 2 deja el movimiento dentro del
-  propio equipo sin rebanada asignada; y la 4 cambia cómo se leen los equipos en
-  el celular para **todas** las rebanadas siguientes, no sólo para esta. Conviene
-  registrarlas como `D-18`, `D-19` y `D-20` en la §10 del Concept Note. Esta Spec
-  es completa sin esa enmienda.
+- **Recomendación aguas arriba (no bloqueante):** las **cuatro** decisiones de
+  §3.4 tienen alcance mayor que esta rebanada. La 1 sienta el precedente del
+  gesto para la carga por toque de la rebanada 6; la 2 y la 3 dejan el movimiento
+  dentro del propio equipo sin rebanada asignada; y la 4 cambia cómo se leen los
+  equipos en el celular para **todas** las rebanadas siguientes, no sólo para
+  esta. Conviene registrarlas como cuatro filas `D-*` nuevas en la §10 del
+  Concept Note, con los números que esa enmienda les asigne. Esta Spec es
+  completa sin ella; ver `OPEN-Q-07`.
 - **Debe seguir siendo no-objetivo:** mover camisetas dentro del propio equipo,
   el intercambio en una sola columna, el cambio de pestaña por sobrevuelo, el
   panel de armado rediseñado, el partido finalizado, el modelo de eventos, la
