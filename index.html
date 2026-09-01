@@ -3758,9 +3758,8 @@
   function ensureResultadoDraft(m){
     if(!m.inscripcionCerrada || m.estado === 'Finalizado') return;
     if(resultadoDraft && resultadoDraft.matchId === m.id) return;
-    const stats = {};
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => { stats[id] = { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 }; });
-    resultadoDraft = { matchId: m.id, stats };
+    resultadoDraft = { matchId: m.id, eventos: [] };
+    tipoEventoActivo = 'gol';
   }
 
   window.__finalizarPartido = function(matchId){
@@ -3771,18 +3770,19 @@
       '¿Finalizar el partido? Después de finalizarlo no vas a poder editar los goles ni las asistencias.',
       () => {
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
-        // Un partido que se finaliza por primera vez siempre nace con la lista de eventos, nunca
-        // con los cuatro contadores (rebanada 5, FR-020, FR-021).
+        // Un partido que se finaliza por primera vez siempre nace con la lista de eventos tal cual
+        // quedó el borrador, sin ningún cálculo paralelo (FR-071, TC-002).
         const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
-        m.resultado = { eventos: eventosDesdeStats(idsConvocados, resultadoDraft.stats), finalizadoEn: Date.now() };
+        m.resultado = { eventos: resultadoDraft.eventos, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
         // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
         // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
+        const stats = statsPorJugadorDesdeEventos(resultadoDraft.eventos, idsConvocados);
         const golesPorEquipo = {
-          blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, resultadoDraft.stats),
-          negro: totalGolesEquipo(m.equipos.negro, m.equipos.blanco, resultadoDraft.stats),
+          blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats),
+          negro: totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats),
         };
-        Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
+        Object.entries(stats).forEach(([playerId, st]) => {
           const p = players.find(pl => pl.id === playerId);
           if(!p) return;
           const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
@@ -3813,13 +3813,14 @@
     if(!isAdmin()) return;
     const m = matches.find(mm => mm.id === matchId);
     if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
-    const statsActuales = statsPorJugadorDelPartido(m); // rebanada 5, FR-024: eventos o statsPorJugador, sin distinguir
-    const stats = {};
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = statsActuales[id] || { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 };
-      stats[id] = { goles: st.goles || 0, golesPenal: st.golesPenal || 0, golesEnContra: st.golesEnContra || 0, asistencias: st.asistencias || 0 };
-    });
-    resultadoDraft = { matchId: m.id, stats };
+    const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+    // El borrador se llena con m.resultado.eventos tal cual si el partido ya los tiene (FR-005), o
+    // sintetizándolos desde los contadores si es histórico (FR-005b, A-01).
+    const eventos = Array.isArray(m.resultado.eventos)
+      ? [...m.resultado.eventos]
+      : eventosDesdeStats(idsConvocados, m.resultado.statsPorJugador || {});
+    resultadoDraft = { matchId: m.id, eventos };
+    tipoEventoActivo = 'gol';
     editandoResultadoFinalizado = m.id;
     renderMatchesTab();
   };
@@ -3841,13 +3842,13 @@
       () => {
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
         // Preserva el formato que el partido ya tenía: si nació con eventos, se reescribe la
-        // secuencia completa; si es histórico (sólo statsPorJugador), sigue así — nunca se migra
-        // al editarlo (rebanada 5, FR-022, FR-023, D-06).
+        // secuencia completa; si es histórico (sólo statsPorJugador), se colapsa el borrador a los
+        // cuatro contadores — nunca se migra al editarlo (FR-072, FR-073, D-06).
         if(Array.isArray(m.resultado.eventos)){
-          const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
-          m.resultado.eventos = eventosDesdeStats(idsConvocados, resultadoDraft.stats);
+          m.resultado.eventos = resultadoDraft.eventos;
         }else{
-          m.resultado.statsPorJugador = {...resultadoDraft.stats};
+          const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+          m.resultado.statsPorJugador = statsPorJugadorDesdeEventos(resultadoDraft.eventos, idsConvocados);
         }
         m.resultado.editadoEn = Date.now();
         recomputeAllPlayerStatsFromMatches();
@@ -4000,8 +4001,9 @@
     let goles = null;
     if(resultadoDraft && resultadoDraft.matchId === m.id){
       // Mientras hay un borrador activo (carga inicial o edición de un resultado finalizado), el
-      // total del equipo tiene que reflejar lo que se está tipeando, no el resultado ya guardado.
-      goles = totalGolesEquipo(ids, idsRival, resultadoDraft.stats);
+      // total del equipo tiene que reflejar lo que se está cargando, no el resultado ya guardado
+      // (FR-022, TC-002: pasa por la misma derivación que el resto de la carga).
+      goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDesdeEventos(resultadoDraft.eventos, [...m.equipos.blanco, ...m.equipos.negro]));
     }else if(m.estado === 'Finalizado' && m.resultado){
       goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDelPartido(m)); // rebanada 5, TC-012
     }
@@ -4113,8 +4115,7 @@
 
   function esFilaEditable(m){
     const finalizado = m.estado === 'Finalizado';
-    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
+    const cerrada = enModoCarga(m); // rebanada 6: delega en la misma función que gobierna el toque (A-03)
     // Cargar/editar el resultado de un partido es una acción administrativa (FR-010); "jugador"
     // nunca ve los inputs de carga, solo el resultado ya finalizado (goles/asistencias son
     // estadísticas visibles para todos, ver Clarifications).
