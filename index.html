@@ -3770,7 +3770,10 @@
       '¿Finalizar el partido? Después de finalizarlo no vas a poder editar los goles ni las asistencias.',
       () => {
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
-        m.resultado = { statsPorJugador: {...resultadoDraft.stats}, finalizadoEn: Date.now() };
+        // Un partido que se finaliza por primera vez siempre nace con la lista de eventos, nunca
+        // con los cuatro contadores (rebanada 5, FR-020, FR-021).
+        const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+        m.resultado = { eventos: eventosDesdeStats(idsConvocados, resultadoDraft.stats), finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
         // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
         // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
