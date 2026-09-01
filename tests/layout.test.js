@@ -234,6 +234,27 @@ const INVARIANTE_CANCHA_A11Y = () => {
   return [...new Set(problemas)].slice(0, 4);
 };
 
+/* Los chips de estadística del partido finalizado (rebanada 4): asistencias a la izquierda de la
+   camiseta, goles/en contra a la derecha. Un jugador con las dos cosas a la vez es el caso común,
+   no un borde — y llegó a producción con los dos grupos superpuestos (`--stat-edge`/`--stat-pad`
+   del handoff no dejaban lugar en una camiseta de 44 a 52px). Se compara el borde derecho de un
+   grupo contra el izquierdo del otro, DENTRO de la misma camiseta — es la comparación que
+   `INVARIANTE_CANCHA` no hace, porque esa sólo mide camisetas vecinas entre sí. */
+const INVARIANTE_CHIPS_ESTADISTICA = () => {
+  const problemas = [];
+  for (const cam of document.querySelectorAll('.camiseta')) {
+    const asis = cam.querySelector('.stat-asistencias');
+    const gol = cam.querySelector('.stat-goles');
+    if (!asis || !gol) continue;
+    const a = asis.getBoundingClientRect(), g = gol.getBoundingClientRect();
+    if (a.right > g.left + 0.5) {
+      const nombre = (cam.querySelector('.camiseta-nombre') || {}).textContent || '?';
+      problemas.push(`"${nombre}": el chip de asistencias se solapa con el de goles (${Math.round(a.right - g.left)}px)`);
+    }
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
 /* En una columna se ve UN equipo por vez: si hubiera dos canchas con selector, o una sin él,
    el modo de layout y el render estarían discrepando. Y la pestaña es el destino de todo
    movimiento en angosto, así que su tamaño es funcional: el piso son 44px (NFR-002). */
@@ -417,7 +438,7 @@ const ESCENARIOS = [
        que esos tres tags dejan de describir esta pantalla y se reemplazan por los de la Spec de
        esta rebanada. */
     spec: ['finalizado/S-01', 'finalizado/S-01a', 'finalizado/S-02', 'finalizado/S-02a', 'finalizado/S-03', 'finalizado/S-04', 'finalizado/S-04b', 'finalizado/S-05'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); },
     async comprobar(page) {
       /* A 360px (una columna): título con sólo la fecha, selector sin puntaje de armado en la
@@ -1098,7 +1119,7 @@ const ESCENARIOS = [
 
   { clave: 'partido-jugador', rol: 'jugador', nombre: 'detalle de partido · finalizado (rol jugador)',
     spec: ['finalizado/S-01c', 'finalizado/S-20'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); },
     async comprobar(page) {
       return page.evaluate(() => {
@@ -1127,6 +1148,7 @@ const ESCENARIOS = [
        del corte de columnas, así que basta con los dos anchos donde el corte cambia de lado. */
     anchos: [360, 1200],
     spec: ['finalizado/S-01b', 'finalizado/S-10', 'finalizado/S-10a'],
+    invariantes: [INVARIANTE_CHIPS_ESTADISTICA],
     async preparar(page) { await abrirPartido(page, '2026-09-24'); },
     async comprobar(page) {
       const unaColumna = await page.evaluate(() => (document.querySelector('.panel-header-estrategia') || {}).textContent || '');

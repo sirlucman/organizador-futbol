@@ -229,8 +229,11 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     { id: 'm-finalizado-nueve', fecha: '2026-09-24', cancha: 'futbol9', estado: 'Finalizado',
       convocados: ids, inscripcionCerrada: true, estrategia: 'estrategia4',
       bloqueados: [], duplas: duplasIds, equipos: equipos9,
+      /* El primer titular gana gol Y asistencia a la vez, a propósito: es la fila de cuatro
+         volantes de fútbol 9 (chip-size 48px), el caso más angosto donde los dos chips pueden
+         solaparse (INVARIANTE_CHIPS_ESTADISTICA). */
       resultado: { finalizadoEn: 1756100000000,
-        statsPorJugador: Object.fromEntries([...equipos9.blanco, ...equipos9.negro].map((id, i) => [id, { goles: i % 2, golesPenal: 0, asistencias: (i + 1) % 2 }])) } },
+        statsPorJugador: Object.fromEntries([...equipos9.blanco, ...equipos9.negro].map((id, i) => [id, { goles: i === 0 ? 1 : i % 2, golesPenal: 0, asistencias: i === 0 ? 1 : (i + 1) % 2 }])) } },
     /* Sin `equipos`: la tarjeta no pinta ni cancha ni lista, y es el estado que verifica que la
        cancha no aparece antes de que el motor reparta (Spec de la cancha, S-10c). */
     { id: 'm-sin-equipos', fecha: '2026-09-17', cancha: 'futbol8', estado: 'Inscripción abierta',
