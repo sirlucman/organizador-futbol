@@ -73,56 +73,6 @@ function servir() {
    viewport y en dos columnas a 1400px, porque `.wrap` está topeado en 760px.
    Asertando sobre el panel, el invariante cubre las dos bandas con una sola regla
    y no queda ningún ancho exento. */
-const INVARIANTE_INPUTS_DE_CARGA = () => {
-  /* Todo lo que el invariante usa vive acá adentro: lo que viaja al navegador es el
-     texto de esta función, así que una referencia a una constante del módulo llega
-     colgando y tira ReferenceError dentro de la página. */
-  // Tiene que quedar igual al `@container (max-width: ...)` de `.team-stat-group` en index.html —
-  // ver el comentario ahí para de dónde sale el número (se remidió al agregar el gol en contra).
-  const UMBRAL_PANEL_ANGOSTO = 550;
-  /* Una container query mide el CONTENT BOX del contenedor, no el border box: el
-     panel de 528px con 16px de padding por lado se evalúa como 496px, y por eso
-     matchea contra 500. Medir igual acá es lo que evita que el test y el CSS
-     discrepen justo en el borde del umbral, que es donde importa. */
-  const anchoDeContenido = (el) => {
-    const cs = getComputedStyle(el);
-    return el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-  };
-
-  const filas = [...document.querySelectorAll('.team-player-row:not(.team-player-row-dupla)')];
-  if (!filas.length) return ['no se encontró ninguna .team-player-row: ¿cambió el markup del panel de equipos?'];
-  const conGrupo = filas.filter(f => f.querySelector(':scope > .team-stat-group'));
-  if (!conGrupo.length) return ['ninguna fila tiene .team-stat-group: ¿se dejó de agrupar los inputs de carga?'];
-
-  const problemas = [];
-  for (const fila of conGrupo) {
-    const nombre = fila.querySelector(':scope > span:not([class])');
-    if (!nombre) continue;
-    const quien = nombre.textContent.trim().slice(0, 22);
-    const panelEl = fila.closest('.team-panel');
-    const panel = panelEl.getBoundingClientRect();
-    const anchoUtil = anchoDeContenido(panelEl);
-    const angosto = anchoUtil <= UMBRAL_PANEL_ANGOSTO;
-    const g = fila.querySelector(':scope > .team-stat-group').getBoundingClientRect();
-    const bajoDeLinea = g.top > nombre.getBoundingClientRect().top + 2;
-
-    if (angosto && !bajoDeLinea) {
-      problemas.push(`"${quien}": panel angosto (${Math.round(anchoUtil)}px útiles) y los inputs quedaron en el renglón del nombre`);
-      continue;
-    }
-    /* El panel ancho es el otro lado de la misma moneda: si ahí la fila envuelve,
-       la irregularidad volvió por donde se la sacó. */
-    if (!angosto && bajoDeLinea) {
-      problemas.push(`"${quien}": panel ancho (${Math.round(anchoUtil)}px útiles) y los inputs bajaron de renglón habiendo lugar`);
-      continue;
-    }
-    if (!angosto) continue;
-    const desvio = Math.round(((g.left + g.right) / 2) - ((panel.left + panel.right) / 2));
-    if (Math.abs(desvio) > 2) problemas.push(`"${quien}": los inputs no están centrados (desvío ${desvio}px)`);
-  }
-  return [...new Set(problemas)].slice(0, 4);
-};
-
 /* En el listado de jugadores, los controles de administración deben bajar a su
    propio renglón por debajo de 560px, para que el nombre y las estadísticas tengan
    el ancho completo. Sin eso `.row-main` quedaba con 76px a 360px y adentro se
@@ -343,10 +293,8 @@ const INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA = () => {
   if (document.querySelector('.cancha')) return [];
   const problemas = [];
   const arrastrables = document.querySelectorAll('[draggable="true"]').length;
-  const filas = document.querySelectorAll('.team-player-row[draggable]').length;
   const tabs = document.querySelectorAll('.equipo-tab').length;
   const zonas = document.querySelectorAll('.team-panel[ondrop], .cancha[ondrop]').length;
-  if (filas) problemas.push(`${filas} fila(s) de equipo siguen arrastrables sin cancha en pantalla (FR-050)`);
   if (tabs) problemas.push(`se dibujó el selector de equipo en una pantalla sin cancha (FR-040)`);
   if (zonas) problemas.push(`${zonas} zona(s) de drop de equipos en una pantalla sin cancha`);
   /* Los arrastres de convocatoria y plantel NO entran acá: son mecanismos distintos sobre
@@ -355,6 +303,39 @@ const INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA = () => {
     problemas.push(`quedaron ${arrastrables} elementos arrastrables sin cancha y sin ser convocatoria ni plantel`);
   }
   return problemas;
+};
+
+/* La carga por toque (rebanada 6): el piso táctil de Deshacer (44×44, mismo que `.panel-icono` ya
+   tenía) y del botón "−" (26×26 desde 390px, 38×38 debajo — NFR-002), más el nombre accesible de
+   los dos y que cada opción del selector de evento se distinga por texto, no sólo color
+   (NFR-003). Corre en los trece anchos porque el piso de "−" cambia con el ancho. */
+const INVARIANTE_CARGA_TOQUE = () => {
+  if (!document.querySelector('.carga-toolbar')) return [];
+  const problemas = [];
+  const deshacer = document.querySelector('.carga-toolbar .panel-icono');
+  if (deshacer) {
+    const b = deshacer.getBoundingClientRect();
+    if (b.width < 44 - 0.5 || b.height < 44 - 0.5) {
+      problemas.push(`Deshacer mide ${Math.round(b.width)}x${Math.round(b.height)}px, por debajo del piso de 44px (toque/NFR-002)`);
+    }
+    if (!(deshacer.getAttribute('aria-label') || '').trim() || !(deshacer.getAttribute('title') || '').trim()) {
+      problemas.push('Deshacer quedó sin aria-label o sin title (toque/NFR-003)');
+    }
+  }
+  const piso = window.innerWidth < 390 ? 38 : 26;
+  for (const btn of document.querySelectorAll('.detalle-quitar-btn')) {
+    const b = btn.getBoundingClientRect();
+    if (b.width < piso - 0.5 || b.height < piso - 0.5) {
+      problemas.push(`el botón "−" mide ${Math.round(b.width)}x${Math.round(b.height)}px, por debajo del piso de ${piso}px a ${window.innerWidth}px (toque/NFR-002)`);
+    }
+    if (!(btn.getAttribute('aria-label') || '').trim() || !(btn.getAttribute('title') || '').trim()) {
+      problemas.push('un botón "−" quedó sin aria-label o sin title (toque/NFR-003)');
+    }
+  }
+  for (const tab of document.querySelectorAll('.evento-tab')) {
+    if (!tab.textContent.trim()) problemas.push('una opción del selector de evento quedó sin texto (toque/NFR-003)');
+  }
+  return [...new Set(problemas)].slice(0, 4);
 };
 
 /* ----------------------------------------------------------------- escenarios */
@@ -409,10 +390,12 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
-    /* `finalizado/S-02c`: este mismo `comprobar` ya verifica que la tarjeta sigue como lista de
-       filas con la inscripción cerrada y no finalizada — exactamente lo que esa variante pide,
-       sin ningún cambio de código (rebanada 4). */
-    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c', 'finalizado/S-02c'], invariante: INVARIANTE_INPUTS_DE_CARGA,
+    /* `finalizado/S-02c`: este mismo `comprobar` ya verifica que los bloques del panel de armado
+       (combo, receipt, diferencia por línea) siguen ahí con la inscripción cerrada y no
+       finalizada, exactamente lo que esa variante pide. Desde la rebanada 6 (D-12, TC-011) la
+       cancha se muestra siempre, sin excepción: ya no hay un estado "cerrado" que vuelva a la
+       lista de filas, así que esa rama dejó de existir para verificar. */
+    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c', 'finalizado/S-02c'],
     invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); },
     async comprobar(page) {
@@ -421,13 +404,14 @@ const ESCENARIOS = [
          ahí (panel S-02b, S-03c, S-11, S-11b). */
       return page.evaluate(() => {
         const problemas = [];
+        if (!document.querySelector('.cancha')) problemas.push('no se dibujó la cancha con la inscripción cerrada (D-12, TC-011)');
         const combo = document.querySelector('#selectEstrategia');
         if (!combo) problemas.push('el combo de estrategia desapareció con la inscripción cerrada (panel FR-010)');
         else if (!combo.disabled) problemas.push('el combo quedó habilitado con la inscripción cerrada (panel FR-015, S-02b)');
         if (document.querySelector('.panel-aviso')) problemas.push('apareció el aviso de desactualizado con la inscripción cerrada (panel FR-024, S-03c)');
-        if (!document.querySelector('.panel-header')) problemas.push('la tarjeta sin cancha perdió el encabezado nuevo (panel S-11)');
-        if (!document.querySelector('.panel-receipt')) problemas.push('la tarjeta sin cancha perdió el receipt (panel S-11)');
-        if (!document.querySelector('.panel-lineas')) problemas.push('la tarjeta sin cancha perdió la diferencia por línea (panel S-11)');
+        if (!document.querySelector('.panel-header')) problemas.push('la tarjeta perdió el encabezado nuevo (panel S-11)');
+        if (!document.querySelector('.panel-receipt')) problemas.push('la tarjeta perdió el receipt (panel S-11)');
+        if (!document.querySelector('.panel-lineas')) problemas.push('la tarjeta perdió la diferencia por línea (panel S-11)');
         return problemas;
       });
     } },
@@ -529,7 +513,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-jugador', rol: 'jugador', nombre: 'equipos generados sobre la cancha (rol jugador)',
-    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20', 'panel/S-20a', 'panel/S-20b', 'panel/S-20c', 'eventos/S-20'],
+    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20', 'panel/S-20a', 'panel/S-20b', 'panel/S-20c', 'eventos/S-20', 'toque/S-07d'],
     invariantes: [INVARIANTE_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
@@ -558,14 +542,14 @@ const ESCENARIOS = [
         const escrituras1 = (window.__escrituras || []).length;
         if (window.__finalizarPartido) { window.__finalizarPartido('m-abierto'); await new Promise(r => setTimeout(r, 150)); }
         if ((window.__escrituras || []).length > escrituras1) {
-          problemas.push('__finalizarPartido escribió con rol jugador (panel S-20c, eventos/S-20)');
+          problemas.push('__finalizarPartido escribió con rol jugador (panel S-20c, eventos/S-20, toque/S-07d)');
         }
         /* Mismo chequeo para la edición de un resultado ya finalizado (rebanada 5, eventos/S-20):
            ni el modelo de eventos ni el histórico deberían poder escribirse con este rol. */
         const escrituras1b = (window.__escrituras || []).length;
         if (window.__guardarEdicionResultado) { window.__guardarEdicionResultado('m-finalizado-eventos'); await new Promise(r => setTimeout(r, 150)); }
         if ((window.__escrituras || []).length > escrituras1b) {
-          problemas.push('__guardarEdicionResultado escribió con rol jugador (eventos/S-20)');
+          problemas.push('__guardarEdicionResultado escribió con rol jugador (eventos/S-20, toque/S-07d)');
         }
         /* Esconder el botón no alcanza: la acción tiene que estar cerrada también en el handler,
            que es lo que un rol sin permiso puede invocar desde la consola (FR-034, TC-040). */
@@ -1096,10 +1080,12 @@ const ESCENARIOS = [
     } },
 
   { clave: 'partido-editando', rol: 'admin', nombre: 'detalle de partido · finalizado, editando el resultado',
-    /* La pantalla no la toca esta rebanada —conserva la lista—, así que acá se verifica sólo eso.
-       El layout de la lista con inputs ya lo miden `partido-cerrado` y `partido-finalizado`. */
-    anchos: [360, 900, 1200], spec: ['cancha/S-10b', 'arrastre/S-10b', 'finalizado/S-01d', 'finalizado/S-02b'],
-    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    /* `cancha/S-10b` y `arrastre/S-10b` decían "editando un finalizado: sin cancha, vuelve la
+       lista" — la rebanada 6 cierra exactamente esa frontera (D-12, TC-011): la cancha se muestra
+       en TODO estado, sin ninguna excepción, así que esos dos tags dejan de describir esta
+       pantalla (mismo criterio que la rebanada 4 usó para `cancha/S-10a` en `partido-finalizado`).
+       `finalizado/S-01d`/`finalizado/S-02b` siguen vigentes: no son sobre cancha-vs-lista. */
+    anchos: [360, 900, 1200], spec: ['finalizado/S-01d', 'finalizado/S-02b', 'toque/S-07'],
     async preparar(page) {
       await abrirPartido(page, '2026-08-20');
       // El botón dejó de llevar texto visible: ahora es un ícono con aria-label (rebanada 4, FR-006).
@@ -1109,8 +1095,9 @@ const ESCENARIOS = [
     async comprobar(page) {
       return page.evaluate(() => {
         const problemas = [];
-        if (document.querySelector('.cancha')) problemas.push('se dibujó la cancha editando un resultado finalizado (FR-042)');
-        if (!document.querySelector('.team-player-row')) problemas.push('desapareció la lista de filas al editar un resultado finalizado');
+        if (!document.querySelector('.cancha')) problemas.push('no se dibujó la cancha editando un resultado finalizado (D-12, TC-011)');
+        if (document.querySelector('.team-player-row')) problemas.push('volvió la lista de filas vieja al editar un resultado finalizado (D-12)');
+        if (!document.querySelector('.carga-toolbar')) problemas.push('no apareció el selector de tipo de evento al editar un resultado finalizado (toque/S-07)');
         return problemas;
       });
     } },
@@ -1125,7 +1112,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'partido-jugador', rol: 'jugador', nombre: 'detalle de partido · finalizado (rol jugador)',
-    spec: ['finalizado/S-01c', 'finalizado/S-20'],
+    spec: ['finalizado/S-01c', 'finalizado/S-20', 'toque/S-07d'],
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); },
     async comprobar(page) {
@@ -1143,7 +1130,7 @@ const ESCENARIOS = [
         const escriturasAntes = (window.__escrituras || []).length;
         window.__editarResultadoFinalizado('m-finalizado');
         if ((window.__escrituras || []).length !== escriturasAntes) {
-          problemas.push('invocar __editarResultadoFinalizado sin permiso produjo una escritura (finalizado/S-20, TC-040)');
+          problemas.push('invocar __editarResultadoFinalizado sin permiso produjo una escritura (finalizado/S-20, TC-040, toque/S-07d)');
         }
         if (!document.querySelector('.cancha')) problemas.push('invocar __editarResultadoFinalizado sin permiso cambió la pantalla a la de edición (finalizado/S-20, TC-040)');
         return problemas;
@@ -1172,28 +1159,152 @@ const ESCENARIOS = [
       return problemas;
     } },
 
-  /* Las dos escenarios de abajo (rebanada 5, el modelo de eventos) no miden geometría: son los
-     primeros de este archivo que existen sólo para inspeccionar `window.__ultimosDocs`, el
-     documento realmente persistido, no el viewport. Un solo ancho alcanza. */
+  /* La carga por toque (rebanada 6 de "Equipos en el campo"). Corre en los trece anchos por
+     `INVARIANTE_CARGA_TOQUE` (NFR-001, NFR-002); el comportamiento —lo que no depende del
+     ancho— corre una sola vez, en el primer ancho de la lista (360px, una columna, con
+     selector de equipo). Guardar/editar/cancelar quedan en `eventos-finalizar`/`eventos-editar`,
+     reescritos para tocar en vez de llenar inputs (toque/S-07, S-07a, S-07b, S-07c, S-07d). */
+  { clave: 'carga-por-toque', rol: 'admin', nombre: 'cargar un resultado tocando la cancha',
+    spec: ['toque/S-01', 'toque/S-01a', 'toque/S-01c', 'toque/S-01e', 'toque/S-05a', 'toque/S-06'],
+    invariantes: [INVARIANTE_CARGA_TOQUE],
+    async preparar(page) { await abrirPartido(page, '2026-08-27'); }, // m-cerrado: cerrado, sin resultado
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        const individuales = () => [...document.querySelectorAll('.camiseta-nombre')].filter(n => !n.closest('.camiseta-dupla'));
+        const pillDe = (nombre) => {
+          const p = nombre.closest('.camiseta').querySelector('.stat-goles .stat-pill');
+          return p ? p.textContent.trim() : null;
+        };
+
+        // toque/S-01, S-01a: tocar el nombre agrega un evento y sube la pastilla a "1"; un
+        // segundo toque la suma a "2" (FR-030, FR-031, FR-040, FR-041).
+        if (!individuales().length) { problemas.push('no se encontró ningún nombre individual (no-dupla) en m-cerrado'); return problemas; }
+        individuales()[0].click();
+        let pill = pillDe(individuales()[0]);
+        if (pill !== '1') problemas.push(`tocar el nombre no dejó la pastilla en "1" (toque/S-01): "${pill}"`);
+        individuales()[0].click();
+        pill = pillDe(individuales()[0]);
+        if (pill !== '2') problemas.push(`un segundo toque no sumó la pastilla a "2" (toque/S-01a): "${pill}"`);
+
+        // toque/S-01c [concurrency]: dos toques disparados sin esperar entre medio agregan
+        // exactamente dos eventos, no uno ni tres.
+        const n = individuales()[0];
+        n.click(); n.click();
+        pill = pillDe(individuales()[0]);
+        if (pill !== '4') problemas.push(`el doble toque casi simultáneo no dejó la pastilla en "4" (toque/S-01c): "${pill}"`);
+
+        // toque/S-01e: tocar el nombre de un integrante de una dupla agrega el evento sólo a ESE
+        // integrante — el detalle muestra una fila propia por jugador, nunca combinada (FR-030b).
+        const dupla = document.querySelector('.camiseta-dupla');
+        if (!dupla) {
+          problemas.push('no se encontró ninguna dupla de rotación en m-cerrado (toque/S-01e)');
+        } else {
+          const nombresDupla = [...dupla.querySelectorAll('.camiseta-nombre')];
+          if (nombresDupla.length !== 2) {
+            problemas.push(`la dupla no tiene exactamente dos nombres (toque/S-01e): ${nombresDupla.length}`);
+          } else {
+            // El orden de las filas de detalle es por convocatoria, no por orden de toque: hay
+            // que ubicar la fila de cada integrante por su jugadorId (el que ya lleva el
+            // `onclick` del nombre), no por posición.
+            const idDe = (nombre) => nombre.getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+            const idA = idDe(nombresDupla[0]), idB = idDe(nombresDupla[1]);
+            const filaDe = (id) => [...document.querySelectorAll('.detalle-fila')]
+              .find(f => { const b = f.querySelector('.detalle-quitar-btn'); return b && b.getAttribute('onclick').includes(`'${id}','goles'`); });
+            const filasAntes = document.querySelectorAll('.detalle-fila').length;
+            nombresDupla[0].click();
+            const filasA = document.querySelectorAll('.detalle-fila');
+            if (filasA.length !== filasAntes + 1) {
+              problemas.push(`tocar el primer integrante de la dupla no agregó una fila de detalle propia (toque/S-01e): ${filasAntes} -> ${filasA.length}`);
+            }
+            const cifraA = filaDe(idA) && filaDe(idA).querySelector('.detalle-cifra');
+            if (!cifraA || cifraA.textContent.trim() !== '1') problemas.push(`la fila del primer integrante no muestra "1" (toque/S-01e): "${cifraA && cifraA.textContent.trim()}"`);
+            nombresDupla[1].click();
+            const filasB = document.querySelectorAll('.detalle-fila');
+            if (filasB.length !== filasAntes + 2) {
+              problemas.push(`tocar el segundo integrante de la dupla no agregó una segunda fila propia (toque/S-01e): ${filasAntes} -> ${filasB.length}`);
+            }
+            // La fila del primer integrante no debe haber cambiado: cada nombre es su propio destino.
+            const cifraAOtraVez = filaDe(idA) && filaDe(idA).querySelector('.detalle-cifra');
+            if (!cifraAOtraVez || cifraAOtraVez.textContent.trim() !== '1') {
+              problemas.push(`tocar al segundo integrante alteró la fila del primero (toque/S-01e): "${cifraAOtraVez && cifraAOtraVez.textContent.trim()}"`);
+            }
+            const cifraB = filaDe(idB) && filaDe(idB).querySelector('.detalle-cifra');
+            if (!cifraB || cifraB.textContent.trim() !== '1') problemas.push(`la fila del segundo integrante no muestra "1" (toque/S-01e): "${cifraB && cifraB.textContent.trim()}"`);
+          }
+        }
+
+        // toque/S-06: cambiar de pestaña de equipo conserva los eventos ya cargados de Blanco, y
+        // el marcador del equipo que no está en pantalla también deriva del borrador completo
+        // (FR-020 a FR-022).
+        const totalBlanco = document.getElementById('totalBlancoSpan');
+        const marcadorBlancoAntes = totalBlanco ? totalBlanco.textContent : null;
+        const tabOtra = document.querySelector('.equipo-tab[aria-pressed="false"]');
+        if (!tabOtra) {
+          problemas.push('no había pestaña del otro equipo para cambiar (toque/S-06)');
+        } else {
+          tabOtra.click();
+          const totalNegroAntes = document.getElementById('totalNegroSpan');
+          if (!totalNegroAntes || !/·\s*0\s*goles/.test(totalNegroAntes.textContent)) {
+            problemas.push(`el marcador de Negro antes de tocarlo no muestra "0 goles" (toque/S-06, FR-022): "${totalNegroAntes && totalNegroAntes.textContent}"`);
+          }
+          const nombreNegro = individuales()[0];
+          if (nombreNegro) nombreNegro.click();
+          const totalNegroDespues = document.getElementById('totalNegroSpan');
+          if (!totalNegroDespues || !/·\s*1\s*gol\b/.test(totalNegroDespues.textContent)) {
+            problemas.push(`tocar un nombre de Negro no actualizó su marcador a "1 gol" (toque/S-06): "${totalNegroDespues && totalNegroDespues.textContent}"`);
+          }
+          const tabBlanco = document.querySelector('.equipo-tab[aria-pressed="false"]');
+          if (tabBlanco) tabBlanco.click();
+          const totalBlancoDespues = document.getElementById('totalBlancoSpan');
+          if (!totalBlancoDespues || totalBlancoDespues.textContent !== marcadorBlancoAntes) {
+            problemas.push(`el marcador de Blanco cambió al volver de la pestaña de Negro (toque/S-06): "${marcadorBlancoAntes}" -> "${totalBlancoDespues && totalBlancoDespues.textContent}"`);
+          }
+        }
+
+        // toque/S-05a: Deshacer está habilitado mientras el borrador tiene eventos, y se
+        // deshabilita exactamente cuando queda vacío (FR-062).
+        const deshacer = () => document.querySelector('.carga-toolbar .panel-icono');
+        if (!deshacer()) {
+          problemas.push('no se encontró el botón Deshacer (toque/S-05a)');
+        } else if (deshacer().disabled) {
+          problemas.push('Deshacer está deshabilitado con eventos ya cargados (toque/S-05a)');
+        } else {
+          let vueltas = 0;
+          while (deshacer() && !deshacer().disabled && vueltas < 20) { deshacer().click(); vueltas++; }
+          if (!deshacer() || !deshacer().disabled) problemas.push(`Deshacer nunca quedó deshabilitado tras ${vueltas} toques (toque/S-05a)`);
+        }
+
+        return problemas;
+      });
+    } },
+
+  /* Las tres escenarios de abajo no miden geometría: existen sólo para inspeccionar
+     `window.__ultimosDocs`, el documento realmente persistido, no el viewport. Un solo ancho
+     alcanza. Desde la rebanada 6 la carga es por toque, no por input numérico — `eventos-finalizar`
+     y `eventos-editar` (rebanada 5) se reescriben para tocar nombres en vez de llenar
+     `.team-stat-input`, que ya no existe (D-12); el contrato que verifican (qué formato persiste
+     `m.resultado`) no cambió, sólo el gesto que lo llena. */
   { clave: 'eventos-finalizar', rol: 'admin', nombre: 'finalizar un partido nuevo persiste eventos',
     anchos: [1200],
-    spec: ['eventos/S-01', 'eventos/S-01a'],
+    spec: ['eventos/S-01', 'eventos/S-01a', 'toque/S-07', 'toque/S-07a'],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); }, // m-cerrado: cerrado, sin resultado
     async comprobar(page) {
       const problemas = [];
 
-      // eventos/S-01: cargar valores no triviales y finalizar persiste `eventos`, no `statsPorJugador`.
-      const jugadores = await page.evaluate(() =>
-        [...document.querySelectorAll('.team-stat-input[data-tipo="goles"]')].slice(0, 2).map(i => i.dataset.player));
-      if (jugadores.length < 2) {
-        problemas.push('no se encontraron al menos dos inputs de goles en m-cerrado (eventos/S-01)');
+      // eventos/S-01, toque/S-07: tocar el nombre de un titular carga un evento no trivial, y
+      // finalizar persiste `eventos`, no `statsPorJugador` (FR-030, FR-071).
+      const jugadorId = await page.evaluate(() => {
+        const nombre = [...document.querySelectorAll('.camiseta-nombre')].find(n => !n.closest('.camiseta-dupla'));
+        if (!nombre) return null;
+        const id = nombre.getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+        nombre.click();
+        return id;
+      });
+      if (!jugadorId) {
+        problemas.push('no se encontró ningún nombre individual (no-dupla) para tocar en m-cerrado (eventos/S-01)');
         return problemas;
       }
-      const [j1, j2] = jugadores;
-      await page.fill(`.team-stat-input[data-player="${j1}"][data-tipo="goles"]`, '2');
-      await page.fill(`.team-stat-input[data-player="${j1}"][data-tipo="golesPenal"]`, '1');
-      await page.fill(`.team-stat-input[data-player="${j1}"][data-tipo="asistencias"]`, '1');
-      await page.fill(`.team-stat-input[data-player="${j2}"][data-tipo="golesEnContra"]`, '1');
       await page.evaluate((id) => window.__finalizarPartido(id), 'm-cerrado');
       await page.waitForSelector('#confirmModal.open');
       await page.click('#btnConfirmOk');
@@ -1202,12 +1313,15 @@ const ESCENARIOS = [
       const doc1 = await page.evaluate(() =>
         (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-cerrado'));
       if (!doc1 || !doc1.resultado) { problemas.push('finalizar m-cerrado no dejó ningún resultado persistido (eventos/S-01)'); return problemas; }
-      if (!Array.isArray(doc1.resultado.eventos)) problemas.push('el resultado persistido no tiene "eventos" como arreglo (eventos/S-01, FR-020)');
-      else if (doc1.resultado.eventos.length === 0) problemas.push('el arreglo de eventos quedó vacío, pese a haber cargado valores (eventos/S-01)');
-      if ('statsPorJugador' in doc1.resultado) problemas.push('el resultado persistido todavía tiene la clave "statsPorJugador" (eventos/S-01, FR-020)');
+      if (!Array.isArray(doc1.resultado.eventos)) problemas.push('el resultado persistido no tiene "eventos" como arreglo (eventos/S-01, FR-071)');
+      else if (doc1.resultado.eventos.length === 0) problemas.push('el arreglo de eventos quedó vacío, pese a haber tocado un nombre (eventos/S-01, toque/S-07)');
+      else if (!doc1.resultado.eventos.some(e => e.jugadorId === jugadorId && e.tipo === 'gol')) {
+        problemas.push(`el evento tocado (gol de ${jugadorId}) no aparece en la secuencia persistida (toque/S-07)`);
+      }
+      if ('statsPorJugador' in doc1.resultado) problemas.push('el resultado persistido todavía tiene la clave "statsPorJugador" (eventos/S-01, FR-071)');
 
-      // eventos/S-01a: un borrador en cero (m-abierto, cerrado sin tocar ningún input) también
-      // persiste un arreglo de eventos VACÍO, no ausente.
+      // eventos/S-01a, toque/S-07a: un borrador vacío (m-abierto, cerrado sin tocar ningún
+      // nombre) también persiste un arreglo de eventos VACÍO, no ausente.
       await page.evaluate(() => window.__toggleInscripcion('m-abierto'));
       // window.__openMatch, no abrirPartido: ya estamos dentro del detalle de m-cerrado, y la
       // lista de partidos no queda visible para volver a clickear una tarjeta (D-08, TD-07).
@@ -1220,27 +1334,47 @@ const ESCENARIOS = [
       const doc2 = await page.evaluate(() =>
         (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-abierto'));
       if (!doc2 || !doc2.resultado || !Array.isArray(doc2.resultado.eventos)) {
-        problemas.push('finalizar sin tocar ningún input no dejó "eventos" como arreglo (eventos/S-01a)');
+        problemas.push('finalizar sin tocar ningún nombre no dejó "eventos" como arreglo (eventos/S-01a, toque/S-07a)');
       } else if (doc2.resultado.eventos.length !== 0) {
-        problemas.push(`el borrador en cero debería dar un arreglo vacío, no ${doc2.resultado.eventos.length} eventos (eventos/S-01a)`);
+        problemas.push(`el borrador vacío debería dar un arreglo vacío, no ${doc2.resultado.eventos.length} eventos (eventos/S-01a, toque/S-07a)`);
       }
       return problemas;
     } },
 
   { clave: 'eventos-editar', rol: 'admin', nombre: 'editar un resultado preserva el formato del partido',
     anchos: [1200],
-    spec: ['eventos/S-03', 'eventos/S-03a', 'eventos/S-04', 'eventos/S-04a'],
+    spec: ['eventos/S-03', 'eventos/S-03a', 'eventos/S-04', 'toque/S-07', 'toque/S-07b', 'toque/S-07c'],
     async preparar(page) { await abrirPartido(page, '2026-08-22'); }, // m-finalizado-eventos
     async comprobar(page) {
       const problemas = [];
 
-      // eventos/S-03, eventos/S-03a: editar un partido con `eventos` reconstruye la secuencia;
-      // llevar una asistencia de 1 a 0 la hace desaparecer del arreglo, no la deja en 0.
+      // toque/S-07b: tocar un nombre y después Cancelar descarta el borrador sin escribir nada
+      // en m.resultado (FR-074) — se prueba ANTES de guardar nada, sobre el estado original.
       await page.click('[aria-label="Editar resultado"]');
       await page.waitForTimeout(300);
+      const original = await page.evaluate(() => JSON.stringify(window.__ultimosDocs || {}));
       await page.evaluate(() => {
-        const inp = [...document.querySelectorAll('.team-stat-input[data-tipo="asistencias"]')].find(i => i.value === '1');
-        if (inp) { inp.value = '0'; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+        const nombre = document.querySelector('.camiseta-nombre');
+        if (nombre) nombre.click();
+      });
+      await page.evaluate(() => window.__cancelarEdicionResultado('m-finalizado-eventos'));
+      await page.waitForTimeout(150);
+      const trasCancelar = await page.evaluate(() => JSON.stringify(window.__ultimosDocs || {}));
+      if (trasCancelar !== original) problemas.push('Cancelar dejó una escritura en window.__ultimosDocs, pese a no haber guardado (toque/S-07b, FR-074)');
+
+      // eventos/S-03, eventos/S-03a, toque/S-07: editar un partido con `eventos` reconstruye la
+      // secuencia; tocar el botón "−" de la fila de asistencias la hace desaparecer del arreglo
+      // (no la deja en 0, D-04), y tocar un nombre agrega un evento nuevo.
+      await page.click('[aria-label="Editar resultado"]');
+      await page.waitForTimeout(300);
+      const nuevoJugadorId = await page.evaluate(() => {
+        const filaAsist = [...document.querySelectorAll('.detalle-fila')].find(f => f.querySelector('img[alt="Asistencias"]'));
+        if (filaAsist) filaAsist.querySelector('.detalle-quitar-btn').click();
+        const nombre = [...document.querySelectorAll('.camiseta-nombre')].find(n => !n.closest('.camiseta-dupla'));
+        if (!nombre) return null;
+        const id = nombre.getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+        nombre.click();
+        return id;
       });
       await page.evaluate(() => window.__guardarEdicionResultado('m-finalizado-eventos'));
       await page.waitForSelector('#confirmModal.open');
@@ -1249,20 +1383,25 @@ const ESCENARIOS = [
       const doc1 = await page.evaluate(() =>
         (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-finalizado-eventos'));
       if (!doc1 || !Array.isArray(doc1.resultado.eventos)) problemas.push('editar m-finalizado-eventos no dejó "eventos" como arreglo (eventos/S-03)');
-      else if (doc1.resultado.eventos.some(e => e.tipo === 'asistencia')) problemas.push('la asistencia llevada de 1 a 0 sigue en la secuencia reconstruida (eventos/S-03a)');
+      else {
+        if (doc1.resultado.eventos.some(e => e.tipo === 'asistencia')) problemas.push('la asistencia sacada con "−" sigue en la secuencia reconstruida (eventos/S-03a)');
+        if (nuevoJugadorId && !doc1.resultado.eventos.some(e => e.jugadorId === nuevoJugadorId && e.tipo === 'gol')) {
+          problemas.push('el evento agregado por toque durante la edición no aparece en la secuencia guardada (toque/S-07)');
+        }
+      }
       if (doc1 && 'statsPorJugador' in doc1.resultado) problemas.push('editar un partido con eventos le agregó la clave "statsPorJugador" (eventos/S-03)');
 
-      // eventos/S-04: editar un partido histórico (sólo statsPorJugador) sigue escribiendo
-      // statsPorJugador, sin ganar nunca la clave "eventos" — no se migra al editarlo (D-06).
-      // window.__openMatch, no abrirPartido: ya estamos dentro de otro detalle, sin la lista
-      // visible para volver a clickear una tarjeta (mismo criterio que eventos-finalizar).
+      // eventos/S-04, toque/S-07c: editar un partido histórico (sólo statsPorJugador) sigue
+      // escribiendo statsPorJugador, sin ganar nunca la clave "eventos" — no se migra al
+      // editarlo (D-06). window.__openMatch, no abrirPartido: ya estamos dentro de otro detalle,
+      // sin la lista visible para volver a clickear una tarjeta (mismo criterio de arriba).
       await page.evaluate(() => window.__openMatch('m-finalizado'));
       await page.waitForTimeout(300);
       await page.click('[aria-label="Editar resultado"]');
       await page.waitForTimeout(300);
       await page.evaluate(() => {
-        const inp = document.querySelector('.team-stat-input[data-tipo="golesEnContra"]');
-        if (inp) { inp.value = String((parseInt(inp.value, 10) || 0) + 1); inp.dispatchEvent(new Event('input', { bubbles: true })); }
+        const nombre = [...document.querySelectorAll('.camiseta-nombre')].find(n => !n.closest('.camiseta-dupla'));
+        if (nombre) nombre.click();
       });
       await page.evaluate(() => window.__guardarEdicionResultado('m-finalizado'));
       await page.waitForSelector('#confirmModal.open');
@@ -1270,30 +1409,8 @@ const ESCENARIOS = [
       await page.waitForTimeout(200);
       const doc2 = await page.evaluate(() =>
         (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-finalizado'));
-      if (!doc2 || !doc2.resultado.statsPorJugador) problemas.push('editar m-finalizado no dejó "statsPorJugador" (eventos/S-04)');
-      if (doc2 && 'eventos' in doc2.resultado) problemas.push('editar un partido histórico le agregó la clave "eventos": se migró sin que D-06 lo permita (eventos/S-04)');
-
-      // eventos/S-04a: llevar TODOS los contadores a 0 sobre el mismo histórico. Seguimos viendo
-      // m-finalizado, ya de vuelta en modo lectura tras el guardado de arriba.
-      await page.click('[aria-label="Editar resultado"]');
-      await page.waitForTimeout(300);
-      await page.evaluate(() => {
-        document.querySelectorAll('.team-stat-input').forEach(inp => {
-          inp.value = '0';
-          inp.dispatchEvent(new Event('input', { bubbles: true }));
-        });
-      });
-      await page.evaluate(() => window.__guardarEdicionResultado('m-finalizado'));
-      await page.waitForSelector('#confirmModal.open');
-      await page.click('#btnConfirmOk');
-      await page.waitForTimeout(200);
-      const doc3 = await page.evaluate(() =>
-        (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-finalizado'));
-      const valores = doc3 ? Object.values(doc3.resultado.statsPorJugador || {}) : [];
-      if (!valores.length || valores.some(st => (st.goles || 0) !== 0 || (st.golesPenal || 0) !== 0 || (st.golesEnContra || 0) !== 0 || (st.asistencias || 0) !== 0)) {
-        problemas.push('llevar todos los contadores a 0 no quedó reflejado en statsPorJugador (eventos/S-04a)');
-      }
-      if (doc3 && 'eventos' in doc3.resultado) problemas.push('el histórico ganó la clave "eventos" al llevar sus contadores a 0 (eventos/S-04a)');
+      if (!doc2 || !doc2.resultado.statsPorJugador) problemas.push('editar m-finalizado no dejó "statsPorJugador" (eventos/S-04, toque/S-07c)');
+      if (doc2 && 'eventos' in doc2.resultado) problemas.push('editar un partido histórico le agregó la clave "eventos": se migró sin que D-06 lo permita (eventos/S-04, toque/S-07c)');
 
       return problemas;
     } },

@@ -259,21 +259,6 @@
      números mágicos, y con el ancho del panel es una sola condición. */
   .team-panel{ border-radius: var(--radius-card); padding: 14px 16px; container-type: inline-size; }
 
-  /* Los inputs de carga van siempre en su propio renglón y centrados cuando el panel
-     es angosto, no sólo cuando no entran. Dejarlo al wrap natural mezclaba filas de
-     39px con filas de 69px según el largo del nombre, y esa irregularidad se lee peor
-     que la línea extra. El corte en 550px cubre los anchos de panel donde alguna fila
-     envuelve (hasta 536) y deja afuera el primero donde ninguna lo hace (556) — remedido
-     al agregar el cuarto par ícono+input de "gol en contra" (spec resultados-partido),
-     que corrió el punto de corte respecto de los 500px/448px/528px de cuando sólo había
-     tres pares (goles, penal, asistencias). Ver `tests/layout.test.js` → `UMBRAL_PANEL_ANGOSTO`,
-     que tiene que quedar igual a este valor. */
-  @container (max-width: 550px){
-    .team-stat-group{ flex-basis: 100%; justify-content: center; }
-    /* La fila de dupla anida los inputs un nivel más abajo, en un flex que no
-       envolvía: sin esto el grupo se desbordaría en vez de bajar de línea. */
-    .team-dupla-member{ flex-wrap: wrap; }
-  }
   /* Card "content" (blanco) y Card "dark" (negro) del design system: el blanco no lleva borde
      — el contraste contra el fondo salvia de la página ya funciona como elevación — y en el
      negro el título va en el verde de marca sobre tinta, como pide la variante "dark". */
@@ -282,38 +267,7 @@
   .team-panel.negro h4{ color: var(--pitch); }
   .team-panel h4{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
   .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; }
-  /* flex-wrap: en modo carga de resultado la fila suma badge + nombre + puntaje + 3 inputs con
-     flex-shrink:0, y con un plantel real no entra en los ~296px que quedan a 360px de viewport.
-     Arreglar el grid (minmax(0,1fr), más abajo) sacó el mínimo duro del PANEL, pero la FILA
-     seguía desbordando. Envuelve solo donde no entra: a 768px en una columna sigue en una línea. */
-  .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px solid rgba(0,0,0,0.1); flex-wrap: wrap; }
   .team-panel{ transition: background-color .15s ease; }
-  .team-panel.negro .team-player-row{ border-bottom-color: rgba(255,255,255,0.14); }
-  .team-player-row:last-child{ border-bottom: none; }
-  .team-avg{ font-family: var(--font-mono); font-size: 11.5px; opacity: 0.7; margin-left: auto; flex-shrink:0; }
-  .team-stat-label{ font-size: 9px; opacity: 1; margin-left: 6px; }
-  .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
-  /* Ver el comentario en renderStatsYPuntajeMiembro: los inputs de carga bajan de
-     línea juntos, no de a uno. El gap replica el de la fila que los contiene, para
-     que agrupar no cambie cómo se ven cuando SÍ entran en una línea. */
-  .team-stat-group{ display:inline-flex; align-items:center; gap:8px; flex-shrink:0; }
-  .team-dupla-member .team-stat-group{ gap:4px; }
-  .team-panel.negro .team-stat-input{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); color: var(--chalk); }
-  .team-stat-readonly{ font-family: var(--font-mono); font-size: 11px; opacity: 0.85; margin-left: 8px; flex-shrink:0; white-space: nowrap; }
-
-  /* Dupla de rotación agrupada en un mismo renglón dentro del equipo generado: un integrante
-     arriba, el otro abajo, comparten posición/candado pero cada uno con su propio puntaje y
-     carga de goles/asistencias (FR-013/FR-014). */
-  .team-player-row-dupla{ align-items: flex-start; padding-top: 8px; padding-bottom: 8px; }
-  .team-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:6px; min-width:0; }
-  .team-dupla-member{ display:flex; align-items:center; gap:4px; }
-  .team-dupla-name{ flex: 1 1 auto; min-width:0; }
-  .team-dupla-side{ display:flex; flex-direction:column; align-items:center; gap:4px; flex-shrink:0; }
-  /* Nota del integrante de una dupla en la posición asignada, al lado de su nombre. Es informativa:
-     el número que suma al total del equipo es el de la unidad y va en la columna .team-avg. */
-  .team-nota-pos{ font-family: var(--font-mono); font-size: 11px; opacity: 0.55; margin-left: 6px; }
-  .team-avg-unidad{ align-self: center; }
-  .team-dupla-marker{ opacity:0.65; display:flex; align-items:center; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
   .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
   /* La pelota tiene detalle (blanco y negro) que la clase .icon-boot aplana mal: no lleva su
@@ -454,6 +408,40 @@
   .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; min-height: 44px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: var(--radius-pill); }
   .equipo-tab:hover{ opacity: 0.7; }
   .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
+
+  /* --- La carga por toque (rebanada 6): selector de evento y Deshacer ---
+     Mismo patrón de selector segmentado que `.equipo-tabs` (TC-010), con cuatro columnas en vez
+     de dos: el thumb se posiciona con `data-activo` en vez de `data-visible` porque acá el activo
+     es uno de cuatro, no un booleano. */
+  .carga-toolbar{ margin: 0 0 12px; }
+  .carga-toolbar-header{ display: flex; align-items: center; gap: 8px; }
+  .carga-toolbar-header .evento-tabs{ flex: 1 1 auto; margin: 0; min-width: 0; }
+  /* Sin esto el flex row lo achica por debajo de sus 44px explícitos en anchos angostos, donde
+     el selector de cuatro opciones ya pide todo el ancho disponible (NFR-002). */
+  .carga-toolbar-header .panel-icono{ flex-shrink: 0; }
+  .evento-tabs{ position: relative; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: var(--radius-pill); background: var(--chalk); }
+  .evento-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 4); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
+  .evento-tabs[data-activo="1"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4); }
+  .evento-tabs[data-activo="2"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4 * 2); }
+  .evento-tabs[data-activo="3"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4 * 3); }
+  /* El texto envuelve en vez de truncarse (NFR-001): a 360px "Gol en contra" no entra en una
+     columna, y la opción de leer bien pesa más que forzar una sola línea (D-13). */
+  .evento-tab{ position: relative; z-index: 1; padding: 8px 2px; min-height: 40px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 11.5px; line-height: 1.15; cursor: pointer; border-radius: var(--radius-pill); }
+  .evento-tab:hover{ opacity: 0.7; }
+  .evento-tab:active{ opacity: 0.7; transform: scale(0.97); }
+  .evento-ayuda{ margin: 6px 0 0; font-size: 12px; color: var(--muted); }
+  /* NFR-002: el mismo piso táctil de 44×44 que `.panel-icono` ya tenía (TC-020), reutilizado sin
+     un tamaño nuevo. */
+  .panel-icono:disabled{ opacity: 0.35; cursor: not-allowed; }
+  /* El botón "−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos ≥390px, 38×38 debajo
+     (NFR-002, handoff/README.md:675-676). Sin ícono nuevo: el glyph "−" reutiliza tipografía, no
+     agrega un asset (TC-031). */
+  .detalle-quitar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-left: auto; padding: 0; border: none; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  .detalle-quitar-btn:hover{ color: var(--ink); }
+  .team-panel.negro .detalle-quitar-btn{ color: rgba(255,255,255,0.65); }
+  @media (max-width: 389px){
+    .detalle-quitar-btn{ width: 38px; height: 38px; font-size: 18px; }
+  }
 
   /* Los tres realces son hermanos que se dibujan por encima y NO capturan el puntero: si lo
      capturaran se comerían el `dragover` que los mantiene vivos y parpadearían (TC-034). */
@@ -1313,8 +1301,9 @@
 
   let currentMatchId = null;
   let matchSearchTerm = '';
-  let resultadoDraft = null; // { matchId, stats: { [playerId]: {goles, asistencias} } } — borrador en memoria hasta "Finalizar partido"
+  let resultadoDraft = null; // { matchId, eventos: [{jugadorId, tipo}] } — borrador en memoria hasta "Finalizar partido" (rebanada 6, FR-005)
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
+  let tipoEventoActivo = 'gol'; // tipo del selector de carga por toque; sólo de interfaz, no se persiste (rebanada 6, TD-07)
   let duplaModalMatchId = null; // partido para el que se está eligiendo compañero de rotación
   let duplaModalPlayerId = null; // fila (jugador) desde la que se abrió "Agregar rotación"
   let duplaSearchTerm = '';
@@ -3757,9 +3746,8 @@
   function ensureResultadoDraft(m){
     if(!m.inscripcionCerrada || m.estado === 'Finalizado') return;
     if(resultadoDraft && resultadoDraft.matchId === m.id) return;
-    const stats = {};
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => { stats[id] = { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 }; });
-    resultadoDraft = { matchId: m.id, stats };
+    resultadoDraft = { matchId: m.id, eventos: [] };
+    tipoEventoActivo = 'gol';
   }
 
   window.__finalizarPartido = function(matchId){
@@ -3770,18 +3758,19 @@
       '¿Finalizar el partido? Después de finalizarlo no vas a poder editar los goles ni las asistencias.',
       () => {
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
-        // Un partido que se finaliza por primera vez siempre nace con la lista de eventos, nunca
-        // con los cuatro contadores (rebanada 5, FR-020, FR-021).
+        // Un partido que se finaliza por primera vez siempre nace con la lista de eventos tal cual
+        // quedó el borrador, sin ningún cálculo paralelo (FR-071, TC-002).
         const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
-        m.resultado = { eventos: eventosDesdeStats(idsConvocados, resultadoDraft.stats), finalizadoEn: Date.now() };
+        m.resultado = { eventos: resultadoDraft.eventos, finalizadoEn: Date.now() };
         m.estado = 'Finalizado';
         // Acumular partidos jugados/goles/asistencias de este partido en cada jugador (FR-014, FR-002/FR-003).
         // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
+        const stats = statsPorJugadorDesdeEventos(resultadoDraft.eventos, idsConvocados);
         const golesPorEquipo = {
-          blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, resultadoDraft.stats),
-          negro: totalGolesEquipo(m.equipos.negro, m.equipos.blanco, resultadoDraft.stats),
+          blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats),
+          negro: totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats),
         };
-        Object.entries(resultadoDraft.stats).forEach(([playerId, st]) => {
+        Object.entries(stats).forEach(([playerId, st]) => {
           const p = players.find(pl => pl.id === playerId);
           if(!p) return;
           const equipo = m.equipos.blanco.includes(playerId) ? 'blanco' : 'negro';
@@ -3812,13 +3801,14 @@
     if(!isAdmin()) return;
     const m = matches.find(mm => mm.id === matchId);
     if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
-    const statsActuales = statsPorJugadorDelPartido(m); // rebanada 5, FR-024: eventos o statsPorJugador, sin distinguir
-    const stats = {};
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = statsActuales[id] || { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 };
-      stats[id] = { goles: st.goles || 0, golesPenal: st.golesPenal || 0, golesEnContra: st.golesEnContra || 0, asistencias: st.asistencias || 0 };
-    });
-    resultadoDraft = { matchId: m.id, stats };
+    const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+    // El borrador se llena con m.resultado.eventos tal cual si el partido ya los tiene (FR-005), o
+    // sintetizándolos desde los contadores si es histórico (FR-005b, A-01).
+    const eventos = Array.isArray(m.resultado.eventos)
+      ? [...m.resultado.eventos]
+      : eventosDesdeStats(idsConvocados, m.resultado.statsPorJugador || {});
+    resultadoDraft = { matchId: m.id, eventos };
+    tipoEventoActivo = 'gol';
     editandoResultadoFinalizado = m.id;
     renderMatchesTab();
   };
@@ -3840,13 +3830,13 @@
       () => {
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
         // Preserva el formato que el partido ya tenía: si nació con eventos, se reescribe la
-        // secuencia completa; si es histórico (sólo statsPorJugador), sigue así — nunca se migra
-        // al editarlo (rebanada 5, FR-022, FR-023, D-06).
+        // secuencia completa; si es histórico (sólo statsPorJugador), se colapsa el borrador a los
+        // cuatro contadores — nunca se migra al editarlo (FR-072, FR-073, D-06).
         if(Array.isArray(m.resultado.eventos)){
-          const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
-          m.resultado.eventos = eventosDesdeStats(idsConvocados, resultadoDraft.stats);
+          m.resultado.eventos = resultadoDraft.eventos;
         }else{
-          m.resultado.statsPorJugador = {...resultadoDraft.stats};
+          const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+          m.resultado.statsPorJugador = statsPorJugadorDesdeEventos(resultadoDraft.eventos, idsConvocados);
         }
         m.resultado.editadoEn = Date.now();
         recomputeAllPlayerStatsFromMatches();
@@ -3908,6 +3898,82 @@
     return m.resultado.statsPorJugador || {};
   }
 
+  /* --- LA CARGA POR TOQUE (rebanada 6 de "Equipos en el campo") ---
+     docs/equipos-en-el-campo/rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md
+
+     Siete funciones puras, sin DOM, agregadas en el mismo vecindario que las de la rebanada 5
+     porque son del mismo tipo: funciones sobre `stats`/`eventos` (TD-05). */
+
+  // Familia de un tipo de evento para el botón "−": 'gol' y 'golPenal' agrupan como 'goles', un
+  // solo grupo (FR-051, handoff/README.md:662-663).
+  function familiaDeTipo(tipo){
+    if(tipo === 'gol' || tipo === 'golPenal') return 'goles';
+    if(tipo === 'golEnContra') return 'contra';
+    return 'asist';
+  }
+
+  // Valida un toque antes de agregarlo al borrador. Rechaza un jugador fuera de la convocatoria
+  // (FR-034, TC-041) y una asistencia cuando el equipo del jugador tocado todavía no metió ningún
+  // gol propio en el borrador (FR-032, misma regla que index.html:3955-3960 tenía para la grilla).
+  // Nunca deshabilita un golPenal por los goles previos del jugador (FR-033, D-04).
+  function puedeAgregarEvento(eventos, idsConvocados, jugadorId, tipo, idsEquipoDeJugador){
+    if(!idsConvocados.includes(jugadorId)) return false;
+    if(tipo === 'asistencia'){
+      const golesDelEquipo = eventos.filter(ev => idsEquipoDeJugador.includes(ev.jugadorId) && familiaDeTipo(ev.tipo) === 'goles').length;
+      if(golesDelEquipo === 0) return false;
+    }
+    return true;
+  }
+
+  // Agrega un evento al borrador, de forma inmutable (FR-030, FR-031: sin límite superior fijo).
+  function agregarEvento(eventos, jugadorId, tipo){
+    return [...eventos, { jugadorId, tipo }];
+  }
+
+  // Quita del borrador el evento agregado más recientemente de esa `familia` para ese jugador
+  // (FR-051); si no hay ninguno, devuelve `eventos` sin cambios. Recorre de atrás hacia adelante
+  // para que el que se quita sea siempre el más reciente, sin importar qué otros eventos de otros
+  // jugadores se hayan cargado entre medio.
+  function quitarUltimoDeFamilia(eventos, jugadorId, familia){
+    for(let i = eventos.length - 1; i >= 0; i--){
+      if(eventos[i].jugadorId === jugadorId && familiaDeTipo(eventos[i].tipo) === familia){
+        return [...eventos.slice(0, i), ...eventos.slice(i + 1)];
+      }
+    }
+    return eventos;
+  }
+
+  // Quita del borrador el evento agregado más recientemente, sin importar jugador, equipo ni tipo
+  // (FR-061, handoff/README.md:664).
+  function deshacerUltimoEvento(eventos){
+    return eventos.slice(0, -1);
+  }
+
+  // Si el modo de carga por toque está activo sobre este partido: inscripción cerrada sin
+  // finalizar, o finalizado con su edición en curso (FR-001, FR-002). Extrae el cálculo que antes
+  // vivía duplicado en `esFilaEditable` y en la función de la fila de la grilla numérica que esta
+  // rebanada borra (D-12).
+  function enModoCarga(m){
+    return (m.inscripcionCerrada && m.estado !== 'Finalizado') || (m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id);
+  }
+
+  // Una fila de detalle por jugador y por familia con al menos un evento cargado en el borrador,
+  // incluida la de asistencias — a diferencia de `goleadoresDeEquipo` (rebanada 4, modo lectura),
+  // que nunca la tuvo (TD-06). Deriva con `statsPorJugadorDesdeEventos`, la única vía (TC-002).
+  function detalleCargaDeEquipo(ids, eventos){
+    const stats = statsPorJugadorDesdeEventos(eventos, ids);
+    const filas = [];
+    ids.forEach(id => {
+      const p = players.find(pl => pl.id === id);
+      if(!p) return;
+      const st = stats[id];
+      if(st.goles > 0) filas.push({ p, familia: 'goles', cantidad: st.goles, nota: st.golesPenal > 0 ? `(${st.golesPenal} de penal)` : '' });
+      if(st.golesEnContra > 0) filas.push({ p, familia: 'contra', cantidad: st.golesEnContra, nota: '(EC)' });
+      if(st.asistencias > 0) filas.push({ p, familia: 'asist', cantidad: st.asistencias, nota: '' });
+    });
+    return filas;
+  }
+
   // Total de goles de un equipo: sus propios goles (que ya incluyen los de penal) más los goles
   // en contra que los jugadores del equipo RIVAL metieron en su propio arco (spec resultados-partido
   // → "goles en contra"). Un gol en contra no suma para quien lo hizo, suma para el rival.
@@ -3923,8 +3989,9 @@
     let goles = null;
     if(resultadoDraft && resultadoDraft.matchId === m.id){
       // Mientras hay un borrador activo (carga inicial o edición de un resultado finalizado), el
-      // total del equipo tiene que reflejar lo que se está tipeando, no el resultado ya guardado.
-      goles = totalGolesEquipo(ids, idsRival, resultadoDraft.stats);
+      // total del equipo tiene que reflejar lo que se está cargando, no el resultado ya guardado
+      // (FR-022, TC-002: pasa por la misma derivación que el resto de la carga).
+      goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDesdeEventos(resultadoDraft.eventos, [...m.equipos.blanco, ...m.equipos.negro]));
     }else if(m.estado === 'Finalizado' && m.resultado){
       goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDelPartido(m)); // rebanada 5, TC-012
     }
@@ -3936,58 +4003,6 @@
     const spanB = el('totalBlancoSpan'), spanN = el('totalNegroSpan');
     if(spanB) spanB.textContent = teamHeaderTotalText(m.equipos.blanco, m.equipos.sumaBlanco, m);
     if(spanN) spanN.textContent = teamHeaderTotalText(m.equipos.negro, m.equipos.sumaNegro, m);
-  }
-
-  // Goles/asistencias (o resultado ya cargado) y puntaje individual de un jugador dentro del
-  // equipo generado — común a la fila individual y a cada integrante de una fila de dupla
-  // (FR-013/FR-014: cada integrante carga/muestra sus propios valores, nunca combinados).
-  function renderStatsYPuntajeMiembro(p, m, posAsignada){
-    const finalizado = m.estado === 'Finalizado';
-    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
-    let statsHtml = '';
-    if(finalizado && m.resultado && !editandoFinalizado){
-      const st = statsPorJugadorDelPartido(m)[p.id] || {goles:0, golesPenal:0, asistencias:0}; // rebanada 5, TC-012
-      statsHtml = `<span class="team-stat-readonly">${st.goles}</span><span class="stat-goal-icon">${GOAL_ICON}</span><span class="team-stat-readonly"> · ${st.asistencias}${BOOT_ICON}</span>`;
-    }else if(cerrada && isAdmin()){
-      const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
-      const g = draft ? draft.goles : 0;
-      // Un equipo que no hizo goles no puede tener asistencias cargadas (spec sección 5, Resultado).
-      const equipoDeP = m.equipos.blanco.includes(p.id) ? 'blanco' : 'negro';
-      const golesEquipo = (resultadoDraft && resultadoDraft.matchId === m.id)
-        ? m.equipos[equipoDeP].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0) : 0;
-      const asisHabil = golesEquipo > 0;
-      const a = (draft && asisHabil) ? draft.asistencias : 0;
-      // Los penales de un jugador no pueden superar sus propios goles (spec resultados-partido).
-      const penalHabil = g > 0;
-      const pen = (draft && penalHabil) ? Math.min(draft.golesPenal || 0, g) : 0;
-      // El gol en contra es independiente de los goles propios del jugador: a diferencia del penal,
-      // no se deshabilita ni se clampa contra `g` (spec resultados-partido → "goles en contra").
-      const gec = draft ? (draft.golesEnContra || 0) : 0;
-      /* Los tres pares etiqueta+input van dentro de un contenedor propio para que
-         viajen como UNA unidad cuando la fila envuelve. Sueltos, cada fila cortaba
-         en un punto distinto según el largo del nombre y la columna de inputs
-         quedaba dentada; agrupados, la fila corta siempre en el mismo lugar:
-         identidad arriba, carga de goles abajo (Principio V). */
-      statsHtml = `
-        <span class="team-stat-group">
-        ${GOAL_ICON}
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
-        <span class="team-stat-label" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}">P</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesPenal" value="${pen}" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}" ${penalHabil?'':'disabled'}>
-        <span class="team-stat-label" title="Gol en contra">${RED_GOAL_ICON}</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesEnContra" value="${gec}" title="Gol en contra">
-        <span class="team-stat-label">${BOOT_ICON}</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>
-        </span>`;
-    }
-    // Puntaje individual: nunca para "jugador" (FR-004/FR-013), sea propio o ajeno.
-    let puntajeHtml = '';
-    if(isAdmin()){
-      const valor = valorDePuntaje([p], m);
-      puntajeHtml = `<span class="team-avg">${valor === null ? 'sin puntaje' : valor}</span>`;
-    }
-    return { statsHtml, puntajeHtml };
   }
 
   function posicionAsignadaDe(p, m){
@@ -4011,108 +4026,13 @@
     return valor > 0 ? valor : null;
   }
 
-  function renderLockBtn(m, playerId, editable, bloqueado){
-    if(!editable) return '';
-    return `
-      <button class="icon-btn" title="${bloqueado ? 'Desbloquear' : 'Bloquear en este equipo'}" onclick="window.__toggleBloqueo('${m.id}','${playerId}')" style="${bloqueado?'color:var(--brick);':''}">
-        ${bloqueado
-          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
-          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>'}
-      </button>`;
-  }
-
-  /* Dónde va la cancha y dónde sigue la lista de filas. Es un predicado de ESTADO, no de rol: el
-     jugador ve la misma cancha que el admin, sin puntajes ni candados (FR-060). La carga de
-     resultado y el partido finalizado conservan la lista hasta las rebanadas 4 y 6 (FR-042), así
-     que la frontera se corre desde acá y desde ningún otro lado. (Spec de la cancha, FR-040.) */
-  function mostrarCanchaDeEquipos(m){
-    const finalizado = m.estado === 'Finalizado';
-    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    // La cancha se extiende al partido finalizado sin editar (rebanada 4, FR-020, FR-063, FR-064):
-    // sólo queda fuera la inscripción cerrada SIN finalizar, y mientras se edita el resultado.
-    const cerradaSinFinalizar = m.inscripcionCerrada && !finalizado;
-    return !cerradaSinFinalizar && !editandoFinalizado;
-  }
-
   function esFilaEditable(m){
     const finalizado = m.estado === 'Finalizado';
-    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
+    const cerrada = enModoCarga(m); // rebanada 6: delega en la misma función que gobierna el toque (A-03)
     // Cargar/editar el resultado de un partido es una acción administrativa (FR-010); "jugador"
     // nunca ve los inputs de carga, solo el resultado ya finalizado (goles/asistencias son
     // estadísticas visibles para todos, ver Clarifications).
     return isAdmin() && !cerrada && !finalizado;
-  }
-
-  function renderTeamPlayerRow(p, m){
-    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
-      || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
-      || p.principal;
-    const esSecundaria = posAsignada !== p.principal;
-    const editable = esFilaEditable(m);
-    const bloqueado = (m.bloqueados || []).includes(p.id);
-    const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
-    const lockBtn = renderLockBtn(m, p.id, editable, bloqueado);
-    return `
-      <div class="team-player-row">
-        <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
-        <span style="flex:1 1 auto;">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
-        ${puntajeHtml}
-        ${statsHtml}
-        ${lockBtn}
-      </div>`;
-  }
-
-  // Fila agrupada de una dupla dentro del equipo generado: un solo renglón, con un integrante
-  // arriba y el otro abajo, compartiendo posición y candado (ambos siempre en el mismo equipo,
-  // con la misma posición asignada — FR-007/FR-008), pero cada uno con su propio puntaje y sus
-  // propios goles/asistencias (FR-013/FR-014, "única excepción" de Key Entities en spec.md).
-  function renderTeamPlayerRowDupla(pA, pB, m){
-    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[pA.id])
-      || (m.equipos.posicionOverride && m.equipos.posicionOverride[pA.id])
-      || pA.principal;
-    const editable = esFilaEditable(m);
-    const bloqueado = (m.bloqueados || []).includes(pA.id);
-    const lockBtn = renderLockBtn(m, pA.id, editable, bloqueado);
-    // Cada integrante muestra su propia nota en la posición asignada al lado del nombre (dato
-    // informativo), pero el puntaje que suma al total del equipo es uno solo, el de la unidad, y
-    // va en la columna de puntaje (012-puntajes-coherentes-panel, FR-001).
-    // Si el integrante no tiene nota cargada en ese puesto, al lado del nombre va la leyenda "sin
-    // puntaje" (014, FR-012): aclara que su aporte al número de la columna se estimó con su
-    // promedio general. La columna siempre muestra el número mientras la unidad tenga valor
-    // calculable, incluso cuando ninguno de los dos cubre la posición (FR-011).
-    const miembroHtml = (p) => {
-      const esSecundaria = posAsignada !== p.principal;
-      const { statsHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
-      const nota = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : computeAvg(p.scores);
-      const tieneNota = nota > 0;
-      const titulo = tieneNota
-        ? `Puntaje de ${fullName(p)} en ${posAsignada}`
-        : `${fullName(p)} no tiene puntaje cargado en ${posAsignada}: aporta su promedio general`;
-      const notaHtml = isAdmin() ? `<span class="team-nota-pos admin-only" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
-      return `
-        <div class="team-dupla-member">
-          <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}${notaHtml}</span>
-          ${statsHtml}
-        </div>`;
-    };
-    const valorUnidad = valorDePuntaje([pA, pB], m);
-    const puntajeUnidadHtml = isAdmin()
-      ? `<span class="team-avg team-avg-unidad" title="Puntaje de la dupla: es el que suma al total del equipo">${valorUnidad === null ? 'sin puntaje' : valorUnidad}</span>`
-      : '';
-    return `
-      <div class="team-player-row team-player-row-dupla">
-        <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
-        <div class="team-dupla-members">
-          ${miembroHtml(pA)}
-          ${miembroHtml(pB)}
-        </div>
-        ${puntajeUnidadHtml}
-        <div class="team-dupla-side">
-          ${lockBtn}
-          <span class="team-dupla-marker" title="Dupla de rotación">${ICON_DUPLA_CREAR}</span>
-        </div>
-      </div>`;
   }
 
   // Agrupa la lista de jugadores (ya ordenada por posición) en filas: unidades individuales o
@@ -4151,10 +4071,6 @@
       }
     }
     return filas;
-  }
-
-  function renderFilaEquipo(grupo, m){
-    return grupo.length === 2 ? renderTeamPlayerRowDupla(grupo[0], grupo[1], m) : renderTeamPlayerRow(grupo[0], m);
   }
 
   /* --- LA CANCHA (rebanada 1 de "Equipos en el campo") ---
@@ -4211,6 +4127,8 @@
   const ICON_CANDADO_CERRADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
   const ICON_CANDADO_ABIERTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 8.6-1.7"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
   const ICON_ROTACION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+  /* Único asset visual nuevo de esta rebanada (TC-031): el botón Deshacer de la carga por toque. */
+  const ICON_DESHACER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H9"/></svg>';
   /* Las marcas del campo, iguales para los dos equipos. Todas en porcentajes, así que el dibujo
      es el mismo a cualquier ancho; el lado de abajo espeja al de arriba vía la clase `abajo`. */
   const MARCAS_CANCHA = [
@@ -4267,11 +4185,6 @@
         + '<span class="cand-badge">' + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</span></button>'
       : '';
 
-    const nombreHtml = esUnidadDupla
-      ? '<div class="camiseta-dupla"><span class="camiseta-nombre">' + escaparHtml(nombreCorto(grupo[0])) + '</span>'
-        + ICON_ROTACION + '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(grupo[1])) + '</span></div>'
-      : '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(p)) + '</span>';
-
     /* El `draggable` va en el contenedor y el candado lleva `draggable="false"`, para que
        activarlo siga siendo un click y no el arranque de un arrastre (FR-007b). */
     const arrastreAttrs = arrastrable
@@ -4280,12 +4193,18 @@
         + ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
       : '';
-    // Chips de goles/goles en contra/asistencias del partido finalizado, sin editar (rebanada 4,
-    // TD-04): la condición se resuelve acá, leyendo `m` completo, en vez de agregar un parámetro.
+    // Chips de goles/goles en contra/asistencias: del partido finalizado sin editar (rebanada 4,
+    // TD-04), o del borrador de carga mientras el modo de carga está activo (rebanada 6, FR-040,
+    // FR-041) — nunca los dos a la vez, porque un finalizado sin editar y `enModoCarga(m)` son
+    // mutuamente excluyentes por construcción.
+    const enCarga = enModoCarga(m);
     const finalizadoSinEditarChips = m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id;
+    const statsDraft = (enCarga && resultadoDraft && resultadoDraft.matchId === m.id)
+      ? statsPorJugadorDesdeEventos(resultadoDraft.eventos, [...m.equipos.blanco, ...m.equipos.negro])
+      : null;
     const chips = finalizadoSinEditarChips
       ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, statsPorJugadorDelPartido(m))) // rebanada 5, TC-012
-      : { asistenciasHtml: '', golesHtml: '' };
+      : (statsDraft ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, statsDraft)) : { asistenciasHtml: '', golesHtml: '' });
     // Con un solo tipo de evento, ese chip queda como hijo DIRECTO de .camiseta-fig y se ancla a
     // su propio borde (asistencias a la izquierda, goles a la derecha). Con los dos a la vez, se
     // envuelven en un flex centrado para que no se solapen (INVARIANTE_CHIPS_ESTADISTICA) — ver
@@ -4293,6 +4212,19 @@
     const chipsHtml = (chips.asistenciasHtml && chips.golesHtml)
       ? '<div class="stat-chips">' + chips.asistenciasHtml + chips.golesHtml + '</div>'
       : (chips.asistenciasHtml || chips.golesHtml);
+
+    // El nombre gana el toque cuando el modo de carga está activo (FR-030): cada integrante de una
+    // dupla es su propio destino de toque, con el mismo gesto y sin agregar un segundo tipo de
+    // control (FR-030b, TD-01). `renderCamiseta` sólo pinta: la validación vive en
+    // `__tocarNombreJugador` (TD-03).
+    const puedeTocar = enCarga && admin;
+    const nombreSpan = (jug) => '<span class="camiseta-nombre"'
+      + (puedeTocar ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + jug.id + '\')" role="button" tabindex="0"' : '')
+      + '>' + escaparHtml(nombreCorto(jug)) + '</span>';
+    const nombreHtml = esUnidadDupla
+      ? '<div class="camiseta-dupla">' + nombreSpan(grupo[0]) + ICON_ROTACION + nombreSpan(grupo[1]) + '</div>'
+      : nombreSpan(p);
+
     return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
@@ -4341,6 +4273,49 @@
     });
     saveMatches();
     renderMatchesTab();
+  };
+
+  /* --- LA CARGA POR TOQUE (rebanada 6) — handlers ---
+     Los cuatro guardan admin/estado antes de tocar el borrador (FR-080, FR-081, TC-040), delegan
+     la decisión a las funciones puras de arriba, y re-renderizan sólo la sección de equipos —
+     nunca la tarjeta completa, que no cambió. */
+
+  window.__tocarNombreJugador = function(matchId, jugadorId){
+    if(!isAdmin()) return; // FR-080
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !enModoCarga(m)) return; // FR-081
+    if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
+    const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+    const idsEquipoDeJugador = m.equipos.blanco.includes(jugadorId) ? m.equipos.blanco : m.equipos.negro;
+    if(!puedeAgregarEvento(resultadoDraft.eventos, idsConvocados, jugadorId, tipoEventoActivo, idsEquipoDeJugador)) return;
+    resultadoDraft.eventos = agregarEvento(resultadoDraft.eventos, jugadorId, tipoEventoActivo);
+    renderTeamsSection(m);
+  };
+
+  window.__quitarUltimoDeFamiliaCarga = function(matchId, jugadorId, familia){
+    if(!isAdmin()) return; // FR-080
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !enModoCarga(m)) return;
+    if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
+    resultadoDraft.eventos = quitarUltimoDeFamilia(resultadoDraft.eventos, jugadorId, familia);
+    renderTeamsSection(m);
+  };
+
+  window.__deshacerUltimoEventoCarga = function(matchId){
+    if(!isAdmin()) return; // FR-080
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !enModoCarga(m)) return;
+    if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
+    resultadoDraft.eventos = deshacerUltimoEvento(resultadoDraft.eventos);
+    renderTeamsSection(m);
+  };
+
+  window.__cambiarTipoEventoActivo = function(tipo){
+    if(!isAdmin()) return; // FR-080
+    if(!TIPOS_EVENTO_CARGA.some(t => t.tipo === tipo)) return;
+    tipoEventoActivo = tipo;
+    const m = matches.find(mm => mm.id === currentMatchId);
+    if(m) renderTeamsSection(m);
   };
 
   /* ------------------------------------------------------------------ EL SELECTOR DE EQUIPO
@@ -4416,7 +4391,7 @@
       equipoVisibleCancha = 'blanco';
       partidoDelEquipoVisible = m.id;
     }
-    const unaColumna = enUnaColumna() && mostrarCanchaDeEquipos(m);
+    const unaColumna = enUnaColumna();
     const panel = equipo => '<div class="team-panel ' + equipo + '"><h4>' + paneles[equipo].header
       + '</h4>' + paneles[equipo].contenido + '</div>';
     const visibles = unaColumna ? [equipoVisibleCancha] : ['blanco', 'negro'];
@@ -5059,6 +5034,12 @@
     const eq = m.equipos;
     const blancoPlayers = jugadoresDeEquipoOrdenados(m, eq.blanco);
     const negroPlayers = jugadoresDeEquipoOrdenados(m, eq.negro);
+    // Filas de detalle editables debajo de cada cancha mientras el modo de carga está activo
+    // (FR-042); visibles para los dos roles, el botón "−" sólo si `isAdmin()` (FR-003, FR-050).
+    const eventosDraftActivo = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.eventos : [];
+    const detalleCargaHtml = (ids) => enModoCarga(m)
+      ? '<div class="detalle-equipo">' + renderFilasDetalleCarga(m, ids, eventosDraftActivo, isAdmin()) + '</div>'
+      : '';
 
     /* Partido finalizado, sin edición en curso: una única rama, compartida por "admin" y
        "jugador" (rebanada 4, TD-01) — FR-060 hace que los dos roles vean lo mismo salvo el
@@ -5080,9 +5061,9 @@
     }
 
     if(!isAdmin()){
-      // "jugador" ve qué jugador quedó en qué equipo (con sus estadísticas, vía renderTeamPlayerRow),
-      // pero nunca estrategia, diferencia de puntaje, jugadores sin puntaje, bloqueados ni la
-      // explicación de armado (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
+      // "jugador" ve la cancha con qué jugador quedó en qué equipo, pero nunca estrategia,
+      // diferencia de puntaje, jugadores sin puntaje, bloqueados ni la explicación de armado
+      // (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
       let golesBlanco = null, golesNegro = null;
       if(m.estado === 'Finalizado' && m.resultado){
         const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
@@ -5094,14 +5075,10 @@
         ${renderZonaEquipos(m, {
           blanco: {
             header: `Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
-            contenido: mostrarCanchaDeEquipos(m)
-              ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
-              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('') },
+            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
           negro: {
             header: `Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}`,
-            contenido: mostrarCanchaDeEquipos(m)
-              ? renderCanchaEquipo(m, negroPlayers, 'negro')
-              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
+            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
         })}
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
       `;
@@ -5122,17 +5099,14 @@
       ${renderComboEstrategia(m)}
       ${renderAvisoDesactualizado(m)}
       ${enUnaColumna() ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
+      ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {
         blanco: {
           header: `Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
-          contenido: mostrarCanchaDeEquipos(m)
-            ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
-            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('') },
+          contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
         negro: {
           header: `Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span>`,
-          contenido: mostrarCanchaDeEquipos(m)
-            ? renderCanchaEquipo(m, negroPlayers, 'negro')
-            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
+          contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
       })}
       ${renderDiferenciaPorLinea(celdasLineas, diffObjetivo)}
       ${renderPorQueQuedaronAsi(explicaciones)}
@@ -5141,64 +5115,6 @@
       ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `<div class="explain-box" style="margin-top:14px;">Editando el resultado de un partido finalizado. Al guardar, se van a recalcular los partidos jugados, ganados, empatados, perdidos, goles y asistencias de todos los jugadores convocados.</div>` : ''}
     `;
     bindSelectorEstrategia(m);
-
-    section.querySelectorAll('.team-stat-input').forEach(inp => {
-      inp.addEventListener('input', () => {
-        if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
-        const pid = inp.dataset.player;
-        const tipo = inp.dataset.tipo;
-        const val = inp.value === '' ? 0 : Math.max(0, parseInt(inp.value, 10) || 0);
-        if(tipo === 'golesPenal'){
-          // Los penales de un jugador no pueden superar sus propios goles en el partido (spec resultados-partido).
-          const goles = resultadoDraft.stats[pid] ? (resultadoDraft.stats[pid].goles || 0) : 0;
-          const clamped = Math.min(val, goles);
-          resultadoDraft.stats[pid][tipo] = clamped;
-          if(clamped !== val) inp.value = clamped;
-        }else{
-          resultadoDraft.stats[pid][tipo] = val;
-        }
-        updateTeamTotalsDisplay(m);
-        if(tipo === 'goles'){
-          actualizarAsistenciasHabilitadas(m, section); // habilita/deshabilita asistencias según goles del equipo
-          actualizarPenalesHabilitados(m, section); // habilita/deshabilita y clampa penales según los goles del jugador
-        }
-      });
-    });
-  }
-
-  // Recalcula, sin re-render completo, qué inputs de asistencias quedan habilitados según los goles de cada equipo.
-  function actualizarAsistenciasHabilitadas(m, section){
-    if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
-    ['blanco','negro'].forEach(team => {
-      const goles = m.equipos[team].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0);
-      const habil = goles > 0;
-      m.equipos[team].forEach(id => {
-        const inp = section.querySelector(`.team-stat-input[data-player="${id}"][data-tipo="asistencias"]`);
-        if(!inp) return;
-        inp.disabled = !habil;
-        inp.title = habil ? 'Asistencias' : 'El equipo no hizo goles: no se pueden cargar asistencias';
-        if(!habil){ inp.value = 0; if(resultadoDraft.stats[id]) resultadoDraft.stats[id].asistencias = 0; }
-      });
-    });
-  }
-
-  // Recalcula, sin re-render completo, qué inputs de penal quedan habilitados y los clampa a los
-  // goles del propio jugador (los penales de un jugador no pueden superar sus propios goles).
-  function actualizarPenalesHabilitados(m, section){
-    if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = resultadoDraft.stats[id];
-      if(!st) return;
-      const goles = st.goles || 0;
-      const habil = goles > 0;
-      const inp = section.querySelector(`.team-stat-input[data-player="${id}"][data-tipo="golesPenal"]`);
-      if(!inp) return;
-      inp.disabled = !habil;
-      inp.title = habil ? 'Goles de penal' : 'El jugador no hizo goles: no se pueden cargar penales';
-      const clamped = Math.min(st.golesPenal || 0, goles);
-      st.golesPenal = clamped;
-      inp.value = clamped;
-    });
   }
 
   /* ------------------------------------------------------------------ EL PARTIDO FINALIZADO
@@ -5286,6 +5202,62 @@
           + '<span class="detalle-nota">(EC)</span></div>');
       }
       return lineas.join('');
+    }).join('');
+  }
+
+  /* --- LA CARGA POR TOQUE (rebanada 6) — render ---
+     Funciones propias de esta rebanada (TD-06): no generalizan renderFilasDetalle/goleadoresDeEquipo,
+     que son de lectura de un finalizado sin editar y no deben arriesgar una regresión por un cambio
+     pensado para la carga. */
+
+  // Las cuatro opciones del selector de tipo de evento, en el orden de FR-010, con el texto de
+  // ayuda que le corresponde a cada una (FR-012).
+  const TIPOS_EVENTO_CARGA = [
+    { tipo: 'gol', label: 'Gol', ayuda: 'Tocá la camiseta del que convirtió' },
+    { tipo: 'golPenal', label: 'Penal', ayuda: 'Tocá la camiseta del que convirtió de penal' },
+    { tipo: 'golEnContra', label: 'Gol en contra', ayuda: 'Tocá la camiseta del que se la hizo en contra' },
+    { tipo: 'asistencia', label: 'Asistencia', ayuda: 'Tocá la camiseta del que dio el pase' },
+  ];
+
+  // El selector de tipo de evento + Deshacer, encima de la cancha en modo de carga. Vacío si el
+  // modo de carga no está activo o si el rol no es admin (FR-003, FR-081) — mismo predicado que
+  // gobierna el toque sobre el nombre.
+  function renderToolbarCarga(m){
+    if(!enModoCarga(m) || !isAdmin()) return '';
+    const idxActivo = Math.max(0, TIPOS_EVENTO_CARGA.findIndex(t => t.tipo === tipoEventoActivo));
+    const activo = TIPOS_EVENTO_CARGA[idxActivo];
+    const tabs = TIPOS_EVENTO_CARGA.map(t =>
+      '<button type="button" class="evento-tab" aria-pressed="' + (t.tipo === tipoEventoActivo ? 'true' : 'false') + '"'
+      + ' onclick="window.__cambiarTipoEventoActivo(\'' + t.tipo + '\')">' + t.label + '</button>').join('');
+    const sinEventos = !resultadoDraft || resultadoDraft.matchId !== m.id || resultadoDraft.eventos.length === 0;
+    return '<div class="carga-toolbar">'
+      + '<div class="carga-toolbar-header">'
+      + '<div class="evento-tabs" data-activo="' + idxActivo + '"><span class="evento-tabs-thumb"></span>' + tabs + '</div>'
+      + '<button type="button" class="panel-icono" aria-label="Deshacer el último evento cargado" title="Deshacer el último evento cargado"'
+      + ' onclick="window.__deshacerUltimoEventoCarga(\'' + m.id + '\')"' + (sinEventos ? ' disabled' : '') + '>' + ICON_DESHACER + '</button>'
+      + '</div>'
+      // FR-013: tocar dos veces la misma camiseta agrega dos eventos del tipo activo.
+      + '<p class="evento-ayuda">' + escaparHtml(activo.ayuda) + '. Tocar la misma camiseta dos veces agrega dos eventos.</p>'
+      + '</div>';
+  }
+
+  // Las filas de detalle debajo de la cancha en modo de carga: una por jugador y por familia con
+  // al menos un evento (FR-042), con el botón "−" sólo cuando `editable` (FR-050, FR-051; nunca
+  // para el rol jugador, FR-003). "Sin eventos cargados para este equipo" si no hay ninguna
+  // (FR-043).
+  function renderFilasDetalleCarga(m, ids, eventos, editable){
+    const filas = detalleCargaDeEquipo(ids, eventos);
+    if(!filas.length) return '<div class="detalle-vacio">Sin eventos cargados para este equipo</div>';
+    const iconoDe = { goles: GOAL_ICON, contra: RED_GOAL_ICON, asist: BOOT_ICON };
+    return filas.map(f => {
+      const btn = editable
+        ? '<button type="button" class="detalle-quitar-btn" title="Sacar uno" aria-label="Sacar uno"'
+          + ' onclick="window.__quitarUltimoDeFamiliaCarga(\'' + m.id + '\',\'' + f.p.id + '\',\'' + f.familia + '\')">&minus;</button>'
+        : '';
+      return '<div class="detalle-fila"><span class="detalle-nombre">' + escaparHtml(fullName(f.p)) + '</span>'
+        + '<span class="detalle-cifra">' + f.cantidad + iconoDe[f.familia] + '</span>'
+        + (f.nota ? '<span class="detalle-nota">' + f.nota + '</span>' : '')
+        + btn + '</div>';
     }).join('');
   }
 
