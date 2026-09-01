@@ -1218,6 +1218,12 @@
   function canchaLabel(m){
     return (CANCHAS[m.cancha] || CANCHAS.futbol8).label;
   }
+  /* "3-4-1": defensores-volantes-delanteros de la formación del tamaño de cancha del partido,
+     nunca una cadena literal (rebanada 4 de "Equipos en el campo", FR-005b, FR-005c, TC-035). */
+  function formacionTexto(m){
+    const f = (CANCHAS[m.cancha] || CANCHAS.futbol8).formacion;
+    return f.defensores + '-' + f.volantes + '-' + f.delanteros;
+  }
 
   const FORM_IDS = {
     main: { principal:'fPrincipal', secBadges:'fSecBadges', scoresGrid:'fScoresGrid', avgPreview:'fAvgPreview' }
@@ -5026,6 +5032,135 @@
       st.golesPenal = clamped;
       inp.value = clamped;
     });
+  }
+
+  /* ------------------------------------------------------------------ EL PARTIDO FINALIZADO
+     Rebanada 4 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md
+
+     Todo lo que decide un número o un texto va acá, puro y sin DOM (mismo criterio que `TD-01`
+     de la rebanada 3): `renderCamiseta` y `renderTeamsSection` sólo componen cadenas con estos
+     resultados. */
+
+  /* Línea de estrategia del encabezado, según las cuatro combinaciones de columnas × tamaño de
+     cancha (FR-003, FR-005, FR-005b, FR-005c). */
+  function lineaEstrategiaPartidoFinalizado(m, unaColumna){
+    const esNueve = m.cancha === 'futbol9';
+    const resumen = ESTRATEGIAS[m.equipos.estrategiaKey].resumen;
+    const partes = [];
+    if(unaColumna) partes.push(canchaLabel(m));
+    if(esNueve) partes.push('Formación ' + formacionTexto(m));
+    partes.push('Estrategia: ' + resumen);
+    return partes.join(' · ');
+  }
+
+  /* Estadísticas de una unidad de armado (jugador suelto o dupla): sobre una dupla SUMA los
+     cuatro campos de los dos integrantes, con el mismo criterio que `valorDePuntaje` usa para el
+     puntaje combinado (FR-036, TD-05). Ausentes cuentan como 0, para tolerar partidos viejos sin
+     `golesEnContra`. */
+  function statsAgregadasDeUnidad(grupo, statsPorJugador){
+    return grupo.reduce((acc, p) => {
+      const st = statsPorJugador[p.id] || {};
+      acc.goles += st.goles || 0;
+      acc.golesPenal += st.golesPenal || 0;
+      acc.golesEnContra += st.golesEnContra || 0;
+      acc.asistencias += st.asistencias || 0;
+      return acc;
+    }, { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 });
+  }
+
+  /* Los chips que van sobre la camiseta: asistencias a la izquierda, goles y goles en contra a
+     la derecha, en ese orden (FR-030 a FR-035). El chip de goles suma penales y de juego en un
+     solo número: el desglose "de penal" vive sólo en la fila de detalle (FR-031). */
+  function renderChipsEstadistica(stats){
+    const pill = (n, icon) => '<span class="stat-pill">' + n + icon + '</span>';
+    const golesHtml = (stats.goles > 0 || stats.golesEnContra > 0)
+      ? '<span class="stat-goles">'
+        + (stats.goles > 0 ? pill(stats.goles, GOAL_ICON) : '')
+        + (stats.golesEnContra > 0 ? pill(stats.golesEnContra, RED_GOAL_ICON) : '')
+        + '</span>'
+      : '';
+    const asistenciasHtml = stats.asistencias > 0 ? '<span class="stat-asistencias">' + pill(stats.asistencias, BOOT_ICON) + '</span>' : '';
+    return { asistenciasHtml, golesHtml };
+  }
+
+  /* Los goleadores de un equipo, para las filas de detalle. Función PROPIA de esta rebanada, sin
+     compartir código con `matchResultSummaryHtml` (TD-06): esa función es una superficie distinta
+     (la tarjeta colapsada de la lista de partidos) que la Spec excluye explícitamente de tocar. */
+  function goleadoresDeEquipo(ids, statsPorJugador){
+    return ids
+      .map(id => ({ p: players.find(pl => pl.id === id),
+        goles: (statsPorJugador[id]||{}).goles || 0,
+        golesPenal: (statsPorJugador[id]||{}).golesPenal || 0,
+        golesEnContra: (statsPorJugador[id]||{}).golesEnContra || 0 }))
+      .filter(x => x.p && (x.goles > 0 || x.golesEnContra > 0))
+      .sort((a,b) => b.goles - a.goles);
+  }
+
+  /* Las filas de detalle debajo de un campo: una por goleador, con el desglose de penal y de en
+     contra en líneas separadas, y "Sin goleadores" si no hay ninguno (FR-050 a FR-057). El nombre
+     se antepone en la línea de en contra sólo cuando el jugador no tiene línea de goles propios
+     (FR-054), y todo nombre se inserta escapado (FR-057, TC-041). */
+  function renderFilasDetalle(ids, statsPorJugador){
+    const goleadores = goleadoresDeEquipo(ids, statsPorJugador);
+    if(!goleadores.length) return '<div class="detalle-vacio">Sin goleadores</div>';
+    return goleadores.map(x => {
+      const lineas = [];
+      if(x.goles > 0){
+        lineas.push('<div class="detalle-fila"><span class="detalle-nombre">' + escaparHtml(fullName(x.p)) + '</span>'
+          + '<span class="detalle-cifra">' + x.goles + GOAL_ICON + '</span>'
+          + (x.golesPenal > 0 ? '<span class="detalle-nota">(' + x.golesPenal + ' de penal)</span>' : '')
+          + '</div>');
+      }
+      if(x.golesEnContra > 0){
+        const prefijo = x.goles > 0 ? '' : '<span class="detalle-nombre">' + escaparHtml(fullName(x.p)) + '</span>';
+        lineas.push('<div class="detalle-fila">' + prefijo
+          + '<span class="detalle-cifra">' + x.golesEnContra + RED_GOAL_ICON + '</span>'
+          + '<span class="detalle-nota">(EC)</span></div>');
+      }
+      return lineas.join('');
+    }).join('');
+  }
+
+  /* La fila de resultado: nombre + puntaje de armado a cada costado (sólo en el marcado — el CSS
+     lo oculta en una columna, TD-07) y el marcador real al centro, con `totalGolesEquipo`
+     (FR-040 a FR-042). */
+  function renderFilaResultado(m){
+    const stats = m.resultado.statsPorJugador;
+    const golesBlanco = totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats);
+    const golesNegro = totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats);
+    const lado = (nombre, puntaje, alineacion) =>
+      '<div class="resultado-equipo ' + alineacion + '"><span class="resultado-nombre">' + nombre + '</span>'
+      + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>';
+    return '<div class="fila-resultado">'
+      + lado('Blanco', m.equipos.sumaBlanco, 'izq')
+      + '<div class="resultado-marcador"><span>' + golesBlanco + '</span><span class="resultado-guion">-</span><span>' + golesNegro + '</span></div>'
+      + lado('Negro', m.equipos.sumaNegro, 'der')
+      + '</div>';
+  }
+
+  /* El encabezado del partido finalizado: fecha (+ cancha en dos columnas), la línea de
+     estrategia como texto fijo, y los íconos de Copiar (siempre) y Editar resultado (sólo
+     `admin` — FR-060, FR-061, la única diferencia entre los dos roles de `TD-01`). */
+  function renderEncabezadoPartidoFinalizado(m){
+    const unaColumna = enUnaColumna();
+    const titulo = formatFecha(m.fecha) + (unaColumna ? '' : ' - ' + canchaLabel(m));
+    const estrategia = lineaEstrategiaPartidoFinalizado(m, unaColumna);
+    const copiado = copiadoDelPartido === m.id;
+    const accionCopiar = copiado ? 'Equipos copiados' : 'Copiar equipos';
+    const botones = ['<button type="button" class="panel-icono panel-icono-copiar' + (copiado ? ' copiado' : '') + '"'
+      + ' aria-label="' + accionCopiar + '" title="' + accionCopiar + '"'
+      + ' onclick="window.__copiarFormacion(\'' + m.id + '\')">' + (copiado ? ICON_TILDE : ICON_COPIAR) + '</button>'];
+    if(isAdmin()){
+      botones.push('<button type="button" class="panel-icono panel-icono-editar"'
+        + ' aria-label="Editar resultado" title="Editar resultado"'
+        + ' onclick="window.__editarResultadoFinalizado(\'' + m.id + '\')">' + ICON_LAPIZ + '</button>');
+    }
+    return '<div class="panel-header">'
+      + '<div class="panel-header-titulo"><h3>' + escaparHtml(titulo) + '</h3>'
+      + '<p class="panel-header-estrategia">' + escaparHtml(estrategia) + '</p></div>'
+      + '<div class="panel-header-acciones">' + botones.join('') + '</div>'
+      + '</div>';
   }
 
   /* ================= PARTIDOS (Slice 2) ================= */
