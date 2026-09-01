@@ -386,10 +386,13 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **FR-008** — Cuando el administrador active el botón de editar resultado,
   el sistema ejecutará exactamente lo que `__editarResultadoFinalizado` ya
   hace hoy (`TC-012`).
-- **FR-009** — El sistema no mostrará el botón de copiar equipos ni el de
-  regenerar en este encabezado: copiar formación sigue existiendo, pero como
-  parte de la botonera al pie que la rebanada 3 ya fija para el resto de los
-  estados, sin cambios en este.
+- **FR-009** — El sistema mostrará en el encabezado, junto al botón de editar
+  resultado, el mismo botón de ícono para copiar la formación que ya existe
+  desde la rebanada 3 (`FR-001` de esa Spec), sin cambiar qué copia ni cómo
+  confirma.
+- **FR-009b** — El sistema no mostrará el botón de regenerar equipos en este
+  encabezado: un partido finalizado no admite regenerar (heredado, sin
+  cambios).
 
 ### 7.2 La cancha del partido finalizado
 
@@ -518,7 +521,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 
 ### 9.1 Happy path scenarios
 
-#### Scenario S-01 — El encabezado del partido finalizado (covers FR-001, FR-002, FR-003, FR-006, FR-007, FR-009)
+#### Scenario S-01 — El encabezado del partido finalizado (covers FR-001, FR-002, FR-003, FR-006, FR-007, FR-009, FR-009b)
 
 - **Given** un partido de fútbol 8 finalizado, con resultado cargado y sin
   edición en curso
@@ -528,9 +531,9 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   " - Fútbol 8"
 - **And** debajo del título se muestra "Estrategia: {resumen de la estrategia
   aplicada}"
-- **And** el encabezado contiene un único botón de ícono, para editar el
-  resultado, con un nombre accesible no vacío
-- **And** el encabezado no contiene el botón de copiar ni el de regenerar
+- **And** el encabezado contiene dos botones de ícono, copiar y editar
+  resultado, en ese orden, cada uno con un nombre accesible no vacío
+- **And** el encabezado no contiene el botón de regenerar
 
 **Variants:**
 
@@ -875,6 +878,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Corrección encontrada al empezar el Implementation Plan: `FR-009` decía que el botón de copiar formación "sigue existiendo... en la botonera al pie", pero eso es falso — la rebanada 3 ya lo sacó del pie por completo (`FR-063` de esa Spec) y sólo vive en el encabezado. El handoff (5a/6b) dibuja el encabezado del partido finalizado sólo con el lápiz, sin ícono de copiar, pero nada en el Concept Note declara sacar esa función para este estado; consultado el usuario, se confirmó mantenerla. `FR-009` se reescribe para agregar el botón de copiar al encabezado junto al lápiz, y `FR-009b` (nuevo) aísla la exclusión de Regenerar, que sí seguía siendo correcta. Se ajusta `S-01` en consecuencia. El error fue tratar una omisión del mockup puntual como si fuera una decisión de producto, en vez de contrastarla contra lo que la rebanada 3 ya construyó (mismo tipo de falla que `TC-034` existe para atrapar, aunque esta la atrapó recién el Plan y no la propia Spec). |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Deriva la Spec directamente del Concept Note (ya aprobado, cubre las 7 rebanadas) y del handoff (5a, 6b, 8c, 8d, § Chips de estadística, § Fila de resultado, § Filas de detalle), sin reabrir preguntas que esos dos documentos ya responden, a pedido explícito del usuario para minimizar el Q&A de esta rebanada. Declara el reemplazo parcial de seis grupos de FR de la Spec de la rebanada 3 (píldora, diferencia por línea, receipt, FR-060, FR-083b) para el estado específico de partido finalizado sin edición. Self-critique: passed (0🔴 / 4🟡 / 2🔵), los seis resueltos. Los 🟡: la declaración de reemplazo citaba `FR-020` a `FR-025` como la fila de resultado cuando en esta Spec esa fila es `FR-040` a `FR-043` (corregido); los IDs de la rebanada 3 citados en esa misma declaración no se distinguían de los de esta Spec pese a compartir rango numérico (se anotaron todos con "(rebanada 3)"); `FR-005b` no cubría el caso compacto de fútbol 9 y no tenía escenario ni AC propios (se agregó `FR-005c`, la variante `S-10a` y `AC-07`); `FR-060` citaba "007-permisos-por-usuario no los alcanza" sin apuntar a la regla taxativa concreta (se citó `FR-004` a `FR-007` y `FR-013` de esa Spec). Los 🔵: `FR-003` no distinguía `estrategiaKey` (la clave) de `resumen` (el texto mostrado, resuelto vía `ESTRATEGIAS[...]`); se agregó al Handoff una nota sobre dos decisiones de esta Spec (la extensión de `D-24`, el desempate de `TC-034`) que podrían promoverse al Concept Note siguiendo el patrón de las rebanadas 2 y 3. |
 
 ---
