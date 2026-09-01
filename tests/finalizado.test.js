@@ -31,6 +31,8 @@ const DECLARACIONES = [
   'canchaLabel',
   'formacionTexto',
   'totalGolesEquipo',
+  'statsPorJugadorDesdeEventos',
+  'statsPorJugadorDelPartido',
   'lineaEstrategiaPartidoFinalizado',
   'statsAgregadasDeUnidad',
   'GOAL_ICON',

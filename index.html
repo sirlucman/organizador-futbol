@@ -1640,7 +1640,7 @@
     players.forEach(p => { totales[p.id] = { pj: 0, g: 0, e: 0, pe: 0, goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 }; });
     matches.forEach(m => {
       if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos || !m.equipos.blanco || !m.equipos.negro) return;
-      const stats = m.resultado.statsPorJugador || {};
+      const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012: eventos o statsPorJugador, sin distinguir
       // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
       const golesPorEquipo = {
         blanco: totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats),
@@ -3926,7 +3926,7 @@
       // total del equipo tiene que reflejar lo que se está tipeando, no el resultado ya guardado.
       goles = totalGolesEquipo(ids, idsRival, resultadoDraft.stats);
     }else if(m.estado === 'Finalizado' && m.resultado){
-      goles = totalGolesEquipo(ids, idsRival, m.resultado.statsPorJugador);
+      goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDelPartido(m)); // rebanada 5, TC-012
     }
     if(goles !== null) text += ` · ${goles} gol${goles===1?'':'es'}`;
     return text;
@@ -3947,7 +3947,7 @@
     const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
     let statsHtml = '';
     if(finalizado && m.resultado && !editandoFinalizado){
-      const st = m.resultado.statsPorJugador[p.id] || {goles:0, golesPenal:0, asistencias:0};
+      const st = statsPorJugadorDelPartido(m)[p.id] || {goles:0, golesPenal:0, asistencias:0}; // rebanada 5, TC-012
       statsHtml = `<span class="team-stat-readonly">${st.goles}</span><span class="stat-goal-icon">${GOAL_ICON}</span><span class="team-stat-readonly"> · ${st.asistencias}${BOOT_ICON}</span>`;
     }else if(cerrada && isAdmin()){
       const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
@@ -4284,7 +4284,7 @@
     // TD-04): la condición se resuelve acá, leyendo `m` completo, en vez de agregar un parámetro.
     const finalizadoSinEditarChips = m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id;
     const chips = finalizadoSinEditarChips
-      ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, m.resultado.statsPorJugador))
+      ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, statsPorJugadorDelPartido(m))) // rebanada 5, TC-012
       : { asistenciasHtml: '', golesHtml: '' };
     // Con un solo tipo de evento, ese chip queda como hijo DIRECTO de .camiseta-fig y se ancla a
     // su propio borde (asistencias a la izquierda, goles a la derecha). Con los dos a la vez, se
@@ -5065,7 +5065,7 @@
        lápiz, que `renderEncabezadoPartidoFinalizado` resuelve por su cuenta. Va ANTES de las
        dos ramas de abajo y retorna temprano: no se toca ninguna de sus líneas (R-04). */
     if(m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id){
-      const stats = m.resultado.statsPorJugador;
+      const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
       section.innerHTML = `
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
@@ -5085,8 +5085,9 @@
       // explicación de armado (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
       let golesBlanco = null, golesNegro = null;
       if(m.estado === 'Finalizado' && m.resultado){
-        golesBlanco = totalGolesEquipo(eq.blanco, eq.negro, m.resultado.statsPorJugador);
-        golesNegro = totalGolesEquipo(eq.negro, eq.blanco, m.resultado.statsPorJugador);
+        const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
+        golesBlanco = totalGolesEquipo(eq.blanco, eq.negro, stats);
+        golesNegro = totalGolesEquipo(eq.negro, eq.blanco, stats);
       }
       section.innerHTML = `
         ${renderEncabezadoTarjeta(m, null)}
@@ -5292,7 +5293,7 @@
      lo oculta en una columna, TD-07) y el marcador real al centro, con `totalGolesEquipo`
      (FR-040 a FR-042). */
   function renderFilaResultado(m){
-    const stats = m.resultado.statsPorJugador;
+    const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
     const golesBlanco = totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats);
     const golesNegro = totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats);
     const lado = (nombre, puntaje, alineacion) =>
@@ -5382,7 +5383,7 @@
   // Resumen del resultado (goles y goleadores por equipo) para la tarjeta del partido en la lista.
   function matchResultSummaryHtml(m){
     if(m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return '';
-    const stats = m.resultado.statsPorJugador || {};
+    const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
     // El total de cada equipo incluye los goles en contra que metió el rival (spec resultados-partido).
     const totalBlanco = totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats);
     const totalNegro = totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats);
