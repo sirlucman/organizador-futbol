@@ -3897,8 +3897,10 @@
   function mostrarCanchaDeEquipos(m){
     const finalizado = m.estado === 'Finalizado';
     const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
-    return !cerrada && !finalizado;
+    // La cancha se extiende al partido finalizado sin editar (rebanada 4, FR-020, FR-063, FR-064):
+    // sólo queda fuera la inscripción cerrada SIN finalizar, y mientras se edita el resultado.
+    const cerradaSinFinalizar = m.inscripcionCerrada && !finalizado;
+    return !cerradaSinFinalizar && !editandoFinalizado;
   }
 
   function esFilaEditable(m){
