@@ -3849,6 +3849,53 @@
     );
   };
 
+  // Deriva {jugadorId: {goles, golesPenal, golesEnContra, asistencias}} desde una secuencia de
+  // eventos (rebanada 5, FR-010 a FR-014b). Un evento "golPenal" cuenta como gol y como penal a
+  // la vez (FR-003): por construcción, golesPenal nunca puede superar a goles. Incluye una
+  // entrada en cero para todo jugador de `idsConvocados` sin ningún evento, para que
+  // recomputeAllPlayerStatsFromMatches (que itera Object.entries) siga contando ese partido como
+  // jugado para él (FR-014b).
+  function statsPorJugadorDesdeEventos(eventos, idsConvocados){
+    const stats = {};
+    idsConvocados.forEach(id => { stats[id] = { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 }; });
+    eventos.forEach(ev => {
+      const st = stats[ev.jugadorId];
+      if(!st) return;
+      if(ev.tipo === 'gol') st.goles++;
+      else if(ev.tipo === 'golPenal'){ st.goles++; st.golesPenal++; }
+      else if(ev.tipo === 'golEnContra') st.golesEnContra++;
+      else if(ev.tipo === 'asistencia') st.asistencias++;
+    });
+    return stats;
+  }
+
+  // Sintetiza la secuencia de eventos equivalente a un borrador de contadores, recorriendo
+  // `idsOrdenados` y, por cada jugador, goles de juego, goles de penal, en contra y asistencias,
+  // en ese orden (rebanada 5, FR-021). El orden no tiene todavía significado de producto (Spec
+  // A-02): sólo hace que la síntesis sea determinística y testeable hasta la rebanada 6.
+  function eventosDesdeStats(idsOrdenados, statsPorJugador){
+    const eventos = [];
+    idsOrdenados.forEach(id => {
+      const st = statsPorJugador[id] || {};
+      const golesDeJuego = (st.goles || 0) - (st.golesPenal || 0);
+      for(let i = 0; i < golesDeJuego; i++) eventos.push({ jugadorId: id, tipo: 'gol' });
+      for(let i = 0; i < (st.golesPenal || 0); i++) eventos.push({ jugadorId: id, tipo: 'golPenal' });
+      for(let i = 0; i < (st.golesEnContra || 0); i++) eventos.push({ jugadorId: id, tipo: 'golEnContra' });
+      for(let i = 0; i < (st.asistencias || 0); i++) eventos.push({ jugadorId: id, tipo: 'asistencia' });
+    });
+    return eventos;
+  }
+
+  // Única puerta de lectura de las estadísticas de un partido (rebanada 5, TC-010): si
+  // `m.resultado.eventos` es un arreglo, las deriva; si no, devuelve `m.resultado.statsPorJugador`
+  // tal cual, sin ninguna conversión (D-06). Ningún otro punto del código debe leer
+  // `m.resultado.eventos` ni `m.resultado.statsPorJugador` directamente.
+  function statsPorJugadorDelPartido(m){
+    const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+    if(Array.isArray(m.resultado.eventos)) return statsPorJugadorDesdeEventos(m.resultado.eventos, idsConvocados);
+    return m.resultado.statsPorJugador || {};
+  }
+
   // Total de goles de un equipo: sus propios goles (que ya incluyen los de penal) más los goles
   // en contra que los jugadores del equipo RIVAL metieron en su propio arco (spec resultados-partido
   // → "goles en contra"). Un gol en contra no suma para quien lo hizo, suma para el rival.
