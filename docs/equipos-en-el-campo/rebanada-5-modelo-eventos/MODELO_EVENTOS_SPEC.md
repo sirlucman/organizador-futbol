@@ -249,9 +249,13 @@ esas dos primeras reglas por construcción en vez de por validación.
 
 ### 4.4 Conventions to follow
 
-- **TC-030** — Esta rebanada no toca ningún valor visual: no hay color,
-  tipografía, spacing ni radio que tomar del design system, porque no hay
-  ningún cambio de pantalla (`D-02`, a diferencia de las rebanadas 1 a 4).
+- **Design system** — no aplica ninguna restricción de tokens visuales
+  (color, tipografía, spacing, radio): esta rebanada no toca ningún valor
+  visual, porque no hay ningún cambio de pantalla (`D-02`, a diferencia de
+  las rebanadas 1 a 4). No se le asigna un `TC-*` numerado porque, al no
+  admitir ninguna evidencia de cumplimiento propia, no habría ningún `AC-*`
+  de §11.3 que citarle — mismo criterio que usan las categorías de CWE no
+  aplicables en §4.5.
 - **TC-031** — El comportamiento de esta rebanada se agregará como
   escenarios de una suite de unidad nueva o existente, con el identificador
   de esta Spec en forma canónica dentro de un literal de cadena, según la
@@ -793,6 +797,7 @@ erDiagram
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Corrección encontrada al escribir el Implementation Plan: `TC-030` declaraba "no aplica ningún valor visual" pero, al llevar un ID numerado, `AC-52` exigía que §11.3 le citara un `AC-*` — y ninguno lo hacía, porque una regla que no aplica no tiene evidencia de cumplimiento que ofrecer. Se retira el ID y se deja como ruling sin numerar en §4.4, mismo criterio que ya usan las categorías de CWE no aplicables de §4.5. No cambia ninguna obligación: sigue siendo cierto que esta rebanada no toca ningún valor visual. Self-critique: no corresponde (corrección puntual, verificada contra el propio §11.3). |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Deriva la Spec del Concept Note (§8.2, D-04, D-06, D-08) y de la sección *State Management* del handoff, que fija la forma concreta del evento (`entryLog`, `ev: "gol"\|"penal"\|"contra"\|"asist"`) con más precisión que la prosa del Concept Note. Enumera los nueve puntos de lectura y los dos de escritura existentes de `m.resultado.statsPorJugador`, verificados por lectura directa de `index.html` en el estado posterior al merge de la rebanada 4. Declara la enmienda parcial de `TC-010` de la rebanada 4 y la nota de gobernanza sobre continuar con `docs/` en vez de OpenSpec para esta feature en curso. Self-critique: passed (1🔴 / 3🟡 / 1🔵), los cinco resueltos. El 🔴: `FR-014` sólo daba entrada en la derivación a jugadores con al menos un evento, lo que habría hecho que `recomputeAllPlayerStatsFromMatches` (que itera `Object.entries(stats)`) dejara de contar como jugado, para un jugador sin eventos, un partido en el que participó — una regresión real de estadísticas acumuladas descubierta al chequear el propio escenario `S-05` contra el código citado (se agregó `FR-014b`, la variante `S-02d` y su cita en `TC-010`). Los 🟡: `FR-002` no tenía sujeto EARS explícito ("El sistema…", corregido); esta Spec no declaraba en ningún lado que las reglas de `openspec/specs/resultados-partido/spec.md` (penal cuenta como gol, penal ≤ goles, en contra suma al rival) siguen vigentes sin cambios, pese a que el propio Concept Note lo señala en §6.5 (se agregó la cita explícita al final de §3.3); `AC-05` no citaba ningún `FR-*` (se agregó "cubre FR-010 a FR-016"). El 🔵: la etiqueta de la relación `PARTIDO ||--o{ EVENTO` en el diagrama ER llevaba paréntesis y un punto dentro de un string entre comillas, innecesario y con algo de riesgo de parseo Mermaid (simplificada a "tiene"). |
 
 ---
