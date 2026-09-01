@@ -609,6 +609,10 @@
   .stat-pill{ display: flex; align-items: center; gap: 2px; height: var(--stat-h); padding: 0 4px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); margin-left: var(--stat-gap); }
   .stat-pill:first-child{ margin-left: 0; }
   .stat-pill img{ width: var(--stat-icon); height: var(--stat-icon); display: block; }
+  /* `.team-panel.negro .icon-boot` invierte la pelota a blanco para leerse sobre el panel oscuro
+     (rebanada 3). El chip es un pill CLARO también en el equipo Negro, así que ahí la pelota
+     invertida casi no se ve: se restituye el mismo ícono que ya usa el equipo Blanco. */
+  .team-panel.negro .stat-pill .icon-boot{ filter: none; }
 
   /* --- Fila de resultado --- */
   .fila-resultado{ display: flex; align-items: center; justify-content: center; gap: 24px; padding: 12px 0; margin-bottom: 12px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); }
