@@ -11,7 +11,7 @@
 > [ARRASTRE_IMPLEMENTATION_PLAN.md](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md)
 >
 > **Rebanada 3 · el panel de armado:** [PANEL_ARMADO_SPEC.md](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) ·
-> Implementation plan *not yet written*
+> [PANEL_ARMADO_IMPLEMENTATION_PLAN.md](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md)
 >
 > **Rebanadas 4 a 7:** *not yet written*
 
