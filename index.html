@@ -365,8 +365,12 @@
   /* Los chips de estadística cuelgan de `.camiseta-fig` con `bottom: -3px` (arriba), así que sólo
      se comen 3px de los 4px de `gap` de `.camiseta` — casi nada, invisible sobre el nombre suelto
      porque es texto sin fondo. Sobre la cápsula de dupla, que SÍ tiene fondo, ese casi-contacto se
-     ve pegado. Se agranda el hueco sólo cuando hay chips (`:has`), para no separar de más la
-     cápsula en los estados donde no hay ninguno. */
+     ve pegado. Agrandar el hueco SÓLO en la dupla desalinea la fila: dos unidades vecinas con la
+     misma camiseta (mismo alto) y chips por igual quedaban con el nombre a distinta altura, una
+     suelta y otra en dupla. Por eso el extra de 3px se aplica a los dos — nombre suelto y cápsula
+     de dupla —, y sólo cuando hay chips (`:has`), para no separar de más en los estados sin
+     ninguno. */
+  .camiseta-fig:has(.stat-pill) + .camiseta-nombre,
   .camiseta-fig:has(.stat-pill) + .camiseta-dupla{ margin-top: 3px; }
 
   /* --- Escalones de medidas ---
