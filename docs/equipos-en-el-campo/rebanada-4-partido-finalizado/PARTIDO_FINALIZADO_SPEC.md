@@ -207,6 +207,14 @@ límites propios de esta rebanada:
   totales por equipo. No se agregará ninguna función que recalcule goles,
   asistencias o goles en contra por una vía distinta: hoy sólo existe una
   fuente de verdad para ese dato y esta rebanada no crea una segunda.
+
+  > **Enmienda de la rebanada 5 (`MODELO_EVENTOS_SPEC.md`, TC-010 de esa
+  > Spec).** Este `TC-010` queda generalizado, no relajado: a partir de esa
+  > rebanada, la única fuente de verdad puede ser `m.resultado.eventos`
+  > además de `m.resultado.statsPorJugador`, pero se sigue leyendo a través
+  > de una única función de despacho (`statsPorJugadorDelPartido`), nunca de
+  > dos calculadoras paralelas. Ninguna de las funciones que este `TC-010`
+  > nombra cambió su propia lógica.
 - **TC-011** — Esta rebanada no escribirá ningún campo del partido ni
   disparará ningún guardado por el solo hecho de mostrar la tarjeta. La única
   escritura que toca es la ya existente al guardar una edición de resultado
@@ -894,6 +902,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Anotación recíproca desde la rebanada 5 (`MODELO_EVENTOS_SPEC.md`, `T-1.23` de su Plan): `TC-010` queda generalizado para admitir `m.resultado.eventos` como fuente de verdad además de `statsPorJugador`, siempre a través de una única función de despacho. Resuelve la `OPEN-Q-01` de la Spec de la **rebanada 5** (no la de ésta, que sigue pendiente y sin relación con este cambio — ver la fila de arriba). Sin cambios de comportamiento observable. Self-critique: no corresponde (anotación recíproca puntual). |
 | 2026-09-01 | Lucas Manoukian | Corrección encontrada al empezar el Implementation Plan: `FR-009` decía que el botón de copiar formación "sigue existiendo... en la botonera al pie", pero eso es falso — la rebanada 3 ya lo sacó del pie por completo (`FR-063` de esa Spec) y sólo vive en el encabezado. El handoff (5a/6b) dibuja el encabezado del partido finalizado sólo con el lápiz, sin ícono de copiar, pero nada en el Concept Note declara sacar esa función para este estado; consultado el usuario, se confirmó mantenerla. `FR-009` se reescribe para agregar el botón de copiar al encabezado junto al lápiz, y `FR-009b` (nuevo) aísla la exclusión de Regenerar, que sí seguía siendo correcta. Se ajusta `S-01` en consecuencia. El error fue tratar una omisión del mockup puntual como si fuera una decisión de producto, en vez de contrastarla contra lo que la rebanada 3 ya construyó (mismo tipo de falla que `TC-034` existe para atrapar, aunque esta la atrapó recién el Plan y no la propia Spec). |
 | 2026-09-01 | Lucas Manoukian | Segunda corrección encontrada al mismo tiempo que la de `FR-009`: `FR-036` decía que una dupla de rotación muestra los chips "de cada integrante... nunca combinados en una sola camiseta", pero eso contradice cómo la cancha ya dibuja una dupla desde la rebanada 1 — **una sola** camiseta compartida con los dos nombres, no dos camisetas. No hay una segunda forma dónde anclar un segundo juego de chips. Se reescribe `FR-036` para sumar los valores de los dos integrantes y mostrar un único juego de chips, con el mismo criterio que ya usa `valorDePuntaje` para el puntaje combinado de la dupla. Se ajustan `S-03c` y `S-03d` en consecuencia. El error fue copiar el criterio de `FR-013`/`FR-014` de `001-organizacion-partidos` (cada integrante carga sus propios valores) sin verificar que ese criterio es sobre el **dato guardado**, no sobre **cuántas camisetas existen para mostrarlo**. |
 | 2026-09-01 | Lucas Manoukian | Tercera corrección: releída la sección "Fila de resultado" del handoff con más cuidado, el bloque izquierdo/derecho de la versión de escritorio lleva **nombre del equipo + puntaje de armado** ("Blanco" + "52.5 pts"), no sólo el nombre — dato que `FR-040`/`FR-041` habían omitido. La versión compacta sí omite el puntaje (probablemente por espacio, no por descuido: no hay ninguna razón funcional para sacarlo, a diferencia del caso de `FR-005c`, así que se toma tal cual dice el handoff). Esto además expone que el encabezado de cada panel de equipo (`Equipo Blanco 52.5 pts · 4 goles`, heredado de antes de esta rebanada) pasaría a repetir el puntaje **y** el resultado en la misma pantalla; se agrega `FR-042b` para que ese encabezado muestre sólo el nombre en este estado. Se ajustan `S-04`, `S-04b` y `AC-05`. El error fue quedarme con una lectura aproximada ("nombre y resultado") de un componente con más partes de las que primero registré, en vez de citar la medida exacta del handoff antes de escribir el requisito. |

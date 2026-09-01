@@ -152,26 +152,26 @@ Restatadas de [`AGENTS.md`](../../../AGENTS.md).
 
 ## 6. Definition of Done (every branch)
 
-- [ ] La implementación sigue las convenciones de §5
-- [ ] Cada sección de la Spec asignada a la rama está implementada
-- [ ] Cada escenario (`S-*`) y cada variante tiene un test ejecutable (`AC-50`; `T-1.D8` y `T-1.D8b`)
-- [ ] El NFR cuantificado —`NFR-001`— tiene un test de medición (`AC-51`; `T-1.D9`)
-- [ ] Cada `TC-*` de la Spec §4 tiene una entrada de verificación en §12 (`AC-52`; `T-1.D10` y `T-1.D10b`)
-- [ ] Las consecuencias están enumeradas en §12.2 (`AC-53`; `T-1.D15`)
-- [ ] El NFR cuantificado tiene al menos una fila `OBS-*` en §11 (`AC-54`; `T-1.D16`)
-- [ ] El lockfile pasa la auditoría, o §5 declara `Supply-chain: none` (`AC-55`; `T-1.D20`)
-- [ ] Cada riesgo `R-*` de §14 registra una vía de mitigación (`T-1.D17`)
-- [ ] Auto-consistencia: todo ID referenciado dentro de este Plan resuelve dentro de este Plan (`T-1.D18`)
-- [ ] Consistencia cruzada: todo ID de la Spec citado acá existe en la Spec, y todo `D-*` existe en el Concept Note (`T-1.D19`)
-- [ ] Todos los tests nuevos pasan
-- [ ] Todos los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js`, `node tests/finalizado.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
-- [ ] Linter: no aplica (§5), declarado
-- [ ] Type-checker: no aplica (§5), declarado
-- [ ] No quedan `TODO`, `FIXME` ni `HACK` en el código commiteado
-- [ ] El historial de commits es limpio y sigue el formato de §5 (`T-1.D11`)
-- [ ] La descripción del PR resume los cambios y cita las secciones de la Spec (`T-1.D12`)
-- [ ] **Gate propio de esta rebanada:** el test de propiedad de `NFR-001` se vio fallar al menos una vez (con una síntesis deliberadamente rota) antes de darlo por bueno, mismo criterio que el Principio V pide para `layout.test.js` en las rebanadas visuales (`T-1.D13`)
-- [ ] PR abierto contra `main` (`T-1.D14`)
+- [x] La implementación sigue las convenciones de §5
+- [x] Cada sección de la Spec asignada a la rama está implementada
+- [x] Cada escenario (`S-*`) y cada variante tiene un test ejecutable (`AC-50`; `T-1.D8` y `T-1.D8b`)
+- [x] El NFR cuantificado —`NFR-001`— tiene un test de medición (`AC-51`; `T-1.D9`)
+- [x] Cada `TC-*` de la Spec §4 tiene una entrada de verificación en §12 (`AC-52`; `T-1.D10` y `T-1.D10b`)
+- [x] Las consecuencias están enumeradas en §12.2 (`AC-53`; `T-1.D15`)
+- [x] El NFR cuantificado tiene al menos una fila `OBS-*` en §11 (`AC-54`; `T-1.D16`)
+- [x] El lockfile pasa la auditoría, o §5 declara `Supply-chain: none` (`AC-55`; `T-1.D20`)
+- [x] Cada riesgo `R-*` de §14 registra una vía de mitigación (`T-1.D17`)
+- [x] Auto-consistencia: todo ID referenciado dentro de este Plan resuelve dentro de este Plan (`T-1.D18`)
+- [x] Consistencia cruzada: todo ID de la Spec citado acá existe en la Spec, y todo `D-*` existe en el Concept Note (`T-1.D19`)
+- [x] Todos los tests nuevos pasan
+- [x] Todos los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js`, `node tests/finalizado.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
+- [x] Linter: no aplica (§5), declarado
+- [x] Type-checker: no aplica (§5), declarado
+- [x] No quedan `TODO`, `FIXME` ni `HACK` en el código commiteado
+- [x] El historial de commits es limpio y sigue el formato de §5 (`T-1.D11`)
+- [x] La descripción del PR resume los cambios y cita las secciones de la Spec (`T-1.D12`)
+- [x] **Gate propio de esta rebanada:** el test de propiedad de `NFR-001` se vio fallar al menos una vez (con una síntesis deliberadamente rota) antes de darlo por bueno, mismo criterio que el Principio V pide para `layout.test.js` en las rebanadas visuales (`T-1.D13`)
+- [x] PR abierto contra `main` (`T-1.D14`)
 
 ## 7. Branch / phase plan
 
@@ -193,7 +193,7 @@ siempre por diseño.
 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `feature/modelo-eventos` | `main` | Not started | — | — | Abierta después de `docs/modelo-eventos`, según `D-11` |
+| 1 | `feature/modelo-eventos` | `main` | Implementado, listo para PR | — | `node tests/eventos.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js` pasan; `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js` y `node tests/finalizado.test.js` sin regresiones | Abierta después de `docs/modelo-eventos`, según `D-11` |
 
 ```mermaid
 flowchart LR
@@ -284,11 +284,11 @@ tests/layout.test.js   — escritura real en el navegador: 7 escenarios y varian
 
 #### 7.2.7 Verification
 
-- [ ] Finalizar `m-cerrado` con valores no triviales en la grilla persiste `m.resultado.eventos` y no `m.resultado.statsPorJugador`
-- [ ] Editar `m-finalizado-eventos` reconstruye `eventos`; editar `m-finalizado` (histórico) sigue escribiendo `statsPorJugador` y no gana la clave `eventos`
-- [ ] `recomputeAllPlayerStatsFromMatches` sobre un historial con un partido de cada formato da los mismos totales que sumarlos a mano
-- [ ] El test de propiedad de 500 borradores generados al azar no encuentra ninguna discrepancia
-- [ ] Todos los tests existentes pasan
+- [x] Finalizar `m-cerrado` con valores no triviales en la grilla persiste `m.resultado.eventos` y no `m.resultado.statsPorJugador`
+- [x] Editar `m-finalizado-eventos` reconstruye `eventos`; editar `m-finalizado` (histórico) sigue escribiendo `statsPorJugador` y no gana la clave `eventos`
+- [x] `recomputeAllPlayerStatsFromMatches` sobre un historial con un partido de cada formato da los mismos totales que sumarlos a mano
+- [x] El test de propiedad de 500 borradores generados al azar no encuentra ninguna discrepancia
+- [x] Todos los tests existentes pasan
 
 #### 7.2.8 Files inventory
 
@@ -310,69 +310,69 @@ docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.m
 
 Implementation tasks (agrupadas en commits atómicos):
 
-- [ ] T-1.1 Agregar `statsPorJugadorDesdeEventos` en `index.html`, antes de `totalGolesEquipo` ([`index.html:3852`](../../../index.html#L3852)) (`FR-010` a `FR-014b`)
-- [ ] T-1.2 [P] Agregar `eventosDesdeStats`, junto a la anterior (`FR-021`)
-- [ ] T-1.3 Agregar `statsPorJugadorDelPartido`, después de las dos anteriores (`TC-010`, `FR-015`, `FR-031`)
-- [ ] T-1.C1 Commit — `feat(modelo-eventos): funciones puras de derivación, síntesis y despacho (FR-001, FR-010, FR-021)`
+- [x] T-1.1 Agregar `statsPorJugadorDesdeEventos` en `index.html`, antes de `totalGolesEquipo` ([`index.html:3852`](../../../index.html#L3852)) (`FR-010` a `FR-014b`)
+- [x] T-1.2 [P] Agregar `eventosDesdeStats`, junto a la anterior (`FR-021`)
+- [x] T-1.3 Agregar `statsPorJugadorDelPartido`, después de las dos anteriores (`TC-010`, `FR-015`, `FR-031`)
+- [x] T-1.C1 Commit — `feat(modelo-eventos): funciones puras de derivación, síntesis y despacho (FR-001, FR-010, FR-021)`
 
-- [ ] T-1.4 Reescribir la línea 3773 de `__finalizarPartido` según `FR-020`/`FR-021` (`__guardarEdicionResultado` y `__editarResultadoFinalizado` se tocan por separado abajo)
-- [ ] T-1.C2 Commit — `feat(modelo-eventos): finalizar un partido persiste eventos, no contadores (FR-020, FR-021)`
+- [x] T-1.4 Reescribir la línea 3773 de `__finalizarPartido` según `FR-020`/`FR-021` (`__guardarEdicionResultado` y `__editarResultadoFinalizado` se tocan por separado abajo)
+- [x] T-1.C2 Commit — `feat(modelo-eventos): finalizar un partido persiste eventos, no contadores (FR-020, FR-021)`
 
-- [ ] T-1.5 Reescribir el bucle de precarga de `__editarResultadoFinalizado` (líneas 3812-3816) para leer por `statsPorJugadorDelPartido(m)` (`FR-024`)
-- [ ] T-1.6 Bifurcar la línea 3838 de `__guardarEdicionResultado` según `Array.isArray(m.resultado.eventos)` (`FR-022`, `FR-023`)
-- [ ] T-1.C3 Commit — `feat(modelo-eventos): editar un resultado preserva el formato del partido (FR-022, FR-023, FR-024)`
+- [x] T-1.5 Reescribir el bucle de precarga de `__editarResultadoFinalizado` (líneas 3812-3816) para leer por `statsPorJugadorDelPartido(m)` (`FR-024`)
+- [x] T-1.6 Bifurcar la línea 3838 de `__guardarEdicionResultado` según `Array.isArray(m.resultado.eventos)` (`FR-022`, `FR-023`)
+- [x] T-1.C3 Commit — `feat(modelo-eventos): editar un resultado preserva el formato del partido (FR-022, FR-023, FR-024)`
 
-- [ ] T-1.7 [P] Reemplazar la lectura de la línea 3870 (`teamHeaderTotalText`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
-- [ ] T-1.8 [P] Reemplazar la lectura de la línea 3891 (`renderStatsYPuntajeMiembro`) por `statsPorJugadorDelPartido(m)[p.id]` (`TC-012`)
-- [ ] T-1.9 [P] Reemplazar la lectura de la línea 4228 (llamador de chips en `renderCamiseta`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
-- [ ] T-1.10 [P] Reemplazar las lecturas de las líneas 5009 y 5029-5030 (`renderMatchDetail`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
-- [ ] T-1.11 [P] Reemplazar la lectura de la línea 5236 (`renderFilaResultado`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
-- [ ] T-1.12 [P] Reemplazar la lectura de la línea 5326 (`matchResultSummaryHtml`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
-- [ ] T-1.C4 Commit — `refactor(modelo-eventos): los nueve puntos de lectura pasan por la función de despacho (TC-012)`
+- [x] T-1.7 [P] Reemplazar la lectura de la línea 3870 (`teamHeaderTotalText`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
+- [x] T-1.8 [P] Reemplazar la lectura de la línea 3891 (`renderStatsYPuntajeMiembro`) por `statsPorJugadorDelPartido(m)[p.id]` (`TC-012`)
+- [x] T-1.9 [P] Reemplazar la lectura de la línea 4228 (llamador de chips en `renderCamiseta`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
+- [x] T-1.10 [P] Reemplazar las lecturas de las líneas 5009 y 5029-5030 (`renderMatchDetail`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
+- [x] T-1.11 [P] Reemplazar la lectura de la línea 5236 (`renderFilaResultado`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
+- [x] T-1.12 [P] Reemplazar la lectura de la línea 5326 (`matchResultSummaryHtml`) por `statsPorJugadorDelPartido(m)` (`TC-012`)
+- [x] T-1.C4 Commit — `refactor(modelo-eventos): los nueve puntos de lectura pasan por la función de despacho (TC-012)`
 
-- [ ] T-1.13 Crear `tests/eventos.test.js` con su lista `DECLARACIONES` (`statsPorJugadorDesdeEventos`, `eventosDesdeStats`, `statsPorJugadorDelPartido`, `totalGolesEquipo`, `recomputeAllPlayerStatsFromMatches`), reutilizando `extraer` de [`tests/harness.js`](../../../tests/harness.js); el prelude declara `matches` y `players` con setters, mismo criterio que `finalizado.test.js` usa para `players` (`TD-06`)
-- [ ] T-1.14 Escribir los casos de unidad de `S-01`, `S-01a`, `S-01b`, `S-01c` (síntesis) y `S-02`, `S-02a`, `S-02b`, `S-02c`, `S-02d` (derivación), con el prefijo `eventos/` en cada título (`AC-50`)
-- [ ] T-1.15 Escribir el caso de unidad de `S-05` (`recomputeAllPlayerStatsFromMatches` sobre un historial con un partido `statsPorJugador` y uno `eventos` para el mismo jugador) (`AC-50`)
-- [ ] T-1.16 Escribir el test de propiedad de `S-01c`/`NFR-001`: generar 500 borradores al azar (contadores no negativos, `golesPenal ≤ goles`, hasta 6 jugadores), sintetizar con `eventosDesdeStats`, derivar con `statsPorJugadorDesdeEventos`, y comparar contra el borrador original con `eq` (`AC-10`)
-- [ ] T-1.C5 Commit — `test(eventos): casos de unidad de síntesis, derivación y el recálculo mixto (S-01, S-02, S-05)`
+- [x] T-1.13 Crear `tests/eventos.test.js` con su lista `DECLARACIONES` (`statsPorJugadorDesdeEventos`, `eventosDesdeStats`, `statsPorJugadorDelPartido`, `totalGolesEquipo`, `recomputeAllPlayerStatsFromMatches`), reutilizando `extraer` de [`tests/harness.js`](../../../tests/harness.js); el prelude declara `matches` y `players` con setters, mismo criterio que `finalizado.test.js` usa para `players` (`TD-06`)
+- [x] T-1.14 Escribir los casos de unidad de `S-01`, `S-01a`, `S-01b`, `S-01c` (síntesis) y `S-02`, `S-02a`, `S-02b`, `S-02c`, `S-02d` (derivación), con el prefijo `eventos/` en cada título (`AC-50`)
+- [x] T-1.15 Escribir el caso de unidad de `S-05` (`recomputeAllPlayerStatsFromMatches` sobre un historial con un partido `statsPorJugador` y uno `eventos` para el mismo jugador) (`AC-50`)
+- [x] T-1.16 Escribir el test de propiedad de `S-01c`/`NFR-001`: generar 500 borradores al azar (contadores no negativos, `golesPenal ≤ goles`, hasta 6 jugadores), sintetizar con `eventosDesdeStats`, derivar con `statsPorJugadorDesdeEventos`, y comparar contra el borrador original con `eq` (`AC-10`)
+- [x] T-1.C5 Commit — `test(eventos): casos de unidad de síntesis, derivación y el recálculo mixto (S-01, S-02, S-05)`
 
-- [ ] T-1.17 Agregar el partido `m-finalizado-eventos` a `tests/fixtures-app.js`, reutilizando el mismo plantel y `equipos`/`duplasSnapshot` que `m-finalizado`, con `resultado: { finalizadoEn: <timestamp>, eventos: [...] }` construido a mano para que un titular tenga gol + penal + en contra + asistencia a la vez (`S-02a`) y otro no tenga ningún evento (`S-02d`)
-- [ ] T-1.18 Agregar el escenario `eventos-finalizar` a `tests/layout.test.js`: abrir `m-cerrado` como `admin`, llenar con `page.fill` al menos dos `.team-stat-input[data-player][data-tipo]` de jugadores distintos (uno con `golesPenal`, uno con `golesEnContra` y uno con `asistencias`), invocar `window.__finalizarPartido('m-cerrado')` y hacer clic en `#btnConfirmOk` ([`index.html:1753`](../../../index.html#L1753)), y comprobar sobre `window.__ultimosDocs.partidos` (parseado) que el partido tiene `resultado.eventos` como arreglo no vacío y no tiene `resultado.statsPorJugador` (`S-01`)
-- [ ] T-1.19 En el mismo escenario, agregar la variante `S-01a` (dejar todos los inputs en 0 antes de finalizar: `resultado.eventos` es un arreglo vacío, no ausente)
-- [ ] T-1.20 Agregar el escenario `eventos-editar` a `tests/layout.test.js`: (a) sobre `m-finalizado-eventos`, invocar `window.__editarResultadoFinalizado`, cambiar un valor, invocar `window.__guardarEdicionResultado` + `#btnConfirmOk`, y comprobar que `resultado.eventos` cambió y `resultado.statsPorJugador` sigue ausente (`S-03`); (b) sobre `m-finalizado` (histórico, sin cambios de esta rebanada), el mismo flujo, comprobando que `resultado.statsPorJugador` cambió y `resultado.eventos` sigue ausente (`S-04`)
-- [ ] T-1.21 En el mismo escenario, agregar las variantes `S-03a` (llevar un contador de 1 a 0 sobre `m-finalizado-eventos`) y `S-04a` (llevar todos los contadores a 0 sobre `m-finalizado`)
-- [ ] T-1.22 Agregar la etiqueta `eventos/S-20` al chequeo existente de rol `jugador` sobre `__finalizarPartido` ([`tests/layout.test.js:559-561`](../../../tests/layout.test.js#L559-L561)): ya verifica exactamente `S-20` de esta Spec, sin necesitar un chequeo nuevo
-- [ ] T-1.C6 Commit — `test(layout): finalizar, editar y el rol jugador quedan cubiertos por eventos-finalizar y eventos-editar (S-01, S-03, S-04, S-20)`
+- [x] T-1.17 Agregar el partido `m-finalizado-eventos` a `tests/fixtures-app.js`, reutilizando el mismo plantel y `equipos`/`duplasSnapshot` que `m-finalizado`, con `resultado: { finalizadoEn: <timestamp>, eventos: [...] }` construido a mano para que un titular tenga gol + penal + en contra + asistencia a la vez (`S-02a`) y otro no tenga ningún evento (`S-02d`)
+- [x] T-1.18 Agregar el escenario `eventos-finalizar` a `tests/layout.test.js`: abrir `m-cerrado` como `admin`, llenar con `page.fill` al menos dos `.team-stat-input[data-player][data-tipo]` de jugadores distintos (uno con `golesPenal`, uno con `golesEnContra` y uno con `asistencias`), invocar `window.__finalizarPartido('m-cerrado')` y hacer clic en `#btnConfirmOk` ([`index.html:1753`](../../../index.html#L1753)), y comprobar sobre `window.__ultimosDocs.partidos` (parseado) que el partido tiene `resultado.eventos` como arreglo no vacío y no tiene `resultado.statsPorJugador` (`S-01`)
+- [x] T-1.19 En el mismo escenario, agregar la variante `S-01a` (dejar todos los inputs en 0 antes de finalizar: `resultado.eventos` es un arreglo vacío, no ausente)
+- [x] T-1.20 Agregar el escenario `eventos-editar` a `tests/layout.test.js`: (a) sobre `m-finalizado-eventos`, invocar `window.__editarResultadoFinalizado`, cambiar un valor, invocar `window.__guardarEdicionResultado` + `#btnConfirmOk`, y comprobar que `resultado.eventos` cambió y `resultado.statsPorJugador` sigue ausente (`S-03`); (b) sobre `m-finalizado` (histórico, sin cambios de esta rebanada), el mismo flujo, comprobando que `resultado.statsPorJugador` cambió y `resultado.eventos` sigue ausente (`S-04`)
+- [x] T-1.21 En el mismo escenario, agregar las variantes `S-03a` (llevar un contador de 1 a 0 sobre `m-finalizado-eventos`) y `S-04a` (llevar todos los contadores a 0 sobre `m-finalizado`)
+- [x] T-1.22 Agregar la etiqueta `eventos/S-20` al chequeo existente de rol `jugador` sobre `__finalizarPartido` ([`tests/layout.test.js:559-561`](../../../tests/layout.test.js#L559-L561)): ya verifica exactamente `S-20` de esta Spec, sin necesitar un chequeo nuevo
+- [x] T-1.C6 Commit — `test(layout): finalizar, editar y el rol jugador quedan cubiertos por eventos-finalizar y eventos-editar (S-01, S-03, S-04, S-20)`
 
-- [ ] T-1.23 Agregar la anotación recíproca en [`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md): junto a `TC-010`, una nota de que esta rebanada lo generaliza (ya no dice "exclusivamente de `statsPorJugador`") sin relajar su intención de una sola fuente de verdad por partido (`OPEN-Q-01` de esta Spec)
-- [ ] T-1.24 [P] Agregar a `AGENTS.md` la línea `node tests/eventos.test.js` en su bloque de tests
-- [ ] T-1.C7 Commit — `docs(specs): anotación recíproca en la Spec de la rebanada 4 (OPEN-Q-01)`
+- [x] T-1.23 Agregar la anotación recíproca en [`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md): junto a `TC-010`, una nota de que esta rebanada lo generaliza (ya no dice "exclusivamente de `statsPorJugador`") sin relajar su intención de una sola fuente de verdad por partido (`OPEN-Q-01` de esta Spec)
+- [x] T-1.24 [P] Agregar a `AGENTS.md` la línea `node tests/eventos.test.js` en su bloque de tests
+- [x] T-1.C7 Commit — `docs(specs): anotación recíproca en la Spec de la rebanada 4 (OPEN-Q-01)`
 
 DoD verification (§6). Todo cambio de código hecho durante esta verificación
 va en su propio commit de arreglo, nunca doblado dentro de uno anterior:
 
-- [ ] T-1.D1 Los tests nuevos pasan — `node tests/eventos.test.js` y `node tests/layout.test.js`
-- [ ] T-1.D2 Los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js`, `node tests/finalizado.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
-- [ ] T-1.D3 Linter — no aplica (§5). Se declara, no se marca en silencio
-- [ ] T-1.D4 Type-checker — no aplica (§5). Se declara, no se marca en silencio
-- [ ] T-1.D5 No quedan `TODO`/`FIXME`/`HACK` — `git grep -nE '(TODO|FIXME|HACK)[(:]' -- index.html tests/`
-- [ ] T-1.D6 La implementación sigue §5
-- [ ] T-1.D7 Cada `FR-*`, `NFR-*`, `TC-*` y `AC-*` de la Spec está implementado o verificado
-- [ ] T-1.D8 Cada `S-NN` y cada variante tiene test — `comm -23 <(grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' docs/equipos-en-el-campo/rebanada-5-modelo-eventos/MODELO_EVENTOS_SPEC.md | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "eventos/S-[0-9]+[a-z]*" tests/ | sed 's|eventos/||' | sort -u)` devuelve vacío (`AC-50`)
-- [ ] T-1.D8b Cada cabecera de escenario de Spec §9 lleva bloque `Variants:` o su declaración explícita — lint `awk` sobre `MODELO_EVENTOS_SPEC.md` devuelve vacío (`AC-50`)
-- [ ] T-1.D9 `NFR-001` tiene test de medición referenciado en §12 (`AC-51`)
-- [ ] T-1.D10 Cada `TC-*` de Spec §4 aparece en §12 de este Plan — `comm -23 <(grep -oE "TC-[0-9]+" MODELO_EVENTOS_SPEC.md | sort -u) <(sed -n '/^## 12\./,/^## 13\./p' MODELO_EVENTOS_IMPLEMENTATION_PLAN.md | grep -oE "TC-[0-9]+" | sort -u)` devuelve vacío (`AC-52`)
-- [ ] T-1.D10b Cada `TC-*` de Spec §4 tiene además su criterio en Spec §11.3 (`AC-52`, segundo conjunto)
-- [ ] T-1.D11 El historial de commits es limpio — `git log --oneline main..HEAD`
-- [ ] T-1.D12 Descripción del PR redactada
-- [ ] T-1.D13 **Gate del proyecto:** el test de propiedad de `T-1.16` se vio fallar cambiando deliberadamente la síntesis (por ejemplo, invirtiendo el orden `golPenal`/`golEnContra`) y volviendo a arreglarla, antes de darlo por bueno
-- [ ] T-1.D14 PR abierto contra `main`
-- [ ] T-1.D15 §12.2 tiene al menos una fila `IMP-*` por ámbito afectado (`AC-53`)
-- [ ] T-1.D16 El NFR cuantificado tiene fila `OBS-*` en §11 (`AC-54`)
-- [ ] T-1.D17 Cada `R-*` de §14 registra vía de mitigación
-- [ ] T-1.D18 Pasada de auto-consistencia dentro de este Plan
-- [ ] T-1.D19 Pasada de consistencia cruzada contra la Spec y el Concept Note
-- [ ] T-1.D20 Auditoría de cadena de suministro — §5 declara `Supply-chain: none`, pasa de forma vacua. `git ls-files package-lock.json package.json` sin resultado (`AC-55`)
+- [x] T-1.D1 Los tests nuevos pasan — `node tests/eventos.test.js` y `node tests/layout.test.js`
+- [x] T-1.D2 Los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js`, `node tests/finalizado.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
+- [x] T-1.D3 Linter — no aplica (§5). Se declara, no se marca en silencio
+- [x] T-1.D4 Type-checker — no aplica (§5). Se declara, no se marca en silencio
+- [x] T-1.D5 No quedan `TODO`/`FIXME`/`HACK` — `git grep -nE '(TODO|FIXME|HACK)[(:]' -- index.html tests/`
+- [x] T-1.D6 La implementación sigue §5
+- [x] T-1.D7 Cada `FR-*`, `NFR-*`, `TC-*` y `AC-*` de la Spec está implementado o verificado
+- [x] T-1.D8 Cada `S-NN` y cada variante tiene test — `comm -23 <(grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' docs/equipos-en-el-campo/rebanada-5-modelo-eventos/MODELO_EVENTOS_SPEC.md | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "eventos/S-[0-9]+[a-z]*" tests/ | sed 's|eventos/||' | sort -u)` devuelve vacío (`AC-50`)
+- [x] T-1.D8b Cada cabecera de escenario de Spec §9 lleva bloque `Variants:` o su declaración explícita — lint `awk` sobre `MODELO_EVENTOS_SPEC.md` devuelve vacío (`AC-50`)
+- [x] T-1.D9 `NFR-001` tiene test de medición referenciado en §12 (`AC-51`)
+- [x] T-1.D10 Cada `TC-*` de Spec §4 aparece en §12 de este Plan — `comm -23 <(grep -oE "TC-[0-9]+" MODELO_EVENTOS_SPEC.md | sort -u) <(sed -n '/^## 12\./,/^## 13\./p' MODELO_EVENTOS_IMPLEMENTATION_PLAN.md | grep -oE "TC-[0-9]+" | sort -u)` devuelve vacío (`AC-52`)
+- [x] T-1.D10b Cada `TC-*` de Spec §4 tiene además su criterio en Spec §11.3 (`AC-52`, segundo conjunto)
+- [x] T-1.D11 El historial de commits es limpio — `git log --oneline main..HEAD`
+- [x] T-1.D12 Descripción del PR redactada
+- [x] T-1.D13 **Gate del proyecto:** el test de propiedad de `T-1.16` se vio fallar cambiando deliberadamente la síntesis (por ejemplo, invirtiendo el orden `golPenal`/`golEnContra`) y volviendo a arreglarla, antes de darlo por bueno
+- [x] T-1.D14 PR abierto contra `main`
+- [x] T-1.D15 §12.2 tiene al menos una fila `IMP-*` por ámbito afectado (`AC-53`)
+- [x] T-1.D16 El NFR cuantificado tiene fila `OBS-*` en §11 (`AC-54`)
+- [x] T-1.D17 Cada `R-*` de §14 registra vía de mitigación
+- [x] T-1.D18 Pasada de auto-consistencia dentro de este Plan
+- [x] T-1.D19 Pasada de consistencia cruzada contra la Spec y el Concept Note
+- [x] T-1.D20 Auditoría de cadena de suministro — §5 declara `Supply-chain: none`, pasa de forma vacua. `git ls-files package-lock.json package.json` sin resultado (`AC-55`)
 
 ## 8. Data model & migrations
 
@@ -617,6 +617,7 @@ Ningún partido histórico se toca.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | **Registro de lo que la implementación encontró.** Tres hallazgos, ninguno de comportamiento. **(1)** `tests/finalizado.test.js` extrae funciones por nombre con su propia lista `DECLARACIONES`; en cuanto `renderFilaResultado` pasó a llamar a `statsPorJugadorDelPartido` (`T-1.C4`), sus doce casos existentes rompieron con `statsPorJugadorDelPartido is not defined` — la Spec (`TC-014`/`AC-25`) sólo hablaba de no tocar las *fixtures*, no de que el arnés en sí necesitara la nueva dependencia. Se agregaron `statsPorJugadorDesdeEventos` y `statsPorJugadorDelPartido` a esa lista, en orden de dependencia. **(2)** Los escenarios nuevos de `tests/layout.test.js` (`eventos-finalizar`, `eventos-editar`) necesitaban abrir un SEGUNDO partido dentro del mismo `comprobar`, y `abrirPartido` asume que se arranca desde la lista — usarlo de nuevo mientras ya se está dentro de otro detalle deja el botón buscado invisible y el escenario cuelga 30 s en un timeout de Playwright. Se resolvió invocando `window.__openMatch(id)` directamente (lo que ya usa la propia app para navegar), sin pasar por la lista. **(3)** La fecha elegida para el fixture nuevo, `m-finalizado-eventos` (2026-08-24), coincidía en el DÍA del mes con `m-finalizado-nueve` (2026-09-24) — `abrirPartido` matchea sólo por día, ignorando el mes, así que los dos hubieran competido por el mismo click. Se cambió a 2026-08-22, sin colisión. Los tres se encontraron corriendo `--solo=<escenario>` para iterar rápido antes de la corrida completa; la corrida completa (`LAYOUT_STRICT=1 node tests/layout.test.js`, 31 escenarios / 248 mediciones) pasó sin regresiones una vez resueltos. |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Deriva de `MODELO_EVENTOS_SPEC.md` con una rama (`Custom arc: 1 branch`, como las cuatro rebanadas anteriores) y siete commits atómicos. Resuelve la `OPEN-Q-01` de la Spec de la rebanada 4 (`T-1.23`, la anotación recíproca sobre `TC-010`) y traslada las dos preguntas abiertas propias de esta Spec. Decisión central: una única función de despacho (`statsPorJugadorDelPartido`) decide el formato mirando sólo si `m.resultado.eventos` existe, nunca una señal secundaria (`TD-02`, `TD-04`) — es lo que hace posible que un partido histórico nunca se migre, ni siquiera al editarlo. Registra el descubrimiento de que la rama `finalizado && !editandoFinalizado` dentro de `renderStatsYPuntajeMiembro` (línea 3891) es código hoy inalcanzable —la rebanada 4 ya intercepta ese estado antes, en `renderMatchDetail`— pero se actualiza igual por consistencia y por si alguna vez vuelve a ser alcanzable (`A-04`, módulo map). Self-critique: passed (1🔴 / 3🟡 / 1🔵), los cinco resueltos. El 🔴, encontrado por el propio Plan y corregido en los dos documentos: la Spec daba a `TC-030` un ID numerado sin ofrecerle ningún `AC-*` en su §11.3, violando `AC-52` (una constraint que "no aplica" no tiene evidencia de cumplimiento que citar). Se retiró el ID en la Spec, dejándolo como ruling sin numerar, mismo criterio que las categorías de CWE no aplicables de su §4.5. Los 🟡: la línea de *Spec coverage* de §7.2 decía "quince `TC-*`" y "dieciséis `AC-*`" cuando son diez y veinticinco (recontados directamente sobre la Spec); `TC-013` estaba citado contra `AC-28` en §12.9 y en §16 cuando la Spec lo cubre junto con `TC-012` bajo `AC-24` (corregido en las dos secciones); la celda de mitigación de `R-02` no usaba el token `accepted (rationale: …)` que `T-1.D17` espera, aunque describía exactamente ese caso (reformateada). El 🔵: §8.2 no lleva el `stateDiagram-v2` que `MD-24` pide "cuando hay migraciones presentes"; se decidió omitirlo porque esta migración tiene una sola fase estática (sin dual-write, backfill ni contract), y un diagrama de estados con un solo nodo no agregaría nada sobre la tabla — juicio dejado explícito en el propio §8.2, no una omisión silenciosa. Verificado con `comm` cruzando cada prefijo de ID (`FR`/`NFR`/`TC`/`AC`/`S`/`D`) entre este Plan, la Spec y el Concept Note: sin referencias colgantes. |
 
 ---
