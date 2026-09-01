@@ -400,6 +400,22 @@ aplicable acá.
   "−", then el sistema shall retirar esa fila, mostrando el estado vacío de
   `FR-043` si era la última fila del equipo.
 
+### 7.6b Mantener presionado (agregada 2026-09-01, ver Change log)
+
+- **FR-054** — When el administrador mantiene presionado (≥550ms) el mismo
+  destino de toque que `FR-030`/`FR-030b` usan para agregar (la camiseta
+  completa sobre una unidad individual, el nombre de cada integrante sobre
+  una dupla), el sistema shall quitar del borrador el evento agregado más
+  recientemente de la familia del tipo actualmente seleccionado, para ese
+  jugador — mismo efecto que `FR-051`, sin agregar un botón nuevo. If el
+  jugador no tiene ningún evento de esa familia, then el sistema shall
+  dejar el borrador sin cambios (mismo comportamiento sin efecto que
+  `FR-051` sobre una fila que no existe).
+- **FR-054b** — El sistema shall no agregar un evento por el toque que
+  sigue, de forma natural, al soltar una mantención sostenida ya resuelta
+  por `FR-054` — la mantención y el toque corto son mutuamente excluyentes
+  sobre el mismo gesto físico.
+
 ### 7.7 Deshacer
 
 - **FR-060** — El sistema shall mostrar un botón de ícono "Deshacer" con el
@@ -523,7 +539,7 @@ aplicable acá.
 
 ### 9.2 Edge cases
 
-#### Scenario S-04 — Quitar el último evento de una familia con "−" (covers FR-050, FR-051, FR-052, FR-053)
+#### Scenario S-04 — Quitar el último evento de una familia con "−" (covers FR-050, FR-051, FR-052, FR-053, FR-054, FR-054b)
 
 - **Given** un jugador tiene dos eventos en la familia "goles" (uno de ellos
   `golPenal`), cargados en ese orden
@@ -541,6 +557,12 @@ aplicable acá.
   cargaron eventos de otras familias o de otros jugadores entre medio
 - `S-04c [property]` — si el evento quitado era un `golPenal`, `goles` y
   `golesPenal` bajan a la vez; nunca queda `golesPenal > goles`
+- `S-04d [boundary]` — mantener presionada la camiseta (unidad individual) o
+  el nombre (integrante de una dupla) durante ≥550ms quita el último evento
+  de la familia del tipo activo para ese jugador, igual que "−" (FR-054)
+- `S-04e [failure]` — mantener presionado a un jugador sin ningún evento de
+  la familia activa no cambia el borrador (FR-054); soltar antes de los
+  550ms no quita nada y el toque corto agrega uno, como siempre (FR-054b)
 
 ### 9.3 Failure / unwanted-behaviour scenarios
 
@@ -774,6 +796,7 @@ que registrar.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Enmienda pedida por el propietario tras usar `feature/carga-por-toque`: mantener presionado el mismo destino de toque de `FR-030`/`FR-030b` (≥550ms) también saca un evento de la familia activa, sin bajar hasta la fila de detalle a tocar "−". Se agregan `FR-054`/`FR-054b` (§7.6b) y las variantes `S-04d`/`S-04e`. Reutiliza `quitarUltimoDeFamilia`/`__quitarUltimoDeFamiliaCarga`, ya existentes (`FR-051`): no hay ninguna regla de negocio nueva, sólo un segundo gatillo para la misma acción. Self-critique: no corresponde (adición acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al probar `feature/carga-por-toque` ya mergeada en un teléfono real: el nombre del jugador (`.camiseta-nombre`) resultó un blanco de toque demasiado chico en la práctica. Se ajusta `FR-030` para que, sobre una unidad INDIVIDUAL, el toque abarque toda la camiseta (silueta y nombre); sobre una dupla sigue acotado al nombre de cada integrante, sin cambios (`FR-030b` sigue vigente tal cual). Se agrega la variante `S-01f`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al empezar el Implementation Plan: la Spec no decía qué pasa al tocar una dupla de rotación (dos jugadores compartiendo una camiseta) — el toque tal como estaba redactado (`FR-030` original, "toca la camiseta") no podía distinguir a qué integrante atribuir el evento, mientras que la grilla numérica que esta rebanada reemplaza sí permitía cargar a cada integrante por separado (`renderTeamPlayerRowDupla`). Se agrega `FR-030b`, se ajusta `FR-030` para que el toque ocurra sobre el nombre del jugador (no toda la camiseta) —lo que hace posible distinguir integrantes sin agregar un control nuevo—, y se agrega la variante `S-01e`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, encontrada y resuelta antes de escribir el Plan). |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Self-critique: passed (1🔴 / 4🟡 / 1🔵) — el 🔴 (cita sin verificar de la reutilización de `escaparHtml` en `TC-003`) y los cuatro 🟡 (`FR-003`/`FR-080` usaban el patrón EARS "Where" para una condición de rol en vez de "While"; `FR-005` era compuesta y se partió en `FR-005`/`FR-005b`; `FR-032` citaba sólo la analogía de `openspec/specs/resultados-partido/spec.md:36` en vez de la regla ya implementada en `index.html:3955-3960`; faltaba `D-18` en §3.3 como precedente heredado) resueltos; el 🔵 (fila vacía de `[OPEN-Q-N]` en §16) resuelto quitando la tabla y dejando la declaración en prosa. |

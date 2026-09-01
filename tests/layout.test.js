@@ -1165,11 +1165,11 @@ const ESCENARIOS = [
      selector de equipo). Guardar/editar/cancelar quedan en `eventos-finalizar`/`eventos-editar`,
      reescritos para tocar en vez de llenar inputs (toque/S-07, S-07a, S-07b, S-07c, S-07d). */
   { clave: 'carga-por-toque', rol: 'admin', nombre: 'cargar un resultado tocando la cancha',
-    spec: ['toque/S-01', 'toque/S-01a', 'toque/S-01c', 'toque/S-01e', 'toque/S-05a', 'toque/S-06'],
+    spec: ['toque/S-01', 'toque/S-01a', 'toque/S-01c', 'toque/S-01e', 'toque/S-01f', 'toque/S-04d', 'toque/S-04e', 'toque/S-05a', 'toque/S-06'],
     invariantes: [INVARIANTE_CARGA_TOQUE],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); }, // m-cerrado: cerrado, sin resultado
     async comprobar(page) {
-      return page.evaluate(() => {
+      return page.evaluate(async () => {
         const problemas = [];
         const individuales = () => [...document.querySelectorAll('.camiseta-nombre')].filter(n => !n.closest('.camiseta-dupla'));
         const pillDe = (nombre) => {
@@ -1201,6 +1201,40 @@ const ESCENARIOS = [
         figIndividual.click();
         pill = pillDe(individuales()[0]);
         if (pill !== '5') problemas.push(`tocar la camiseta (no el nombre) no sumó la pastilla a "5" (toque/S-01f, FR-030): "${pill}"`);
+
+        // toque/S-04d, S-04e: mantener presionado saca uno de la familia activa, y el toque corto
+        // que sigue —su cola natural al soltar— no vuelve a agregar (FR-054, FR-054b). Se invoca
+        // el handler directamente en vez de esperar un `setTimeout` real de 550ms en cada uno de
+        // los trece anchos; acá sólo hace falta un `await` real una vez, en el primer ancho.
+        const idIndividual = individuales()[0].closest('.camiseta').getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+        window.__presionarInicio('m-cerrado', idIndividual);
+        await new Promise(r => setTimeout(r, 650));
+        pill = pillDe(individuales()[0]);
+        if (pill !== '4') problemas.push(`mantener presionado no bajó la pastilla a "4" (toque/S-04d, FR-054): "${pill}"`);
+        window.__tocarNombreJugador('m-cerrado', idIndividual); // la cola del gesto: no debe agregar de nuevo
+        pill = pillDe(individuales()[0]);
+        if (pill !== '4') problemas.push(`el toque que sigue a una mantención resuelta agregó de más (toque/S-04e, FR-054b): "${pill}"`);
+        individuales()[0].click(); // un toque genuino posterior sí debe agregar, normal
+        pill = pillDe(individuales()[0]);
+        if (pill !== '5') problemas.push(`un toque normal después de una mantención resuelta no volvió a agregar (toque/S-04e): "${pill}"`);
+
+        // toque/S-04e [failure]: mantener presionado a un jugador sin ningún evento de la familia
+        // activa no cambia el borrador — ni agrega ni quita ninguna fila de detalle.
+        const sinEventos = individuales()[1];
+        if (!sinEventos) {
+          problemas.push('no se encontró un segundo nombre individual sin eventos para probar toque/S-04e');
+        } else {
+          const idSinEventos = sinEventos.closest('.camiseta').getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+          const filasAntesDeLaMantencion = document.querySelectorAll('.detalle-fila').length;
+          window.__presionarInicio('m-cerrado', idSinEventos);
+          await new Promise(r => setTimeout(r, 650));
+          // El click que sigue al soltar (misma gesticulación física) también hay que simularlo:
+          // es la cola natural de ESTA mantención, no un toque nuevo (FR-054b).
+          window.__tocarNombreJugador('m-cerrado', idSinEventos);
+          if (document.querySelectorAll('.detalle-fila').length !== filasAntesDeLaMantencion) {
+            problemas.push('mantener presionado (+ su toque final) a un jugador sin eventos de la familia activa cambió el detalle (toque/S-04e)');
+          }
+        }
 
         // toque/S-01e: tocar el nombre de un integrante de una dupla agrega el evento sólo a ESE
         // integrante — el detalle muestra una fila propia por jugador, nunca combinada (FR-030b).

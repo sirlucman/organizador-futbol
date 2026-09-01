@@ -320,8 +320,12 @@
      handoff hace para la fila de cuatro volantes de la cancha de 9. */
   .camiseta{ display: flex; flex-direction: column; align-items: center; gap: 4px; width: var(--chip-w); border-radius: 13px; min-width: 0; }
   /* Afordancia del toque en modo de carga (FR-030): la camiseta individual y el nombre de cada
-     integrante de una dupla llevan `role="button"` sólo cuando son destino de un toque real. */
-  .camiseta[role="button"], .camiseta-nombre[role="button"]{ cursor: pointer; }
+     integrante de una dupla llevan `role="button"` sólo cuando son destino de un toque real.
+     `touch-callout`/`user-select` en `none` evitan que mantener presionado (FR-054) dispare el
+     menú nativo de "Copiar"/selección de texto del navegador en vez de sacar un evento. */
+  .camiseta[role="button"], .camiseta-nombre[role="button"]{
+    cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
+  }
   .camiseta-fig{ position: relative; width: var(--chip-size); height: var(--chip-size); }
   .camiseta-fig svg{ width: 100%; height: 100%; filter: drop-shadow(0 3px 7px rgb(17 24 39 / 0.35)); display: block; }
   .camiseta-fig path{ fill: var(--chip-bg); stroke: var(--chip-stroke); stroke-width: 1.2; }
@@ -1307,6 +1311,8 @@
   let resultadoDraft = null; // { matchId, eventos: [{jugadorId, tipo}] } — borrador en memoria hasta "Finalizar partido" (rebanada 6, FR-005)
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
   let tipoEventoActivo = 'gol'; // tipo del selector de carga por toque; sólo de interfaz, no se persiste (rebanada 6, TD-07)
+  let temporizadorPresionSostenida = null; // id de setTimeout de la mantención sostenida (carga por toque, FR-054)
+  let ultimoToqueFuePresionSostenida = false; // suprime el click que sigue a una mantención ya resuelta (FR-054)
   let duplaModalMatchId = null; // partido para el que se está eligiendo compañero de rotación
   let duplaModalPlayerId = null; // fila (jugador) desde la que se abrió "Agregar rotación"
   let duplaSearchTerm = '';
@@ -4199,14 +4205,20 @@
     /* El `draggable` va en el contenedor y el candado lleva `draggable="false"`, para que
        activarlo siga siendo un click y no el arranque de un arrastre (FR-007b). El toque sobre
        toda la camiseta (individual, FR-030) vive en el mismo contenedor y con la misma guarda: al
-       ser mutuamente excluyentes con `arrastrable`, nunca hay dos gestos compitiendo por el click. */
+       ser mutuamente excluyentes con `arrastrable`, nunca hay dos gestos compitiendo por el click.
+       Los cuatro `onpointer*` arman/cancelan la mantención sostenida (FR-054): `pointercancel`
+       es lo que dispara el navegador solo cuando decide que el gesto era para scrollear, así que
+       no hace falta medir distancia de arrastre del dedo a mano. */
+    const attrsPresionSostenida = (jugadorId) =>
+      ' onpointerdown="window.__presionarInicio(\'' + m.id + '\',\'' + jugadorId + '\')"'
+      + ' onpointerup="window.__presionarFin()" onpointercancel="window.__presionarFin()" onpointerleave="window.__presionarFin()"';
     const arrastreAttrs = arrastrable
       ? ' draggable="true" ondragstart="window.__dragStartJugador(event,\'' + p.id + '\')"'
         + ' ondragend="window.__dragFin()"'
         + ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
       : (puedeTocarCamiseta
-        ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + p.id + '\')" role="button" tabindex="0"'
+        ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + p.id + '\')" role="button" tabindex="0"' + attrsPresionSostenida(p.id)
         : '');
     // Chips de goles/goles en contra/asistencias: del partido finalizado sin editar (rebanada 4,
     // TD-04), o del borrador de carga mientras el modo de carga está activo (rebanada 6, FR-040,
@@ -4235,7 +4247,9 @@
     // vive en `__tocarNombreJugador` (TD-03).
     const puedeTocarNombreDupla = enCarga && admin && esUnidadDupla;
     const nombreSpan = (jug) => '<span class="camiseta-nombre"'
-      + (puedeTocarNombreDupla ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + jug.id + '\')" role="button" tabindex="0"' : '')
+      + (puedeTocarNombreDupla
+        ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + jug.id + '\')" role="button" tabindex="0"' + attrsPresionSostenida(jug.id)
+        : '')
       + '>' + escaparHtml(nombreCorto(jug)) + '</span>';
     const nombreHtml = esUnidadDupla
       ? '<div class="camiseta-dupla">' + nombreSpan(grupo[0]) + ICON_ROTACION + nombreSpan(grupo[1]) + '</div>'
@@ -4297,6 +4311,9 @@
      nunca la tarjeta completa, que no cambió. */
 
   window.__tocarNombreJugador = function(matchId, jugadorId){
+    // El click que sigue a una mantención sostenida ya resuelta (abajo) es su cola natural del
+    // gesto, no un segundo toque: se descarta una sola vez (FR-054).
+    if(ultimoToqueFuePresionSostenida){ ultimoToqueFuePresionSostenida = false; return; }
     if(!isAdmin()) return; // FR-080
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !enModoCarga(m)) return; // FR-081
@@ -4315,6 +4332,32 @@
     if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
     resultadoDraft.eventos = quitarUltimoDeFamilia(resultadoDraft.eventos, jugadorId, familia);
     renderTeamsSection(m);
+  };
+
+  // Mantener presionado el nombre o la camiseta saca un evento del tipo activo, en vez de agregar
+  // uno (FR-054): mismo destino de toque, gesto simétrico al de agregar, sin un segundo control.
+  // Reutiliza `__quitarUltimoDeFamiliaCarga`, que ya valida admin/estado — acá sólo se arma y se
+  // cancela el temporizador.
+  const DURACION_PRESION_SOSTENIDA = 550; // ms; mismo orden de magnitud que el long-press nativo de iOS/Android
+  window.__presionarInicio = function(matchId, jugadorId){
+    clearTimeout(temporizadorPresionSostenida);
+    ultimoToqueFuePresionSostenida = false;
+    temporizadorPresionSostenida = setTimeout(() => {
+      ultimoToqueFuePresionSostenida = true;
+      if(navigator.vibrate) navigator.vibrate(25); // confirma el gesto en dispositivos que lo soportan; no hace nada si no
+      window.__quitarUltimoDeFamiliaCarga(matchId, jugadorId, familiaDeTipo(tipoEventoActivo));
+      // Salvavidas (FR-054b): el click que sigue al soltar llega prácticamente en el mismo tick y
+      // ya la deja en `false`; si por lo que sea ese click nunca llega, esto evita que la bandera
+      // quede pegada en `true` y trague por error el próximo toque de cualquier otro jugador.
+      setTimeout(() => { ultimoToqueFuePresionSostenida = false; }, 200);
+    }, DURACION_PRESION_SOSTENIDA);
+  };
+
+  // `pointerup` (soltó antes de tiempo: queda como toque normal), `pointercancel` (el navegador
+  // tomó el gesto para scrollear) y `pointerleave` (el dedo se arrastró fuera del elemento) paran
+  // el temporizador por igual — ninguno de los tres debe completar la mantención.
+  window.__presionarFin = function(){
+    clearTimeout(temporizadorPresionSostenida);
   };
 
   window.__deshacerUltimoEventoCarga = function(matchId){
@@ -5253,7 +5296,7 @@
       + ' onclick="window.__deshacerUltimoEventoCarga(\'' + m.id + '\')"' + (sinEventos ? ' disabled' : '') + '>' + ICON_DESHACER + '</button>'
       + '</div>'
       // FR-013: tocar dos veces la misma camiseta agrega dos eventos del tipo activo.
-      + '<p class="evento-ayuda">' + escaparHtml(activo.ayuda) + '. Tocar la misma camiseta dos veces agrega dos eventos.</p>'
+      + '<p class="evento-ayuda">' + escaparHtml(activo.ayuda) + '. Tocar dos veces agrega dos eventos; mantener presionado saca uno.</p>'
       + '</div>';
   }
 
