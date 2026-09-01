@@ -221,6 +221,20 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
         statsPorJugador: Object.fromEntries(titulares.map((id, i) => [id, {
           goles: i % 3, golesPenal: i % 2, asistencias: (i + 1) % 3,
           ...(i === 0 || i === 5 ? { golesEnContra: 1 } : {}) }])) } },
+    /* El único partido finalizado ya en el modelo de eventos (rebanada 5, D-04): `m.resultado`
+       tiene `eventos`, nunca `statsPorJugador`. Mismos índices que `m-finalizado` (0: Claudio,
+       de la dupla `d1`; 5: Anibal, suelto) para poder comparar los dos formatos lado a lado
+       (eventos/S-02, eventos/S-03). */
+    { id: 'm-finalizado-eventos', fecha: '2026-08-22', cancha: 'futbol8', estado: 'Finalizado',
+      convocados: ids, inscripcionCerrada: true, estrategia: 'estrategia4',
+      bloqueados: [], duplas: duplasIds, equipos: { ...equipos, duplasSnapshot },
+      resultado: { finalizadoEn: 1756200000000,
+        eventos: [
+          { jugadorId: titulares[0], tipo: 'gol' },
+          { jugadorId: titulares[0], tipo: 'golPenal' },
+          { jugadorId: titulares[0], tipo: 'asistencia' },
+          { jugadorId: titulares[5], tipo: 'golEnContra' },
+        ] } },
     { id: 'm-nueve', fecha: '2026-09-10', cancha: 'futbol9', estado: 'Inscripción abierta',
       convocados: ids, inscripcionCerrada: false, estrategia: 'estrategia4',
       bloqueados: [equipos9.blanco[0]], duplas: duplasIds, equipos: equipos9 },

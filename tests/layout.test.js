@@ -529,7 +529,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-jugador', rol: 'jugador', nombre: 'equipos generados sobre la cancha (rol jugador)',
-    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20', 'panel/S-20a', 'panel/S-20b', 'panel/S-20c'],
+    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20', 'panel/S-20a', 'panel/S-20b', 'panel/S-20c', 'eventos/S-20'],
     invariantes: [INVARIANTE_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
@@ -558,7 +558,14 @@ const ESCENARIOS = [
         const escrituras1 = (window.__escrituras || []).length;
         if (window.__finalizarPartido) { window.__finalizarPartido('m-abierto'); await new Promise(r => setTimeout(r, 150)); }
         if ((window.__escrituras || []).length > escrituras1) {
-          problemas.push('__finalizarPartido escribió con rol jugador (panel S-20c)');
+          problemas.push('__finalizarPartido escribió con rol jugador (panel S-20c, eventos/S-20)');
+        }
+        /* Mismo chequeo para la edición de un resultado ya finalizado (rebanada 5, eventos/S-20):
+           ni el modelo de eventos ni el histórico deberían poder escribirse con este rol. */
+        const escrituras1b = (window.__escrituras || []).length;
+        if (window.__guardarEdicionResultado) { window.__guardarEdicionResultado('m-finalizado-eventos'); await new Promise(r => setTimeout(r, 150)); }
+        if ((window.__escrituras || []).length > escrituras1b) {
+          problemas.push('__guardarEdicionResultado escribió con rol jugador (eventos/S-20)');
         }
         /* Esconder el botón no alcanza: la acción tiene que estar cerrada también en el handler,
            que es lo que un rol sin permiso puede invocar desde la consola (FR-034, TC-040). */
@@ -1162,6 +1169,132 @@ const ESCENARIOS = [
       if (!/^Formación 3-4-1 · Estrategia:/.test(dosColumnas)) {
         problemas.push(`a 1200px la línea de estrategia de fútbol 9 no coincide (finalizado/S-01b, finalizado/S-10): "${dosColumnas}"`);
       }
+      return problemas;
+    } },
+
+  /* Las dos escenarios de abajo (rebanada 5, el modelo de eventos) no miden geometría: son los
+     primeros de este archivo que existen sólo para inspeccionar `window.__ultimosDocs`, el
+     documento realmente persistido, no el viewport. Un solo ancho alcanza. */
+  { clave: 'eventos-finalizar', rol: 'admin', nombre: 'finalizar un partido nuevo persiste eventos',
+    anchos: [1200],
+    spec: ['eventos/S-01', 'eventos/S-01a'],
+    async preparar(page) { await abrirPartido(page, '2026-08-27'); }, // m-cerrado: cerrado, sin resultado
+    async comprobar(page) {
+      const problemas = [];
+
+      // eventos/S-01: cargar valores no triviales y finalizar persiste `eventos`, no `statsPorJugador`.
+      const jugadores = await page.evaluate(() =>
+        [...document.querySelectorAll('.team-stat-input[data-tipo="goles"]')].slice(0, 2).map(i => i.dataset.player));
+      if (jugadores.length < 2) {
+        problemas.push('no se encontraron al menos dos inputs de goles en m-cerrado (eventos/S-01)');
+        return problemas;
+      }
+      const [j1, j2] = jugadores;
+      await page.fill(`.team-stat-input[data-player="${j1}"][data-tipo="goles"]`, '2');
+      await page.fill(`.team-stat-input[data-player="${j1}"][data-tipo="golesPenal"]`, '1');
+      await page.fill(`.team-stat-input[data-player="${j1}"][data-tipo="asistencias"]`, '1');
+      await page.fill(`.team-stat-input[data-player="${j2}"][data-tipo="golesEnContra"]`, '1');
+      await page.evaluate((id) => window.__finalizarPartido(id), 'm-cerrado');
+      await page.waitForSelector('#confirmModal.open');
+      await page.click('#btnConfirmOk');
+      await page.waitForTimeout(200);
+
+      const doc1 = await page.evaluate(() =>
+        (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-cerrado'));
+      if (!doc1 || !doc1.resultado) { problemas.push('finalizar m-cerrado no dejó ningún resultado persistido (eventos/S-01)'); return problemas; }
+      if (!Array.isArray(doc1.resultado.eventos)) problemas.push('el resultado persistido no tiene "eventos" como arreglo (eventos/S-01, FR-020)');
+      else if (doc1.resultado.eventos.length === 0) problemas.push('el arreglo de eventos quedó vacío, pese a haber cargado valores (eventos/S-01)');
+      if ('statsPorJugador' in doc1.resultado) problemas.push('el resultado persistido todavía tiene la clave "statsPorJugador" (eventos/S-01, FR-020)');
+
+      // eventos/S-01a: un borrador en cero (m-abierto, cerrado sin tocar ningún input) también
+      // persiste un arreglo de eventos VACÍO, no ausente.
+      await page.evaluate(() => window.__toggleInscripcion('m-abierto'));
+      // window.__openMatch, no abrirPartido: ya estamos dentro del detalle de m-cerrado, y la
+      // lista de partidos no queda visible para volver a clickear una tarjeta (D-08, TD-07).
+      await page.evaluate(() => window.__openMatch('m-abierto'));
+      await page.waitForTimeout(300); // deja correr ensureResultadoDraft, ya con la inscripción cerrada
+      await page.evaluate(() => window.__finalizarPartido('m-abierto'));
+      await page.waitForSelector('#confirmModal.open');
+      await page.click('#btnConfirmOk');
+      await page.waitForTimeout(200);
+      const doc2 = await page.evaluate(() =>
+        (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-abierto'));
+      if (!doc2 || !doc2.resultado || !Array.isArray(doc2.resultado.eventos)) {
+        problemas.push('finalizar sin tocar ningún input no dejó "eventos" como arreglo (eventos/S-01a)');
+      } else if (doc2.resultado.eventos.length !== 0) {
+        problemas.push(`el borrador en cero debería dar un arreglo vacío, no ${doc2.resultado.eventos.length} eventos (eventos/S-01a)`);
+      }
+      return problemas;
+    } },
+
+  { clave: 'eventos-editar', rol: 'admin', nombre: 'editar un resultado preserva el formato del partido',
+    anchos: [1200],
+    spec: ['eventos/S-03', 'eventos/S-03a', 'eventos/S-04', 'eventos/S-04a'],
+    async preparar(page) { await abrirPartido(page, '2026-08-22'); }, // m-finalizado-eventos
+    async comprobar(page) {
+      const problemas = [];
+
+      // eventos/S-03, eventos/S-03a: editar un partido con `eventos` reconstruye la secuencia;
+      // llevar una asistencia de 1 a 0 la hace desaparecer del arreglo, no la deja en 0.
+      await page.click('[aria-label="Editar resultado"]');
+      await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        const inp = [...document.querySelectorAll('.team-stat-input[data-tipo="asistencias"]')].find(i => i.value === '1');
+        if (inp) { inp.value = '0'; inp.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+      await page.evaluate(() => window.__guardarEdicionResultado('m-finalizado-eventos'));
+      await page.waitForSelector('#confirmModal.open');
+      await page.click('#btnConfirmOk');
+      await page.waitForTimeout(200);
+      const doc1 = await page.evaluate(() =>
+        (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-finalizado-eventos'));
+      if (!doc1 || !Array.isArray(doc1.resultado.eventos)) problemas.push('editar m-finalizado-eventos no dejó "eventos" como arreglo (eventos/S-03)');
+      else if (doc1.resultado.eventos.some(e => e.tipo === 'asistencia')) problemas.push('la asistencia llevada de 1 a 0 sigue en la secuencia reconstruida (eventos/S-03a)');
+      if (doc1 && 'statsPorJugador' in doc1.resultado) problemas.push('editar un partido con eventos le agregó la clave "statsPorJugador" (eventos/S-03)');
+
+      // eventos/S-04: editar un partido histórico (sólo statsPorJugador) sigue escribiendo
+      // statsPorJugador, sin ganar nunca la clave "eventos" — no se migra al editarlo (D-06).
+      // window.__openMatch, no abrirPartido: ya estamos dentro de otro detalle, sin la lista
+      // visible para volver a clickear una tarjeta (mismo criterio que eventos-finalizar).
+      await page.evaluate(() => window.__openMatch('m-finalizado'));
+      await page.waitForTimeout(300);
+      await page.click('[aria-label="Editar resultado"]');
+      await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        const inp = document.querySelector('.team-stat-input[data-tipo="golesEnContra"]');
+        if (inp) { inp.value = String((parseInt(inp.value, 10) || 0) + 1); inp.dispatchEvent(new Event('input', { bubbles: true })); }
+      });
+      await page.evaluate(() => window.__guardarEdicionResultado('m-finalizado'));
+      await page.waitForSelector('#confirmModal.open');
+      await page.click('#btnConfirmOk');
+      await page.waitForTimeout(200);
+      const doc2 = await page.evaluate(() =>
+        (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-finalizado'));
+      if (!doc2 || !doc2.resultado.statsPorJugador) problemas.push('editar m-finalizado no dejó "statsPorJugador" (eventos/S-04)');
+      if (doc2 && 'eventos' in doc2.resultado) problemas.push('editar un partido histórico le agregó la clave "eventos": se migró sin que D-06 lo permita (eventos/S-04)');
+
+      // eventos/S-04a: llevar TODOS los contadores a 0 sobre el mismo histórico. Seguimos viendo
+      // m-finalizado, ya de vuelta en modo lectura tras el guardado de arriba.
+      await page.click('[aria-label="Editar resultado"]');
+      await page.waitForTimeout(300);
+      await page.evaluate(() => {
+        document.querySelectorAll('.team-stat-input').forEach(inp => {
+          inp.value = '0';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+      });
+      await page.evaluate(() => window.__guardarEdicionResultado('m-finalizado'));
+      await page.waitForSelector('#confirmModal.open');
+      await page.click('#btnConfirmOk');
+      await page.waitForTimeout(200);
+      const doc3 = await page.evaluate(() =>
+        (JSON.parse(window.__ultimosDocs.partidos || '[]')).find(p => p.id === 'm-finalizado'));
+      const valores = doc3 ? Object.values(doc3.resultado.statsPorJugador || {}) : [];
+      if (!valores.length || valores.some(st => (st.goles || 0) !== 0 || (st.golesPenal || 0) !== 0 || (st.golesEnContra || 0) !== 0 || (st.asistencias || 0) !== 0)) {
+        problemas.push('llevar todos los contadores a 0 no quedó reflejado en statsPorJugador (eventos/S-04a)');
+      }
+      if (doc3 && 'eventos' in doc3.resultado) problemas.push('el histórico ganó la clave "eventos" al llevar sus contadores a 0 (eventos/S-04a)');
+
       return problemas;
     } },
 
