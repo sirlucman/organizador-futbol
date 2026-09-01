@@ -453,7 +453,12 @@
   .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--paper); }
   .equipo-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .equipo-tabs[data-visible="negro"] .equipo-tabs-thumb{ left: 50%; }
-  .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: var(--radius-pill); }
+  /* `min-height` es una desviación deliberada del handoff, no un descuido: su `padding: 10px 0`
+     sobre texto de 13px da una pestaña de 36px, y NFR-002 fija el piso en 44px porque en una
+     columna la pestaña es el destino de TODO movimiento — su tamaño es funcional, no estético.
+     El propio handoff declara `--touch-target-min: 48px`, así que su padding se contradice con
+     su token. Se conserva el padding literal y se agrega el piso (TC-031). */
+  .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; min-height: 44px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: var(--radius-pill); }
   .equipo-tab:hover{ opacity: 0.7; }
   .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
 
