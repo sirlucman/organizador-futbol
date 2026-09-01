@@ -64,6 +64,35 @@
 > La anotación recíproca en cada documento reemplazado queda pendiente, igual que
 > en la rebanada 2; ver `OPEN-Q-01`.
 
+> **Reemplazo parcial por la rebanada 4 (Principio I).** Resuelve la `OPEN-Q-01`
+> de [`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md).
+> Para el estado **finalizado, sin edición en curso**, esa Spec reemplaza en su
+> parte:
+>
+> - `FR-060` — el botón "Editar resultado" deja el pie de la tarjeta y sube al
+>   encabezado nuevo, como ícono (`FR-006` de la rebanada 4). "Finalizar
+>   partido", "Guardar cambios" y "Cancelar" siguen exactamente igual, porque
+>   ninguno de los tres aplica a este estado.
+> - `FR-003` a `FR-005`, `FR-009`, `FR-037` (la píldora de diferencia) — no hay
+>   ninguna comparación de puntaje que mostrar entre dos equipos ya jugados
+>   (`FR-043` de la rebanada 4).
+> - `FR-030` a `FR-036` (la diferencia por línea) — misma razón: no hay nada
+>   que comparar sobre un partido ya finalizado.
+> - `FR-040` a `FR-045` (el receipt "Por qué quedaron así") — misma razón.
+> - `FR-083` — mientras el partido esté finalizado **y no se esté editando su
+>   resultado**, la rebanada 4 lo invierte: los equipos pasan a mostrarse como
+>   cancha, no como lista de filas (`FR-020` de la rebanada 4). Para la
+>   inscripción cerrada sin finalizar y para la edición del resultado, `FR-083`
+>   sigue exactamente como está.
+> - `FR-083b` — sólo aplica, desde la rebanada 4, mientras los equipos se
+>   sigan mostrando como lista de filas (inscripción cerrada sin finalizar, o
+>   editando el resultado); en el estado finalizado sin editar ninguno de los
+>   cuatro bloques que nombra existe ya, por las razones de arriba.
+>
+> Lo que **no** cambia: el motor, el modelo de datos, la cancha, la camiseta
+> base, el candado, el arrastre, el selector de equipo y el combo de estrategia
+> del estado de equipos generados siguen exactamente como esta Spec los deja.
+
 ## 1. Purpose
 
 Esta Spec define **qué rodea a la cancha**: el encabezado de la tarjeta de

@@ -234,6 +234,27 @@ const INVARIANTE_CANCHA_A11Y = () => {
   return [...new Set(problemas)].slice(0, 4);
 };
 
+/* Los chips de estadística del partido finalizado (rebanada 4): asistencias a la izquierda de la
+   camiseta, goles/en contra a la derecha. Un jugador con las dos cosas a la vez es el caso común,
+   no un borde — y llegó a producción con los dos grupos superpuestos (`--stat-edge`/`--stat-pad`
+   del handoff no dejaban lugar en una camiseta de 44 a 52px). Se compara el borde derecho de un
+   grupo contra el izquierdo del otro, DENTRO de la misma camiseta — es la comparación que
+   `INVARIANTE_CANCHA` no hace, porque esa sólo mide camisetas vecinas entre sí. */
+const INVARIANTE_CHIPS_ESTADISTICA = () => {
+  const problemas = [];
+  for (const cam of document.querySelectorAll('.camiseta')) {
+    const asis = cam.querySelector('.stat-asistencias');
+    const gol = cam.querySelector('.stat-goles');
+    if (!asis || !gol) continue;
+    const a = asis.getBoundingClientRect(), g = gol.getBoundingClientRect();
+    if (a.right > g.left + 0.5) {
+      const nombre = (cam.querySelector('.camiseta-nombre') || {}).textContent || '?';
+      problemas.push(`"${nombre}": el chip de asistencias se solapa con el de goles (${Math.round(a.right - g.left)}px)`);
+    }
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
 /* En una columna se ve UN equipo por vez: si hubiera dos canchas con selector, o una sin él,
    el modo de layout y el render estarían discrepando. Y la pestaña es el destino de todo
    movimiento en angosto, así que su tamaño es funcional: el piso son 44px (NFR-002). */
@@ -388,7 +409,10 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
-    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c'], invariante: INVARIANTE_INPUTS_DE_CARGA,
+    /* `finalizado/S-02c`: este mismo `comprobar` ya verifica que la tarjeta sigue como lista de
+       filas con la inscripción cerrada y no finalizada — exactamente lo que esa variante pide,
+       sin ningún cambio de código (rebanada 4). */
+    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c', 'finalizado/S-02c'], invariante: INVARIANTE_INPUTS_DE_CARGA,
     invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); },
     async comprobar(page) {
@@ -409,8 +433,51 @@ const ESCENARIOS = [
     } },
 
   { clave: 'partido-finalizado', rol: 'admin', nombre: 'detalle de partido · finalizado',
-    spec: ['cancha/S-10a', 'arrastre/S-10a', 'panel/S-11a'], invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
-    async preparar(page) { await abrirPartido(page, '2026-08-20'); } },
+    /* `cancha/S-10a`, `arrastre/S-10a` y `panel/S-11a` decían "partido finalizado: mismo
+       resultado que cerrado, sin cancha" — la rebanada 4 invierte exactamente eso (FR-020), así
+       que esos tres tags dejan de describir esta pantalla y se reemplazan por los de la Spec de
+       esta rebanada. */
+    spec: ['finalizado/S-01', 'finalizado/S-01a', 'finalizado/S-02', 'finalizado/S-02a', 'finalizado/S-03', 'finalizado/S-04', 'finalizado/S-04b', 'finalizado/S-05'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    async preparar(page) { await abrirPartido(page, '2026-08-20'); },
+    async comprobar(page) {
+      /* A 360px (una columna): título con sólo la fecha, selector sin puntaje de armado en la
+         fila de resultado, y ningún bloque del panel de armado que ya no aplica a este estado. */
+      const unaColumna = await page.evaluate(() => {
+        const problemas = [];
+        if (!document.querySelector('.cancha')) problemas.push('no se dibujó la cancha del partido finalizado (finalizado/S-02)');
+        if (!document.querySelector('.stat-goles, .stat-asistencias')) problemas.push('ninguna camiseta lleva chips de estadística (finalizado/S-03)');
+        if (!document.querySelector('.fila-resultado')) problemas.push('no apareció la fila de resultado (finalizado/S-04)');
+        if (!document.querySelector('.detalle-fila, .detalle-vacio')) problemas.push('no apareció ninguna fila de detalle (finalizado/S-05)');
+        if (document.querySelector('.panel-lineas')) problemas.push('sigue la diferencia por línea en el partido finalizado (FR-043)');
+        if (document.querySelector('.panel-receipt')) problemas.push('sigue el receipt en el partido finalizado (FR-043)');
+        if (document.querySelector('.panel-pildora')) problemas.push('sigue la píldora de diferencia en el partido finalizado (FR-043)');
+        const h4 = document.querySelector('.team-panel h4');
+        if (h4 && /\d/.test(h4.textContent)) problemas.push(`el encabezado del panel de equipo repite un número (finalizado/FR-042b): "${h4.textContent.trim()}"`);
+        const titulo = (document.querySelector('.panel-header-titulo h3') || {}).textContent || '';
+        if (titulo.includes(' - ')) problemas.push(`a 360px el título incluyó el tamaño de cancha (finalizado/S-01a): "${titulo}"`);
+        const puntajes = [...document.querySelectorAll('.resultado-puntaje')];
+        if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado (finalizado/S-04b)');
+        const iconos = document.querySelectorAll('.panel-header-acciones .panel-icono');
+        if (iconos.length !== 2) problemas.push(`el encabezado nuevo tiene ${iconos.length} ícono(s) de acción en vez de 2 (finalizado/S-01)`);
+        return problemas;
+      });
+      /* A 1200px (dos columnas): el título suma el tamaño de cancha y la fila de resultado
+         vuelve a mostrar el puntaje de armado (FR-002, FR-041). */
+      await page.setViewportSize({ width: 1200, height: 900 });
+      await page.waitForTimeout(200);
+      const dosColumnas = await page.evaluate(() => {
+        const problemas = [];
+        const titulo = (document.querySelector('.panel-header-titulo h3') || {}).textContent || '';
+        if (!titulo.includes(' - ')) problemas.push(`a 1200px el título no incluyó el tamaño de cancha (finalizado/S-01): "${titulo}"`);
+        const puntajes = [...document.querySelectorAll('.resultado-puntaje')];
+        if (!puntajes.length || puntajes.some(p => p.getBoundingClientRect().width === 0)) {
+          problemas.push('a 1200px no se ve el puntaje de armado en la fila de resultado (finalizado/S-04)');
+        }
+        return problemas;
+      });
+      return [...unaColumna, ...dosColumnas];
+    } },
 
   /* --- la cancha (rebanada 1 de "Equipos en el campo") --- */
 
@@ -1024,11 +1091,12 @@ const ESCENARIOS = [
   { clave: 'partido-editando', rol: 'admin', nombre: 'detalle de partido · finalizado, editando el resultado',
     /* La pantalla no la toca esta rebanada —conserva la lista—, así que acá se verifica sólo eso.
        El layout de la lista con inputs ya lo miden `partido-cerrado` y `partido-finalizado`. */
-    anchos: [360, 900, 1200], spec: ['cancha/S-10b', 'arrastre/S-10b'],
+    anchos: [360, 900, 1200], spec: ['cancha/S-10b', 'arrastre/S-10b', 'finalizado/S-01d', 'finalizado/S-02b'],
     invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) {
       await abrirPartido(page, '2026-08-20');
-      await page.click('button:has-text("Editar resultado")');
+      // El botón dejó de llevar texto visible: ahora es un ícono con aria-label (rebanada 4, FR-006).
+      await page.click('[aria-label="Editar resultado"]');
       await page.waitForTimeout(400);
     },
     async comprobar(page) {
@@ -1050,7 +1118,52 @@ const ESCENARIOS = [
     } },
 
   { clave: 'partido-jugador', rol: 'jugador', nombre: 'detalle de partido · finalizado (rol jugador)',
-    async preparar(page) { await abrirPartido(page, '2026-08-20'); } },
+    spec: ['finalizado/S-01c', 'finalizado/S-20'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    async preparar(page) { await abrirPartido(page, '2026-08-20'); },
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        /* Mismo contenido que `partido-finalizado`, salvo el lápiz (TD-01, FR-060, FR-061): los
+           dos roles comparten la misma rama de render. */
+        if (!document.querySelector('.cancha')) problemas.push('no se dibujó la cancha del partido finalizado para el rol jugador (finalizado/S-01c)');
+        if (!document.querySelector('.stat-goles, .stat-asistencias')) problemas.push('ninguna camiseta lleva chips de estadística para el rol jugador');
+        if (!document.querySelector('.fila-resultado')) problemas.push('no apareció la fila de resultado para el rol jugador');
+        if (!document.querySelector('.detalle-fila, .detalle-vacio')) problemas.push('no apareció ninguna fila de detalle para el rol jugador');
+        if (document.querySelector('.panel-icono-editar')) problemas.push('el rol jugador ve el ícono de editar resultado (finalizado/S-01c, FR-061)');
+        // Invocación directa, sin pasar por ningún botón: la guarda vive en la propia función
+        // (FR-062, TC-040), y llamarla sin permiso no debe mover ni un dato ni la pantalla.
+        const escriturasAntes = (window.__escrituras || []).length;
+        window.__editarResultadoFinalizado('m-finalizado');
+        if ((window.__escrituras || []).length !== escriturasAntes) {
+          problemas.push('invocar __editarResultadoFinalizado sin permiso produjo una escritura (finalizado/S-20, TC-040)');
+        }
+        if (!document.querySelector('.cancha')) problemas.push('invocar __editarResultadoFinalizado sin permiso cambió la pantalla a la de edición (finalizado/S-20, TC-040)');
+        return problemas;
+      });
+    } },
+
+  { clave: 'finalizado-nueve', rol: 'admin', nombre: 'partido finalizado · fútbol 9',
+    /* Mismo criterio que `partido-editando` (`arrastre/S-10b`): no depende del ancho más allá
+       del corte de columnas, así que basta con los dos anchos donde el corte cambia de lado. */
+    anchos: [360, 1200],
+    spec: ['finalizado/S-01b', 'finalizado/S-10', 'finalizado/S-10a'],
+    invariantes: [INVARIANTE_CHIPS_ESTADISTICA],
+    async preparar(page) { await abrirPartido(page, '2026-09-24'); },
+    async comprobar(page) {
+      const unaColumna = await page.evaluate(() => (document.querySelector('.panel-header-estrategia') || {}).textContent || '');
+      await page.setViewportSize({ width: 1200, height: 900 });
+      await page.waitForTimeout(200);
+      const dosColumnas = await page.evaluate(() => (document.querySelector('.panel-header-estrategia') || {}).textContent || '');
+      const problemas = [];
+      if (!/^Fútbol 9 · Formación 3-4-1 · Estrategia:/.test(unaColumna)) {
+        problemas.push(`a 360px la línea de estrategia de fútbol 9 no coincide (finalizado/S-10a): "${unaColumna}"`);
+      }
+      if (!/^Formación 3-4-1 · Estrategia:/.test(dosColumnas)) {
+        problemas.push(`a 1200px la línea de estrategia de fútbol 9 no coincide (finalizado/S-01b, finalizado/S-10): "${dosColumnas}"`);
+      }
+      return problemas;
+    } },
 
   { clave: 'configuracion', rol: 'admin', nombre: 'configuración del motor',
     async preparar(page) { await irAPestania(page, 'Configuración'); } },

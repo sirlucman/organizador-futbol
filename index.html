@@ -412,14 +412,14 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --stat-gap: -6px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --stat-gap: -6px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
   }
   /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
      olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
@@ -582,6 +582,78 @@
     .panel-receipt li{ gap: 8px; }
     .panel-receipt li::before{ margin-top: 6px; }
   }
+
+  /* ------------------------------------------------------------------ EL PARTIDO FINALIZADO
+     Rebanada 4 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md
+
+     Los valores salen del handoff (§ Chips de estadística, § Fila de resultado,
+     § Filas de detalle), traducidos a los tokens del repositorio (TC-030, TC-031). */
+
+  /* --- Encabezado (reutiliza .panel-header / .panel-icono de la rebanada 3) --- */
+  .panel-header-titulo{ min-width: 0; }
+  .panel-header-titulo h3{ text-transform: capitalize; }
+  .panel-header-estrategia{ margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--muted); }
+  .panel-icono-editar{ color: var(--ink); }
+  .panel-icono-editar:hover{ color: var(--pitch-deep); }
+
+  /* --- Chips de estadística (sobre la camiseta) ---
+     Prefijo `stat-` y no `chip-`: `--chip-bg`/`--chip-w`/`--chip-size` ya los usa el dibujo de la
+     camiseta y la columna de la cancha (rebanada 1) — reusar el prefijo pisaría esas variables.
+     `--stat-bg` es un color del handoff sin token propio en el design system (excepción de
+     TC-031, igual que `--chip-bg` ya lo es para el relleno de la camiseta).
+
+     El handoff ancla asistencias y goles cada uno a su propio borde de la camiseta
+     (`left:-9px` / `right:-9px`). Con un jugador que tiene un solo tipo de evento eso entra
+     perfecto (`.camiseta-fig > .stat-asistencias` / `> .stat-goles`, abajo). El problema es
+     cuando tiene los DOS a la vez: sobre una camiseta de 44 a 52px —el caso común, no el
+     borde: ver el comentario de `INVARIANTE_CHIPS_ESTADISTICA`— los dos grupos anclados cada
+     uno a su lado no tienen lugar y se solapan. Ahí, y sólo ahí, `renderCamiseta` los envuelve
+     en `.stat-chips`, un `flex` centrado bajo la camiseta con un `gap` real entre los dos —el
+     mismo mecanismo que ya evita que se solapen los dos PILLS de un mismo grupo (goles y en
+     contra)—, y por eso ya no son hijos DIRECTOS de `.camiseta-fig` y el ancla de abajo no les
+     aplica. */
+  :root{ --stat-bg: #E8EBE6; }
+  .stat-chips{ position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: var(--stat-group-gap); white-space: nowrap; }
+  .stat-asistencias, .stat-goles{ display: flex; align-items: center; }
+  .camiseta-fig > .stat-asistencias{ position: absolute; bottom: -3px; left: var(--stat-edge); }
+  .camiseta-fig > .stat-goles{ position: absolute; bottom: -3px; right: var(--stat-edge); }
+  .stat-pill{ display: flex; align-items: center; gap: 1px; height: var(--stat-h); padding: 0 3px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); margin-left: var(--stat-gap); }
+  .stat-pill:first-child{ margin-left: 0; }
+  .stat-pill img{ width: var(--stat-icon); height: var(--stat-icon); display: block; }
+  /* `.team-panel.negro .icon-boot` invierte la pelota a blanco para leerse sobre el panel oscuro
+     (rebanada 3). El chip es un pill CLARO también en el equipo Negro, así que ahí la pelota
+     invertida casi no se ve: se restituye el mismo ícono que ya usa el equipo Blanco. */
+  .team-panel.negro .stat-pill .icon-boot{ filter: none; }
+
+  /* --- Fila de resultado --- */
+  .fila-resultado{ display: flex; align-items: center; justify-content: center; gap: 24px; padding: 12px 0; margin-bottom: 12px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); }
+  .resultado-equipo{ flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .resultado-equipo.der{ align-items: flex-end; }
+  .resultado-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; }
+  .resultado-puntaje{ font-family: var(--font-display); font-weight: 900; font-size: 16px; line-height: 24px; font-variant-numeric: tabular-nums; }
+  .resultado-pts{ font-size: 12px; color: var(--muted); margin-left: 3px; }
+  .resultado-marcador{ flex: none; display: flex; align-items: baseline; gap: 4px; font-family: var(--font-display); font-weight: 900; font-size: 40px; line-height: 44px; font-variant-numeric: tabular-nums; }
+  .resultado-guion{ font-size: 22px; color: var(--muted); }
+  /* El puntaje de armado sólo se ve en dos columnas (FR-041, FR-042): es CSS, no una rama en JS
+     (TD-07) — el marcado siempre lleva los dos `<span>`, y acá se ocultan. */
+  @media (max-width: 900px){
+    .resultado-puntaje, .resultado-pts{ display: none; }
+    .resultado-marcador{ font-size: 30px; line-height: 34px; }
+    .resultado-guion{ font-size: 17px; }
+  }
+
+  /* --- Filas de detalle (debajo de cada campo) --- */
+  .detalle-equipo{ margin-top: 10px; }
+  .detalle-fila{ display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .detalle-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--ink); }
+  .detalle-cifra{ display: flex; align-items: center; gap: 3px; font-family: var(--font-display); font-weight: 900; font-size: 12px; }
+  .detalle-cifra img{ width: 14px; height: 14px; }
+  .detalle-nota{ font-size: 11px; color: var(--muted); }
+  .detalle-vacio{ margin-top: 6px; font-size: 13px; color: var(--muted); opacity: 0.75; }
+  .team-panel.negro .detalle-nombre{ color: var(--chalk); }
+  .team-panel.negro .detalle-nota{ color: rgba(255,255,255,0.65); }
+  .team-panel.negro .detalle-vacio{ color: rgba(255,255,255,0.65); }
 
   .modal-overlay{ position: fixed; inset: 0; background: rgba(32,29,26,0.45); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px; }
   .modal-overlay.open{ display:flex; }
@@ -1217,6 +1289,12 @@
   }
   function canchaLabel(m){
     return (CANCHAS[m.cancha] || CANCHAS.futbol8).label;
+  }
+  /* "3-4-1": defensores-volantes-delanteros de la formación del tamaño de cancha del partido,
+     nunca una cadena literal (rebanada 4 de "Equipos en el campo", FR-005b, FR-005c, TC-035). */
+  function formacionTexto(m){
+    const f = (CANCHAS[m.cancha] || CANCHAS.futbol8).formacion;
+    return f.defensores + '-' + f.volantes + '-' + f.delanteros;
   }
 
   const FORM_IDS = {
@@ -3891,8 +3969,10 @@
   function mostrarCanchaDeEquipos(m){
     const finalizado = m.estado === 'Finalizado';
     const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
-    return !cerrada && !finalizado;
+    // La cancha se extiende al partido finalizado sin editar (rebanada 4, FR-020, FR-063, FR-064):
+    // sólo queda fuera la inscripción cerrada SIN finalizar, y mientras se edita el resultado.
+    const cerradaSinFinalizar = m.inscripcionCerrada && !finalizado;
+    return !cerradaSinFinalizar && !editandoFinalizado;
   }
 
   function esFilaEditable(m){
@@ -4141,10 +4221,23 @@
         + ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
       : '';
+    // Chips de goles/goles en contra/asistencias del partido finalizado, sin editar (rebanada 4,
+    // TD-04): la condición se resuelve acá, leyendo `m` completo, en vez de agregar un parámetro.
+    const finalizadoSinEditarChips = m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id;
+    const chips = finalizadoSinEditarChips
+      ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, m.resultado.statsPorJugador))
+      : { asistenciasHtml: '', golesHtml: '' };
+    // Con un solo tipo de evento, ese chip queda como hijo DIRECTO de .camiseta-fig y se ancla a
+    // su propio borde (asistencias a la izquierda, goles a la derecha). Con los dos a la vez, se
+    // envuelven en un flex centrado para que no se solapen (INVARIANTE_CHIPS_ESTADISTICA) — ver
+    // el comentario del CSS de .stat-chips.
+    const chipsHtml = (chips.asistenciasHtml && chips.golesHtml)
+      ? '<div class="stat-chips">' + chips.asistenciasHtml + chips.golesHtml + '</div>'
+      : (chips.asistenciasHtml || chips.golesHtml);
     return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
-      + puntajeHtml + candadoHtml
+      + puntajeHtml + candadoHtml + chipsHtml
       + '</div>' + nombreHtml + '<span class="drop-realce"></span></div>';
   }
 
@@ -4742,6 +4835,8 @@
   const ICON_REGENERAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
   const ICON_ATENCION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
   const ICON_CHEVRON = '<svg class="panel-estrategia-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  // Ícono del botón de editar resultado del partido finalizado (rebanada 4, FR-006).
+  const ICON_LAPIZ = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
   /* La píldora de diferencia. En dos columnas vive en el encabezado; en una baja a la fila del
      equipo visible, que es donde el handoff la pone en su vista compacta (FR-004, FR-005). */
@@ -4850,9 +4945,8 @@
     if(m.inscripcionCerrada && m.estado !== 'Finalizado'){
       botones.push('<button class="btn-primary" onclick="window.__finalizarPartido(\'' + m.id + '\')">Finalizar partido</button>');
     }
-    if(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id){
-      botones.push('<button class="btn-ghost" onclick="window.__editarResultadoFinalizado(\'' + m.id + '\')">Editar resultado</button>');
-    }
+    // El botón "Editar resultado" se mudó al encabezado del partido finalizado, como ícono
+    // (rebanada 4, FR-006, FR-009b — reemplaza el texto que vivía acá).
     if(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id){
       botones.push('<button class="btn-primary" onclick="window.__guardarEdicionResultado(\'' + m.id + '\')">Guardar cambios</button>');
       botones.push('<button class="btn-ghost" onclick="window.__cancelarEdicionResultado(\'' + m.id + '\')">Cancelar</button>');
@@ -4906,6 +5000,25 @@
     const eq = m.equipos;
     const blancoPlayers = jugadoresDeEquipoOrdenados(m, eq.blanco);
     const negroPlayers = jugadoresDeEquipoOrdenados(m, eq.negro);
+
+    /* Partido finalizado, sin edición en curso: una única rama, compartida por "admin" y
+       "jugador" (rebanada 4, TD-01) — FR-060 hace que los dos roles vean lo mismo salvo el
+       lápiz, que `renderEncabezadoPartidoFinalizado` resuelve por su cuenta. Va ANTES de las
+       dos ramas de abajo y retorna temprano: no se toca ninguna de sus líneas (R-04). */
+    if(m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id){
+      const stats = m.resultado.statsPorJugador;
+      section.innerHTML = `
+        ${renderEncabezadoPartidoFinalizado(m)}
+        ${renderFilaResultado(m)}
+        ${renderZonaEquipos(m, {
+          blanco: { header: 'Equipo Blanco',
+            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + `<div class="detalle-equipo">${renderFilasDetalle(eq.blanco, stats)}</div>` },
+          negro: { header: 'Equipo Negro',
+            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + `<div class="detalle-equipo">${renderFilasDetalle(eq.negro, stats)}</div>` }
+        })}
+      `;
+      return;
+    }
 
     if(!isAdmin()){
       // "jugador" ve qué jugador quedó en qué equipo (con sus estadísticas, vía renderTeamPlayerRow),
@@ -5026,6 +5139,135 @@
       st.golesPenal = clamped;
       inp.value = clamped;
     });
+  }
+
+  /* ------------------------------------------------------------------ EL PARTIDO FINALIZADO
+     Rebanada 4 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md
+
+     Todo lo que decide un número o un texto va acá, puro y sin DOM (mismo criterio que `TD-01`
+     de la rebanada 3): `renderCamiseta` y `renderTeamsSection` sólo componen cadenas con estos
+     resultados. */
+
+  /* Línea de estrategia del encabezado, según las cuatro combinaciones de columnas × tamaño de
+     cancha (FR-003, FR-005, FR-005b, FR-005c). */
+  function lineaEstrategiaPartidoFinalizado(m, unaColumna){
+    const esNueve = m.cancha === 'futbol9';
+    const resumen = ESTRATEGIAS[m.equipos.estrategiaKey].resumen;
+    const partes = [];
+    if(unaColumna) partes.push(canchaLabel(m));
+    if(esNueve) partes.push('Formación ' + formacionTexto(m));
+    partes.push('Estrategia: ' + resumen);
+    return partes.join(' · ');
+  }
+
+  /* Estadísticas de una unidad de armado (jugador suelto o dupla): sobre una dupla SUMA los
+     cuatro campos de los dos integrantes, con el mismo criterio que `valorDePuntaje` usa para el
+     puntaje combinado (FR-036, TD-05). Ausentes cuentan como 0, para tolerar partidos viejos sin
+     `golesEnContra`. */
+  function statsAgregadasDeUnidad(grupo, statsPorJugador){
+    return grupo.reduce((acc, p) => {
+      const st = statsPorJugador[p.id] || {};
+      acc.goles += st.goles || 0;
+      acc.golesPenal += st.golesPenal || 0;
+      acc.golesEnContra += st.golesEnContra || 0;
+      acc.asistencias += st.asistencias || 0;
+      return acc;
+    }, { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 });
+  }
+
+  /* Los chips que van sobre la camiseta: asistencias a la izquierda, goles y goles en contra a
+     la derecha, en ese orden (FR-030 a FR-035). El chip de goles suma penales y de juego en un
+     solo número: el desglose "de penal" vive sólo en la fila de detalle (FR-031). */
+  function renderChipsEstadistica(stats){
+    const pill = (n, icon) => '<span class="stat-pill">' + n + icon + '</span>';
+    const golesHtml = (stats.goles > 0 || stats.golesEnContra > 0)
+      ? '<span class="stat-goles">'
+        + (stats.goles > 0 ? pill(stats.goles, GOAL_ICON) : '')
+        + (stats.golesEnContra > 0 ? pill(stats.golesEnContra, RED_GOAL_ICON) : '')
+        + '</span>'
+      : '';
+    const asistenciasHtml = stats.asistencias > 0 ? '<span class="stat-asistencias">' + pill(stats.asistencias, BOOT_ICON) + '</span>' : '';
+    return { asistenciasHtml, golesHtml };
+  }
+
+  /* Los goleadores de un equipo, para las filas de detalle. Función PROPIA de esta rebanada, sin
+     compartir código con `matchResultSummaryHtml` (TD-06): esa función es una superficie distinta
+     (la tarjeta colapsada de la lista de partidos) que la Spec excluye explícitamente de tocar. */
+  function goleadoresDeEquipo(ids, statsPorJugador){
+    return ids
+      .map(id => ({ p: players.find(pl => pl.id === id),
+        goles: (statsPorJugador[id]||{}).goles || 0,
+        golesPenal: (statsPorJugador[id]||{}).golesPenal || 0,
+        golesEnContra: (statsPorJugador[id]||{}).golesEnContra || 0 }))
+      .filter(x => x.p && (x.goles > 0 || x.golesEnContra > 0))
+      .sort((a,b) => b.goles - a.goles);
+  }
+
+  /* Las filas de detalle debajo de un campo: una por goleador, con el desglose de penal y de en
+     contra en líneas separadas, y "Sin goleadores" si no hay ninguno (FR-050 a FR-057). El nombre
+     se antepone en la línea de en contra sólo cuando el jugador no tiene línea de goles propios
+     (FR-054), y todo nombre se inserta escapado (FR-057, TC-041). */
+  function renderFilasDetalle(ids, statsPorJugador){
+    const goleadores = goleadoresDeEquipo(ids, statsPorJugador);
+    if(!goleadores.length) return '<div class="detalle-vacio">Sin goleadores</div>';
+    return goleadores.map(x => {
+      const lineas = [];
+      if(x.goles > 0){
+        lineas.push('<div class="detalle-fila"><span class="detalle-nombre">' + escaparHtml(fullName(x.p)) + '</span>'
+          + '<span class="detalle-cifra">' + x.goles + GOAL_ICON + '</span>'
+          + (x.golesPenal > 0 ? '<span class="detalle-nota">(' + x.golesPenal + ' de penal)</span>' : '')
+          + '</div>');
+      }
+      if(x.golesEnContra > 0){
+        const prefijo = x.goles > 0 ? '' : '<span class="detalle-nombre">' + escaparHtml(fullName(x.p)) + '</span>';
+        lineas.push('<div class="detalle-fila">' + prefijo
+          + '<span class="detalle-cifra">' + x.golesEnContra + RED_GOAL_ICON + '</span>'
+          + '<span class="detalle-nota">(EC)</span></div>');
+      }
+      return lineas.join('');
+    }).join('');
+  }
+
+  /* La fila de resultado: nombre + puntaje de armado a cada costado (sólo en el marcado — el CSS
+     lo oculta en una columna, TD-07) y el marcador real al centro, con `totalGolesEquipo`
+     (FR-040 a FR-042). */
+  function renderFilaResultado(m){
+    const stats = m.resultado.statsPorJugador;
+    const golesBlanco = totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats);
+    const golesNegro = totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats);
+    const lado = (nombre, puntaje, alineacion) =>
+      '<div class="resultado-equipo ' + alineacion + '"><span class="resultado-nombre">' + nombre + '</span>'
+      + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>';
+    return '<div class="fila-resultado">'
+      + lado('Blanco', m.equipos.sumaBlanco, 'izq')
+      + '<div class="resultado-marcador"><span>' + golesBlanco + '</span><span class="resultado-guion">-</span><span>' + golesNegro + '</span></div>'
+      + lado('Negro', m.equipos.sumaNegro, 'der')
+      + '</div>';
+  }
+
+  /* El encabezado del partido finalizado: fecha (+ cancha en dos columnas), la línea de
+     estrategia como texto fijo, y los íconos de Copiar (siempre) y Editar resultado (sólo
+     `admin` — FR-060, FR-061, la única diferencia entre los dos roles de `TD-01`). */
+  function renderEncabezadoPartidoFinalizado(m){
+    const unaColumna = enUnaColumna();
+    const titulo = formatFecha(m.fecha) + (unaColumna ? '' : ' - ' + canchaLabel(m));
+    const estrategia = lineaEstrategiaPartidoFinalizado(m, unaColumna);
+    const copiado = copiadoDelPartido === m.id;
+    const accionCopiar = copiado ? 'Equipos copiados' : 'Copiar equipos';
+    const botones = ['<button type="button" class="panel-icono panel-icono-copiar' + (copiado ? ' copiado' : '') + '"'
+      + ' aria-label="' + accionCopiar + '" title="' + accionCopiar + '"'
+      + ' onclick="window.__copiarFormacion(\'' + m.id + '\')">' + (copiado ? ICON_TILDE : ICON_COPIAR) + '</button>'];
+    if(isAdmin()){
+      botones.push('<button type="button" class="panel-icono panel-icono-editar"'
+        + ' aria-label="Editar resultado" title="Editar resultado"'
+        + ' onclick="window.__editarResultadoFinalizado(\'' + m.id + '\')">' + ICON_LAPIZ + '</button>');
+    }
+    return '<div class="panel-header">'
+      + '<div class="panel-header-titulo"><h3>' + escaparHtml(titulo) + '</h3>'
+      + '<p class="panel-header-estrategia">' + escaparHtml(estrategia) + '</p></div>'
+      + '<div class="panel-header-acciones">' + botones.join('') + '</div>'
+      + '</div>';
   }
 
   /* ================= PARTIDOS (Slice 2) ================= */

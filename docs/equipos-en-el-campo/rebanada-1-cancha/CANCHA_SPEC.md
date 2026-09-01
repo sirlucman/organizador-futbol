@@ -6,7 +6,7 @@
 >
 > **Concept note:** [EQUIPOS_EN_EL_CAMPO_CONCEPT.md](../EQUIPOS_EN_EL_CAMPO_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [CANCHA_IMPLEMENTATION_PLAN.md](./CANCHA_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5
 > *Sources & Origins* del Concept Note. Donde un `FR-*` / `NFR-*` / `TC-*`

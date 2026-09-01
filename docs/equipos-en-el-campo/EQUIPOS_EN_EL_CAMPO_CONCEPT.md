@@ -1,19 +1,24 @@
 # Equipos en el campo — Concept Note
 
-> **Status:** Draft · **Date:** 2026-08-31 · **Owner:** Lucas Manoukian
+> **Status:** Draft · **Date:** 2026-09-01 · **Owner:** Lucas Manoukian
 >
 > **Reviewers:** *pending*
 >
-> **Rebanada 1 · la cancha:** [CANCHA_SPEC.md](./rebanada-1-cancha/CANCHA_SPEC.md) ·
-> [CANCHA_IMPLEMENTATION_PLAN.md](./rebanada-1-cancha/CANCHA_IMPLEMENTATION_PLAN.md)
+> **Estado de las siete rebanadas de `D-08`** (al 2026-09-01):
 >
-> **Rebanada 2 · el arrastre:** [ARRASTRE_SPEC.md](./rebanada-2-arrastre/ARRASTRE_SPEC.md) ·
-> [ARRASTRE_IMPLEMENTATION_PLAN.md](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md)
+> | # | Rebanada | Estado | Documentos |
+> |---|---|---|---|
+> | 1 | La cancha | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-1-cancha/CANCHA_SPEC.md) · [Plan](./rebanada-1-cancha/CANCHA_IMPLEMENTATION_PLAN.md) |
+> | 2 | El arrastre | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-2-arrastre/ARRASTRE_SPEC.md) · [Plan](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md) |
+> | 3 | El panel de armado | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) · [Plan](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md) |
+> | 4 | El partido finalizado | **En curso** — rama `docs/partido-finalizado` abierta, Spec y Plan escritos, código pendiente | [Spec](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) · [Plan](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md) |
+> | 5 | El modelo de eventos | Pendiente — la única sin efecto visible | *not yet written* |
+> | 6 | La carga por toque | Pendiente | *not yet written* |
+> | 7 | La configuración | Pendiente — **opcional** (§14) | *not yet written* |
 >
-> **Rebanada 3 · el panel de armado:** [PANEL_ARMADO_SPEC.md](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) ·
-> [PANEL_ARMADO_IMPLEMENTATION_PLAN.md](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md)
->
-> **Rebanadas 4 a 7:** *not yet written*
+> "Mergeada" es lo que el repositorio prueba: la rama `feature/<rebanada>` está
+> en `main`. La validación en la aplicación real que pide `D-08` es un paso
+> aparte, y este bloque no la afirma.
 
 ## 1. TL;DR
 
@@ -177,12 +182,12 @@ C4Context
 - **Related work** — El handoff de diseño completo vive en
   [`handoff/`](./handoff/): un README de 845 líneas con medidas, tokens, estados y
   reglas, más `Equipos en el campo.dc.html`, un prototipo interactivo de doce
-  vistas. La constitución del proyecto
-  ([`.specify/memory/constitution.md`](../../.specify/memory/constitution.md),
-  v2.4.0) fija seis principios, de los cuales tres condicionan fuertemente este
-  rediseño: el III (todo lo que decide el motor debe explicarse), el V (responsive
-  verificado por medición desde 360 px) y el VI (el design system es la fuente de
-  verdad de la UI).
+  vistas. Las restricciones transversales del proyecto
+  ([`openspec/config.yaml`](../../openspec/config.yaml), gobernanza vigente desde
+  el 2026-09-01) fijan, entre otros, tres principios que condicionan fuertemente
+  este rediseño: la explicabilidad del motor de generación (todo lo que decide el
+  motor debe explicarse), el responsive verificado por medición desde 360 px, y el
+  design system como fuente de verdad de la UI.
 
 - **Organisational context** — No hay fecha límite externa ni compromiso con
   terceros. El trabajo se entrega por rebanadas para poder validar cada una en la
@@ -242,13 +247,17 @@ C4Context
 
 - *Style / project convention:*
   [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
-  v2.4.0 — Principio II (simplicidad: la solución más simple que cumpla, sin
-  anticipar infraestructura), Principio III (explicabilidad del motor: fundamenta
-  que el bloque "Por qué quedaron así" es obligatorio y no decorativo), Principio
-  IV (desacople interfaz / motor / persistencia: fundamenta `D-01`), Principio V
-  (responsive medido desde 360 px: origen del conflicto que resuelve `D-03`),
-  Principio VI (design system como fuente de verdad de UI: fundamenta que los
-  tokens del handoff se toman del design system y no se inventan).
+  v2.4.0 (consultada a la fecha de este documento) — Principio II (simplicidad:
+  la solución más simple que cumpla, sin anticipar infraestructura), Principio
+  III (explicabilidad del motor: fundamenta que el bloque "Por qué quedaron así"
+  es obligatorio y no decorativo), Principio IV (desacople interfaz / motor /
+  persistencia: fundamenta `D-01`), Principio V (responsive medido desde 360 px:
+  origen del conflicto que resuelve `D-03`), Principio VI (design system como
+  fuente de verdad de UI: fundamenta que los tokens del handoff se toman del
+  design system y no se inventan). Estas restricciones se mudaron a
+  [`openspec/config.yaml`](../../openspec/config.yaml) el 2026-09-01, sin cambio
+  de contenido; la cita de versión de arriba queda como registro de qué se
+  consultó al escribir este documento.
 - *Style / project convention:*
   [`.claude/skills/football-app-design/`](../../.claude/skills/football-app-design/)
   — el design system referenciado por el Principio VI, del que el handoff toma
@@ -657,13 +666,18 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa a enlazar también `PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md`, ya escrito, y el puntero de cierre anuncia el código de `feature/partido-finalizado` como próximo paso en vez del Plan. Sin cambios de contenido. Self-critique: no corresponde (actualización de estado). |
+| 2026-09-01 | Lucas Manoukian | Actualización de referencias: las dos citas a `.specify/memory/constitution.md` (§6 *Related work* y §6.5 *Industry-standard evidence*) se actualizan tras el retiro de ese archivo el 2026-09-01. §6 pasa a apuntar a `openspec/config.yaml`, sin conservar la numeración de principios (que ahí ya no existe); §6.5, al ser un ledger de grounding con versión pinneada (v2.4.0, la vigente al escribir este documento), conserva la cita íntegra y agrega una nota de dónde vive el contenido ahora. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de referencias, verificada contra los archivos reales). |
+| 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa de "sin documentos todavía" a enlazar `PARTIDO_FINALIZADO_SPEC.md`, ya escrita. Se corrige el puntero de cierre para anunciar el Implementation Plan de la rebanada 4 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |
+| 2026-09-01 | Lucas Manoukian | Actualización de estado: el bloque de encabezado pasa de listar las rebanadas escritas a declarar el estado de las siete, con la fecha de merge de cada una. Se corrige el puntero de cierre, que seguía anunciando el Implementation Plan de la rebanada 1 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el historial de `git`). |
 | 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 3: se incorporan `D-22` a `D-25`, las cuatro decisiones de producto tomadas con el propietario al fijar el alcance del panel de armado. `D-22` cierra la `OPEN-Q-07` que este documento había dejado abierta para esta Spec, y `D-25` cierra la `OPEN-Q-03` que la rebanada 2 había elevado. Se agrega a §14 el diferido del texto de Copiar, y el bloque de encabezado pasa a listar las tres rebanadas escritas. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 2: se incorporan `D-18` a `D-21`, las cuatro decisiones de producto que se tomaron al escribir su Spec y que habían quedado registradas dentro de ella. Por la separación de tres documentos (`MD-01`) su lugar es esta §10: `D-19` y `D-21` en particular alcanzan a las rebanadas siguientes, no sólo a la 2. Se agrega además a §17 la lección sobre inferir capacidades desde la ausencia de código. Cierra la `OPEN-Q-07` de la Spec de la rebanada 2. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Initial draft, más las seis resoluciones del barrido del mismo día (`D-12` a `D-17`; `OPEN-Q-01` a `OPEN-Q-06` cerradas, `OPEN-Q-07` abierta). Self-critique: passed (1🔴 / 2🟡 / 2🔵) — el 🔴 (cita a `explicacionesGeneracion`, símbolo inexistente heredado del handoff) y un 🟡 (rango de líneas de las funciones de fila) resueltos; el 🟡 restante, sobre el encuadre de §2, elevado al autor. |
 
 ---
 
-*Next document: Implementation Plan de la rebanada 1
-(`docs/equipos-en-el-campo/rebanada-1-cancha/`). El Concept Note cubre el rediseño
-completo; cada rebanada de `D-08` recibe su propia Spec e Implementation Plan, en
-su subcarpeta `rebanada-N-<nombre>/`.*
+*Next document: el código de `feature/partido-finalizado`, según
+`PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md`
+(`docs/equipos-en-el-campo/rebanada-4-partido-finalizado/`). El Concept Note cubre
+el rediseño completo; cada rebanada de `D-08` recibe su propia Spec e
+Implementation Plan, en su subcarpeta `rebanada-N-<nombre>/`.*
