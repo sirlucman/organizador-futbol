@@ -170,7 +170,15 @@ function fakeFirebase({ datos, rol }) {
       const value = docs[key];
       return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
     },
-    set: async (obj) => { window.__escrituras.push(key); docs[key] = obj && obj.value; },
+    set: async (obj) => {
+      window.__escrituras.push(key);
+      /* Además de la clave, el CONTENIDO. La rebanada 2 necesita comprobar no sólo que se
+         escribió, sino QUÉ: que el conjunto de campos del partido no creció y que
+         `posicionAsignada` quedó igual (Spec del arrastre, NFR-005, TC-012). */
+      window.__ultimosDocs = window.__ultimosDocs || {};
+      window.__ultimosDocs[key] = obj && obj.value;
+      docs[key] = obj && obj.value;
+    },
   });
   const auth = () => ({
     setPersistence: async () => {},

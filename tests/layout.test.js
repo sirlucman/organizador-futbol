@@ -234,6 +234,59 @@ const INVARIANTE_CANCHA_A11Y = () => {
   return [...new Set(problemas)].slice(0, 4);
 };
 
+/* En una columna se ve UN equipo por vez: si hubiera dos canchas con selector, o una sin él,
+   el modo de layout y el render estarían discrepando. Y la pestaña es el destino de todo
+   movimiento en angosto, así que su tamaño es funcional: el piso son 44px (NFR-002). */
+const INVARIANTE_SELECTOR = () => {
+  const canchas = document.querySelectorAll('.cancha').length;
+  const tabs = [...document.querySelectorAll('.equipo-tab')];
+  if (!canchas) return [];   // pantallas sin cancha: no aplica
+  const problemas = [];
+  if (tabs.length && canchas !== 1) {
+    problemas.push(`hay selector y ${canchas} canchas: en una columna se dibuja una sola`);
+  }
+  if (!tabs.length && canchas !== 2) {
+    problemas.push(`no hay selector y ${canchas} cancha(s): en dos columnas se dibujan las dos`);
+  }
+  for (const tab of tabs) {
+    const b = tab.getBoundingClientRect();
+    if (b.width < 44 - 0.5 || b.height < 44 - 0.5) {
+      problemas.push(`la pestaña "${tab.textContent.trim()}" mide ${Math.round(b.width)}x${Math.round(b.height)}px, por debajo del piso de 44px`);
+    }
+    if (!(tab.getAttribute('aria-pressed') || '').trim()) {
+      problemas.push(`la pestaña "${tab.textContent.trim()}" no expone aria-pressed: no se sabe cuál está seleccionada`);
+    }
+  }
+  /* Toda camiseta arrastrable anuncia el gesto; si no, el arrastre es invisible para quien no
+     lo descubre por accidente (NFR-003). */
+  for (const c of document.querySelectorAll('.camiseta[draggable="true"]')) {
+    if (!(c.getAttribute('title') || '').trim()) problemas.push('una camiseta arrastrable quedó sin title');
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
+/* Donde no hay cancha no puede haber arrastre: ni camisetas arrastrables, ni zonas de drop, ni
+   selector. Corre en TODAS las pantallas, que es lo que hace que valga — un escenario que sólo
+   mira la pantalla que le toca no puede afirmar que el arrastre no se filtró a otra
+   (S-10, S-10a, S-10b, S-10c, S-06b). */
+const INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA = () => {
+  if (document.querySelector('.cancha')) return [];
+  const problemas = [];
+  const arrastrables = document.querySelectorAll('[draggable="true"]').length;
+  const filas = document.querySelectorAll('.team-player-row[draggable]').length;
+  const tabs = document.querySelectorAll('.equipo-tab').length;
+  const zonas = document.querySelectorAll('.team-panel[ondrop], .cancha[ondrop]').length;
+  if (filas) problemas.push(`${filas} fila(s) de equipo siguen arrastrables sin cancha en pantalla (FR-050)`);
+  if (tabs) problemas.push(`se dibujó el selector de equipo en una pantalla sin cancha (FR-040)`);
+  if (zonas) problemas.push(`${zonas} zona(s) de drop de equipos en una pantalla sin cancha`);
+  /* Los arrastres de convocatoria y plantel NO entran acá: son mecanismos distintos sobre
+     pantallas distintas, y esta rebanada los deja como están (FR-052). */
+  if (arrastrables && !document.querySelector('.conv-row[draggable="true"], .row[draggable="true"]')) {
+    problemas.push(`quedaron ${arrastrables} elementos arrastrables sin cancha y sin ser convocatoria ni plantel`);
+  }
+  return problemas;
+};
+
 /* ----------------------------------------------------------------- escenarios */
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
@@ -286,11 +339,12 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
-    spec: ['S-10'], invariante: INVARIANTE_INPUTS_DE_CARGA,
+    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b'], invariante: INVARIANTE_INPUTS_DE_CARGA,
+    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); } },
 
   { clave: 'partido-finalizado', rol: 'admin', nombre: 'detalle de partido · finalizado',
-    spec: ['S-10a'],
+    spec: ['cancha/S-10a', 'arrastre/S-10a'], invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); } },
 
   /* --- la cancha (rebanada 1 de "Equipos en el campo") --- */
@@ -299,8 +353,11 @@ const ESCENARIOS = [
     /* `S-01f` es la propiedad de no-superposición: la satisface INVARIANTE_CANCHA, que corre en
        los trece anchos y sobre las dos canchas. Se declara acá porque los invariantes no llevan
        lista propia de identificadores. */
-    spec: ['S-01', 'S-01f', 'S-03', 'NFR-001', 'NFR-006'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y],
+    /* El invariante del selector se suma acá porque estos dos escenarios son los que corren en
+       los TRECE anchos: es donde 'una cancha con selector, dos sin él' se verifica de verdad
+       en todo el rango, y no sólo en los cuatro que mide `arrastre-selector` (S-04d). */
+    spec: ['cancha/S-01', 'cancha/S-01f', 'cancha/S-03', 'cancha/NFR-001', 'cancha/NFR-006', 'arrastre/S-04d', 'arrastre/NFR-001'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR],
     /* La línea de base se toma DESPUÉS de que la aplicación cargó y ANTES de entrar al partido.
        Al arrancar, la aplicación corre sus migraciones y escribe `players`, `playerScores` y
        `ordenJugadoresMigrado`; eso es de siempre y no tiene nada que ver con la cancha. Lo que
@@ -322,8 +379,8 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-9', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 9 (fila de cuatro)',
-    spec: ['S-01a', 'S-01f', 'S-03a', 'S-06', 'S-06a', 'S-06b', 'S-06c', 'S-06d', 'NFR-001', 'NFR-002'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y],
+    spec: ['cancha/S-01a', 'cancha/S-01f', 'cancha/S-03a', 'cancha/S-06', 'cancha/S-06a', 'cancha/S-06b', 'cancha/S-06c', 'cancha/S-06d', 'cancha/NFR-001', 'cancha/NFR-002', 'arrastre/S-04d', 'arrastre/NFR-001'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR],
     async preparar(page) { await abrirPartido(page, '2026-09-10'); },
     async comprobar(page) {
       return page.evaluate(() => {
@@ -340,7 +397,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-jugador', rol: 'jugador', nombre: 'equipos generados sobre la cancha (rol jugador)',
-    spec: ['S-05', 'S-04c'],
+    spec: ['cancha/S-05', 'cancha/S-04c'],
     invariantes: [INVARIANTE_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
@@ -369,7 +426,10 @@ const ESCENARIOS = [
     /* Cuatro anchos y no trece: lo que se prueba es comportamiento. Los cuatro cubren igual los
        cuatro escalones de medidas, que es lo único sensible al ancho acá (el tamaño del candado). */
     anchos: [360, 390, 901, 1200],
-    spec: ['S-04', 'S-04a', 'S-04b', 'S-04d', 'NFR-003', 'NFR-004', 'NFR-005'],
+    /* La rebanada 2 vuelve arrastrable la camiseta que contiene este botón, así que su
+       comportamiento pasa a ser una no-regresión de esta rebanada además de un requisito de
+       la anterior: por eso el escenario lleva ahora identificadores de las dos. */
+    spec: ['cancha/S-04', 'cancha/S-04a', 'cancha/S-04b', 'cancha/S-04d', 'arrastre/S-05', 'cancha/NFR-003', 'cancha/NFR-004', 'cancha/NFR-005'],
     invariantes: [INVARIANTE_CANCHA_A11Y],
     async preparar(page) { await abrirPartido(page, '2026-09-10'); },
     async comprobar(page) {
@@ -421,10 +481,269 @@ const ESCENARIOS = [
       return problemas;
     } },
 
+  { clave: 'arrastre-selector', rol: 'admin', nombre: 'selector de equipo y zonas de drop',
+    /* Los cuatro anchos son los que importan: 360 y 900 caen de un lado del punto de corte, 901
+       y 1200 del otro. Son S-04a y S-04b, que es lo que impide que el literal del CSS y el del
+       JavaScript se desincronicen (TC-015). */
+    anchos: [360, 900, 901, 1200],
+    spec: ['arrastre/S-04', 'arrastre/S-04a', 'arrastre/S-04b', 'arrastre/S-06', 'arrastre/S-04d', 'arrastre/NFR-002', 'arrastre/NFR-003'],
+    invariantes: [INVARIANTE_SELECTOR],
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async comprobar(page) {
+      const problemas = [];
+      const foto = () => page.evaluate(() => ({
+        ancho: window.innerWidth,
+        canchas: document.querySelectorAll('.cancha').length,
+        tabs: document.querySelectorAll('.equipo-tab').length,
+        visible: document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null,
+        arrastrables: document.querySelectorAll('.camiseta[draggable="true"]').length,
+        canchasConDrop: [...document.querySelectorAll('.cancha')].filter(c => c.getAttribute('ondrop')).length,
+        panelesConDrop: [...document.querySelectorAll('.team-panel')].filter(c => c.getAttribute('ondrop')).length,
+        filasArrastrables: document.querySelectorAll('.team-player-row[draggable]').length,
+        realcesQueCapturan: [...document.querySelectorAll('.drop-realce')]
+          .filter(r => getComputedStyle(r).pointerEvents !== 'none').length,
+      }));
+      const a = await foto();
+      const unaColumna = a.ancho <= 900;
+      if (unaColumna && (a.canchas !== 1 || a.tabs !== 2)) {
+        problemas.push(`a ${a.ancho}px debería haber 1 cancha y 2 pestañas, y hay ${a.canchas} y ${a.tabs} (S-04a)`);
+      }
+      if (!unaColumna && (a.canchas !== 2 || a.tabs !== 0)) {
+        problemas.push(`a ${a.ancho}px deberían verse las 2 canchas sin selector, y hay ${a.canchas} y ${a.tabs} pestañas (S-04b)`);
+      }
+      /* S-06: el DOM declara qué acepta. El drop vive en la cancha y en la pestaña, no en el
+         panel, para que el realce coincida con la zona que efectivamente recibe (TC-014). */
+      if (!a.arrastrables) problemas.push('ninguna camiseta quedó marcada como arrastrable');
+      if (a.canchasConDrop !== a.canchas) problemas.push(`${a.canchas - a.canchasConDrop} cancha(s) sin aceptar el drop`);
+      if (a.panelesConDrop) problemas.push(`${a.panelesConDrop} panel(es) siguen aceptando el drop: la zona es la cancha (TC-014)`);
+      if (a.filasArrastrables) problemas.push(`quedaron ${a.filasArrastrables} filas de lista arrastrables (FR-050)`);
+      if (a.realcesQueCapturan) problemas.push(`${a.realcesQueCapturan} realce(s) capturan el puntero y se comerían el dragover (TC-034)`);
+      /* S-04: activar la otra pestaña cambia el equipo visible. */
+      if (unaColumna) {
+        const otra = await page.$('.equipo-tab[aria-pressed="false"]');
+        if (!otra) { problemas.push('no había pestaña inactiva para probar el cambio de equipo'); return problemas; }
+        await otra.click(); await page.waitForTimeout(300);
+        const b = await foto();
+        if (b.visible === a.visible) problemas.push(`activar la otra pestaña no cambió el equipo visible (sigue en ${b.visible})`);
+        if (b.canchas !== 1) problemas.push(`tras cambiar de pestaña hay ${b.canchas} canchas y debería haber 1`);
+      }
+      return problemas;
+    } },
+
+  { clave: 'arrastre-drop', rol: 'admin', nombre: 'soltar una camiseta: mover, intercambiar y cancelar',
+    /* Comportamiento, no layout: dos anchos, uno de cada lado del punto de corte, porque las
+       zonas disponibles difieren (en angosto la pestaña; en ancho la cancha y la camiseta). */
+    anchos: [360, 1200],
+    spec: ['arrastre/S-01', 'arrastre/S-01e', 'arrastre/S-02', 'arrastre/S-21d', 'arrastre/NFR-004', 'arrastre/NFR-005', 'arrastre/NFR-007'],
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async comprobar(page) {
+      const problemas = [];
+      await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
+      const posicionesAntes = JSON.parse(docsDesde()['partidos']).find(x => x.id === 'm-nueve').equipos.posicionAsignada;
+      /* El drop nativo no se puede conducir con el mouse de Playwright, así que se despacha el
+         evento con su DataTransfer. Cubre el cableado DOM → manejador, que es lo que un test
+         puede cubrir; que el navegador dispare el gesto desde un dedo queda en A-01. */
+      const r = await page.evaluate(async () => {
+        const antes = [...document.querySelectorAll('.cancha')].map(c => c.querySelectorAll('.camiseta').length);
+        const cam = document.querySelector('.camiseta[draggable="true"]');
+        const pest = [...document.querySelectorAll('.equipo-tab')].find(b => b.getAttribute('aria-pressed') === 'false');
+        const otraCancha = [...document.querySelectorAll('.cancha')][1];
+        const dt = new DataTransfer();
+        cam.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+        const id = dt.getData('text/plain');
+        const zona = pest || otraCancha;
+        zona.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        const realce = zona.querySelector('.drop-realce');
+        const realceVisible = realce ? getComputedStyle(realce).display !== 'none' : false;
+        const t0 = performance.now();
+        zona.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        await new Promise(res => requestAnimationFrame(res));
+        const ms = performance.now() - t0;
+        return { id, antes, realceVisible, ms, viaPestania: !!pest };
+      });
+      await page.waitForTimeout(300);
+      const tras = await page.evaluate(() => ({
+        porCancha: [...document.querySelectorAll('.cancha')].map(c => c.querySelectorAll('.camiseta').length),
+        visible: document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null,
+        realcesPegados: document.querySelectorAll('.drop-activo').length,
+        escrituras: (window.__escrituras || []).length - window.__escrituras_base,
+      }));
+      if (!r.realceVisible) problemas.push('la zona bajo el puntero no se realzó durante el dragover (FR-014)');
+      if (!r.id) problemas.push('el dragstart no dejó el identificador en el dataTransfer');
+      if (!tras.escrituras) problemas.push('soltar sobre una zona válida no produjo ninguna escritura (S-01)');
+      if (tras.realcesPegados) problemas.push(`quedaron ${tras.realcesPegados} realce(s) pegados tras soltar (FR-008)`);
+      if (r.viaPestania) {
+        /* S-01: soltar sobre la pestaña mueve Y revela ese equipo, para que el resultado quede a
+           la vista (FR-034). */
+        if (tras.porCancha[0] !== r.antes[0] + 1) {
+          problemas.push(`tras soltar en la pestaña la cancha visible tiene ${tras.porCancha[0]} camisetas y debería tener ${r.antes[0] + 1} (S-01, FR-034)`);
+        }
+      } else if (tras.porCancha[1] !== r.antes[1] + 1 || tras.porCancha[0] !== r.antes[0] - 1) {
+        problemas.push(`tras soltar en la cancha contraria quedó ${JSON.stringify(tras.porCancha)} y se esperaba [${r.antes[0] - 1}, ${r.antes[1] + 1}]`);
+      }
+      if (r.ms > 150) problemas.push(`el ciclo soltar-guardar-repintar tardó ${Math.round(r.ms)}ms, por encima del techo de 150ms (NFR-004)`);
+
+      /* NFR-005 y TC-012: no alcanza con que se haya escrito — importa QUÉ. El conjunto de
+         claves no puede crecer, y la posición asignada de nadie puede haber cambiado: la línea
+         en la que cae cada camiseta se deriva de ese dato, y esta rebanada no lo toca. */
+      const datos = await page.evaluate(() => {
+        const docs = window.__ultimosDocs || {};
+        const partidos = docs['partidos'] ? JSON.parse(docs['partidos']) : null;
+        const m = partidos ? partidos.find(x => x.id === 'm-nueve') : null;
+        return {
+          claves: [...new Set(window.__escrituras || [])],
+          posicionAsignada: m && m.equipos ? m.equipos.posicionAsignada : null,
+        };
+      });
+      const permitidas = ['partidos', 'partidosArmado', 'players', 'playerScores', 'motorConfig',
+        'ordenJugadoresMigrado', 'statsGanadosEmpatadosPerdidosMigrado', 'partidosArmadoMigrado'];
+      const deMas = datos.claves.filter(k => !permitidas.includes(k));
+      if (deMas.length) problemas.push(`se escribieron claves inesperadas: ${deMas.join(', ')} (NFR-005)`);
+      if (!datos.posicionAsignada) problemas.push('no se pudo leer la posición asignada del documento escrito (NFR-005)');
+      else if (JSON.stringify(datos.posicionAsignada) !== JSON.stringify(posicionesAntes)) {
+        problemas.push('un movimiento manual cambió la posición asignada de alguien (TC-012, FR-022)');
+      }
+
+      /* S-01e: un arrastre que se cancela antes de soltarse no modifica nada. */
+      const cancelado = await page.evaluate(() => {
+        const antes = [...document.querySelectorAll('.cancha')].map(c => c.querySelectorAll('.camiseta').length);
+        const escrituras = (window.__escrituras || []).length;
+        const cam = document.querySelector('.camiseta[draggable="true"]');
+        const dt = new DataTransfer();
+        cam.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+        const zona = document.querySelector('.equipo-tab[aria-pressed="false"]') || [...document.querySelectorAll('.cancha')][1];
+        zona.dispatchEvent(new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        cam.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+        return {
+          igual: JSON.stringify(antes) === JSON.stringify([...document.querySelectorAll('.cancha')].map(c => c.querySelectorAll('.camiseta').length)),
+          sinEscribir: (window.__escrituras || []).length === escrituras,
+          realces: document.querySelectorAll('.drop-activo').length,
+        };
+      });
+      if (!cancelado.igual) problemas.push('cancelar el arrastre movió a alguien (S-01e)');
+      if (!cancelado.sinEscribir) problemas.push('cancelar el arrastre produjo una escritura (S-01e)');
+      if (cancelado.realces) problemas.push('cancelar el arrastre dejó el realce pegado (S-01e, FR-008)');
+
+      /* S-21d: un drop con contenido que no es una unidad del partido no mueve ni revela nada. */
+      const basura = await page.evaluate(() => {
+        const escrituras = (window.__escrituras || []).length;
+        const visible = document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null;
+        const zona = document.querySelector('.equipo-tab[aria-pressed="false"]') || [...document.querySelectorAll('.cancha')][1];
+        const dt = new DataTransfer();
+        dt.setData('text/plain', 'no-soy-un-jugador');
+        zona.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        return {
+          sinEscribir: (window.__escrituras || []).length === escrituras,
+          visibleIgual: (document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null) === visible,
+        };
+      });
+      if (!basura.sinEscribir) problemas.push('un drop con contenido ajeno al partido produjo una escritura (S-21d, TC-041)');
+      if (!basura.visibleIgual) problemas.push('un drop con contenido ajeno cambió el equipo visible (S-21d)');
+      return problemas;
+    } },
+
+  { clave: 'arrastre-jugador', rol: 'jugador', nombre: 'la cancha con rol jugador: selector sí, arrastre no',
+    anchos: [360, 1200],
+    spec: ['arrastre/S-06a', 'arrastre/S-04c'],
+    invariantes: [INVARIANTE_SELECTOR],
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async comprobar(page) {
+      const problemas = [];
+      const a = await page.evaluate(() => ({
+        ancho: window.innerWidth,
+        tabs: document.querySelectorAll('.equipo-tab').length,
+        arrastrables: document.querySelectorAll('.camiseta[draggable="true"]').length,
+        zonasConDrop: document.querySelectorAll('[ondrop]').length,
+        visible: document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null,
+      }));
+      if (a.arrastrables) problemas.push(`el rol jugador vio ${a.arrastrables} camisetas arrastrables (FR-041)`);
+      if (a.zonasConDrop) problemas.push(`el rol jugador vio ${a.zonasConDrop} zonas de drop (FR-041b, FR-038b)`);
+      /* S-04c: el selector SÍ está para el jugador — puede mirar el otro equipo, no moverlo. */
+      if (a.ancho <= 900) {
+        if (a.tabs !== 2) { problemas.push(`el rol jugador debería ver el selector en una columna, y vio ${a.tabs} pestañas (FR-038)`); return problemas; }
+        await page.click('.equipo-tab[aria-pressed="false"]');
+        await page.waitForTimeout(300);
+        const b = await page.evaluate(() => document.querySelector('.equipo-tabs').dataset.visible);
+        if (b === a.visible) problemas.push('el rol jugador no pudo cambiar de equipo visible (FR-038)');
+      }
+      return problemas;
+    } },
+
+  { clave: 'arrastre-permisos', rol: 'jugador', nombre: 'invocar el movimiento sin permiso no escribe',
+    anchos: [1200],
+    spec: ['arrastre/S-20', 'arrastre/S-20c', 'arrastre/NFR-007'],
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async comprobar(page) {
+      /* La guarda está en el manejador y no sólo en el render: una vista que apenas deja de
+         marcar la camiseta como arrastrable deja la acción alcanzable desde la consola (TC-040). */
+      /* Origen y destino son de equipos DISTINTOS, leídos del fixture. Un primer intento pasaba
+         el mismo jugador en los dos lados, y así el intercambio no hacía nada por su propia
+         regla: el escenario pasaba sin ejercitar la guarda. Es la ruta del intercambio la que
+         importa acá, porque es la única que no tiene otra guarda detrás. */
+      const nueve = JSON.parse(docsDesde()['partidos']).find(x => x.id === 'm-nueve');
+      const origen = nueve.equipos.blanco[0];
+      const destino = nueve.equipos.negro[0];
+      const base = await page.evaluate(({ origen, destino }) => {
+        const n = (window.__escrituras || []).length;
+        const dt = new DataTransfer();
+        dt.setData('text/plain', origen);
+        const ev = () => new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt });
+        window.__dropEnCancha(ev(), 'm-nueve', 'negro');
+        window.__dropEnPestana(ev(), 'm-nueve', 'negro');
+        window.__dropEnCamiseta(ev(), 'm-nueve', destino);
+        return n;
+      }, { origen, destino });
+      /* `saveMatches` es async: la escritura llega varios `await` después de que el manejador
+         vuelve. Leer el contador de forma síncrona daba cero SIEMPRE, con guarda y sin ella —
+         un test que no podía fallar. */
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(n => (window.__escrituras || []).length - n, base);
+      return r ? [`invocar los manejadores con rol jugador produjo ${r} escritura(s) (S-20, TC-040)`] : [];
+    } },
+
+  { clave: 'arrastre-permisos-estado', rol: 'admin', nombre: 'invocar el movimiento con el partido cerrado o finalizado no escribe',
+    anchos: [1200],
+    spec: ['arrastre/S-20a', 'arrastre/S-20b'],
+    async preparar(page) { await abrirPartido(page, '2026-08-27'); },
+    async comprobar(page) {
+      /* El identificador que se pasa SÍ pertenece a esos partidos, a propósito: si se usara uno
+         inventado, el test pasaría por la validación de identificador (TC-041) y no probaría lo
+         que dice probar, que es la guarda de ESTADO (TC-040). */
+      /* Los identificadores salen del MISMO fixture que alimenta a la aplicación, leído acá en
+         Node: así el test no necesita ningún gancho dentro de `index.html`. */
+      const partidos = JSON.parse(docsDesde()['partidos']);
+      const casos = ['m-cerrado', 'm-finalizado'].map(id => {
+        const m = partidos.find(x => x.id === id);
+        return { matchId: id, pid: m && m.equipos ? m.equipos.blanco[0] : null };
+      });
+      const base = await page.evaluate((casos) => {
+        const n = (window.__escrituras || []).length;
+        for (const { matchId, pid } of casos) {
+          if (!pid) continue;
+          const dt = new DataTransfer();
+          dt.setData('text/plain', pid);
+          window.__dropEnCancha(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }), matchId, 'negro');
+          window.__dropEnPestana(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }), matchId, 'negro');
+        }
+        return n;
+      }, casos);
+      /* Ver el comentario de `arrastre-permisos`: `saveMatches` es async y hay que esperarla, o
+         el test pasa siempre. */
+      await page.waitForTimeout(400);
+      const escrituras = await page.evaluate(n => (window.__escrituras || []).length - n, base);
+      const problemas = [];
+      for (const caso of casos) {
+        if (!caso.pid) problemas.push(`no se pudo leer el reparto de ${caso.matchId} para la prueba`);
+      }
+      if (escrituras) problemas.push(`invocar los manejadores sobre un partido cerrado o finalizado produjo ${escrituras} escritura(s): la guarda de estado no corrió (S-20a, S-20b, TC-040)`);
+      return problemas;
+    } },
+
   { clave: 'partido-editando', rol: 'admin', nombre: 'detalle de partido · finalizado, editando el resultado',
     /* La pantalla no la toca esta rebanada —conserva la lista—, así que acá se verifica sólo eso.
        El layout de la lista con inputs ya lo miden `partido-cerrado` y `partido-finalizado`. */
-    anchos: [360, 900, 1200], spec: ['S-10b'],
+    anchos: [360, 900, 1200], spec: ['cancha/S-10b', 'arrastre/S-10b'],
+    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) {
       await abrirPartido(page, '2026-08-20');
       await page.click('button:has-text("Editar resultado")');
@@ -440,7 +759,8 @@ const ESCENARIOS = [
     } },
 
   { clave: 'partido-sin-equipos', rol: 'admin', nombre: 'detalle de partido · sin equipos generados',
-    anchos: [360, 1200], spec: ['S-10c'],
+    anchos: [360, 1200], spec: ['cancha/S-10c', 'arrastre/S-10c'],
+    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-09-17'); },
     async comprobar(page) {
       return page.evaluate(() =>
@@ -618,7 +938,12 @@ async function main() {
       /* `comprobar` es para lo que no es layout: que la cancha aparezca donde tiene que aparecer,
          que el candado haga lo que dice, que abrir la pantalla no escriba. No depende del ancho,
          así que corre UNA vez por escenario y no trece. */
-      if (caso.comprobar && w === ANCHOS[0]) {
+      /* `comprobar` corre UNA vez por escenario, en su PRIMER ancho — el suyo, no el global.
+         Decía `ANCHOS[0]`, y con eso un escenario que acotaba `anchos` sin incluir 360 nunca
+         corría su comprobación y se reportaba en verde igual: salteo silencioso, que es
+         justamente lo que el comentario de ESCENARIOS dice no querer. Lo descubrió
+         `arrastre-permisos-estado`, que declara `anchos: [1200]`. */
+      if (caso.comprobar && w === (caso.anchos || ANCHOS)[0]) {
         try { problemas = problemas.concat(await caso.comprobar(page)); }
         catch (e) { problemas.push('la comprobación de comportamiento tiró: ' + e.message.split('\n')[0]); }
       }

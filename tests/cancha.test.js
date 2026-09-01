@@ -96,7 +96,7 @@ const lineasDe = (m, grupos) => C.agruparEnLineasDeCancha(m, grupos).map(l => ({
 console.log(`\nLa cancha — ${SPEC}\n`);
 console.log('\x1b[1mAGRUPADO EN LÍNEAS\x1b[0m — el reparto de las camisetas sobre el campo\n');
 
-prueba('"S-02" con la Estrategia 1 (sin posiciones asignadas) cada jugador cae en su posición declarada', () => {
+prueba('"cancha/S-02" con la Estrategia 1 (sin posiciones asignadas) cada jugador cae en su posición declarada', () => {
   const grupos = [
     uno(J('a', 'Arquero')), uno(J('b', 'Defensor')), uno(J('c', 'Volante')), uno(J('d', 'Delantero')),
   ];
@@ -105,27 +105,27 @@ prueba('"S-02" con la Estrategia 1 (sin posiciones asignadas) cada jugador cae e
      'las cuatro líneas, en orden de dibujo: Ataque arriba, Arco abajo');
 });
 
-prueba('"S-01" la posición del motor gana sobre la principal declarada', () => {
+prueba('"cancha/S-01" la posición del motor gana sobre la principal declarada', () => {
   const j = J('x', 'Delantero');
   eq(lineasDe(M({ x: 'Arquero' }), [uno(j)]), [{ pos: 'Arquero', n: 1 }],
      'posicionAsignada del motor manda sobre p.principal');
 });
 
-prueba('"S-01b" una línea sin jugadores no se dibuja', () => {
+prueba('"cancha/S-01b" una línea sin jugadores no se dibuja', () => {
   const grupos = [uno(J('b', 'Defensor')), uno(J('c', 'Volante')), uno(J('d', 'Delantero'))];
   const lineas = lineasDe(M(null), grupos);
   eq(lineas.map(l => l.pos), ['Delantero', 'Volante', 'Defensor'],
      'sin arquero asignado, la línea de Arco no aparece y el alto se reparte entre las tres');
 });
 
-prueba('"S-02c" un equipo sin ningún arquero no rompe el render', () => {
+prueba('"cancha/S-02c" un equipo sin ningún arquero no rompe el render', () => {
   const grupos = Array.from({ length: 8 }, (_, i) => uno(J('v' + i, 'Volante')));
   const lineas = lineasDe(M(null), grupos);
   eq(lineas.length, 1, 'una sola línea');
   eq(lineas[0], { pos: 'Volante', n: 8 }, 'los ocho volantes en la línea del Medio');
 });
 
-prueba('"S-01e" una unidad que no corresponde a ningún jugador no interrumpe el dibujo del resto', () => {
+prueba('"cancha/S-01e" una unidad que no corresponde a ningún jugador no interrumpe el dibujo del resto', () => {
   /* La aplicación resuelve los ids con `players.find(...).filter(Boolean)`, así que un id que ya
      no existe llega como una lista más corta, no como `undefined`. Lo que se verifica es que el
      agrupado no dependa de que la cantidad sea la esperada. */
@@ -134,26 +134,26 @@ prueba('"S-01e" una unidad que no corresponde a ningún jugador no interrumpe el
      'dibuja las dos unidades que sí existen');
 });
 
-prueba('"S-01" una posición fuera del catálogo cae al final y no rompe el orden', () => {
+prueba('"cancha/S-01" una posición fuera del catálogo cae al final y no rompe el orden', () => {
   const grupos = [uno(J('a', 'Arquero')), uno(J('z', 'Wing'))];
   eq(lineasDe(M(null), grupos).map(l => l.pos), ['Arquero', 'Wing'],
      'la posición desconocida queda debajo del arco, sin excepción');
 });
 
-prueba('"S-03" una dupla de rotación ocupa UNA sola posición en su línea', () => {
+prueba('"cancha/S-03" una dupla de rotación ocupa UNA sola posición en su línea', () => {
   const dupla = [J('d1', 'Volante'), J('d2', 'Volante')];
   const grupos = [dupla, uno(J('v', 'Volante'))];
   eq(lineasDe(M(null), grupos), [{ pos: 'Volante', n: 2 }],
      'dos unidades en el Medio: la dupla cuenta como una');
 });
 
-prueba('"S-03b" la dupla se ubica por la posición asignada de su PRIMER integrante', () => {
+prueba('"cancha/S-03b" la dupla se ubica por la posición asignada de su PRIMER integrante', () => {
   const dupla = [J('d1', 'Volante'), J('d2', 'Delantero')];
   eq(lineasDe(M({ d1: 'Defensor' }), [dupla]), [{ pos: 'Defensor', n: 1 }],
      'la unidad va entera a una línea; no se parte entre dos');
 });
 
-prueba('"S-01" dos renderizados del mismo reparto dan el mismo orden', () => {
+prueba('"cancha/S-01" dos renderizados del mismo reparto dan el mismo orden', () => {
   const grupos = ['a', 'b', 'c'].map(id => uno(J(id, 'Volante')));
   const m = M(null);
   const primero = C.agruparEnLineasDeCancha(m, grupos)[0].unidades.map(u => u[0].id);
@@ -164,32 +164,32 @@ prueba('"S-01" dos renderizados del mismo reparto dan el mismo orden', () => {
 
 console.log('\n\x1b[1mSUB-FILAS\x1b[0m — el caso que el handoff no diseñó\n');
 
-prueba('"S-01c" una línea de cuatro va en un solo renglón', () => {
+prueba('"cancha/S-01c" una línea de cuatro va en un solo renglón', () => {
   eq(C.partirLineaEnSubfilas([1, 2, 3, 4]).map(f => f.length), [4], 'sin partir');
 });
 
-prueba('"S-01d" una línea de cinco se parte en dos sub-filas, la de arriba con la mitad hacia arriba', () => {
+prueba('"cancha/S-01d" una línea de cinco se parte en dos sub-filas, la de arriba con la mitad hacia arriba', () => {
   eq(C.partirLineaEnSubfilas([1, 2, 3, 4, 5]).map(f => f.length), [3, 2], 'tres arriba, dos abajo');
 });
 
-prueba('"S-02a" cinco volantes declarados producen la línea partida, no una fila de cinco', () => {
+prueba('"cancha/S-02a" cinco volantes declarados producen la línea partida, no una fila de cinco', () => {
   const grupos = Array.from({ length: 5 }, (_, i) => uno(J('v' + i, 'Volante')));
   const linea = C.agruparEnLineasDeCancha(M(null), grupos)[0];
   eq(C.partirLineaEnSubfilas(linea.unidades).map(f => f.length), [3, 2],
      'es el caso real de la Estrategia 1, no uno hipotético');
 });
 
-prueba('"S-02b" los ocho titulares en la misma línea se parten en cuatro y cuatro', () => {
+prueba('"cancha/S-02b" los ocho titulares en la misma línea se parten en cuatro y cuatro', () => {
   eq(C.partirLineaEnSubfilas(Array.from({ length: 8 }, (_, i) => i)).map(f => f.length), [4, 4],
      'ninguna sub-fila supera las cuatro camisetas');
 });
 
-prueba('"S-02b" nueve en la misma línea siguen siendo dos sub-filas, no tres', () => {
+prueba('"cancha/S-02b" nueve en la misma línea siguen siendo dos sub-filas, no tres', () => {
   eq(C.partirLineaEnSubfilas(Array.from({ length: 9 }, (_, i) => i)).map(f => f.length), [5, 4],
      'FR-014 fija dos sub-filas; el ancho lo absorbe el escalón de medidas');
 });
 
-prueba('"S-01d" el corte no depende del contenido, sólo de cuántos son', () => {
+prueba('"cancha/S-01d" el corte no depende del contenido, sólo de cuántos son', () => {
   const cortos = C.partirLineaEnSubfilas(['a', 'b', 'c', 'd', 'e']).map(f => f.length);
   const largos = C.partirLineaEnSubfilas(['Maximiliano', 'Bartolomé', 'Juan Cruz', 'Leandro', 'Nicolás']).map(f => f.length);
   eq(cortos, largos, 'dos equipos con el mismo reparto se parten igual, con nombres largos o cortos');
@@ -197,7 +197,7 @@ prueba('"S-01d" el corte no depende del contenido, sólo de cuántos son', () =>
 
 console.log('\n\x1b[1mNOMBRE Y ESCAPADO\x1b[0m\n');
 
-prueba('"S-01" el nombre de la camiseta es el primer nombre más la inicial del último apellido', () => {
+prueba('"cancha/S-01" el nombre de la camiseta es el primer nombre más la inicial del último apellido', () => {
   eq(C.nombreCorto({ nombre: 'Nicolás', apellido: 'Vallejos' }), 'Nicolás V.', 'caso típico');
   eq(C.nombreCorto({ nombre: 'Juan Cruz', apellido: 'de la Vega' }), 'Juan V.', 'apellido de varias palabras: la última identifica');
   eq(C.nombreCorto({ nombre: 'Lucas Manoukian', apellido: '' }), 'Lucas M.',
@@ -206,31 +206,31 @@ prueba('"S-01" el nombre de la camiseta es el primer nombre más la inicial del 
      'la inicial es la primera LETRA del último token, no su primer carácter');
 });
 
-prueba('"S-01" un jugador sin apellido muestra sólo su nombre', () => {
+prueba('"cancha/S-01" un jugador sin apellido muestra sólo su nombre', () => {
   eq(C.nombreCorto({ nombre: 'Alfredo', apellido: '' }), 'Alfredo', 'el apellido es opcional en la ficha');
   eq(C.nombreCorto({ nombre: 'Fabian' }), 'Fabian', 'y puede no estar');
 });
 
-prueba('"S-20" un nombre con caracteres de marcado se muestra como texto literal', () => {
+prueba('"cancha/S-20" un nombre con caracteres de marcado se muestra como texto literal', () => {
   eq(C.escaparHtml('Ana & <b>Luis</b>'), 'Ana &amp; &lt;b&gt;Luis&lt;/b&gt;', 'nada se interpreta como markup');
 });
 
-prueba('"S-20a" la comilla doble se escapa: es la que rompe un atributo', () => {
+prueba('"cancha/S-20a" la comilla doble se escapa: es la que rompe un atributo', () => {
   /* No es un caso inventado: el plantel testigo de staging tiene a `Leandro "cuñado" Lauty`.
      Sin escapar, su title terminaría en `title="Leandro "cuñado" Lauty · Volante"` y el atributo
      se cortaría en la segunda comilla. */
   eq(C.escaparHtml('Leandro "cuñado" Lauty'), 'Leandro &quot;cuñado&quot; Lauty', 'la comilla no cierra el atributo');
 });
 
-prueba('"S-20b" una etiqueta de apertura de script no se ejecuta', () => {
+prueba('"cancha/S-20b" una etiqueta de apertura de script no se ejecuta', () => {
   eq(C.escaparHtml('<script>alert(1)</script>'), '&lt;script&gt;alert(1)&lt;/script&gt;', 'queda inerte');
 });
 
-prueba('"S-20" el ampersand se escapa primero, o se re-escaparían los otros tres', () => {
+prueba('"cancha/S-20" el ampersand se escapa primero, o se re-escaparían los otros tres', () => {
   eq(C.escaparHtml('&lt;'), '&amp;lt;', 'un texto que ya parece una entidad no se rompe');
 });
 
-prueba('"S-20" un nombre vacío o ausente no produce "undefined" sobre la camiseta', () => {
+prueba('"cancha/S-20" un nombre vacío o ausente no produce "undefined" sobre la camiseta', () => {
   eq(C.escaparHtml(undefined), '', 'undefined');
   eq(C.escaparHtml(null), '', 'null');
 });
@@ -287,25 +287,25 @@ const enCancha = (m, equipo) => m.equipos[equipo].slice();
 
 /* ---------- dónde se puede soltar ---------- */
 
-prueba('"S-01d" soltar sobre la pestaña del propio equipo no produce ningún movimiento', () => {
+prueba('"arrastre/S-01d" soltar sobre la pestaña del propio equipo no produce ningún movimiento', () => {
   const m = ochoContraOcho();
   eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'pestana', equipo: 'blanco' }), null,
      'la pestaña del propio equipo no es zona de drop');
 });
 
-prueba('"S-02b" soltar sobre la cancha contraria, y no sobre una camiseta, es un movimiento simple', () => {
+prueba('"arrastre/S-02b" soltar sobre la cancha contraria, y no sobre una camiseta, es un movimiento simple', () => {
   const m = ochoContraOcho();
   eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'cancha', equipo: 'negro' }),
      { tipo: 'mover', equipo: 'negro' }, 'debería resolver un movimiento al Negro');
 });
 
-prueba('"S-02c" soltar sobre una camiseta del propio equipo no produce ningún movimiento', () => {
+prueba('"arrastre/S-02c" soltar sobre una camiseta del propio equipo no produce ningún movimiento', () => {
   const m = ochoContraOcho();
   eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'camiseta', id: 'b-def1' }), null,
      'dos camisetas del mismo equipo no se intercambian: haría falta escribir la posición asignada');
 });
 
-prueba('"S-02d" soltar sobre la cancha del propio equipo no produce ningún movimiento', () => {
+prueba('"arrastre/S-02d" soltar sobre la cancha del propio equipo no produce ningún movimiento', () => {
   const m = ochoContraOcho();
   eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'cancha', equipo: 'blanco' }), null,
      'la cancha propia no es zona de drop');
@@ -313,13 +313,13 @@ prueba('"S-02d" soltar sobre la cancha del propio equipo no produce ningún movi
 
 /* ---------- identificadores que no pertenecen al partido (TC-041) ---------- */
 
-prueba('"S-21" un identificador que no está en el reparto no produce ningún movimiento', () => {
+prueba('"arrastre/S-21" un identificador que no está en el reparto no produce ningún movimiento', () => {
   const m = ochoContraOcho();
   eq(C.resolverDestinoDrop(m, 'no-existe', { clase: 'cancha', equipo: 'negro' }), null,
      'el dataTransfer lo puede llenar cualquier cosa arrastrada desde afuera');
 });
 
-prueba('"S-21a" texto arbitrario arrastrado desde otra aplicación no produce ningún movimiento', () => {
+prueba('"arrastre/S-21a" texto arbitrario arrastrado desde otra aplicación no produce ningún movimiento', () => {
   const m = ochoContraOcho();
   ['', '   ', 'https://example.com/foo', '{"id":"b-vol1"}', '<script>'].forEach(basura => {
     eq(C.resolverDestinoDrop(m, basura, { clase: 'cancha', equipo: 'negro' }), null,
@@ -327,7 +327,7 @@ prueba('"S-21a" texto arbitrario arrastrado desde otra aplicación no produce ni
   });
 });
 
-prueba('"S-21b" un jugador del plantel que no está convocado a este partido no se mueve', () => {
+prueba('"arrastre/S-21b" un jugador del plantel que no está convocado a este partido no se mueve', () => {
   const m = ochoContraOcho();
   C.__setPlayers([...m.equipos.blanco, ...m.equipos.negro].map(id => JP(id, 'Volante', 7))
     .concat([JP('suplente', 'Volante', 7)]));
@@ -335,7 +335,7 @@ prueba('"S-21b" un jugador del plantel que no está convocado a este partido no 
      'estar en el plantel no alcanza: la unidad tiene que estar en el reparto de ESTE partido');
 });
 
-prueba('"S-21c" un destino de intercambio ajeno al partido no produce ningún movimiento', () => {
+prueba('"arrastre/S-21c" un destino de intercambio ajeno al partido no produce ningún movimiento', () => {
   const m = ochoContraOcho();
   eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'camiseta', id: 'no-existe' }), null,
      'el destino se valida igual que el origen');
@@ -343,7 +343,7 @@ prueba('"S-21c" un destino de intercambio ajeno al partido no produce ningún mo
 
 /* ---------- el efecto del movimiento ---------- */
 
-prueba('"S-01c" mover una unidad deja los equipos con distinta cantidad, y se acepta', () => {
+prueba('"arrastre/S-01c" mover una unidad deja los equipos con distinta cantidad, y se acepta', () => {
   const m = ochoContraOcho();
   soltar(m, 'b-vol1', { clase: 'pestana', equipo: 'negro' });
   eq([m.equipos.blanco.length, m.equipos.negro.length], [7, 9],
@@ -351,14 +351,14 @@ prueba('"S-01c" mover una unidad deja los equipos con distinta cantidad, y se ac
   ok(m.equipos.negro.includes('b-vol1'), 'el jugador debería estar en el Negro');
 });
 
-prueba('"S-01b" una unidad fijada con el candado se mueve, y queda fijada en su equipo nuevo', () => {
+prueba('"arrastre/S-01b" una unidad fijada con el candado se mueve, y queda fijada en su equipo nuevo', () => {
   const m = ochoContraOcho({ bloqueados: ['b-vol1'] });
   soltar(m, 'b-vol1', { clase: 'pestana', equipo: 'negro' });
   ok(m.equipos.negro.includes('b-vol1'), 'el candado fija el equipo frente a una REGENERACIÓN, no frente a la edición manual');
   eq(m.bloqueados, ['b-vol1'], 'la lista de bloqueados no cambia por un movimiento manual');
 });
 
-prueba('"S-01a" al mover al único de su línea, esa línea deja de dibujarse', () => {
+prueba('"arrastre/S-01a" al mover al único de su línea, esa línea deja de dibujarse', () => {
   const m = ochoContraOcho();
   const lineasAntes = C.agruparEnLineasDeCancha(m, m.equipos.blanco.map(id => [JP(id, id.includes('arq') ? 'Arquero' : id.includes('def') ? 'Defensor' : id.includes('vol') ? 'Volante' : 'Delantero', 5)]));
   ok(lineasAntes.some(l => l.pos === 'Arquero'), 'antes hay línea de Arco');
@@ -368,7 +368,7 @@ prueba('"S-01a" al mover al único de su línea, esa línea deja de dibujarse', 
   ok(!lineasDespues.some(l => l.pos === 'Arquero'), 'sin arquero, la línea de Arco no se dibuja');
 });
 
-prueba('"S-01f" cualquier movimiento conserva la cantidad total de unidades', () => {
+prueba('"arrastre/S-01f" cualquier movimiento conserva la cantidad total de unidades', () => {
   const m = ochoContraOcho();
   const total = () => m.equipos.blanco.length + m.equipos.negro.length;
   const antes = total();
@@ -379,7 +379,7 @@ prueba('"S-01f" cualquier movimiento conserva la cantidad total de unidades', ()
 
 /* ---------- el intercambio ---------- */
 
-prueba('"S-02a" el intercambio se aplica aunque la camiseta de destino esté fijada', () => {
+prueba('"arrastre/S-02a" el intercambio se aplica aunque la camiseta de destino esté fijada', () => {
   const m = ochoContraOcho({ bloqueados: ['n-def1'] });
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   ok(m.equipos.negro.includes('b-vol1'), 'el arrastrado pasa al Negro');
@@ -387,7 +387,7 @@ prueba('"S-02a" el intercambio se aplica aunque la camiseta de destino esté fij
   eq(m.bloqueados, ['n-def1'], 'el bloqueo sigue donde estaba');
 });
 
-prueba('"S-02e" cualquier intercambio deja a cada equipo con la misma cantidad que antes', () => {
+prueba('"arrastre/S-02e" cualquier intercambio deja a cada equipo con la misma cantidad que antes', () => {
   const m = ochoContraOcho();
   const antes = [m.equipos.blanco.length, m.equipos.negro.length];
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
@@ -396,7 +396,7 @@ prueba('"S-02e" cualquier intercambio deja a cada equipo con la misma cantidad q
      'el intercambio existe justamente para corregir sin desbalancear');
 });
 
-prueba('"S-02e" el intercambio recalcula los totales de los dos equipos', () => {
+prueba('"arrastre/S-02e" el intercambio recalcula los totales de los dos equipos', () => {
   const m = ochoContraOcho();
   const sumaAntes = m.equipos.sumaBlanco + m.equipos.sumaNegro;
   soltar(m, 'b-del', { clase: 'camiseta', id: 'n-arq' });   // 8 pts contra 6 pts
@@ -406,7 +406,7 @@ prueba('"S-02e" el intercambio recalcula los totales de los dos equipos', () => 
 
 /* ---------- las duplas de rotación viajan enteras ---------- */
 
-prueba('"S-03" la dupla de rotación viaja entera al otro equipo', () => {
+prueba('"arrastre/S-03" la dupla de rotación viaja entera al otro equipo', () => {
   const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2']] });
   soltar(m, 'b-vol1', { clase: 'pestana', equipo: 'negro' });
   ok(m.equipos.negro.includes('b-vol1') && m.equipos.negro.includes('b-vol2'),
@@ -414,7 +414,7 @@ prueba('"S-03" la dupla de rotación viaja entera al otro equipo', () => {
   ok(!m.equipos.blanco.includes('b-vol2'), 'ninguno queda atrás');
 });
 
-prueba('"S-03a" al intercambiar dos duplas, las cuatro personas cambian de equipo', () => {
+prueba('"arrastre/S-03a" al intercambiar dos duplas, las cuatro personas cambian de equipo', () => {
   const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2'], ['n-def1', 'n-def2']] });
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   ['b-vol1', 'b-vol2'].forEach(id => ok(m.equipos.negro.includes(id), `${id} debería estar en el Negro`));
@@ -422,7 +422,7 @@ prueba('"S-03a" al intercambiar dos duplas, las cuatro personas cambian de equip
   eq([m.equipos.blanco.length, m.equipos.negro.length], [8, 8], 'dos por dos: las cantidades no cambian');
 });
 
-prueba('"S-03b" al intercambiar una dupla con un jugador, las UNIDADES quedan parejas y las personas no', () => {
+prueba('"arrastre/S-03b" al intercambiar una dupla con un jugador, las UNIDADES quedan parejas y las personas no', () => {
   const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2']] });
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   eq([m.equipos.blanco.length, m.equipos.negro.length], [7, 9],
@@ -432,7 +432,7 @@ prueba('"S-03b" al intercambiar una dupla con un jugador, las UNIDADES quedan pa
 
 /* ---------- escapado del texto que el arrastre agrega al title (TC-042) ---------- */
 
-prueba('"S-22" el nombre con marcado sigue escapado en el title que ahora anuncia el gesto', () => {
+prueba('"arrastre/S-22" el nombre con marcado sigue escapado en el title que ahora anuncia el gesto', () => {
   const nombre = '<img src=x onerror=alert(1)> "Pepe"';
   const compuesto = C.escaparHtml([nombre, 'Volante', 'arrastrala al otro equipo para pasarlo'].join(' · '));
   ok(!compuesto.includes('<'), 'no puede quedar ningún < sin escapar');
