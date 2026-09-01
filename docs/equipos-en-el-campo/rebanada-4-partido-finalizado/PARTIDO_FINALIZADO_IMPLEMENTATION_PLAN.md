@@ -167,26 +167,26 @@ Restatadas de [`AGENTS.md`](../../../AGENTS.md).
 
 ## 6. Definition of Done (every branch)
 
-- [ ] La implementación sigue las convenciones de §5
-- [ ] Cada sección de la Spec asignada a la rama está implementada
-- [ ] Cada escenario (`S-*`) y cada variante tiene un test ejecutable (`AC-50`; `T-1.D8` y `T-1.D8b`)
-- [ ] Cada NFR cuantificado —`NFR-001`, `NFR-002`— tiene un test de medición (`AC-51`; `T-1.D9`)
-- [ ] Cada `TC-*` de la Spec §4 tiene una entrada de verificación en §12 (`AC-52`; `T-1.D10` y `T-1.D10b`)
-- [ ] Las consecuencias están enumeradas en §12.2 (`AC-53`; `T-1.D15`)
-- [ ] Cada NFR cuantificado tiene al menos una fila `OBS-*` en §11 (`AC-54`; `T-1.D16`)
-- [ ] El lockfile pasa la auditoría, o §5 declara `Supply-chain: none` (`AC-55`; `T-1.D20`)
-- [ ] Cada riesgo `R-*` de §14 registra una vía de mitigación (`T-1.D17`)
-- [ ] Auto-consistencia: todo ID referenciado dentro de este Plan resuelve dentro de este Plan (`T-1.D18`)
-- [ ] Consistencia cruzada: todo ID de la Spec citado acá existe en la Spec, y todo `D-*` existe en el Concept Note (`T-1.D19`)
-- [ ] Todos los tests nuevos pasan
-- [ ] Todos los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
-- [ ] Linter: no aplica (§5), declarado
-- [ ] Type-checker: no aplica (§5), declarado
-- [ ] No quedan `TODO`, `FIXME` ni `HACK` en el código commiteado
-- [ ] El historial de commits es limpio y sigue el formato de §5 (`T-1.D11`)
-- [ ] La descripción del PR resume los cambios y cita las secciones de la Spec (`T-1.D12`)
-- [ ] **Gate propio del proyecto:** al menos un escenario nuevo de layout se vio fallar revirtiendo el cambio que lo motiva (Principio V, `TC-032`, `AC-28`), y la pantalla se miró en un navegador real a 360 px y a 1200 px con `node tools/servir-fixture.js` (`T-1.D13`)
-- [ ] PR abierto contra `main` (`T-1.D14`)
+- [x] La implementación sigue las convenciones de §5
+- [x] Cada sección de la Spec asignada a la rama está implementada
+- [x] Cada escenario (`S-*`) y cada variante tiene un test ejecutable (`AC-50`; `T-1.D8` y `T-1.D8b`)
+- [x] Cada NFR cuantificado —`NFR-001`, `NFR-002`— tiene un test de medición (`AC-51`; `T-1.D9`)
+- [x] Cada `TC-*` de la Spec §4 tiene una entrada de verificación en §12 (`AC-52`; `T-1.D10` y `T-1.D10b`)
+- [x] Las consecuencias están enumeradas en §12.2 (`AC-53`; `T-1.D15`)
+- [x] Cada NFR cuantificado tiene al menos una fila `OBS-*` en §11 (`AC-54`; `T-1.D16`)
+- [x] El lockfile pasa la auditoría, o §5 declara `Supply-chain: none` (`AC-55`; `T-1.D20`)
+- [x] Cada riesgo `R-*` de §14 registra una vía de mitigación (`T-1.D17`)
+- [x] Auto-consistencia: todo ID referenciado dentro de este Plan resuelve dentro de este Plan (`T-1.D18`)
+- [x] Consistencia cruzada: todo ID de la Spec citado acá existe en la Spec, y todo `D-*` existe en el Concept Note (`T-1.D19`)
+- [x] Todos los tests nuevos pasan
+- [x] Todos los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
+- [x] Linter: no aplica (§5), declarado
+- [x] Type-checker: no aplica (§5), declarado
+- [x] No quedan `TODO`, `FIXME` ni `HACK` en el código commiteado
+- [x] El historial de commits es limpio y sigue el formato de §5 (`T-1.D11`)
+- [x] La descripción del PR resume los cambios y cita las secciones de la Spec (`T-1.D12`)
+- [x] **Gate propio del proyecto:** al menos un escenario nuevo de layout se vio fallar revirtiendo el cambio que lo motiva (Principio V, `TC-032`, `AC-28`), y la pantalla se miró en un navegador real a 360 px y a 1200 px con `node tools/servir-fixture.js` (`T-1.D13`)
+- [x] PR abierto contra `main` (`T-1.D14`)
 
 ## 7. Branch / phase plan
 
@@ -200,7 +200,7 @@ Custom arc: 1 branch — D-11 del Concept Note fija dos ramas por rebanada, `doc
 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `feature/partido-finalizado` | `main` | Sin abrir | — | — | Se abre y se mergea después de `docs/partido-finalizado`, según `D-11` |
+| 1 | `feature/partido-finalizado` | `main` | Implementado, listo para PR | — | `node tests/finalizado.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js` pasan; `node tests/motor.test.js`, `node tests/cancha.test.js` y `node tests/panel.test.js` sin regresiones | Abierta después de `docs/partido-finalizado`, según `D-11` |
 
 ```mermaid
 flowchart LR
@@ -295,14 +295,14 @@ tests/layout.test.js      — DOM, medidas y roles: 16 escenarios y variantes
 
 #### 7.2.7 Verification
 
-- [ ] Un partido finalizado sin editar se dibuja como cancha, con chips en las camisetas que corresponde
-- [ ] La fila de resultado muestra el marcador real y, en 1200 px, el puntaje de armado de cada equipo
-- [ ] Debajo de cada campo aparece el detalle de goleadores, o "Sin goleadores"
-- [ ] El encabezado tiene fecha, estrategia como texto fijo, y los íconos de Copiar y Editar (sólo `admin`)
-- [ ] Ningún panel de equipo repite el puntaje ni el resultado
-- [ ] Editar un resultado finalizado sigue mostrando la lista de filas, sin cancha
-- [ ] `window.__escrituras` no gana claves nuevas al mostrar la tarjeta
-- [ ] Todos los tests existentes pasan
+- [x] Un partido finalizado sin editar se dibuja como cancha, con chips en las camisetas que corresponde
+- [x] La fila de resultado muestra el marcador real y, en 1200 px, el puntaje de armado de cada equipo
+- [x] Debajo de cada campo aparece el detalle de goleadores, o "Sin goleadores"
+- [x] El encabezado tiene fecha, estrategia como texto fijo, y los íconos de Copiar y Editar (sólo `admin`)
+- [x] Ningún panel de equipo repite el puntaje ni el resultado
+- [x] Editar un resultado finalizado sigue mostrando la lista de filas, sin cancha
+- [x] `window.__escrituras` no gana claves nuevas al mostrar la tarjeta
+- [x] Todos los tests existentes pasan
 
 #### 7.2.8 Files inventory
 
@@ -324,76 +324,76 @@ docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md
 
 Implementation tasks (agrupadas en commits atómicos):
 
-- [ ] T-1.1 Agregar `formacionTexto` en `index.html`, junto a `canchaLabel` ([`index.html:1218`](../../../index.html#L1218)) (`FR-005b`, `TC-035`)
-- [ ] T-1.2 Agregar `lineaEstrategiaPartidoFinalizado`, cubriendo las cuatro combinaciones de `FR-003`, `FR-005`, `FR-005b`, `FR-005c` (`TD-`)
-- [ ] T-1.3 Agregar `statsAgregadasDeUnidad`, sumando sobre `grupo` con `(stats[id]||{campo}||0)` para tolerar jugadores sin `golesEnContra` en partidos viejos (`FR-036`, `TD-05`)
-- [ ] T-1.4 Agregar `renderChipsEstadistica`, con el chip de goles sumando `goles` y `golesPenal` en un solo número (`FR-030` a `FR-035`)
-- [ ] T-1.5 Agregar `goleadoresDeEquipo`, sin compartir código con `matchResultSummaryHtml` (`FR-050`, `FR-056`, `TD-06`)
-- [ ] T-1.6 Agregar `renderFilasDetalle`, con el desglose de penal y de en contra, el antepuesto de nombre de `FR-054`, y `escaparHtml` en cada nombre (`FR-051` a `FR-057`)
-- [ ] T-1.7 Agregar `renderFilaResultado`, usando `totalGolesEquipo` ([`index.html:3777`](../../../index.html#L3777)) para el marcador y `m.equipos.sumaBlanco`/`sumaNegro` para el puntaje de armado (`FR-040` a `FR-042`)
-- [ ] T-1.C1 Commit — `feat(finalizado): funciones puras de chips, fila de resultado y filas de detalle (FR-030, FR-040, FR-050)`
+- [x] T-1.1 Agregar `formacionTexto` en `index.html`, junto a `canchaLabel` ([`index.html:1218`](../../../index.html#L1218)) (`FR-005b`, `TC-035`)
+- [x] T-1.2 Agregar `lineaEstrategiaPartidoFinalizado`, cubriendo las cuatro combinaciones de `FR-003`, `FR-005`, `FR-005b`, `FR-005c` (`TD-`)
+- [x] T-1.3 Agregar `statsAgregadasDeUnidad`, sumando sobre `grupo` con `(stats[id]||{campo}||0)` para tolerar jugadores sin `golesEnContra` en partidos viejos (`FR-036`, `TD-05`)
+- [x] T-1.4 Agregar `renderChipsEstadistica`, con el chip de goles sumando `goles` y `golesPenal` en un solo número (`FR-030` a `FR-035`)
+- [x] T-1.5 Agregar `goleadoresDeEquipo`, sin compartir código con `matchResultSummaryHtml` (`FR-050`, `FR-056`, `TD-06`)
+- [x] T-1.6 Agregar `renderFilasDetalle`, con el desglose de penal y de en contra, el antepuesto de nombre de `FR-054`, y `escaparHtml` en cada nombre (`FR-051` a `FR-057`)
+- [x] T-1.7 Agregar `renderFilaResultado`, usando `totalGolesEquipo` ([`index.html:3777`](../../../index.html#L3777)) para el marcador y `m.equipos.sumaBlanco`/`sumaNegro` para el puntaje de armado (`FR-040` a `FR-042`)
+- [x] T-1.C1 Commit — `feat(finalizado): funciones puras de chips, fila de resultado y filas de detalle (FR-030, FR-040, FR-050)`
 
-- [ ] T-1.8 Reescribir el predicado de `mostrarCanchaDeEquipos` ([`index.html:3891-3896`](../../../index.html#L3891-L3896)) según `TD-02` (`FR-020`, `FR-063`, `FR-064`)
-- [ ] T-1.9 Verificar por lectura que `esFilaEditable` ([`index.html:3898`](../../../index.html#L3898)) sigue devolviendo `false` para el partido finalizado sin necesitar cambios (`FR-021`, `TD-03`) — tarea de verificación, no de código
-- [ ] T-1.C2 Commit — `feat(finalizado): la cancha se extiende al partido finalizado sin editar (FR-020)`
+- [x] T-1.8 Reescribir el predicado de `mostrarCanchaDeEquipos` ([`index.html:3891-3896`](../../../index.html#L3891-L3896)) según `TD-02` (`FR-020`, `FR-063`, `FR-064`)
+- [x] T-1.9 Verificar por lectura que `esFilaEditable` ([`index.html:3898`](../../../index.html#L3898)) sigue devolviendo `false` para el partido finalizado sin necesitar cambios (`FR-021`, `TD-03`) — tarea de verificación, no de código
+- [x] T-1.C2 Commit — `feat(finalizado): la cancha se extiende al partido finalizado sin editar (FR-020)`
 
-- [ ] T-1.10 Agregar el CSS del ícono de lápiz reutilizando `.panel-icono` ([`index.html:504`](../../../index.html#L504)) con una clase de color propia `.panel-icono-editar`, sin duplicar la geometría de 44×44 px que esa clase ya fija (`FR-006`, `NFR-002`)
-- [ ] T-1.11 Agregar el CSS de los chips con las variables de §7.2.3, anclados al borde inferior de `.camiseta-fig` (izquierda para asistencias, derecha para goles/en contra), con `handoff/README.md` § Chips de estadística como referencia de medidas (`FR-030` a `FR-035`, `TC-033`)
-- [ ] T-1.12 Agregar el CSS de la fila de resultado: `flex` con los tres bloques en dos columnas, y el puntaje de armado oculto por `display:none` en una columna (`FR-041`, `FR-042`, `TC-033`)
-- [ ] T-1.13 Agregar el CSS de las filas de detalle, reutilizando `escaparHtml`-friendly estructura (nombre + número + ícono + nota), sin tomar clases de `matchResultSummaryHtml` (`TD-06`) (`FR-050` a `FR-057`, `TC-033`)
-- [ ] T-1.C3 Commit — `feat(finalizado): CSS del lápiz, los chips, la fila de resultado y las filas de detalle (TC-033)`
+- [x] T-1.10 Agregar el CSS del ícono de lápiz reutilizando `.panel-icono` ([`index.html:504`](../../../index.html#L504)) con una clase de color propia `.panel-icono-editar`, sin duplicar la geometría de 44×44 px que esa clase ya fija (`FR-006`, `NFR-002`)
+- [x] T-1.11 Agregar el CSS de los chips con las variables de §7.2.3, anclados al borde inferior de `.camiseta-fig` (izquierda para asistencias, derecha para goles/en contra), con `handoff/README.md` § Chips de estadística como referencia de medidas (`FR-030` a `FR-035`, `TC-033`)
+- [x] T-1.12 Agregar el CSS de la fila de resultado: `flex` con los tres bloques en dos columnas, y el puntaje de armado oculto por `display:none` en una columna (`FR-041`, `FR-042`, `TC-033`)
+- [x] T-1.13 Agregar el CSS de las filas de detalle, reutilizando `escaparHtml`-friendly estructura (nombre + número + ícono + nota), sin tomar clases de `matchResultSummaryHtml` (`TD-06`) (`FR-050` a `FR-057`, `TC-033`)
+- [x] T-1.C3 Commit — `feat(finalizado): CSS del lápiz, los chips, la fila de resultado y las filas de detalle (TC-033)`
 
-- [ ] T-1.14 Cablear `renderChipsEstadistica`/`statsAgregadasDeUnidad` dentro de `renderCamiseta` ([`index.html:4097`](../../../index.html#L4097)), insertando los dos fragmentos dentro de `.camiseta-fig` junto al pill de puntaje y al candado (`TD-04`) (`FR-030` a `FR-036`)
-- [ ] T-1.15 Implementar `renderEncabezadoPartidoFinalizado` y cablearla como la nueva rama de `renderTeamsSection` ([`index.html:4884`](../../../index.html#L4884)), activa cuando `m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id`, **común a `admin` y `jugador`** (`TD-01`) (`FR-001` a `FR-009b`, `FR-060`)
-- [ ] T-1.16 Dentro de esa misma rama, componer `renderFilaResultado(m)` + `renderZonaEquipos` (con `renderCanchaEquipo(...) + renderFilasDetalle(ids, stats)` como `contenido` de cada panel, y sólo el nombre del equipo como `header`, per `FR-042b`), **sin** llamar a `renderBotoneraTarjeta`: ningún botón de ciclo de vida aplica a este estado (`FR-064`) (`FR-040` a `FR-057`)
-- [ ] T-1.18 Quitar de `renderBotoneraTarjeta` ([`index.html:4847-4855`](../../../index.html#L4847-L4855)) la rama que empuja el botón de texto "Editar resultado": ya no la invoca nadie desde `T-1.16`, y dejarla sería código muerto (`FR-009`, declaración de reemplazo de `FR-060` de la rebanada 3)
-- [ ] T-1.C4 Commit — `feat(finalizado): el encabezado, la fila de resultado y las filas de detalle reemplazan el panel de armado en este estado (FR-001, FR-040, FR-050)`
+- [x] T-1.14 Cablear `renderChipsEstadistica`/`statsAgregadasDeUnidad` dentro de `renderCamiseta` ([`index.html:4097`](../../../index.html#L4097)), insertando los dos fragmentos dentro de `.camiseta-fig` junto al pill de puntaje y al candado (`TD-04`) (`FR-030` a `FR-036`)
+- [x] T-1.15 Implementar `renderEncabezadoPartidoFinalizado` y cablearla como la nueva rama de `renderTeamsSection` ([`index.html:4884`](../../../index.html#L4884)), activa cuando `m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id`, **común a `admin` y `jugador`** (`TD-01`) (`FR-001` a `FR-009b`, `FR-060`)
+- [x] T-1.16 Dentro de esa misma rama, componer `renderFilaResultado(m)` + `renderZonaEquipos` (con `renderCanchaEquipo(...) + renderFilasDetalle(ids, stats)` como `contenido` de cada panel, y sólo el nombre del equipo como `header`, per `FR-042b`), **sin** llamar a `renderBotoneraTarjeta`: ningún botón de ciclo de vida aplica a este estado (`FR-064`) (`FR-040` a `FR-057`)
+- [x] T-1.18 Quitar de `renderBotoneraTarjeta` ([`index.html:4847-4855`](../../../index.html#L4847-L4855)) la rama que empuja el botón de texto "Editar resultado": ya no la invoca nadie desde `T-1.16`, y dejarla sería código muerto (`FR-009`, declaración de reemplazo de `FR-060` de la rebanada 3)
+- [x] T-1.C4 Commit — `feat(finalizado): el encabezado, la fila de resultado y las filas de detalle reemplazan el panel de armado en este estado (FR-001, FR-040, FR-050)`
 
-- [ ] T-1.19 Corregir el `preparar` del escenario `partido-editando` de `tests/layout.test.js` ([`tests/layout.test.js:1031`](../../../tests/layout.test.js#L1031)): `page.click('button:has-text("Editar resultado")')` deja de encontrar nada porque el botón ya no lleva texto visible; se reemplaza por `page.click('[aria-label="Editar resultado"]')` (`T-1.15` lo hace necesario)
-- [ ] T-1.C5 Commit — `fix(layout): partido-editando entra por el ícono de editar, no por el texto (FR-006)`
+- [x] T-1.19 Corregir el `preparar` del escenario `partido-editando` de `tests/layout.test.js` ([`tests/layout.test.js:1031`](../../../tests/layout.test.js#L1031)): `page.click('button:has-text("Editar resultado")')` deja de encontrar nada porque el botón ya no lleva texto visible; se reemplaza por `page.click('[aria-label="Editar resultado"]')` (`T-1.15` lo hace necesario)
+- [x] T-1.C5 Commit — `fix(layout): partido-editando entra por el ícono de editar, no por el texto (FR-006)`
 
-- [ ] T-1.20 Agregar `golesEnContra` a dos titulares del fixture `m-finalizado` ([`tests/fixtures-app.js:213-217`](../../../tests/fixtures-app.js#L213-L217)) — uno suelto y uno que forme parte de la dupla `d1` — eligiendo índices donde `goles` ya es válido respecto de `golesPenal` en el patrón existente, para no tapar ni acentuar la inconsistencia preexistente de `i%3`/`i%2` (`S-03b`, `S-05c`)
-- [ ] T-1.21 Agregar el partido `m-finalizado-nueve` a `tests/fixtures-app.js`, reutilizando `equipos9` ([`tests/fixtures-app.js:179`](../../../tests/fixtures-app.js#L179)) con un `resultado` de muestra (`S-10`, `S-10a`)
-- [ ] T-1.22 Crear `tests/finalizado.test.js` con su lista `DECLARACIONES`, reutilizando `extraer` de [`tests/harness.js`](../../../tests/harness.js) (`TD-08`)
-- [ ] T-1.23 Escribir los once casos de unidad de §12.1, con el prefijo `finalizado/` en cada título (`AC-50`)
-- [ ] T-1.C6 Commit — `test(finalizado): casos de unidad de chips, fila de resultado y filas de detalle (S-03, S-04, S-05)`
+- [x] T-1.20 Agregar `golesEnContra` a dos titulares del fixture `m-finalizado` ([`tests/fixtures-app.js:213-217`](../../../tests/fixtures-app.js#L213-L217)) — uno suelto y uno que forme parte de la dupla `d1` — eligiendo índices donde `goles` ya es válido respecto de `golesPenal` en el patrón existente, para no tapar ni acentuar la inconsistencia preexistente de `i%3`/`i%2` (`S-03b`, `S-05c`)
+- [x] T-1.21 Agregar el partido `m-finalizado-nueve` a `tests/fixtures-app.js`, reutilizando `equipos9` ([`tests/fixtures-app.js:179`](../../../tests/fixtures-app.js#L179)) con un `resultado` de muestra (`S-10`, `S-10a`)
+- [x] T-1.22 Crear `tests/finalizado.test.js` con su lista `DECLARACIONES`, reutilizando `extraer` de [`tests/harness.js`](../../../tests/harness.js) (`TD-08`)
+- [x] T-1.23 Escribir los once casos de unidad de §12.1, con el prefijo `finalizado/` en cada título (`AC-50`)
+- [x] T-1.C6 Commit — `test(finalizado): casos de unidad de chips, fila de resultado y filas de detalle (S-03, S-04, S-05)`
 
-- [ ] T-1.24 Agregar `comprobar` al escenario `partido-finalizado` ([`tests/layout.test.js:411`](../../../tests/layout.test.js#L411)): cancha presente, chips en las camisetas que corresponde, fila de resultado con marcador y puntaje (1200 px) / sin puntaje (360 px), filas de detalle presentes, ausencia de `.panel-lineas`/`.panel-receipt`/píldora, encabezado de panel sin puntaje ni resultado, y los dos íconos del encabezado nuevo (`S-01`, `S-01a`, `S-02`, `S-02a`, `S-04`, `S-04b`)
-- [ ] T-1.25 Agregar `comprobar` al escenario `partido-jugador` ([`tests/layout.test.js:1052`](../../../tests/layout.test.js#L1052)): mismo contenido que `partido-finalizado` salvo el lápiz, que no debe existir; más una invocación directa de `window.__editarResultadoFinalizado` que no debe producir escritura (`S-01c`, `S-06`, `S-20`)
-- [ ] T-1.26 Agregar la etiqueta `finalizado/S-02c` al escenario `partido-cerrado` existente ([`tests/layout.test.js:390`](../../../tests/layout.test.js#L390)): su `comprobar` ya verifica que la tarjeta sigue como lista de filas con la inscripción cerrada y no finalizada, que es exactamente `S-02c`
-- [ ] T-1.27 Agregar el escenario `finalizado-nueve`, restringido a `anchos: [360, 1200]` (mismo criterio que `partido-editando`), abriendo `m-finalizado-nueve` y comprobando la línea de estrategia en las dos formas de `FR-005b`/`FR-005c` (`S-10`, `S-10a`)
-- [ ] T-1.C7 Commit — `test(layout): la tarjeta de partido finalizado, el rol jugador y el caso de fútbol 9 (S-01, S-06, S-10)`
+- [x] T-1.24 Agregar `comprobar` al escenario `partido-finalizado` ([`tests/layout.test.js:411`](../../../tests/layout.test.js#L411)): cancha presente, chips en las camisetas que corresponde, fila de resultado con marcador y puntaje (1200 px) / sin puntaje (360 px), filas de detalle presentes, ausencia de `.panel-lineas`/`.panel-receipt`/píldora, encabezado de panel sin puntaje ni resultado, y los dos íconos del encabezado nuevo (`S-01`, `S-01a`, `S-02`, `S-02a`, `S-04`, `S-04b`)
+- [x] T-1.25 Agregar `comprobar` al escenario `partido-jugador` ([`tests/layout.test.js:1052`](../../../tests/layout.test.js#L1052)): mismo contenido que `partido-finalizado` salvo el lápiz, que no debe existir; más una invocación directa de `window.__editarResultadoFinalizado` que no debe producir escritura (`S-01c`, `S-06`, `S-20`)
+- [x] T-1.26 Agregar la etiqueta `finalizado/S-02c` al escenario `partido-cerrado` existente ([`tests/layout.test.js:390`](../../../tests/layout.test.js#L390)): su `comprobar` ya verifica que la tarjeta sigue como lista de filas con la inscripción cerrada y no finalizada, que es exactamente `S-02c`
+- [x] T-1.27 Agregar el escenario `finalizado-nueve`, restringido a `anchos: [360, 1200]` (mismo criterio que `partido-editando`), abriendo `m-finalizado-nueve` y comprobando la línea de estrategia en las dos formas de `FR-005b`/`FR-005c` (`S-10`, `S-10a`)
+- [x] T-1.C7 Commit — `test(layout): la tarjeta de partido finalizado, el rol jugador y el caso de fútbol 9 (S-01, S-06, S-10)`
 
-- [ ] T-1.28 Agregar la anotación recíproca de reemplazo parcial en [`PANEL_ARMADO_SPEC.md`](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md): junto a `FR-060`, `FR-003`–`FR-005`/`FR-009`/`FR-037`, `FR-030`–`FR-036`, `FR-040`–`FR-045` y `FR-083b`, una nota de que esta rebanada los reemplaza para el estado finalizado-sin-editar (`OPEN-Q-01` de esta Spec, Principio I)
-- [ ] T-1.29 [P] Agregar a `AGENTS.md` la línea `node tests/finalizado.test.js` en su bloque de tests
-- [ ] T-1.C8 Commit — `docs(specs): anotación recíproca en la Spec de la rebanada 3 (OPEN-Q-01)`
+- [x] T-1.28 Agregar la anotación recíproca de reemplazo parcial en [`PANEL_ARMADO_SPEC.md`](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md): junto a `FR-060`, `FR-003`–`FR-005`/`FR-009`/`FR-037`, `FR-030`–`FR-036`, `FR-040`–`FR-045` y `FR-083b`, una nota de que esta rebanada los reemplaza para el estado finalizado-sin-editar (`OPEN-Q-01` de esta Spec, Principio I)
+- [x] T-1.29 [P] Agregar a `AGENTS.md` la línea `node tests/finalizado.test.js` en su bloque de tests
+- [x] T-1.C8 Commit — `docs(specs): anotación recíproca en la Spec de la rebanada 3 (OPEN-Q-01)`
 
-- [ ] T-1.30 Correr `node tools/servir-fixture.js`, mirar el partido finalizado a 360 px y a 1200 px con el emulador de dispositivo, y registrar en el PR si el puntaje de armado se lee como redundante con el resultado real, o si los chips de un jugador con los tres a la vez se tocan (`R-01`, `R-02`, `T-1.D13`)
+- [x] T-1.30 Correr `node tools/servir-fixture.js`, mirar el partido finalizado a 360 px y a 1200 px con el emulador de dispositivo, y registrar en el PR si el puntaje de armado se lee como redundante con el resultado real, o si los chips de un jugador con los tres a la vez se tocan (`R-01`, `R-02`, `T-1.D13`)
 
 DoD verification (§6). Todo cambio de código hecho durante esta verificación va
 en su propio commit de arreglo, nunca doblado dentro de uno anterior:
 
-- [ ] T-1.D1 Los tests nuevos pasan — `node tests/finalizado.test.js` y `node tests/layout.test.js`
-- [ ] T-1.D2 Los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
-- [ ] T-1.D3 Linter — no aplica (§5). Se declara, no se marca en silencio
-- [ ] T-1.D4 Type-checker — no aplica (§5). Se declara, no se marca en silencio
-- [ ] T-1.D5 No quedan `TODO`/`FIXME`/`HACK` — `git grep -nE '(TODO|FIXME|HACK)[(:]' -- index.html tests/`
-- [ ] T-1.D6 La implementación sigue §5
-- [ ] T-1.D7 Cada `FR-*`, `NFR-*`, `TC-*` y `AC-*` de la Spec está implementado o verificado
-- [ ] T-1.D8 Cada `S-NN` y cada variante tiene test — `comm -23 <(grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "finalizado/S-[0-9]+[a-z]*" tests/ | sed 's|finalizado/||' | sort -u)` devuelve vacío (`AC-50`)
-- [ ] T-1.D8b Cada cabecera de escenario de Spec §9 lleva bloque `Variants:` o su declaración explícita — lint `awk` sobre `PARTIDO_FINALIZADO_SPEC.md` devuelve vacío (`AC-50`)
-- [ ] T-1.D9 `NFR-001` y `NFR-002` tienen test de medición referenciado en §12 (`AC-51`)
-- [ ] T-1.D10 Cada `TC-*` de Spec §4 aparece en §12 de este Plan — `comm -23 <(grep -oE "TC-[0-9]+" PARTIDO_FINALIZADO_SPEC.md | sort -u) <(sed -n '/^## 12\./,/^## 13\./p' PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md | grep -oE "TC-[0-9]+" | sort -u)` devuelve vacío (`AC-52`)
-- [ ] T-1.D10b Cada `TC-*` de Spec §4 tiene además su criterio en Spec §11.3 (`AC-52`, segundo conjunto)
-- [ ] T-1.D11 El historial de commits es limpio — `git log --oneline main..HEAD`
-- [ ] T-1.D12 Descripción del PR redactada
-- [ ] T-1.D13 **Gate del proyecto:** (a) al menos un escenario nuevo se vio fallar revirtiendo el cambio que lo motiva; (b) la pantalla se miró a 360 px y a 1200 px en un navegador real (`T-1.30`)
-- [ ] T-1.D14 PR abierto contra `main`
-- [ ] T-1.D15 §12.2 tiene al menos una fila `IMP-*` por ámbito afectado (`AC-53`)
-- [ ] T-1.D16 Cada NFR cuantificado tiene fila `OBS-*` en §11 (`AC-54`)
-- [ ] T-1.D17 Cada `R-*` de §14 registra vía de mitigación
-- [ ] T-1.D18 Pasada de auto-consistencia dentro de este Plan
-- [ ] T-1.D19 Pasada de consistencia cruzada contra la Spec y el Concept Note
+- [x] T-1.D1 Los tests nuevos pasan — `node tests/finalizado.test.js` y `node tests/layout.test.js`
+- [x] T-1.D2 Los tests existentes pasan, sin regresiones — `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
+- [x] T-1.D3 Linter — no aplica (§5). Se declara, no se marca en silencio
+- [x] T-1.D4 Type-checker — no aplica (§5). Se declara, no se marca en silencio
+- [x] T-1.D5 No quedan `TODO`/`FIXME`/`HACK` — `git grep -nE '(TODO|FIXME|HACK)[(:]' -- index.html tests/`
+- [x] T-1.D6 La implementación sigue §5
+- [x] T-1.D7 Cada `FR-*`, `NFR-*`, `TC-*` y `AC-*` de la Spec está implementado o verificado
+- [x] T-1.D8 Cada `S-NN` y cada variante tiene test — `comm -23 <(grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "finalizado/S-[0-9]+[a-z]*" tests/ | sed 's|finalizado/||' | sort -u)` devuelve vacío (`AC-50`)
+- [x] T-1.D8b Cada cabecera de escenario de Spec §9 lleva bloque `Variants:` o su declaración explícita — lint `awk` sobre `PARTIDO_FINALIZADO_SPEC.md` devuelve vacío (`AC-50`)
+- [x] T-1.D9 `NFR-001` y `NFR-002` tienen test de medición referenciado en §12 (`AC-51`)
+- [x] T-1.D10 Cada `TC-*` de Spec §4 aparece en §12 de este Plan — `comm -23 <(grep -oE "TC-[0-9]+" PARTIDO_FINALIZADO_SPEC.md | sort -u) <(sed -n '/^## 12\./,/^## 13\./p' PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md | grep -oE "TC-[0-9]+" | sort -u)` devuelve vacío (`AC-52`)
+- [x] T-1.D10b Cada `TC-*` de Spec §4 tiene además su criterio en Spec §11.3 (`AC-52`, segundo conjunto)
+- [x] T-1.D11 El historial de commits es limpio — `git log --oneline main..HEAD`
+- [x] T-1.D12 Descripción del PR redactada
+- [x] T-1.D13 **Gate del proyecto:** (a) al menos un escenario nuevo se vio fallar revirtiendo el cambio que lo motiva; (b) la pantalla se miró a 360 px y a 1200 px en un navegador real (`T-1.30`)
+- [x] T-1.D14 PR abierto contra `main`
+- [x] T-1.D15 §12.2 tiene al menos una fila `IMP-*` por ámbito afectado (`AC-53`)
+- [x] T-1.D16 Cada NFR cuantificado tiene fila `OBS-*` en §11 (`AC-54`)
+- [x] T-1.D17 Cada `R-*` de §14 registra vía de mitigación
+- [x] T-1.D18 Pasada de auto-consistencia dentro de este Plan
+- [x] T-1.D19 Pasada de consistencia cruzada contra la Spec y el Concept Note
 - [x] T-1.D20 Auditoría de cadena de suministro — §5 declara `Supply-chain: none`, pasa de forma vacua. `git ls-files package-lock.json package.json` sin resultado (`AC-55`)
 
 ## 8. Data model & migrations
@@ -635,6 +635,7 @@ dato queda afectado: la rebanada no escribe ningún campo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | **Registro de lo que la implementación encontró.** Seis hallazgos. **(1)** `--chip-bg: #E8EBE6` de §7.2.3 colisionaba con `--chip-bg` de la rebanada 1, que ya nombra el color de relleno de la camiseta (`.cancha .blanco-eq{ --chip-bg: #ffffff }` / `.negro-eq{ --chip-bg: #111827 }`); usar el mismo nombre habría pisado el dibujo de la camiseta. Se renombró a `--stat-bg`, y por consistencia `--chip-h`/`--chip-icon` a `--stat-h`/`--stat-icon`, sumando `--stat-fs`/`--stat-edge`/`--stat-pad`/`--stat-gap` (no enumeradas en §7.2.3) para las seis variables que el handoff hace variar entre el tamaño grande y el compacto. **(2)** `T-1.25` citaba `finalizado/S-06`, un identificador que no existe en ningún lado de la Spec (§9 no tiene `S-06`); se omitió y `partido-jugador` quedó con `finalizado/S-01c` y `finalizado/S-20`, que sí son los que corresponden. **(3)** Los tags viejos de `partido-finalizado` (`cancha/S-10a`, `arrastre/S-10a`, `panel/S-11a`) describían "partido finalizado: sin cancha, sin selector, mismo resultado que cerrado" — exactamente lo que `FR-020` invierte. Se reemplazaron por los de esta Spec en vez de dejarlos, que hubiera sido una aserción de test falsa. **(4)** `T-1.28` nombraba `FR-083b` para la anotación recíproca pero no `FR-083`, que es el requisito que literalmente dice "finalizado: lista de filas, no cancha" — el que esta rebanada invierte para el estado sin editar. Se agregó `FR-083` a la anotación de `PANEL_ARMADO_SPEC.md` por la misma razón que `FR-083b`. **(5)** `T-1.30`: mirado en Chromium real (conducido por Playwright, admin y jugador, 360 y 1200 px) sobre el partido testigo con la dupla Claudio/Juan compartiendo gol y gol en contra. El puntaje de armado junto al marcador real no se leyó como redundante ni los chips se tocaron; sin hallazgos que graduar en `R-01`/`R-02`. **(6)** Los nueve commits de §7.2.9 (`T-1.C1` a `T-1.C8`, ocho más el de docs) se ejecutaron como siete: `T-1.19` (el `preparar` de `partido-editando` por `aria-label`) quedó en el mismo commit que sus escenarios de layout, porque el fix y la etiqueta nueva de ese mismo escenario caen en el mismo hunk de diff y partirlos después no daba ninguna ganancia de bisección. |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Deriva de `PARTIDO_FINALIZADO_SPEC.md` con una rama (`Custom arc: 1 branch`, como las tres rebanadas anteriores) y ocho commits atómicos. Resuelve la `OPEN-Q-01` de la Spec (`T-1.28`) y traslada sus otras dos más la deuda de verificación del CWE Top 25. Decisión central: el estado finalizado-sin-editar comparte una única rama de render entre `admin` y `jugador` (`TD-01`), a diferencia de las ramas separadas que el resto de `renderTeamsSection` mantiene desde la rebanada 3 — posible porque `FR-060` hace que los dos roles vean lo mismo salvo el lápiz. Registra un hallazgo de la lectura del código que ninguno de los tres documentos anteriores podía anticipar: el escenario `partido-editando` de `tests/layout.test.js` abre el partido finalizado haciendo clic en el botón **por su texto** (`page.click('button:has-text("Editar resultado")')`); mudar ese botón a un ícono sin texto rompe ese `preparar` si no se corrige (`T-1.19`, `IMP-04`). Registra además una deuda consciente: `goleadoresDeEquipo` duplica parte del cálculo que `matchResultSummaryHtml` ya hace, en vez de extraer un compartido, porque la Spec excluye tocar esa función (`TD-06`, `R-06`, `OPEN-Q-04`). Self-critique: passed (0🔴 / 4🟡 / 2🔵), los seis resueltos. Los 🟡: `T-1.17` no correspondía a ningún cambio de código real —describía una ausencia, no una tarea— y además citaba hacia adelante a `T-1.18`; se fusionó su contenido en `T-1.16` y se eliminó como tarea propia (el hueco en la numeración queda igual que en la rebanada 3). `AC-31` citaba un test `finalizado/TC-035` inventado: los `TC-*` no se embeben como identificador de escenario según la convención de `AGENTS.md`, sólo los `S-*`; se corrigió a un caso de unidad de `formacionTexto` más un `git grep`. El reparto de filas `unit`/`e2e` de §12.1 estaba mal contado en cuatro lugares (10/14 en vez de 11/16, arrastrado a §7.2.6 y a dos tareas) — se recontó fila por fila y se corrigieron las cuatro apariciones. El total de `TC-*` y `AC-*` de la Spec en el resumen de §7.2 decía "quince" y "cuarenta y uno" cuando son dieciséis y treinta y cinco; se recontaron directamente sobre la Spec. Los 🔵: quedó un `TD-` suelto y sin completar en la fila de `formacionTexto` de §7.2.5 (corregido); ningún `D-*` del Concept Note se cita por ID explícito en este Plan más allá de `D-01`/`D-08`/`D-11`/`D-12`/`D-21`/`D-24` en la tabla `TD-*` — no se agregó nada porque la Spec §3.3 ya los hereda todos y repetirlos acá sería paráfrasis, no cita nueva. |
 
 ---
