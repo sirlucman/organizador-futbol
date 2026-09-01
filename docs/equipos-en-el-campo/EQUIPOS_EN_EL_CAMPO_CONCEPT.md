@@ -182,12 +182,12 @@ C4Context
 - **Related work** — El handoff de diseño completo vive en
   [`handoff/`](./handoff/): un README de 845 líneas con medidas, tokens, estados y
   reglas, más `Equipos en el campo.dc.html`, un prototipo interactivo de doce
-  vistas. La constitución del proyecto
-  ([`.specify/memory/constitution.md`](../../.specify/memory/constitution.md),
-  v2.4.0) fija seis principios, de los cuales tres condicionan fuertemente este
-  rediseño: el III (todo lo que decide el motor debe explicarse), el V (responsive
-  verificado por medición desde 360 px) y el VI (el design system es la fuente de
-  verdad de la UI).
+  vistas. Las restricciones transversales del proyecto
+  ([`openspec/config.yaml`](../../openspec/config.yaml), gobernanza vigente desde
+  el 2026-09-01) fijan, entre otros, tres principios que condicionan fuertemente
+  este rediseño: la explicabilidad del motor de generación (todo lo que decide el
+  motor debe explicarse), el responsive verificado por medición desde 360 px, y el
+  design system como fuente de verdad de la UI.
 
 - **Organisational context** — No hay fecha límite externa ni compromiso con
   terceros. El trabajo se entrega por rebanadas para poder validar cada una en la
@@ -247,13 +247,17 @@ C4Context
 
 - *Style / project convention:*
   [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
-  v2.4.0 — Principio II (simplicidad: la solución más simple que cumpla, sin
-  anticipar infraestructura), Principio III (explicabilidad del motor: fundamenta
-  que el bloque "Por qué quedaron así" es obligatorio y no decorativo), Principio
-  IV (desacople interfaz / motor / persistencia: fundamenta `D-01`), Principio V
-  (responsive medido desde 360 px: origen del conflicto que resuelve `D-03`),
-  Principio VI (design system como fuente de verdad de UI: fundamenta que los
-  tokens del handoff se toman del design system y no se inventan).
+  v2.4.0 (consultada a la fecha de este documento) — Principio II (simplicidad:
+  la solución más simple que cumpla, sin anticipar infraestructura), Principio
+  III (explicabilidad del motor: fundamenta que el bloque "Por qué quedaron así"
+  es obligatorio y no decorativo), Principio IV (desacople interfaz / motor /
+  persistencia: fundamenta `D-01`), Principio V (responsive medido desde 360 px:
+  origen del conflicto que resuelve `D-03`), Principio VI (design system como
+  fuente de verdad de UI: fundamenta que los tokens del handoff se toman del
+  design system y no se inventan). Estas restricciones se mudaron a
+  [`openspec/config.yaml`](../../openspec/config.yaml) el 2026-09-01, sin cambio
+  de contenido; la cita de versión de arriba queda como registro de qué se
+  consultó al escribir este documento.
 - *Style / project convention:*
   [`.claude/skills/football-app-design/`](../../.claude/skills/football-app-design/)
   — el design system referenciado por el Principio VI, del que el handoff toma
@@ -662,6 +666,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Actualización de referencias: las dos citas a `.specify/memory/constitution.md` (§6 *Related work* y §6.5 *Industry-standard evidence*) se actualizan tras el retiro de ese archivo el 2026-09-01. §6 pasa a apuntar a `openspec/config.yaml`, sin conservar la numeración de principios (que ahí ya no existe); §6.5, al ser un ledger de grounding con versión pinneada (v2.4.0, la vigente al escribir este documento), conserva la cita íntegra y agrega una nota de dónde vive el contenido ahora. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de referencias, verificada contra los archivos reales). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa de "sin documentos todavía" a enlazar `PARTIDO_FINALIZADO_SPEC.md`, ya escrita. Se corrige el puntero de cierre para anunciar el Implementation Plan de la rebanada 4 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: el bloque de encabezado pasa de listar las rebanadas escritas a declarar el estado de las siete, con la fecha de merge de cada una. Se corrige el puntero de cierre, que seguía anunciando el Implementation Plan de la rebanada 1 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el historial de `git`). |
 | 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 3: se incorporan `D-22` a `D-25`, las cuatro decisiones de producto tomadas con el propietario al fijar el alcance del panel de armado. `D-22` cierra la `OPEN-Q-07` que este documento había dejado abierta para esta Spec, y `D-25` cierra la `OPEN-Q-03` que la rebanada 2 había elevado. Se agrega a §14 el diferido del texto de Copiar, y el bloque de encabezado pasa a listar las tres rebanadas escritas. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
