@@ -412,9 +412,17 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
   360 px con el del handoff—. El sistema usa los escalones del handoff en todo el
   rango; no hay escalón derivado. `FR-051` y `NFR-002` siguen vigentes y se verifican
   igual. Ver `OPEN-Q-03` y `OPEN-Q-04` del Implementation Plan.
-- **FR-054** — El sistema apilará las dos canchas verticalmente cuando el layout de
-  la tarjeta pase a una sola columna, con el mismo punto de corte que hoy usa
-  `.teams-wrap` ([`index.html:344-346`](../../../index.html#L344-L346)).
+- **FR-054** — ~~El sistema apilará las dos canchas verticalmente cuando el layout
+  de la tarjeta pase a una sola columna, con el mismo punto de corte que hoy usa
+  `.teams-wrap`.~~ **Reemplazado por la rebanada 2 (2026-08-31).** En una sola
+  columna los equipos dejan de apilarse y se muestran de a uno, con el selector
+  segmentado de equipo; el punto de corte sigue siendo el mismo. La razón no es
+  estética: con las canchas apiladas, en un teléfono el destino de todo movimiento
+  manual queda fuera de pantalla, y alcanzarlo depende de cómo cada navegador
+  desplace durante un arrastre — algo que no se puede verificar sin un dispositivo
+  táctil a mano. Ver `FR-030` a `FR-037` de
+  [ARRASTRE_SPEC.md](../rebanada-2-arrastre/ARRASTRE_SPEC.md) y la decisión 4 de su
+  §3.4.
 
 ### 7.7 Roles
 
@@ -518,7 +526,8 @@ Variants: none — single-path scenario.
 - **Then** la página no produce scroll horizontal
 - **And** ningún elemento queda con su borde derecho fuera del viewport
 - **And** las cuatro camisetas del Medio se dibujan en un renglón, sin superponerse
-- **And** las dos canchas quedan apiladas verticalmente
+- **And** ~~las dos canchas quedan apiladas verticalmente~~ — *sin efecto tras la
+  rebanada 2:* se muestra una cancha por vez con el selector de equipo (ver `FR-054`)
 
 **Variants:**
 
@@ -759,7 +768,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | ID | Question | Owner | Target stage | Notes |
 |---|---|---|---|---|
-| OPEN-Q-01 | En pantallas angostas, ¿las dos canchas se apilan (lo que esta Spec fija) o se introduce el selector segmentado de equipo del handoff, que muestra un equipo a la vez? Y si se introduce, ¿en qué rebanada? | Lucas Manoukian | Spec de la rebanada 2 o 3 | El handoff lo diseña en `6a`, pero `D-08` no lo asigna a ninguna rebanada. Apilar no empeora respecto de hoy —los dos paneles ya se apilan—, así que no bloquea esta rebanada. En la rebanada 2 sí importa: la pestaña del otro equipo es una de las tres zonas de drop del handoff |
+| OPEN-Q-01 | *Resuelta por la rebanada 2.* En pantallas angostas, ¿las dos canchas se apilan (lo que esta Spec fijaba) o se introduce el selector segmentado de equipo del handoff? Se introduce el selector, en la rebanada 2, y `FR-054` queda reemplazado. | Lucas Manoukian | *Resuelta* | El handoff lo diseña en `6a`, pero `D-08` no lo asigna a ninguna rebanada. Apilar no empeora respecto de hoy —los dos paneles ya se apilan—, así que no bloquea esta rebanada. En la rebanada 2 sí importa: la pestaña del otro equipo es una de las tres zonas de drop del handoff |
 | OPEN-Q-02 | ¿El candado sobre la camiseta debe alcanzar un objetivo táctil de 44×44 px? | Lucas Manoukian | Spec revision o Implementation Plan | El Concept Note lo nombra como obligación de accesibilidad, pero el handoff dibuja el candado en 20–22 px y el botón actual es de 24 px. La constitución tiene `TODO(OBJETIVO_TACTIL_MINIMO)` abierto desde la enmienda 2.2.0 justamente por esto. `NFR-004` fija hoy el piso en no-regresión (24 px); subirlo a 44 px sobre una camiseta de 48–56 px pisaría a la camiseta vecina y necesita una decisión de diseño |
 | OPEN-Q-03 | ¿Cuáles son exactamente los valores del escalón derivado para el ancho útil más chico? | Lucas Manoukian | Implementation Plan | `D-13` fija el método (derivar por medición y validar en la aplicación real), no los números. El Plan los fija y `AC-25` obliga a ver fallar el test antes de darlos por buenos |
 | OPEN-Q-04 | El Concept Note afirma que a 360 px la cancha de 9 "necesita 326 px de contenido en 312 px disponibles". El ancho útil no se pudo reproducir en esta sesión: con `body` en 16 px de padding, `.wrap` en 760 px y `.team-panel` en 16 px de padding lateral, la cuenta da 296 px. ¿De dónde sale 312? | Lucas Manoukian | Implementation Plan | Cambia el tamaño del ajuste, no su necesidad: con cualquiera de los dos números la cancha de 9 desborda a 360 px. El Plan lo mide una vez sobre la aplicación real y fija el número bueno |
@@ -792,6 +801,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-08-31 | Lucas Manoukian | `FR-054` y el último *Then* de `S-06` quedan reemplazados por la rebanada 2: en una sola columna los equipos dejan de apilarse y pasan al selector segmentado. Cierra además la `OPEN-Q-01` de esta Spec, cuyo *target stage* era la Spec de la rebanada 2 o la 3. Self-critique: no corresponde (enmienda desde otra rebanada). |
 | 2026-08-31 | Lucas Manoukian | `FR-053` queda sin efecto: la premisa de `D-03` —que la cancha de 9 desborda a 360 px— no se sostiene contra la implementación, porque las columnas son flexibles y se encogen. Se usan los escalones del handoff en todo el rango. Descubierto al ejecutar el gate del Principio V: el escenario nuevo **pasaba** con el escalón revertido, que es exactamente lo que ese gate existe para detectar. Self-critique: no corresponde (enmienda posterior a la implementación). |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Self-critique: passed (2🔴 / 6🟡 / 1🔵), todos resueltos antes de guardar. Los dos 🔴: una cita fabricada a `.specify/specs/006-panel-equipos/`, carpeta que no existe (006 es `copiar-formacion`) — reemplazada por las dos specs reales que esta Spec pisa en su parte de presentación; y TC-020, TC-030 y TC-031 sin criterio de cumplimiento en §11.3 — agregados como AC-23 y AC-24. Los 🟡: bandas de numeración de AC solapadas entre §11.2 y §11.3 (renumeradas a 11.1→AC-01.., 11.2→AC-10.., 11.3→AC-20.., 11.4→AC-40..), FR-023 y FR-024 compuestas (partidas), TC-013 prescribía un mecanismo de CSS en vez de una prohibición (reescrita), NFR-005 citaba un "navegador de referencia" inexistente (anclada al Chromium de Playwright que el repo ya usa), y dos afirmaciones sin verificar sin marcador (etiquetadas). El 🔵: OPEN-Q-05 se pudo cerrar a medias durante la pasada y quedó reformulada. |
 
