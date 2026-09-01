@@ -1,35 +1,41 @@
 <!--
 Sync Impact Report
-- Version change: 2.4.0 → 2.5.0
+- Version change: 2.5.0 → 3.0.0
 - Added principles: none
-- Modified principles: I. Los specs de feature como fuente de verdad — se reconoce
-  `docs/<nombre-feature>/` (metodología de tres documentos: Concept Note, Spec,
-  Implementation Plan) como destino obligatorio de las features nuevas. Las specs
-  vigentes en `.specify/specs/` y `openspec/specs/` siguen siendo fuente de verdad
-  de lo ya construido y no se migran. Se agrega la regla de declaración explícita
-  cuando una Spec nueva reemplaza parte de una vieja.
-- Added sections: none
-- Modified sections: Flujo de Trabajo SDD — separa el flujo de features nuevas
-  (Concept Note → Spec → Implementation Plan) del mantenimiento de las specs
-  existentes con speckit.
-- Removed sections: none
-- Deferred items:
-  - TODO(MIGRACION_SPECS_LEGADO): la enmienda 2.5.0 acepta a conciencia la
-    coexistencia de tres ubicaciones de specs (`docs/`, `.specify/specs/`,
-    `openspec/specs/`). Si en la práctica genera confusión, la unificación se
-    decide en una enmienda futura.
-  - TODO(OBJETIVO_TACTIL_MINIMO): el principio V sigue sin fijar tamaño mínimo de
-    objetivo táctil, pese a que la auditoría del 2026-08-26 encontró controles
-    de 16-24px. Excluido a pedido explícito en la enmienda 2.2.0 y todavía
-    abierto.
-  - TODO(REDACCION_ANCHOS_HARDCODEADOS): la frase "anchos/altos hardcodeados"
-    se leyó como una prohibición literal de px en controles y produjo un
-    requisito incumplible (009 FR-014, corregido el 2026-08-27). Conviene
-    acotarla a *layout* en una enmienda futura.
-- Templates requiring follow-up: none
+- Modified principles: todos — el contenido activo de esta constitución se retira.
+  La fuente de verdad de las restricciones transversales del proyecto pasa a
+  `openspec/config.yaml` (campos `context`, `rules`, `operations`), como parte de
+  la adopción de OpenSpec como framework único para toda feature nueva y toda
+  modificación de una feature existente (reemplaza a la metodología de tres
+  documentos en `docs/` y al flujo speckit para trabajo nuevo).
+- Added sections: Nota de retiro (este bloque)
+- Modified sections: ninguna — el resto del documento queda congelado tal como
+  regía en 2.5.0, conservado abajo solo como registro histórico.
+- Removed sections: ninguna
+- Deferred items: los TODOs abiertos en 2.5.0 (MIGRACION_SPECS_LEGADO,
+  OBJETIVO_TACTIL_MINIMO, REDACCION_ANCHOS_HARDCODEADOS) se resuelven, si
+  corresponde, dentro de `openspec/config.yaml` en vez de en este archivo.
+- Templates requiring follow-up: README.md y Roadmap.md actualizados para
+  apuntar a `openspec/config.yaml` en vez de a este archivo.
 -->
 
-# Organizador de Fútbol
+# Organizador de Fútbol — CONSTITUCIÓN RETIRADA (2026-09-01)
+
+**Esta constitución dejó de ser la fuente de verdad de las restricciones
+transversales del proyecto el 2026-09-01.** Esa función pasó a
+[`openspec/config.yaml`](../../openspec/config.yaml), como parte de la
+adopción de OpenSpec como framework único para toda feature nueva y toda
+modificación de una feature existente. `openspec/config.yaml` no tiene
+versionado semántico ni ritual de enmienda por comando: los cambios se hacen
+editando el archivo directamente y quedan registrados en el historial de git.
+
+El texto que sigue (Principios I-VI, Restricciones Técnicas y de Alcance,
+Flujo de Trabajo SDD) es el que regía hasta la versión 2.5.0. Se conserva sin
+modificar solo como registro histórico — **no rige el trabajo nuevo**.
+
+---
+
+# Organizador de Fútbol (histórico — versión 2.5.0, retirada)
 
 ## Core Principles
 
@@ -248,4 +254,8 @@ feature, se verifica que no viole ninguno de los Principios Core. Cualquier
 excepción (p. ej. una complejidad que rompe el Principio II) debe justificarse
 explícitamente en el plan de la feature, no asumirse en silencio.
 
-**Version**: 2.5.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-31
+**Version**: 2.5.0 (histórica) | **Ratified**: 2026-08-11 | **Last Amended**: 2026-08-31
+
+---
+
+**Documento retirado — Version**: 3.0.0 | **Ratified**: 2026-08-11 | **Last Amended**: 2026-09-01

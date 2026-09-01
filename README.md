@@ -38,13 +38,13 @@ Esta versión está compuesta por tres features, cada una con su propio spec det
 - [**Gestión de partidos**](.specify/specs/001-organizacion-partidos/spec.md) — creación de partidos, cancha, convocatoria, titulares/suplentes, cierre/reapertura de inscripción, carga de resultado, finalización, eliminación.
 - [**Motor de generación de equipos**](.specify/specs/003-motor-generacion-equipos/spec.md) — estrategias, reglas e invariantes de balance, configuración del motor, edición manual de equipos, regeneración, explicabilidad y resumen de la generación.
 
-Restricciones técnicas transversales (persistencia en Firestore, requisitos de interfaz, principios de arquitectura, volumen esperado) están documentadas en [`.specify/memory/constitution.md`](.specify/memory/constitution.md).
+Restricciones técnicas transversales (persistencia en Firestore, requisitos de interfaz, principios de arquitectura, volumen esperado) están documentadas en [`openspec/config.yaml`](openspec/config.yaml).
 
 Ideas para versiones futuras (estadísticas, disponibilidad de jugadores, login, múltiples grupos, etc.) viven en [`Roadmap.md`](Roadmap.md), no en los specs de feature.
 
 ## Cómo se trabaja en este repo
 
-El spec de cada feature en `.specify/specs/` es la fuente de verdad sobre el comportamiento actual (ver `constitution.md`, Principio I). Cuando una idea de `Roadmap.md` se decide encarar, se crea o actualiza el spec de la feature correspondiente vía `/speckit-specify`, siguiendo el flujo Spec-Driven Development: `/speckit-specify` → `/speckit-plan` → `/speckit-tasks` → `/speckit-implement`.
+El spec de cada feature ya construida es la fuente de verdad sobre el comportamiento actual, esté en `.specify/specs/` o en `docs/<feature>/` (specs viejas, no migradas). Cuando una idea de `Roadmap.md` se decide encarar, o se necesita modificar una feature existente, se crea un change de OpenSpec (ver `openspec/config.yaml` para las reglas del proyecto) vía `/opsx:propose` → `/opsx:apply` → `/opsx:archive`; al archivar, la spec queda en `openspec/specs/`.
 
 ## Entorno de pruebas (staging)
 

@@ -1,32 +1,110 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+# Gobernanza del proyecto (reemplaza a .specify/memory/constitution.md desde el
+# 2026-09-01). No tiene versionado semántico ni ritual de enmienda por comando:
+# los cambios se hacen editando este archivo directamente y quedan registrados
+# en el historial de git, como cualquier otro archivo del repo.
+context: |
+  ## Organizador de Fútbol
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
+  Aplicación web para organizar partidos de fútbol entre amigos: gestión de
+  jugadores, gestión de partidos y generación automática de equipos
+  equilibrados, con arquitectura pensada para incorporar nuevas reglas,
+  estrategias y funcionalidades sin rediseñar el sistema.
 
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+  ### Stack y persistencia
+  - Persistencia centralizada y compartida en Cloud Firestore. No se usa
+    localStorage/sessionStorage como fuente de datos.
+  - Volumen esperado: hasta ~500 jugadores y ~500 partidos por grupo. No se
+    diseña para volúmenes mayores hasta que `Roadmap.md` lo indique
+    explícitamente.
+
+  ### Dónde vive la fuente de verdad de cada feature
+  - Toda feature nueva, y toda modificación de una feature existente, se
+    especifica de ahora en más con OpenSpec (`openspec/changes/` →
+    `openspec/specs/` al archivar el change). Esto reemplaza tanto a la
+    metodología de tres documentos en `docs/<feature>/`
+    (`/engineering-methodology:staged-engineering-doc`) como al flujo speckit
+    (`/speckit-*`) para trabajo nuevo.
+  - Las specs de features ya construidas antes de este cambio siguen vigentes
+    donde están y NO se migran solo por existir: `docs/<feature>/` y
+    `.specify/specs/<NNN-feature>/spec.md` siguen siendo fuente de verdad del
+    comportamiento que describen. El código nunca es fuente de verdad: si
+    difiere de su spec, es un bug a corregir explícitamente en uno de los dos
+    lados.
+  - Cuando un change de OpenSpec modifica comportamiento ya descripto en una
+    spec de `docs/` o `.specify/specs/`, el proposal DEBE declararlo
+    explícitamente: qué spec y qué parte reemplaza. Esa parte queda marcada
+    como reemplazada en la spec vieja. Sin esa declaración, dos specs vigentes
+    se contradicen.
+  - `Roadmap.md` es el backlog de ideas no decididas. Una idea se retira de ahí
+    recién cuando se convierte en un change de OpenSpec.
+
+  ### Principios de producto (se aplican a todo change)
+  - **Simplicidad ante todo**: se implementa lo que el proposal pide para la
+    versión actual, ni más ni menos. Nada de infraestructura, abstracciones o
+    configuración anticipada para funcionalidad que todavía vive en
+    `Roadmap.md`. Ante dos soluciones que cumplen el mismo requisito, gana la
+    más simple de mantener, aunque la otra escale mejor a un volumen que hoy
+    no existe.
+  - **Explicabilidad del motor de generación**: toda generación automática de
+    equipos debe poder explicarse al usuario en lenguaje claro, reflejando
+    únicamente decisiones que realmente ocurrieron durante esa ejecución.
+    Ninguna estrategia, regla o parámetro del motor se agrega sin que su
+    efecto quede reflejado en el resumen de generación.
+  - **Arquitectura desacoplada y modular**: separación estricta entre
+    interfaz, motor de generación y persistencia. La persistencia se accede
+    siempre a través de una interfaz simple de guardar/leer (hoy implementada
+    sobre Firestore, pero el resto del código no asume sus detalles). El
+    motor no asume detalles de la interfaz. Reglas o estrategias nuevas del
+    motor se agregan sin modificar las existentes.
+  - **Responsive por diseño, piso 360px**: toda interfaz nueva o modificada
+    funciona correctamente desde 360px de ancho hacia arriba, sin techo
+    (incluida la franja de tablet), con foco en que sea usable desde mobile.
+    Prohibido diseñar o implementar atado a resoluciones fijas
+    (anchos/altos de layout hardcodeados, verificación solo en desktop), sin
+    excepción por tratarse de una feature chica o de bajo tráfico. Se
+    verifica midiendo, no mirando: en cada ancho donde el layout cambia de
+    forma (el piso de 360px, cada breakpoint de CSS medido de los dos lados,
+    la franja de tablet), a la vez (1) la página no produce scroll
+    horizontal (`scrollWidth === clientWidth`) y (2) ningún elemento queda
+    con el borde derecho fuera del viewport. Comando: `node
+    tests/layout.test.js`; una pantalla que el test no cubre todavía se
+    agrega ahí como escenario nuevo, y ese escenario nuevo MUST verse fallar
+    al menos una vez (revirtiendo el arreglo que lo motiva) antes de darlo
+    por bueno.
+  - **Design system como fuente de verdad de UI**: toda interfaz nueva o
+    modificada se construye a partir del design system de Football App,
+    documentado en `.claude/skills/football-app-design/` (tokens de color,
+    tipografía, spacing, radios, elevación, motion; componentes;
+    guidelines). Ninguna pantalla, componente o estilo se implementa con
+    colores, tipografías, radios, sombras o iconografía inventados por fuera
+    de ese sistema. Orden de resolución: 1) un token o componente existente
+    que cubra el caso, 2) una combinación de tokens existentes, 3) recién si
+    ninguno de los dos alcanza, una excepción documentada explícitamente en
+    el proposal o design del change.
+
+  ### Cumplimiento
+  Antes de aplicar (`openspec apply`) un change se verifica que no viole
+  ninguno de estos principios. Cualquier excepción necesaria (p. ej. una
+  complejidad que rompe "Simplicidad ante todo") se justifica explícitamente
+  en el proposal o el design del change, no se asume en silencio.
+
+rules:
+  proposal:
+    - Nombrá qué idea de Roadmap.md se está encarando (o qué bug/gap se está corrigiendo) y retirala de Roadmap.md una vez creado el change.
+    - Si este change modifica comportamiento ya descripto en una spec de docs/ o .specify/specs/, declaralo explícitamente — qué spec y qué parte reemplaza — y marcá esa parte como reemplazada en la spec vieja.
+    - No incluyas alcance más allá de lo que esta versión necesita (Simplicidad ante todo); lo que queda afuera va a Roadmap.md, no al proposal.
+  specs:
+    - Si la feature toca el motor de generación de equipos, cada regla o parámetro nuevo debe quedar reflejado en el resumen de generación (Explicabilidad del motor).
+    - Si la feature toca UI, la spec declara el comportamiento responsive esperado desde 360px de ancho, sin excepción por tratarse de una pantalla chica o de bajo tráfico.
+  design:
+    - Verificá y declará que la separación interfaz / motor de generación / persistencia se mantiene; ninguna capa debe asumir detalles de otra (Arquitectura desacoplada).
+    - Toda decisión visual nueva se resuelve primero contra los tokens/componentes de .claude/skills/football-app-design/; si ninguno alcanza, documentá la excepción acá explícitamente, no la asumas en silencio.
+  tasks:
+    - Si hay una tarea de verificación responsive, agregá el escenario a tests/layout.test.js como parte de la tarea y hacé que se vea fallar antes del fix, no solo pasar después.
+
+operations:
+  apply:
+    guidance:
+      - Antes de marcar el change como aplicado, confirmá contra los Principios de producto de este archivo (no contra la memoria de la conversación) que no se violó ninguno.

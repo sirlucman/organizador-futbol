@@ -6,7 +6,7 @@ Este documento ordena el trabajo en tres bloques:
 2. **Pendientes versión actual**: zonas grises de los specs actuales que conviene cerrar antes de seguir sumando features.
 3. **Lo que viene lo que viene**: ideas para versiones posteriores.
 
-El spec de cada feature en `.specify/specs/` es la fuente de verdad (ver [`README.md`](README.md) para el índice y `.specify/memory/constitution.md` para las restricciones transversales) — este Roadmap es donde vive la conversación de "qué falta definir" y "qué viene después", antes de que algo se promueva a un spec.
+El spec de cada feature es la fuente de verdad (ver [`README.md`](README.md) para el índice y [`openspec/config.yaml`](openspec/config.yaml) para las restricciones transversales) — este Roadmap es donde vive la conversación de "qué falta definir" y "qué viene después", antes de que algo se promueva a un change de OpenSpec.
 
 ---
 
@@ -71,7 +71,7 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
 
 ### Mejoras de UX
 - Alternativa táctil para editar equipos manualmente (tocar para seleccionar y tocar el equipo destino). **El motivo original de este ítem era falso**: decía que el drag & drop nativo no responde igual en celular, y el 2026-08-27 se verificó a mano en producción que funciona tanto en iOS como en Chrome sobre Android. Queda como idea de ergonomía —tocar dos veces puede ser más cómodo que arrastrar en una pantalla chica— y no como la solución a un hueco funcional. Pendiente decidir si sobrevive con ese alcance más chico.
-- Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `.specify/memory/constitution.md`, sección "Restricciones Técnicas y de Alcance").
+- Paginado en los listados de jugadores y partidos: hoy se muestran todos los registros de una sola vez, sin límite. Agregar un combo para elegir cuántos items mostrar por página (10 / 25 / 50), pensado para cuando el volumen crezca (ver "Volumen esperado" en `openspec/config.yaml`).
 - Nueva forma de presentación de equipos donde se muestre la estrategia: 3-2-2, 3-1-3 etc.
 
 
@@ -80,5 +80,5 @@ _(sin pendientes por ahora — los dos gaps detectados al migrar los specs ("Bal
 ## Cómo usar este documento
 
 - Idea nueva → se agrega acá, en la sección que corresponda (no directo a un spec).
-- Cuando una idea de "Futuro" se decide encarar → se mueve a un apartado de "Próxima versión" (a crear cuando arranque) y se detalla en el spec de la feature correspondiente vía `/speckit-specify` (feature nueva o existente en `.specify/specs/`).
+- Cuando una idea de "Futuro" se decide encarar → se mueve a un apartado de "Próxima versión" (a crear cuando arranque) y se detalla creando un change de OpenSpec vía `/opsx:propose` (feature nueva o modificación de una existente).
 - Cuando un "Pendiente de v1" se resuelve → la decisión se redacta en el spec de la feature correspondiente y se tacha/borra de acá.
