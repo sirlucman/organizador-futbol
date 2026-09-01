@@ -428,10 +428,12 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **FR-035** — El sistema mostrará siempre el número dentro del chip, también
   cuando sea 1.
 - **FR-036** — Mientras la unidad de armado sea una dupla de rotación, el
-  sistema mostrará los chips de cada integrante sobre la camiseta que le
-  corresponde, nunca combinados en una sola camiseta (mismo criterio que
-  `FR-013`/`FR-014` de `001-organizacion-partidos`: cada integrante carga y
-  muestra sus propios valores).
+  sistema sumará los goles, los goles en contra y las asistencias de los dos
+  integrantes y mostrará un único juego de chips sobre la camiseta
+  compartida, con el mismo criterio que ya usa el puntaje de la dupla
+  (`valorDePuntaje`, [`index.html:3869`](../../../index.html#L3869)): la
+  dupla se dibuja como una sola camiseta desde la rebanada 1, y no hay una
+  segunda forma dónde anclar un segundo juego de chips.
 
 ### 7.4 La fila de resultado
 
@@ -587,10 +589,12 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   vez: lleva los tres chips, uno a la izquierda y dos a la derecha (`FR-030`,
   `FR-032`, `FR-033`)
 - `S-03c [boundary]` — la unidad es una dupla de rotación y sólo uno de los
-  dos integrantes metió goles: el chip aparece sólo sobre la camiseta de ese
-  integrante (`FR-036`)
-- `S-03d [property]` — para todo jugador del armado, la suma de los números
-  mostrados en sus chips coincide exactamente con
+  dos integrantes metió un gol: el chip de goles muestra "1" sobre la
+  camiseta compartida, igual que si lo hubiera metido cualquiera de los dos
+  (`FR-036`)
+- `S-03d [property]` — para toda unidad de armado (jugador suelto o dupla), la
+  suma de los números mostrados en sus chips coincide exactamente con la suma,
+  sobre cada integrante de la unidad, de
   `stats[jugador].goles + stats[jugador].golesEnContra + stats[jugador].asistencias`
 
 #### Scenario S-04 — La fila de resultado muestra el marcador (covers FR-040, FR-041, FR-042)
@@ -879,6 +883,7 @@ nueva).
 | Date | Author | Change |
 |---|---|---|
 | 2026-09-01 | Lucas Manoukian | Corrección encontrada al empezar el Implementation Plan: `FR-009` decía que el botón de copiar formación "sigue existiendo... en la botonera al pie", pero eso es falso — la rebanada 3 ya lo sacó del pie por completo (`FR-063` de esa Spec) y sólo vive en el encabezado. El handoff (5a/6b) dibuja el encabezado del partido finalizado sólo con el lápiz, sin ícono de copiar, pero nada en el Concept Note declara sacar esa función para este estado; consultado el usuario, se confirmó mantenerla. `FR-009` se reescribe para agregar el botón de copiar al encabezado junto al lápiz, y `FR-009b` (nuevo) aísla la exclusión de Regenerar, que sí seguía siendo correcta. Se ajusta `S-01` en consecuencia. El error fue tratar una omisión del mockup puntual como si fuera una decisión de producto, en vez de contrastarla contra lo que la rebanada 3 ya construyó (mismo tipo de falla que `TC-034` existe para atrapar, aunque esta la atrapó recién el Plan y no la propia Spec). |
+| 2026-09-01 | Lucas Manoukian | Segunda corrección encontrada al mismo tiempo que la de `FR-009`: `FR-036` decía que una dupla de rotación muestra los chips "de cada integrante... nunca combinados en una sola camiseta", pero eso contradice cómo la cancha ya dibuja una dupla desde la rebanada 1 — **una sola** camiseta compartida con los dos nombres, no dos camisetas. No hay una segunda forma dónde anclar un segundo juego de chips. Se reescribe `FR-036` para sumar los valores de los dos integrantes y mostrar un único juego de chips, con el mismo criterio que ya usa `valorDePuntaje` para el puntaje combinado de la dupla. Se ajustan `S-03c` y `S-03d` en consecuencia. El error fue copiar el criterio de `FR-013`/`FR-014` de `001-organizacion-partidos` (cada integrante carga sus propios valores) sin verificar que ese criterio es sobre el **dato guardado**, no sobre **cuántas camisetas existen para mostrarlo**. |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Deriva la Spec directamente del Concept Note (ya aprobado, cubre las 7 rebanadas) y del handoff (5a, 6b, 8c, 8d, § Chips de estadística, § Fila de resultado, § Filas de detalle), sin reabrir preguntas que esos dos documentos ya responden, a pedido explícito del usuario para minimizar el Q&A de esta rebanada. Declara el reemplazo parcial de seis grupos de FR de la Spec de la rebanada 3 (píldora, diferencia por línea, receipt, FR-060, FR-083b) para el estado específico de partido finalizado sin edición. Self-critique: passed (0🔴 / 4🟡 / 2🔵), los seis resueltos. Los 🟡: la declaración de reemplazo citaba `FR-020` a `FR-025` como la fila de resultado cuando en esta Spec esa fila es `FR-040` a `FR-043` (corregido); los IDs de la rebanada 3 citados en esa misma declaración no se distinguían de los de esta Spec pese a compartir rango numérico (se anotaron todos con "(rebanada 3)"); `FR-005b` no cubría el caso compacto de fútbol 9 y no tenía escenario ni AC propios (se agregó `FR-005c`, la variante `S-10a` y `AC-07`); `FR-060` citaba "007-permisos-por-usuario no los alcanza" sin apuntar a la regla taxativa concreta (se citó `FR-004` a `FR-007` y `FR-013` de esa Spec). Los 🔵: `FR-003` no distinguía `estrategiaKey` (la clave) de `resumen` (el texto mostrado, resuelto vía `ESTRATEGIAS[...]`); se agregó al Handoff una nota sobre dos decisiones de esta Spec (la extensión de `D-24`, el desempate de `TC-034`) que podrían promoverse al Concept Note siguiendo el patrón de las rebanadas 2 y 3. |
 
 ---
