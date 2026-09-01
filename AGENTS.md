@@ -2,8 +2,8 @@
 
 Este archivo es la fuente de las convenciones de trabajo que los planes de
 feature restatean en su §5. La fuente de verdad sobre *comportamiento* no vive
-acá: vive en los specs de feature (Principio I de
-[`.specify/memory/constitution.md`](.specify/memory/constitution.md)).
+acá: vive en los specs de feature (ver "Dónde vive la fuente de verdad de cada
+feature" en [`openspec/config.yaml`](openspec/config.yaml)).
 
 ## Commits
 
@@ -52,13 +52,15 @@ que solo necesita `tests/layout.test.js`.
 ## Estilo
 
 - Toda la aplicación vive en `index.html`, dentro de un IIFE. No hay paso de
-  build, ni bundler, ni framework (Principio II).
+  build, ni bundler, ni framework (principio de simplicidad ante todo, ver
+  `openspec/config.yaml`).
 - La interfaz se construye con plantillas de cadena e `innerHTML`, como el resto
   del archivo. **Todo texto que venga de un jugador se escapa** antes de
   insertarse, tanto en contenido como en atributos.
 - Los valores visuales salen del design system
   ([`.claude/skills/football-app-design/`](.claude/skills/football-app-design/)),
-  en el orden que fija el Principio VI.
+  en el orden que fija el principio de design system como fuente de verdad de
+  UI (ver `openspec/config.yaml`).
 - `tests/harness.js` recorta declaraciones de `index.html` **por nombre**.
   Renombrar o borrar una de las funciones de su lista `DECLARACIONES` rompe
   `motor.test.js`: si se renombra, se actualiza la lista en el mismo commit.
