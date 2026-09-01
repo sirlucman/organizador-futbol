@@ -1194,12 +1194,28 @@ const ESCENARIOS = [
         pill = pillDe(individuales()[0]);
         if (pill !== '4') problemas.push(`el doble toque casi simultáneo no dejó la pastilla en "4" (toque/S-01c): "${pill}"`);
 
+        // toque/S-01f: sobre una unidad individual, tocar la CAMISETA (la silueta, no sólo el
+        // nombre) también agrega el evento — la convivencia práctica en un teléfono real mostró
+        // que el nombre solo era un blanco demasiado chico.
+        const figIndividual = individuales()[0].closest('.camiseta').querySelector('.camiseta-fig');
+        figIndividual.click();
+        pill = pillDe(individuales()[0]);
+        if (pill !== '5') problemas.push(`tocar la camiseta (no el nombre) no sumó la pastilla a "5" (toque/S-01f, FR-030): "${pill}"`);
+
         // toque/S-01e: tocar el nombre de un integrante de una dupla agrega el evento sólo a ESE
         // integrante — el detalle muestra una fila propia por jugador, nunca combinada (FR-030b).
         const dupla = document.querySelector('.camiseta-dupla');
         if (!dupla) {
           problemas.push('no se encontró ninguna dupla de rotación en m-cerrado (toque/S-01e)');
         } else {
+          // Sobre una dupla el toque queda acotado al nombre de cada integrante: tocar la
+          // camiseta fuera de los dos nombres no agrega ningún evento, porque ahí no hay a quién
+          // atribuírselo sin un segundo control (FR-030b, TD-01).
+          const filasAntesDeTocarLaCamiseta = document.querySelectorAll('.detalle-fila').length;
+          dupla.closest('.camiseta').querySelector('.camiseta-fig').click();
+          if (document.querySelectorAll('.detalle-fila').length !== filasAntesDeTocarLaCamiseta) {
+            problemas.push('tocar la camiseta de una dupla fuera de los nombres agregó un evento (toque/S-01e, FR-030b)');
+          }
           const nombresDupla = [...dupla.querySelectorAll('.camiseta-nombre')];
           if (nombresDupla.length !== 2) {
             problemas.push(`la dupla no tiene exactamente dos nombres (toque/S-01e): ${nombresDupla.length}`);
@@ -1293,11 +1309,14 @@ const ESCENARIOS = [
       const problemas = [];
 
       // eventos/S-01, toque/S-07: tocar el nombre de un titular carga un evento no trivial, y
-      // finalizar persiste `eventos`, no `statsPorJugador` (FR-030, FR-071).
+      // finalizar persiste `eventos`, no `statsPorJugador` (FR-030, FR-071). Sobre una unidad
+      // individual el toque vive en el contenedor `.camiseta`, no en el `<span>` del nombre
+      // (toque/S-01f): el click sobre el nombre sigue funcionando por burbujeo, pero el
+      // `onclick` con el jugadorId hay que leerlo del contenedor.
       const jugadorId = await page.evaluate(() => {
         const nombre = [...document.querySelectorAll('.camiseta-nombre')].find(n => !n.closest('.camiseta-dupla'));
         if (!nombre) return null;
-        const id = nombre.getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+        const id = nombre.closest('.camiseta').getAttribute('onclick').match(/,'([^']+)'\)/)[1];
         nombre.click();
         return id;
       });
@@ -1372,7 +1391,8 @@ const ESCENARIOS = [
         if (filaAsist) filaAsist.querySelector('.detalle-quitar-btn').click();
         const nombre = [...document.querySelectorAll('.camiseta-nombre')].find(n => !n.closest('.camiseta-dupla'));
         if (!nombre) return null;
-        const id = nombre.getAttribute('onclick').match(/,'([^']+)'\)/)[1];
+        // El onclick con el jugadorId vive en el contenedor sobre una unidad individual (toque/S-01f).
+        const id = nombre.closest('.camiseta').getAttribute('onclick').match(/,'([^']+)'\)/)[1];
         nombre.click();
         return id;
       });

@@ -336,11 +336,14 @@ aplicable acá.
 
 ### 7.4 Carga por toque
 
-- **FR-030** — When el administrador toca el nombre de un jugador con el
-  modo de carga activo, el sistema shall agregar al borrador un evento del
-  tipo actualmente seleccionado, atribuido a ese jugador. El toque ocurre
-  sobre el nombre (`.camiseta-nombre`), no sobre toda la camiseta, para que
-  `FR-030b` sea posible sin un segundo tipo de control.
+- **FR-030** — When el administrador toca a un jugador con el modo de carga
+  activo, el sistema shall agregar al borrador un evento del tipo
+  actualmente seleccionado, atribuido a ese jugador. Sobre una unidad
+  individual el toque abarca toda la camiseta (silueta y nombre); sobre una
+  dupla queda acotado al nombre de cada integrante (`FR-030b`), que es el
+  único elemento que distingue a quién atribuírselo sin agregar un segundo
+  tipo de control. Enmendado tras la prueba en un teléfono real: el nombre
+  solo resultó un blanco demasiado chico para el toque (ver Change log).
 - **FR-030b** — Where la unidad tocada es una dupla de rotación (dos
   jugadores en una misma camiseta compartida, `index.html:4236-4238`), el
   sistema shall tratar el nombre de cada integrante como un toque
@@ -481,6 +484,9 @@ aplicable acá.
 - `S-01e [boundary]` — tocar el nombre de un integrante de una dupla agrega
   el evento sólo a ese integrante; el otro integrante de la misma camiseta
   no cambia (FR-030b)
+- `S-01f [boundary]` — sobre una unidad individual, tocar la silueta de la
+  camiseta (no sólo el nombre) también agrega el evento; sobre una dupla,
+  tocar la camiseta fuera de los dos nombres no agrega ninguno (FR-030)
 
 #### Scenario S-02 — Cargar un penal a un jugador sin goles previos (covers FR-012, FR-030, FR-033)
 
@@ -768,6 +774,7 @@ que registrar.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Enmienda encontrada al probar `feature/carga-por-toque` ya mergeada en un teléfono real: el nombre del jugador (`.camiseta-nombre`) resultó un blanco de toque demasiado chico en la práctica. Se ajusta `FR-030` para que, sobre una unidad INDIVIDUAL, el toque abarque toda la camiseta (silueta y nombre); sobre una dupla sigue acotado al nombre de cada integrante, sin cambios (`FR-030b` sigue vigente tal cual). Se agrega la variante `S-01f`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al empezar el Implementation Plan: la Spec no decía qué pasa al tocar una dupla de rotación (dos jugadores compartiendo una camiseta) — el toque tal como estaba redactado (`FR-030` original, "toca la camiseta") no podía distinguir a qué integrante atribuir el evento, mientras que la grilla numérica que esta rebanada reemplaza sí permitía cargar a cada integrante por separado (`renderTeamPlayerRowDupla`). Se agrega `FR-030b`, se ajusta `FR-030` para que el toque ocurra sobre el nombre del jugador (no toda la camiseta) —lo que hace posible distinguir integrantes sin agregar un control nuevo—, y se agrega la variante `S-01e`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, encontrada y resuelta antes de escribir el Plan). |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Self-critique: passed (1🔴 / 4🟡 / 1🔵) — el 🔴 (cita sin verificar de la reutilización de `escaparHtml` en `TC-003`) y los cuatro 🟡 (`FR-003`/`FR-080` usaban el patrón EARS "Where" para una condición de rol en vez de "While"; `FR-005` era compuesta y se partió en `FR-005`/`FR-005b`; `FR-032` citaba sólo la analogía de `openspec/specs/resultados-partido/spec.md:36` en vez de la regla ya implementada en `index.html:3955-3960`; faltaba `D-18` en §3.3 como precedente heredado) resueltos; el 🔵 (fila vacía de `[OPEN-Q-N]` en §16) resuelto quitando la tabla y dejando la declaración en prosa. |
 

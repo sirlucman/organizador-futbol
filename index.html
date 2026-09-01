@@ -319,6 +319,9 @@
      hay que apretar una fila se angosta la columna antes que la camiseta, que es lo que el
      handoff hace para la fila de cuatro volantes de la cancha de 9. */
   .camiseta{ display: flex; flex-direction: column; align-items: center; gap: 4px; width: var(--chip-w); border-radius: 13px; min-width: 0; }
+  /* Afordancia del toque en modo de carga (FR-030): la camiseta individual y el nombre de cada
+     integrante de una dupla llevan `role="button"` sólo cuando son destino de un toque real. */
+  .camiseta[role="button"], .camiseta-nombre[role="button"]{ cursor: pointer; }
   .camiseta-fig{ position: relative; width: var(--chip-size); height: var(--chip-size); }
   .camiseta-fig svg{ width: 100%; height: 100%; filter: drop-shadow(0 3px 7px rgb(17 24 39 / 0.35)); display: block; }
   .camiseta-fig path{ fill: var(--chip-bg); stroke: var(--chip-stroke); stroke-width: 1.2; }
@@ -4163,12 +4166,20 @@
     const secundaria = grupo.some(j => j.principal !== posAsignada);
 
     const arrastrable = esFilaEditable(m);
+    // El toque abarca toda la camiseta cuando la unidad es un solo jugador (FR-030): sobre una
+    // dupla, dos jugadores comparten una camiseta y el toque queda acotado al nombre de cada uno,
+    // que es lo único que distingue a quién atribuírselo (FR-030b, TD-01). `arrastrable` y
+    // `puedeTocarCamiseta` son mutuamente excluyentes por construcción (A-03): nunca compiten por
+    // el mismo gesto sobre el mismo elemento.
+    const enCarga = enModoCarga(m);
+    const puedeTocarCamiseta = enCarga && admin && !esUnidadDupla;
     const partes = [completos];
     if(esUnidadDupla) partes.push('dupla de rotación');
     partes.push(secundaria ? posAsignada + ' (posición secundaria)' : posAsignada);
     if(admin && valor === null) partes.push('sin puntaje');
     // El `title` anuncia el gesto sin desplazar lo que ya llevaba (FR-003).
     if(arrastrable) partes.push('arrastrala al otro equipo para pasarlo');
+    if(puedeTocarCamiseta) partes.push('tocá para sumar un evento del tipo activo');
     const titulo = escaparHtml(partes.join(' · '));
 
     const puntajeHtml = (admin && valor !== null)
@@ -4186,18 +4197,21 @@
       : '';
 
     /* El `draggable` va en el contenedor y el candado lleva `draggable="false"`, para que
-       activarlo siga siendo un click y no el arranque de un arrastre (FR-007b). */
+       activarlo siga siendo un click y no el arranque de un arrastre (FR-007b). El toque sobre
+       toda la camiseta (individual, FR-030) vive en el mismo contenedor y con la misma guarda: al
+       ser mutuamente excluyentes con `arrastrable`, nunca hay dos gestos compitiendo por el click. */
     const arrastreAttrs = arrastrable
       ? ' draggable="true" ondragstart="window.__dragStartJugador(event,\'' + p.id + '\')"'
         + ' ondragend="window.__dragFin()"'
         + ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
-      : '';
+      : (puedeTocarCamiseta
+        ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + p.id + '\')" role="button" tabindex="0"'
+        : '');
     // Chips de goles/goles en contra/asistencias: del partido finalizado sin editar (rebanada 4,
     // TD-04), o del borrador de carga mientras el modo de carga está activo (rebanada 6, FR-040,
     // FR-041) — nunca los dos a la vez, porque un finalizado sin editar y `enModoCarga(m)` son
     // mutuamente excluyentes por construcción.
-    const enCarga = enModoCarga(m);
     const finalizadoSinEditarChips = m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id;
     const statsDraft = (enCarga && resultadoDraft && resultadoDraft.matchId === m.id)
       ? statsPorJugadorDesdeEventos(resultadoDraft.eventos, [...m.equipos.blanco, ...m.equipos.negro])
@@ -4213,13 +4227,15 @@
       ? '<div class="stat-chips">' + chips.asistenciasHtml + chips.golesHtml + '</div>'
       : (chips.asistenciasHtml || chips.golesHtml);
 
-    // El nombre gana el toque cuando el modo de carga está activo (FR-030): cada integrante de una
-    // dupla es su propio destino de toque, con el mismo gesto y sin agregar un segundo tipo de
-    // control (FR-030b, TD-01). `renderCamiseta` sólo pinta: la validación vive en
-    // `__tocarNombreJugador` (TD-03).
-    const puedeTocar = enCarga && admin;
+    // Sobre una unidad individual el toque ya cubre toda la camiseta (arriba); acá el nombre no
+    // lleva su propio onclick, porque el click burbujea igual hasta el contenedor y dispararlo en
+    // los dos lugares agregaría el evento dos veces. Sobre una dupla, en cambio, cada nombre SÍ es
+    // su propio destino de toque —es lo único que distingue a qué integrante atribuírselo— y el
+    // contenedor no lleva onclick (FR-030b, TD-01). `renderCamiseta` sólo pinta: la validación
+    // vive en `__tocarNombreJugador` (TD-03).
+    const puedeTocarNombreDupla = enCarga && admin && esUnidadDupla;
     const nombreSpan = (jug) => '<span class="camiseta-nombre"'
-      + (puedeTocar ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + jug.id + '\')" role="button" tabindex="0"' : '')
+      + (puedeTocarNombreDupla ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + jug.id + '\')" role="button" tabindex="0"' : '')
       + '>' + escaparHtml(nombreCorto(jug)) + '</span>';
     const nombreHtml = esUnidadDupla
       ? '<div class="camiseta-dupla">' + nombreSpan(grupo[0]) + ICON_ROTACION + nombreSpan(grupo[1]) + '</div>'
