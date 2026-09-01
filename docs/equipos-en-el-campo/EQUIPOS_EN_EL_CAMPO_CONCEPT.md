@@ -1,19 +1,24 @@
 # Equipos en el campo — Concept Note
 
-> **Status:** Draft · **Date:** 2026-08-31 · **Owner:** Lucas Manoukian
+> **Status:** Draft · **Date:** 2026-09-01 · **Owner:** Lucas Manoukian
 >
 > **Reviewers:** *pending*
 >
-> **Rebanada 1 · la cancha:** [CANCHA_SPEC.md](./rebanada-1-cancha/CANCHA_SPEC.md) ·
-> [CANCHA_IMPLEMENTATION_PLAN.md](./rebanada-1-cancha/CANCHA_IMPLEMENTATION_PLAN.md)
+> **Estado de las siete rebanadas de `D-08`** (al 2026-09-01):
 >
-> **Rebanada 2 · el arrastre:** [ARRASTRE_SPEC.md](./rebanada-2-arrastre/ARRASTRE_SPEC.md) ·
-> [ARRASTRE_IMPLEMENTATION_PLAN.md](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md)
+> | # | Rebanada | Estado | Documentos |
+> |---|---|---|---|
+> | 1 | La cancha | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-1-cancha/CANCHA_SPEC.md) · [Plan](./rebanada-1-cancha/CANCHA_IMPLEMENTATION_PLAN.md) |
+> | 2 | El arrastre | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-2-arrastre/ARRASTRE_SPEC.md) · [Plan](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md) |
+> | 3 | El panel de armado | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) · [Plan](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md) |
+> | 4 | El partido finalizado | **En curso** — rama `docs/partido-finalizado` abierta, Spec escrita, Plan pendiente | [Spec](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) · *Plan not yet written* |
+> | 5 | El modelo de eventos | Pendiente — la única sin efecto visible | *not yet written* |
+> | 6 | La carga por toque | Pendiente | *not yet written* |
+> | 7 | La configuración | Pendiente — **opcional** (§14) | *not yet written* |
 >
-> **Rebanada 3 · el panel de armado:** [PANEL_ARMADO_SPEC.md](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) ·
-> [PANEL_ARMADO_IMPLEMENTATION_PLAN.md](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md)
->
-> **Rebanadas 4 a 7:** *not yet written*
+> "Mergeada" es lo que el repositorio prueba: la rama `feature/<rebanada>` está
+> en `main`. La validación en la aplicación real que pide `D-08` es un paso
+> aparte, y este bloque no la afirma.
 
 ## 1. TL;DR
 
@@ -657,13 +662,15 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa de "sin documentos todavía" a enlazar `PARTIDO_FINALIZADO_SPEC.md`, ya escrita. Se corrige el puntero de cierre para anunciar el Implementation Plan de la rebanada 4 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |
+| 2026-09-01 | Lucas Manoukian | Actualización de estado: el bloque de encabezado pasa de listar las rebanadas escritas a declarar el estado de las siete, con la fecha de merge de cada una. Se corrige el puntero de cierre, que seguía anunciando el Implementation Plan de la rebanada 1 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el historial de `git`). |
 | 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 3: se incorporan `D-22` a `D-25`, las cuatro decisiones de producto tomadas con el propietario al fijar el alcance del panel de armado. `D-22` cierra la `OPEN-Q-07` que este documento había dejado abierta para esta Spec, y `D-25` cierra la `OPEN-Q-03` que la rebanada 2 había elevado. Se agrega a §14 el diferido del texto de Copiar, y el bloque de encabezado pasa a listar las tres rebanadas escritas. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 2: se incorporan `D-18` a `D-21`, las cuatro decisiones de producto que se tomaron al escribir su Spec y que habían quedado registradas dentro de ella. Por la separación de tres documentos (`MD-01`) su lugar es esta §10: `D-19` y `D-21` en particular alcanzan a las rebanadas siguientes, no sólo a la 2. Se agrega además a §17 la lección sobre inferir capacidades desde la ausencia de código. Cierra la `OPEN-Q-07` de la Spec de la rebanada 2. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Initial draft, más las seis resoluciones del barrido del mismo día (`D-12` a `D-17`; `OPEN-Q-01` a `OPEN-Q-06` cerradas, `OPEN-Q-07` abierta). Self-critique: passed (1🔴 / 2🟡 / 2🔵) — el 🔴 (cita a `explicacionesGeneracion`, símbolo inexistente heredado del handoff) y un 🟡 (rango de líneas de las funciones de fila) resueltos; el 🟡 restante, sobre el encuadre de §2, elevado al autor. |
 
 ---
 
-*Next document: Implementation Plan de la rebanada 1
-(`docs/equipos-en-el-campo/rebanada-1-cancha/`). El Concept Note cubre el rediseño
-completo; cada rebanada de `D-08` recibe su propia Spec e Implementation Plan, en
-su subcarpeta `rebanada-N-<nombre>/`.*
+*Next document: Implementation Plan de la rebanada 4, el partido finalizado
+(`docs/equipos-en-el-campo/rebanada-4-partido-finalizado/`). El Concept Note cubre
+el rediseño completo; cada rebanada de `D-08` recibe su propia Spec e
+Implementation Plan, en su subcarpeta `rebanada-N-<nombre>/`.*
