@@ -340,7 +340,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 |---|---|
 | Partido finalizado sin edición | El estado `m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id`. Es el único estado que esta Spec cubre; el mismo partido con `editandoResultadoFinalizado === m.id` sigue el comportamiento de la rebanada 3. |
 | Chip de estadística | La pastilla pegada al borde inferior de una camiseta que muestra un número y un ícono (gol, gol en contra o asistencia). Un jugador puede tener hasta tres: asistencias a la izquierda, goles y goles en contra a la derecha. |
-| Fila de resultado | El marcador central entre los dos equipos: puntaje de cada uno separados por un guion, con el nombre de cada equipo al costado (o abajo, en la versión compacta). |
+| Fila de resultado | La fila entre el encabezado y las canchas: el resultado del partido (goles, separados por un guion) en el centro, con el nombre de cada equipo a los costados y, sólo en dos columnas, su puntaje de armado. |
 | Filas de detalle | La lista en texto, una línea por jugador y por tipo de evento, que dice quién metió qué en cada equipo: "Lucas 2 ⚽ (1 de penal)", "Alfredo 1 🔴 (EC)". Reemplaza en esta vista al bloque de goleadores que hoy sólo existe en `matchResultSummaryHtml` de la tarjeta colapsada. |
 | Goleador | Un jugador con al menos un gol propio o un gol en contra en el resultado del partido. Es el mismo criterio de filtro que ya usa `matchResultSummaryHtml` ([`index.html:5093`](../../../index.html#L5093)). |
 
@@ -438,14 +438,21 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 ### 7.4 La fila de resultado
 
 - **FR-040** — El sistema mostrará, entre el encabezado y las canchas, una
-  fila con el nombre de cada equipo y el resultado del partido, calculado con
-  `totalGolesEquipo` (`TC-010`).
-- **FR-041** — Mientras la tarjeta esté en dos columnas, el sistema mostrará
-  el puntaje de cada equipo a los costados y el resultado en el centro,
-  separado por un guion.
+  fila con el resultado del partido en el centro, calculado con
+  `totalGolesEquipo` (`TC-010`), separado por un guion.
+- **FR-041** — Mientras la tarjeta esté en dos columnas, el sistema mostrará a
+  cada costado del resultado el nombre del equipo y su puntaje de armado
+  (`m.equipos.sumaBlanco` / `sumaNegro`), en ese orden.
 - **FR-042** — Mientras la tarjeta esté en una sola columna, el sistema
-  mostrará el nombre de cada equipo arriba o al costado de su puntaje, con el
-  mismo resultado central.
+  mostrará a cada costado del resultado sólo el nombre del equipo, sin su
+  puntaje de armado.
+- **FR-042b** — El sistema no repetirá en el encabezado de cada panel de
+  equipo (`renderZonaEquipos`) el puntaje ni el resultado que la fila de
+  resultado ya declara: en este estado, ese encabezado mostrará únicamente el
+  nombre del equipo. Evita mostrar la misma cifra dos veces en la misma
+  pantalla, algo que el handoff no puede mostrar porque sus dos bloques —fila
+  de resultado y encabezado de panel— no aparecen juntos en ninguna vista de
+  su prototipo.
 - **FR-043** — El sistema no mostrará ninguna otra comparación de puntaje
   (píldora de diferencia, diferencia por línea) en este estado (declaración de
   reemplazo, arriba).
@@ -597,20 +604,23 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   sobre cada integrante de la unidad, de
   `stats[jugador].goles + stats[jugador].golesEnContra + stats[jugador].asistencias`
 
-#### Scenario S-04 — La fila de resultado muestra el marcador (covers FR-040, FR-041, FR-042)
+#### Scenario S-04 — La fila de resultado muestra el marcador (covers FR-040, FR-041, FR-042, FR-042b)
 
-- **Given** un partido finalizado con 4 goles del Blanco y 3 del Negro
+- **Given** un partido finalizado con 4 goles del Blanco (52.5 pts de armado) y
+  3 del Negro (51.5 pts)
 - **When** se muestra la tarjeta en un viewport de 1200 px
-- **Then** aparece una fila con "Equipo Blanco", "4", un separador y "3",
-  "Equipo Negro"
+- **Then** la fila de resultado muestra "Blanco" y "52.5 pts" a la izquierda,
+  "4 - 3" al centro, "51.5 pts" y "Negro" a la derecha
+- **And** el encabezado del panel de cada equipo muestra sólo su nombre, sin
+  puntaje ni resultado (`FR-042b`)
 
 **Variants:**
 
 - `S-04a [boundary]` — el resultado es 0 a 0: la fila muestra "0 - 0", no la
   omite
-- `S-04b [boundary]` — en un viewport de 360 px, los nombres de equipo se
-  ubican arriba o al costado de su puntaje, con el mismo marcador central
-  (`FR-042`)
+- `S-04b [boundary]` — en un viewport de 360 px, la fila muestra sólo "Blanco"
+  y "Negro" a los costados, sin el puntaje de armado, con el mismo marcador
+  central (`FR-042`)
 
 #### Scenario S-05 — Las filas de detalle cuentan quién metió qué (covers FR-050 a FR-057)
 
@@ -699,8 +709,10 @@ nueva).
   de goles muestra "2" (sin desglosar penal) y el chip de asistencias muestra
   "1"; la fila de detalle sí desglosa "(1 de penal)" (cubre `FR-030`,
   `FR-031`, `FR-033`, `FR-052`).
-- **AC-05** — Con un resultado 4-3, la fila de resultado muestra "4" y "3"
-  con los nombres de equipo correspondientes (cubre `FR-040`).
+- **AC-05** — Con un resultado 4-3, la fila de resultado muestra "4 - 3" al
+  centro y el nombre de cada equipo a los costados, y en 1200 px además el
+  puntaje de armado de cada uno; el encabezado de cada panel de equipo no
+  repite ninguno de los dos números (cubre `FR-040`, `FR-041`, `FR-042b`).
 - **AC-06** — Con una sesión de rol `jugador`, la tarjeta contiene la cancha
   con chips, la fila de resultado y las filas de detalle, y no contiene el
   botón de editar resultado (cubre `FR-060`, `FR-061`).
@@ -884,6 +896,7 @@ nueva).
 |---|---|---|
 | 2026-09-01 | Lucas Manoukian | Corrección encontrada al empezar el Implementation Plan: `FR-009` decía que el botón de copiar formación "sigue existiendo... en la botonera al pie", pero eso es falso — la rebanada 3 ya lo sacó del pie por completo (`FR-063` de esa Spec) y sólo vive en el encabezado. El handoff (5a/6b) dibuja el encabezado del partido finalizado sólo con el lápiz, sin ícono de copiar, pero nada en el Concept Note declara sacar esa función para este estado; consultado el usuario, se confirmó mantenerla. `FR-009` se reescribe para agregar el botón de copiar al encabezado junto al lápiz, y `FR-009b` (nuevo) aísla la exclusión de Regenerar, que sí seguía siendo correcta. Se ajusta `S-01` en consecuencia. El error fue tratar una omisión del mockup puntual como si fuera una decisión de producto, en vez de contrastarla contra lo que la rebanada 3 ya construyó (mismo tipo de falla que `TC-034` existe para atrapar, aunque esta la atrapó recién el Plan y no la propia Spec). |
 | 2026-09-01 | Lucas Manoukian | Segunda corrección encontrada al mismo tiempo que la de `FR-009`: `FR-036` decía que una dupla de rotación muestra los chips "de cada integrante... nunca combinados en una sola camiseta", pero eso contradice cómo la cancha ya dibuja una dupla desde la rebanada 1 — **una sola** camiseta compartida con los dos nombres, no dos camisetas. No hay una segunda forma dónde anclar un segundo juego de chips. Se reescribe `FR-036` para sumar los valores de los dos integrantes y mostrar un único juego de chips, con el mismo criterio que ya usa `valorDePuntaje` para el puntaje combinado de la dupla. Se ajustan `S-03c` y `S-03d` en consecuencia. El error fue copiar el criterio de `FR-013`/`FR-014` de `001-organizacion-partidos` (cada integrante carga sus propios valores) sin verificar que ese criterio es sobre el **dato guardado**, no sobre **cuántas camisetas existen para mostrarlo**. |
+| 2026-09-01 | Lucas Manoukian | Tercera corrección: releída la sección "Fila de resultado" del handoff con más cuidado, el bloque izquierdo/derecho de la versión de escritorio lleva **nombre del equipo + puntaje de armado** ("Blanco" + "52.5 pts"), no sólo el nombre — dato que `FR-040`/`FR-041` habían omitido. La versión compacta sí omite el puntaje (probablemente por espacio, no por descuido: no hay ninguna razón funcional para sacarlo, a diferencia del caso de `FR-005c`, así que se toma tal cual dice el handoff). Esto además expone que el encabezado de cada panel de equipo (`Equipo Blanco 52.5 pts · 4 goles`, heredado de antes de esta rebanada) pasaría a repetir el puntaje **y** el resultado en la misma pantalla; se agrega `FR-042b` para que ese encabezado muestre sólo el nombre en este estado. Se ajustan `S-04`, `S-04b` y `AC-05`. El error fue quedarme con una lectura aproximada ("nombre y resultado") de un componente con más partes de las que primero registré, en vez de citar la medida exacta del handoff antes de escribir el requisito. |
 | 2026-09-01 | Lucas Manoukian | Initial draft. Deriva la Spec directamente del Concept Note (ya aprobado, cubre las 7 rebanadas) y del handoff (5a, 6b, 8c, 8d, § Chips de estadística, § Fila de resultado, § Filas de detalle), sin reabrir preguntas que esos dos documentos ya responden, a pedido explícito del usuario para minimizar el Q&A de esta rebanada. Declara el reemplazo parcial de seis grupos de FR de la Spec de la rebanada 3 (píldora, diferencia por línea, receipt, FR-060, FR-083b) para el estado específico de partido finalizado sin edición. Self-critique: passed (0🔴 / 4🟡 / 2🔵), los seis resueltos. Los 🟡: la declaración de reemplazo citaba `FR-020` a `FR-025` como la fila de resultado cuando en esta Spec esa fila es `FR-040` a `FR-043` (corregido); los IDs de la rebanada 3 citados en esa misma declaración no se distinguían de los de esta Spec pese a compartir rango numérico (se anotaron todos con "(rebanada 3)"); `FR-005b` no cubría el caso compacto de fútbol 9 y no tenía escenario ni AC propios (se agregó `FR-005c`, la variante `S-10a` y `AC-07`); `FR-060` citaba "007-permisos-por-usuario no los alcanza" sin apuntar a la regla taxativa concreta (se citó `FR-004` a `FR-007` y `FR-013` de esa Spec). Los 🔵: `FR-003` no distinguía `estrategiaKey` (la clave) de `resumen` (el texto mostrado, resuelto vía `ESTRATEGIAS[...]`); se agregó al Handoff una nota sobre dos decisiones de esta Spec (la extensión de `D-24`, el desempate de `TC-034`) que podrían promoverse al Concept Note siguiendo el patrón de las rebanadas 2 y 3. |
 
 ---
