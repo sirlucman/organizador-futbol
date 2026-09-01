@@ -4205,10 +4205,16 @@
         + ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
       : '';
+    // Chips de goles/goles en contra/asistencias del partido finalizado, sin editar (rebanada 4,
+    // TD-04): la condición se resuelve acá, leyendo `m` completo, en vez de agregar un parámetro.
+    const finalizadoSinEditarChips = m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id;
+    const chips = finalizadoSinEditarChips
+      ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, m.resultado.statsPorJugador))
+      : { asistenciasHtml: '', golesHtml: '' };
     return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
-      + puntajeHtml + candadoHtml
+      + puntajeHtml + candadoHtml + chips.asistenciasHtml + chips.golesHtml
       + '</div>' + nombreHtml + '<span class="drop-realce"></span></div>';
   }
 
@@ -4806,6 +4812,8 @@
   const ICON_REGENERAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
   const ICON_ATENCION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
   const ICON_CHEVRON = '<svg class="panel-estrategia-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  // Ícono del botón de editar resultado del partido finalizado (rebanada 4, FR-006).
+  const ICON_LAPIZ = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
   /* La píldora de diferencia. En dos columnas vive en el encabezado; en una baja a la fila del
      equipo visible, que es donde el handoff la pone en su vista compacta (FR-004, FR-005). */
@@ -4914,9 +4922,8 @@
     if(m.inscripcionCerrada && m.estado !== 'Finalizado'){
       botones.push('<button class="btn-primary" onclick="window.__finalizarPartido(\'' + m.id + '\')">Finalizar partido</button>');
     }
-    if(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id){
-      botones.push('<button class="btn-ghost" onclick="window.__editarResultadoFinalizado(\'' + m.id + '\')">Editar resultado</button>');
-    }
+    // El botón "Editar resultado" se mudó al encabezado del partido finalizado, como ícono
+    // (rebanada 4, FR-006, FR-009b — reemplaza el texto que vivía acá).
     if(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id){
       botones.push('<button class="btn-primary" onclick="window.__guardarEdicionResultado(\'' + m.id + '\')">Guardar cambios</button>');
       botones.push('<button class="btn-ghost" onclick="window.__cancelarEdicionResultado(\'' + m.id + '\')">Cancelar</button>');
@@ -4970,6 +4977,25 @@
     const eq = m.equipos;
     const blancoPlayers = jugadoresDeEquipoOrdenados(m, eq.blanco);
     const negroPlayers = jugadoresDeEquipoOrdenados(m, eq.negro);
+
+    /* Partido finalizado, sin edición en curso: una única rama, compartida por "admin" y
+       "jugador" (rebanada 4, TD-01) — FR-060 hace que los dos roles vean lo mismo salvo el
+       lápiz, que `renderEncabezadoPartidoFinalizado` resuelve por su cuenta. Va ANTES de las
+       dos ramas de abajo y retorna temprano: no se toca ninguna de sus líneas (R-04). */
+    if(m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id){
+      const stats = m.resultado.statsPorJugador;
+      section.innerHTML = `
+        ${renderEncabezadoPartidoFinalizado(m)}
+        ${renderFilaResultado(m)}
+        ${renderZonaEquipos(m, {
+          blanco: { header: 'Equipo Blanco',
+            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + `<div class="detalle-equipo">${renderFilasDetalle(eq.blanco, stats)}</div>` },
+          negro: { header: 'Equipo Negro',
+            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + `<div class="detalle-equipo">${renderFilasDetalle(eq.negro, stats)}</div>` }
+        })}
+      `;
+      return;
+    }
 
     if(!isAdmin()){
       // "jugador" ve qué jugador quedó en qué equipo (con sus estadísticas, vía renderTeamPlayerRow),
