@@ -450,7 +450,13 @@
      El selector aparece sólo en una columna, donde se ve un equipo por vez. Su geometría sale
      literal del handoff (§ Selector segmentado) y los realces de la tabla de drag-over de
      § Arrastre, en su variante compacta `6a` (TC-033). */
-  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--paper); }
+  /* El handoff pinta la pista del selector con `canvas-soft` porque allí el control vive sobre
+     una tarjeta BLANCA. Acá vive sobre el fondo de página, que ES `canvas-soft` (`--paper`), así
+     que copiar el valor literal dejaba la pista invisible y el control no se leía como uno de dos
+     posiciones. Se conserva la RELACIÓN que el handoff busca —pista apenas distinta del fondo—
+     invirtiendo el token, que es el mismo criterio con el que el resto de la aplicación pinta
+     sus campos: blanco sobre papel (TC-031). Lo detectó mirar la pantalla, no un test. */
+  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--chalk); }
   .equipo-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .equipo-tabs[data-visible="negro"] .equipo-tabs-thumb{ left: 50%; }
   /* `min-height` es una desviación deliberada del handoff, no un descuido: su `padding: 10px 0`

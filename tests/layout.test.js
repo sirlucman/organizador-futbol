@@ -257,6 +257,18 @@ const INVARIANTE_SELECTOR = () => {
       problemas.push(`la pestaña "${tab.textContent.trim()}" no expone aria-pressed: no se sabe cuál está seleccionada`);
     }
   }
+  /* La pista del selector tiene que distinguirse de lo que tiene detrás, o el control no se lee
+     como uno de dos posiciones. Es una regla de relación y no de valor: copiar el token literal
+     del handoff dejaba la pista del mismo color que el fondo de página, y ningún otro test lo
+     veía porque el layout entraba perfecto. */
+  if (tabs.length) {
+    const contenedor = tabs[0].parentElement;
+    let detras = contenedor.parentElement, fondo = 'rgba(0, 0, 0, 0)';
+    while (detras && fondo === 'rgba(0, 0, 0, 0)') { fondo = getComputedStyle(detras).backgroundColor; detras = detras.parentElement; }
+    if (getComputedStyle(contenedor).backgroundColor === fondo) {
+      problemas.push('la pista del selector tiene el mismo color que el fondo de atrás: el control no se lee');
+    }
+  }
   /* Toda camiseta arrastrable anuncia el gesto; si no, el arrastre es invisible para quien no
      lo descubre por accidente (NFR-003). */
   for (const c of document.querySelectorAll('.camiseta[draggable="true"]')) {
