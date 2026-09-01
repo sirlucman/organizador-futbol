@@ -4,6 +4,15 @@
 
 **Created**: 2026-08-19
 
+> **Reemplazo parcial (Principio I).** La **ubicación** de los números que esta
+> spec describe ("al lado de su nombre", "en la columna de puntaje") queda
+> reemplazada por
+> [`docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md)
+> (2026-08-31): sobre la cancha el puntaje vive en la píldora de la camiseta. Su
+> **regla de fondo no se reemplaza** — el número que se muestra para una dupla es
+> el de la unidad, el que el motor usó y el que suma al total— y aquella Spec la
+> conserva en su `FR-027`.
+
 **Status**: Implementada (2026-08-19). Verificada con `node tests/motor.test.js` (2 casos: la suma de los puntajes visibles da el total del equipo, y una dupla con puntaje no cuenta como "sin puntaje"). Falta la verificación visual en el navegador.
 
 **Depends on**: nada. Se puede implementar antes, después o en paralelo a `009`/`010`/`011`.
