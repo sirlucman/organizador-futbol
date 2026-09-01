@@ -486,6 +486,10 @@ fluida queda registrada como diferida (§14), no descartada.
 | D-15 | El "desvío aceptable" del handoff es el `diffObjetivo` que ya existe; no se agrega parámetro. La grilla de diferencia por línea se muestra siempre, y el color aparece sólo cuando hay umbral configurado | Es el mismo valor, ya mostrado con ese texto exacto en [`index.html:4068`](../../index.html#L4068), y la regla de color ya existe en [`index.html:3868`](../../index.html#L3868). Sin umbral configurado la aplicación hoy no emite juicio; mantener ese criterio evita introducir una regla nueva | Easy |
 | D-16 | La enmienda de `D-09` es de alcance mínimo: `docs/` es el sistema para features nuevas; las specs vigentes en `.specify/` y `openspec/` siguen siendo fuente de verdad de lo ya construido; y una spec nueva que pise a una vieja lo declara explícitamente. Se ejecuta en su propia rama antes de la primera Spec | Principio II: migrar dieciséis specs de features ya construidas no mejora el producto en nada. Lo que faltaba era que la regla quedara sin ambigüedad, no que hubiera un solo directorio | Hard |
 | D-17 | El documento no cita cláusulas normativas de accesibilidad; las obligaciones se enuncian en términos directamente comprobables | Citar mal el nivel de un criterio es el tipo de error que después nadie revisa, y la obligación concreta —nombre accesible en botones solo de ícono, objetivos táctiles de 44×44 px— es verificable sin apoyarse en la cita | Easy |
+| D-18 | El arrastre se repone con la API nativa de arrastre del navegador, movida de la fila de lista a la camiseta; no se construye un gesto propio con eventos de puntero | Principio II: es la solución más simple que cumple. El mecanismo está verificado a mano en producción sobre iOS y sobre Chrome en Android (2026-08-27, `.specify/specs/003-motor-generacion-equipos` § Assumptions), así que reemplazarlo por uno propio sería cambiar algo probado por algo por probar. Sienta además el precedente del gesto para la carga por toque de la rebanada 6 | Easy |
+| D-19 | La edición manual del reparto se acota a movimientos **entre equipos**: pasar un jugador al otro equipo e intercambiar dos. Mover una camiseta dentro de su propio equipo queda sin rebanada asignada | Mover dentro del propio equipo exige escribir la posición asignada, y con ella el recálculo de los resúmenes de diferencia por línea, que la rebanada 3 rediseña de todos modos. Acotarlo mantiene la rebanada 2 chica sin perder la función que la rebanada 1 había suspendido | Easy |
+| D-20 | Un movimiento manual no escribe la posición asignada de nadie | Conserva la regla que la aplicación ya tenía: mover a un jugador sólo lo cambia de equipo. Ninguna spec vigente cambia de sentido, y la formación de cada equipo se sostiene | Easy |
+| D-21 | En una sola columna los dos equipos dejan de apilarse y se muestran de a uno, con el selector segmentado del handoff; la pestaña del equipo que no se ve recibe el drop. Reemplaza el `FR-054` de la Spec de la rebanada 1 | Con las canchas apiladas, en un teléfono el destino de todo movimiento manual queda fuera de pantalla, y alcanzarlo depende de cómo cada navegador desplace durante un arrastre nativo — algo que **no se puede verificar en este entorno, porque no hay un dispositivo táctil con el cual probarlo**. La decisión elimina la incógnita en vez de apostar a que se resuelva sola. Alcanza a todas las rebanadas siguientes: cambia cómo se **leen** los equipos en el celular, también para el rol jugador | Hard |
 
 ## 11. Risks
 
@@ -570,7 +574,7 @@ Las seis preguntas abiertas del borrador inicial se cerraron en la revisión del
 
 - **Settled (do not relitigate):** `D-01`, `D-02`, `D-03`, `D-04`, `D-05`,
   `D-06`, `D-07`, `D-08`, `D-09`, `D-10`, `D-11`, `D-12`, `D-13`, `D-14`,
-  `D-15`, `D-16`, `D-17`.
+  `D-15`, `D-16`, `D-17`, `D-18`, `D-19`, `D-20`, `D-21`.
 - **Decide in Spec:** `OPEN-Q-07` (Spec de la rebanada 3). Las otras seis se
   cerraron en la revisión del 2026-08-31; ver §15.
 - **Must remain non-goals:**
@@ -605,6 +609,26 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
   handoff cita para cada cadena sí son correctos (se verificaron `LABEL_LINEA` en
   2259 y la explicación de líneas de un solo lugar en 3913). La lección para las
   Specs: los números del handoff son buenos, los nombres de símbolo no.
+- **Un segundo error de hecho, este nuestro y no del handoff (2026-08-31).** Un
+  borrador de la Spec de la rebanada 2 sostuvo que el arrastre nativo "no
+  funciona con el dedo", y de ahí que mover jugadores a mano nunca hubiera
+  funcionado en el celular. Es falso, y lo desmiente la spec del motor con
+  verificación en producción sobre iOS y sobre Chrome en Android:
+
+  > *"La edición manual de equipos por drag & drop funciona también en
+  > dispositivos móviles: se verificó a mano en producción (2026-08-27). Está
+  > implementada con la API HTML5 de arrastre, sin ningún handler de `pointer`
+  > ni de `touch`, y aun así los dos navegadores la disparan desde el gesto de
+  > arrastre del sistema. Este spec afirmaba lo contrario hasta esa
+  > verificación."*
+
+  El error vino de inferir la capacidad desde la **ausencia de código táctil** en
+  `index.html` — exactamente la inferencia que esa spec ya había hecho y
+  corregido. La lección, hermana de la del handoff: **la ausencia de código no
+  prueba la ausencia de comportamiento; lo que prueba el comportamiento es
+  haberlo mirado.** De ahí también `D-21`: donde no hay con qué mirar, el diseño
+  no debe depender de lo que no se miró.
+
 - **Inconsistencia señalada por el propio handoff:** las filas de resultado usan
   divisores de `1px var(--color-canvas)`, que es blanco sobre tarjeta blanca y
   por lo tanto invisible. Se implementa con `--color-canvas-soft`.
@@ -613,6 +637,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 2: se incorporan `D-18` a `D-21`, las cuatro decisiones de producto que se tomaron al escribir su Spec y que habían quedado registradas dentro de ella. Por la separación de tres documentos (`MD-01`) su lugar es esta §10: `D-19` y `D-21` en particular alcanzan a las rebanadas siguientes, no sólo a la 2. Se agrega además a §17 la lección sobre inferir capacidades desde la ausencia de código. Cierra la `OPEN-Q-07` de la Spec de la rebanada 2. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Initial draft, más las seis resoluciones del barrido del mismo día (`D-12` a `D-17`; `OPEN-Q-01` a `OPEN-Q-06` cerradas, `OPEN-Q-07` abierta). Self-critique: passed (1🔴 / 2🟡 / 2🔵) — el 🔴 (cita a `explicacionesGeneracion`, símbolo inexistente heredado del handoff) y un 🟡 (rango de líneas de las funciones de fila) resueltos; el 🟡 restante, sobre el encuadre de §2, elevado al autor. |
 
 ---

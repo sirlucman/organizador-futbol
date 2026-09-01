@@ -38,7 +38,7 @@
 >   forma de mostrar los dos equipos en una sola columna**: dejan de apilarse
 >   verticalmente y pasan a mostrarse de a uno, con el selector segmentado de
 >   equipo (`FR-030` a `FR-037`). Es una enmienda dentro de la misma feature, una
->   rebanada después, y la razón está en la decisión 4 de §3.4. El resto de
+>   rebanada después, y la razón está en `D-21` del Concept Note. El resto de
 >   aquella Spec queda intacto.
 >
 > La anotación recíproca en cada documento reemplazado queda pendiente; ver
@@ -153,44 +153,27 @@ límites propios de esta rebanada:
   obligaciones se enuncian en términos directamente comprobables) — heredada. Es
   la razón de que `NFR-003` hable de nombres accesibles no vacíos y `NFR-002` de
   un piso medible en píxeles.
+- **D-18** (el arrastre se repone con la API nativa del navegador, movida de la
+  fila a la camiseta; no se construye un gesto propio) — heredada; se encoda como
+  `TC-003` y `FR-001`.
+- **D-19** (la edición manual se acota a movimientos entre equipos; mover dentro
+  del propio equipo queda sin rebanada asignada) — heredada. Fija el alcance de
+  §3.2 y se encoda en `FR-010` a `FR-013`.
+- **D-20** (un movimiento manual no escribe la posición asignada de nadie) —
+  heredada; se encoda como `TC-012` y `FR-022`.
+- **D-21** (en una sola columna los equipos se muestran de a uno con el selector,
+  y la pestaña del otro recibe el drop) — heredada. Es la que reemplaza el
+  `FR-054` de la Spec de la rebanada 1 y cierra su `OPEN-Q-01`; se encoda en
+  `TC-015` y `FR-030` a `FR-037`.
 
-### 3.4 Decisiones tomadas en esta Spec
-
-El Concept Note fija que el armado es "la cancha con camisetas arrastrables"
-(§8.1) pero no fija el mecanismo del arrastre ni su alcance. Las cuatro
-decisiones siguientes se resolvieron con el propietario el 2026-08-31, antes de
-escribir esta Spec, y se registran acá porque ninguna existe aguas arriba. Las
-cuatro se recomiendan además como filas `D-*` nuevas de la §10 del Concept Note
-(ver §17).
-
-| # | Decisión | Fundamento | Encoda en |
-|---|---|---|---|
-| 1 | El arrastre se repone con el mismo mecanismo que la aplicación ya usa (la API nativa de arrastre del navegador), movido de la fila a la camiseta | Principio II: es la solución más simple que cumple. El mecanismo está verificado a mano en producción sobre iOS y sobre Chrome en Android (ver el aviso de premisa corregida más abajo), así que reemplazarlo por uno propio sería cambiar algo probado por algo por probar | `TC-003`, `FR-001` |
-| 2 | El alcance se acota a los movimientos **entre equipos** | Se prefirió una rebanada chica. Mover dentro del propio equipo exige escribir la posición asignada, y eso arrastra el recálculo de los resúmenes de diferencia por línea, que la rebanada 3 rediseña de todos modos | `TC-012`, `FR-010` a `FR-013`, §3.2 |
-| 3 | El movimiento no escribe la posición asignada | Conserva la regla vigente: mover a un jugador sólo lo cambia de equipo ([`index.html:4008-4020`](../../../index.html#L4008-L4020)). Ninguna spec vigente cambia de sentido por esta rebanada | `TC-012`, `FR-022` |
-| 4 | En una sola columna los equipos se muestran de a uno con el selector segmentado, y la pestaña del otro equipo recibe el drop. Reemplaza el apilado que fijó la rebanada 1 | Con las canchas apiladas el destino de todo movimiento queda fuera de pantalla en un teléfono, y alcanzarlo depende de cómo cada navegador desplace durante un arrastre nativo — algo que **no se puede verificar en este entorno, porque no hay un teléfono con el cual probarlo**. La decisión elimina la incógnita en vez de apostar a que se resuelva sola: con el selector, el destino está siempre a la vista y fijo. Es además lo que el handoff diseña para el compacto en su vista `6a` | `TC-015`, `FR-030` a `FR-037`, cierre de `OPEN-Q-01` |
-
-> **Premisa corregida (2026-08-31).** Un borrador anterior de esta Spec sostuvo
-> que el arrastre nativo "no funciona con el dedo" y que por lo tanto mover
-> jugadores a mano nunca había funcionado en el celular. **Es falso.** La spec
-> del motor lo verificó y lo dejó escrito:
->
-> > *"La edición manual de equipos por drag & drop funciona también en
-> > dispositivos móviles: se verificó a mano en producción sobre iOS y sobre
-> > Chrome en Android (2026-08-27). Está implementada con la API HTML5 de
-> > arrastre (`draggable` + `dataTransfer`), sin ningún handler de `pointer` ni
-> > de `touch`, y aun así los dos navegadores la disparan desde el gesto de
-> > arrastre del sistema. Este spec afirmaba lo contrario hasta esa
-> > verificación."*
-> > — [`.specify/specs/003-motor-generacion-equipos/spec.md`](../../../.specify/specs/003-motor-generacion-equipos/spec.md) § Assumptions
->
-> El error vino de inferir la capacidad desde la ausencia de código táctil en
-> `index.html`, que es exactamente la inferencia que esa spec ya había hecho y
-> corregido. La lección, hermana de la que la rebanada 1 dejó sobre el handoff
-> ("los números del handoff son buenos, los nombres de símbolo no"): **la
-> ausencia de código no prueba la ausencia de comportamiento; lo que prueba el
-> comportamiento es haberlo mirado.** De ahí también la decisión 4: donde no hay
-> con qué mirar, el diseño no debe depender de lo que no se miró.
+> **Las cuatro nacieron acá.** `D-18` a `D-21` se resolvieron con el propietario
+> el 2026-08-31, mientras se escribía esta Spec, y su primer borrador las
+> registraba en una sección propia. La auto-crítica lo señaló: son decisiones de
+> producto, y por la separación de tres documentos (`MD-01`) su lugar es la §10
+> del Concept Note — sobre todo `D-19` y `D-21`, que alcanzan a las rebanadas
+> siguientes y no sólo a esta. La enmienda se hizo, y acá quedan como heredadas
+> igual que el resto. El relato de la premisa falsa que dio origen a `D-18` y
+> `D-21` vive ahora en el §17 del Concept Note.
 
 ## 4. Technical & architectural constraints
 
@@ -231,7 +214,7 @@ cuatro se recomiendan además como filas `D-*` nuevas de la §10 del Concept Not
   ningún campo que hoy no se escriba al mover un jugador. Los únicos campos que
   el gesto puede modificar son `m.equipos.blanco`, `m.equipos.negro`,
   `m.equipos.sumaBlanco` y `m.equipos.sumaNegro`, que son exactamente los que
-  `moverUnJugadorDeEquipo` ya toca (decisión 3 de §3.4).
+  `moverUnJugadorDeEquipo` ya toca (`D-20`).
 - **TC-013** — El arrastre de la fila de equipo se **retirará**, no se dejará
   conviviendo. Hoy es código sin alcance: `renderTeamPlayerRow` marca la fila
   como arrastrable sólo cuando `esFilaEditable(m)` es verdadero
@@ -552,7 +535,7 @@ esta rebanada:
 | NFR-005 | Compatibilidad de datos | El conjunto de campos escritos en el documento de partido por un movimiento es exactamente `equipos.blanco`, `equipos.negro`, `equipos.sumaBlanco` y `equipos.sumaNegro`: el mismo que escribía el arrastre de la lista, sin agregados. Cambiar de pestaña no escribe nada. |
 | NFR-006 | Mantenibilidad | Todo valor de color, espaciado, radio y sombra usado por el selector y por el realce proviene de un token del design system o de una excepción listada en el Implementation Plan; no queda ningún valor literal sin declarar. |
 | NFR-007 | Seguridad | Un `dataTransfer` con contenido que no corresponde a una unidad del reparto no produce ninguna escritura, verificado disparando los dos manejadores de drop —el de la cancha y el de la pestaña— con contenido arbitrario. |
-| NFR-008 | Verificabilidad del gesto | Todo requisito de esta Spec es verificable en el entorno disponible: navegador de escritorio y el Chromium que el arnés ya conduce. **Ningún criterio de aceptación depende de tener un teléfono a mano.** Es una restricción del entorno, declarada, y es lo que fundamenta la decisión 4 de §3.4. Lo que queda sin verificar antes del merge está acotado y enunciado en `A-01` y `R-01`. |
+| NFR-008 | Verificabilidad del gesto | Todo requisito de esta Spec es verificable en el entorno disponible: navegador de escritorio y el Chromium que el arnés ya conduce. **Ningún criterio de aceptación depende de tener un teléfono a mano.** Es una restricción del entorno, declarada, y es lo que fundamenta `D-21`. Lo que queda sin verificar antes del merge está acotado y enunciado en `A-01` y `R-01`. |
 
 ## 9. System behaviour & scenarios
 
@@ -964,7 +947,7 @@ esa Spec.
   afirmación de esta Spec que no se puede verificar antes del merge**, porque no
   hay un teléfono disponible. Descansa en tres apoyos: la verificación en
   producción de aquella fecha, que el mecanismo es el mismo (`TC-003` prohíbe
-  cambiarlo), y que la decisión 4 achicó lo que el gesto tiene que lograr —de
+  cambiarlo), y que `D-21` achicó lo que el gesto tiene que lograr —de
   "arrastrar por media pantalla hasta una cancha fuera de vista" a "soltar sobre
   una pestaña siempre visible en la parte de arriba". Ver `R-01`.
 - **A-02** — El candado es el único otro control interactivo sobre la camiseta, y
@@ -989,7 +972,7 @@ esa Spec.
 
 | ID | Risk | Severity | Likelihood | Spec-level mitigation |
 |---|---|---|---|---|
-| R-01 | El arrastre nativo no se dispara sobre una camiseta dentro de la cancha en un navegador móvil, y no hay cómo saberlo antes de mergear | Med | Low | `A-01` lo enuncia con sus tres apoyos. La decisión 4 lo reduce a su forma más simple: soltar sobre un destino fijo y visible, no arrastrar por media pantalla. Si falla en el uso real, la salida es construir el gesto por eventos de puntero, que con el selector ya no necesita desplazamiento propio y por lo tanto es mucho más chico que antes de esta decisión. La métrica de §12 lo detecta en el primer partido |
+| R-01 | El arrastre nativo no se dispara sobre una camiseta dentro de la cancha en un navegador móvil, y no hay cómo saberlo antes de mergear | Med | Low | `A-01` lo enuncia con sus tres apoyos. `D-21` lo reduce a su forma más simple: soltar sobre un destino fijo y visible, no arrastrar por media pantalla. Si falla en el uso real, la salida es construir el gesto por eventos de puntero, que con el selector ya no necesita desplazamiento propio y por lo tanto es mucho más chico que antes de esta decisión. La métrica de §12 lo detecta en el primer partido |
 | R-02 | El intercambio, que es la capacidad nueva de la rebanada, no existe en el celular, que es donde se arman los partidos | Med | High | Declarado en §3.2 como límite explícito, no como olvido. En una columna el mismo resultado se logra con dos movimientos por pestaña, al costo de un estado intermedio desparejo. Si molesta, la salida es el cambio de pestaña por sobrevuelo, que se decidiría con uso real en la mano y no ahora |
 | R-03 | El selector se agrega en la rebanada del arrastre y la rebanada 3, que rediseña el encabezado de la tarjeta, lo encuentra ya construido y en otro lugar del que iba a ponerlo | Low | Med | El handoff ya fija dónde va en su vista `6a` —entre el combo de estrategia y la cancha— y `TC-033` obliga a tomarlo de ahí, que es el mismo documento del que la rebanada 3 va a tomar el resto del encabezado. `OPEN-Q-05` lo deja anotado para esa Spec |
 | R-04 | La camiseta es un contenedor con un botón adentro (el candado): marcarla como arrastrable podría impedir activar el candado, o al revés | Med | Med | `NFR-002` lo fija como no-regresión medible, `S-05` lo prueba, y `AC-11` lo verifica en el arnés |
@@ -1001,20 +984,21 @@ esa Spec.
 
 | ID | Question | Owner | Target stage | Notes |
 |---|---|---|---|---|
-| OPEN-Q-01 | *Resuelta.* En pantallas angostas, ¿las dos canchas se apilan o se introduce el selector segmentado de equipo del handoff? | Lucas Manoukian | *Resuelta* | Heredada de la `OPEN-Q-01` de la Spec de la rebanada 1, cuyo *target stage* era "Spec de la rebanada 2 o 3". Cerrada por la decisión 4 de §3.4: se introduce el selector, en esta rebanada. La razón que inclinó la balanza no fue estética sino de verificabilidad: el apilado dejaba el gesto dependiendo de algo que este entorno no puede probar |
+| OPEN-Q-01 | *Resuelta.* En pantallas angostas, ¿las dos canchas se apilan o se introduce el selector segmentado de equipo del handoff? | Lucas Manoukian | *Resuelta* | Heredada de la `OPEN-Q-01` de la Spec de la rebanada 1, cuyo *target stage* era "Spec de la rebanada 2 o 3". Cerrada por `D-21` del Concept Note: se introduce el selector, en esta rebanada. La razón que inclinó la balanza no fue estética sino de verificabilidad: el apilado dejaba el gesto dependiendo de algo que este entorno no puede probar |
 | OPEN-Q-02 | ¿El arrastre necesita un equivalente alcanzable sin gesto de puntero (teclado, o un menú sobre la camiseta con "pasar al otro equipo")? | Lucas Manoukian | Spec revision o rebanada 3 | El arrastre es intrínsecamente un gesto de puntero y no tiene equivalente de teclado. La alternativa disponible sigue siendo regenerar. No bloquea: no hay regresión respecto de lo que la aplicación ofrecía antes de la rebanada 1. El selector, en cambio, **sí** es alcanzable por teclado por ser dos botones |
 | OPEN-Q-03 | ¿Los resúmenes de la tarjeta (diferencia de puntaje, diferencia por línea, conteo de posiciones) se recalculan hoy tras un movimiento manual? Y si no, ¿se arregla en la rebanada 3? | Lucas Manoukian | Implementation Plan | `A-04` asume que esta rebanada no cambia lo que ya ocurre. El Plan lo mide una vez sobre la aplicación real y deja registrado el comportamiento vigente, para que la rebanada 3 sepa qué está heredando |
 | OPEN-Q-04 | La anotación recíproca en los documentos reemplazados —`003-motor-generacion-equipos` y la Spec de la rebanada 1 por esta Spec; `012-puntajes-coherentes-panel` y `008-duplas-rotacion` por la rebanada 1— sigue sin hacerse en sus propios archivos. ¿La hace el Plan de esta rebanada, o una tarea aparte? | Lucas Manoukian | Implementation Plan | El Principio I pide la declaración explícita de los dos lados. Es la misma pregunta que la `OPEN-Q-05` de la rebanada 1 dejó abierta, ahora con dos documentos más en la lista. Conviene cerrarla de una vez para los cuatro |
 | OPEN-Q-05 | Con el selector ya construido, ¿la rebanada 3 lo conserva donde está, lo mueve, o lo extiende a las otras pantallas que el handoff también dibuja con selector (`6b`, partido finalizado)? | Lucas Manoukian | Spec de la rebanada 3 | Esta rebanada lo introduce sólo donde hay cancha y equipos generados. El handoff lo usa además en `6b` y en `8d`, que son de las rebanadas 4 y 6. Queda anotado para que esas Specs no lo reinventen |
 | OPEN-Q-06 | ¿El subtítulo de la tarjeta (`FR-043`) debe decir textos distintos en una y en dos columnas, o uno solo que cubra los dos casos? | Lucas Manoukian | Implementation Plan | El handoff propone para el compacto "Arrastrá una camiseta a otro lugar, o sobre la pestaña del otro equipo para pasarlo", que menciona un gesto —mover de lugar dentro del equipo— que esta rebanada no implementa. El Plan redacta el texto final y no lo copia del handoff sin contrastarlo |
-| OPEN-Q-07 | Las cuatro decisiones de §3.4 son decisiones de producto, y por la separación de tres documentos (`MD-01`) su lugar es la §10 del Concept Note, no una sección inventada de esta Spec. ¿Se enmienda el Concept Note agregando una fila `D-*` por cada una, y §3.4 pasa a citarlas como heredadas? | Lucas Manoukian | Concept Note revision | Levantado por la auto-crítica del 2026-08-31 como hallazgo 🟡. No bloquea: las decisiones están registradas, fundamentadas y trazadas desde cada `TC-*` y `FR-*` que las encoda, así que nada se pierde. Lo que se gana enmendando es que la rebanada 3 —que hereda el selector y el no-objetivo de mover dentro del equipo— las lea donde corresponde y no dentro de la Spec de otra rebanada |
+| OPEN-Q-07 | *Resuelta.* Las cuatro decisiones que esta Spec tomó son de producto, y por la separación de tres documentos (`MD-01`) su lugar es la §10 del Concept Note, no una sección propia de esta Spec. Se enmendó el Concept Note el 2026-08-31 con `D-18` a `D-21`; §3.4 desapareció y las cuatro figuran en §3.3 como heredadas. | Lucas Manoukian | *Resuelta* | Levantado por la auto-crítica como hallazgo 🟡. Lo que se gana es que la rebanada 3 —que hereda el selector y el no-objetivo de mover dentro del equipo— las lea donde corresponde |
 
 ## 17. Handoff to the Implementation Plan
 
 - **El Plan debe respetar (sin relitigar):** todo `FR-*` (§7), todo `NFR-*` (§8),
   todo `TC-*` (§4 — incluidos los de seguridad de §4.5), todo `AC-*` (§11 —
   incluidos los seis meta-criterios `AC-50` a `AC-55` de §11.5), las decisiones
-  del Concept Note heredadas en §3.3, y las cuatro decisiones de §3.4.
+  del Concept Note heredadas en §3.3 —incluidas `D-18` a `D-21`, que nacieron con
+  esta rebanada y viven aguas arriba desde la enmienda del 2026-08-31.
 - **El Plan debe tratar la enmienda a la rebanada 1 como trabajo, no como
   efecto colateral.** Cambiar el apilado por el selector toca el CSS de
   `.teams-wrap` y el render de los dos paneles. Los invariantes de
@@ -1033,14 +1017,9 @@ esa Spec.
 - **El Plan debe arrastrar la deuda de verificación** del único marcador
   `[UNVERIFIED]` de esta Spec: el de §4.5 (el ranking vigente del CWE Top 25 no se
   consultó).
-- **Recomendación aguas arriba (no bloqueante):** las **cuatro** decisiones de
-  §3.4 tienen alcance mayor que esta rebanada. La 1 sienta el precedente del
-  gesto para la carga por toque de la rebanada 6; la 2 y la 3 dejan el movimiento
-  dentro del propio equipo sin rebanada asignada; y la 4 cambia cómo se leen los
-  equipos en el celular para **todas** las rebanadas siguientes, no sólo para
-  esta. Conviene registrarlas como cuatro filas `D-*` nuevas en la §10 del
-  Concept Note, con los números que esa enmienda les asigne. Esta Spec es
-  completa sin ella; ver `OPEN-Q-07`.
+- **Cumplido aguas arriba:** las cuatro decisiones que esta Spec tomó viven desde
+  el 2026-08-31 en la §10 del Concept Note como `D-18` a `D-21`, y acá figuran en
+  §3.3 como heredadas. Cierra `OPEN-Q-07`.
 - **Debe seguir siendo no-objetivo:** mover camisetas dentro del propio equipo,
   el intercambio en una sola columna, el cambio de pestaña por sobrevuelo, el
   panel de armado rediseñado, el partido finalizado, el modelo de eventos, la
@@ -1051,7 +1030,8 @@ esa Spec.
 
 | Date | Author | Change |
 |---|---|---|
-| 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las cuatro decisiones tomadas con el propietario el mismo día (§3.4). El borrador se reescribió dos veces antes de guardarse. Primera: la premisa de que el arrastre nativo no funciona con el dedo resultó falsa contra `003-motor-generacion-equipos` § Assumptions, lo que cambió la decisión 1 de "construir un gesto propio" a "reponer el nativo"; y la declaración de reemplazo apuntaba a `005-mover-jugador-manual`, carpeta que no existe. Segunda: la decisión 4 pasó de "las pestañas se deciden en la rebanada 3" a "el selector entra en esta rebanada", porque el apilado dejaba el gesto dependiendo de una verificación en teléfono que este entorno no puede hacer; eso incorporó §7.4, `TC-015`, `TC-035`, `NFR-008`, `S-04`, la enmienda al `FR-054` de la rebanada 1, y `R-02` (el intercambio no existe en una columna). Self-critique: passed (1🔴 / 7🟡 / 2🔵). El 🔴 —`FR-033` fuera de los cinco patrones EARS (`MD-03`)— reescrito como event-driven. De los 🟡 se resolvieron seis: dos citas a `index.html` desalineadas por una línea (la guarda de rol estaba en 4024, no 4023; el subtítulo en 4351, no 4350); seis `FR-*` compuestos partidos con sufijo `b` conservando los identificadores estables; "objetivo cuantificado" definido como lista cerrada en el preámbulo de §8, porque `T-N.D9` y `T-N.D16` se construyen sobre ese conjunto y la Spec lo dejaba a interpretación; tres métricas de §12 convertidas de ausencia-de-queja a conteo; y la fila de glosario que definía dos términos, partida en dos. El 🟡 restante —§3.4 y §9.4 son secciones fuera de la plantilla, y registrar decisiones de producto es trabajo del Concept Note (`MD-01`)— se elevó a `OPEN-Q-07` en vez de resolverse acá: enmendar el Concept Note es una rama propia. El 🟡 de §4.5 (`[UNVERIFIED]` del CWE Top 25 por estar sin conexión) queda sin acción disponible en este entorno; la rúbrica lo gradúa 🟡 y no 🔴 por estar declarado. Los 🔵: el diagrama de §9.4 se conserva pese a ser subsección agregada, porque `MD-24` ubica los diagramas de escenario en §9; y el bloque mermaid se validó renderizándolo con el Chromium de Playwright (6 estados, tope 15). |
+| 2026-08-31 | Lucas Manoukian | Se disuelve §3.4: las cuatro decisiones que esta Spec había tomado pasan al Concept Note como `D-18` a `D-21` y acá quedan como heredadas en §3.3, que es lo que la separación de tres documentos (`MD-01`) pide. El relato de la premisa falsa que dio origen a `D-18` y `D-21` pasa al §17 del Concept Note. Cierra `OPEN-Q-07`. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
+| 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las cuatro decisiones tomadas con el propietario el mismo día, en una §3.4 propia que la enmienda posterior disolvió. El borrador se reescribió dos veces antes de guardarse. Primera: la premisa de que el arrastre nativo no funciona con el dedo resultó falsa contra `003-motor-generacion-equipos` § Assumptions, lo que cambió la decisión 1 de "construir un gesto propio" a "reponer el nativo"; y la declaración de reemplazo apuntaba a `005-mover-jugador-manual`, carpeta que no existe. Segunda: la decisión 4 pasó de "las pestañas se deciden en la rebanada 3" a "el selector entra en esta rebanada", porque el apilado dejaba el gesto dependiendo de una verificación en teléfono que este entorno no puede hacer; eso incorporó §7.4, `TC-015`, `TC-035`, `NFR-008`, `S-04`, la enmienda al `FR-054` de la rebanada 1, y `R-02` (el intercambio no existe en una columna). Self-critique: passed (1🔴 / 7🟡 / 2🔵). El 🔴 —`FR-033` fuera de los cinco patrones EARS (`MD-03`)— reescrito como event-driven. De los 🟡 se resolvieron seis: dos citas a `index.html` desalineadas por una línea (la guarda de rol estaba en 4024, no 4023; el subtítulo en 4351, no 4350); seis `FR-*` compuestos partidos con sufijo `b` conservando los identificadores estables; "objetivo cuantificado" definido como lista cerrada en el preámbulo de §8, porque `T-N.D9` y `T-N.D16` se construyen sobre ese conjunto y la Spec lo dejaba a interpretación; tres métricas de §12 convertidas de ausencia-de-queja a conteo; y la fila de glosario que definía dos términos, partida en dos. El 🟡 restante —§3.4 y §9.4 son secciones fuera de la plantilla, y registrar decisiones de producto es trabajo del Concept Note (`MD-01`)— se elevó a `OPEN-Q-07` en vez de resolverse acá: enmendar el Concept Note es una rama propia. El 🟡 de §4.5 (`[UNVERIFIED]` del CWE Top 25 por estar sin conexión) queda sin acción disponible en este entorno; la rúbrica lo gradúa 🟡 y no 🔴 por estar declarado. Los 🔵: el diagrama de §9.4 se conserva pese a ser subsección agregada, porque `MD-24` ubica los diagramas de escenario en §9; y el bloque mermaid se validó renderizándolo con el Chromium de Playwright (6 estados, tope 15). |
 
 ---
 
