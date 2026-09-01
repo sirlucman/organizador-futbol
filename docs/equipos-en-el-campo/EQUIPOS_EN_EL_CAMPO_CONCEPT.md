@@ -4,9 +4,16 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec (rebanada 1 · la cancha):** [rebanada-1-cancha/CANCHA_SPEC.md](./rebanada-1-cancha/CANCHA_SPEC.md)
+> **Rebanada 1 · la cancha:** [CANCHA_SPEC.md](./rebanada-1-cancha/CANCHA_SPEC.md) ·
+> [CANCHA_IMPLEMENTATION_PLAN.md](./rebanada-1-cancha/CANCHA_IMPLEMENTATION_PLAN.md)
 >
-> **Implementation plan (rebanada 1):** *not yet written* · **Rebanadas 2 a 7:** *not yet written*
+> **Rebanada 2 · el arrastre:** [ARRASTRE_SPEC.md](./rebanada-2-arrastre/ARRASTRE_SPEC.md) ·
+> [ARRASTRE_IMPLEMENTATION_PLAN.md](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md)
+>
+> **Rebanada 3 · el panel de armado:** [PANEL_ARMADO_SPEC.md](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) ·
+> Implementation plan *not yet written*
+>
+> **Rebanadas 4 a 7:** *not yet written*
 
 ## 1. TL;DR
 
@@ -490,6 +497,10 @@ fluida queda registrada como diferida (§14), no descartada.
 | D-19 | La edición manual del reparto se acota a movimientos **entre equipos**: pasar un jugador al otro equipo e intercambiar dos. Mover una camiseta dentro de su propio equipo queda sin rebanada asignada | Mover dentro del propio equipo exige escribir la posición asignada, y con ella el recálculo de los resúmenes de diferencia por línea, que la rebanada 3 rediseña de todos modos. Acotarlo mantiene la rebanada 2 chica sin perder la función que la rebanada 1 había suspendido | Easy |
 | D-20 | Un movimiento manual no escribe la posición asignada de nadie | Conserva la regla que la aplicación ya tenía: mover a un jugador sólo lo cambia de equipo. Ninguna spec vigente cambia de sentido, y la formación de cada equipo se sostiene | Easy |
 | D-21 | En una sola columna los dos equipos dejan de apilarse y se muestran de a uno, con el selector segmentado del handoff; la pestaña del equipo que no se ve recibe el drop. Reemplaza el `FR-054` de la Spec de la rebanada 1 | Con las canchas apiladas, en un teléfono el destino de todo movimiento manual queda fuera de pantalla, y alcanzarlo depende de cómo cada navegador desplace durante un arrastre nativo — algo que **no se puede verificar en este entorno, porque no hay un dispositivo táctil con el cual probarlo**. La decisión elimina la incógnita en vez de apostar a que se resuelva sola. Alcanza a todas las rebanadas siguientes: cambia cómo se **leen** los equipos en el celular, también para el rol jugador | Hard |
+| D-22 | Cuando hay un desvío aceptable configurado, la regla de color de la grilla de diferencia por línea **no alcanza a las líneas de un solo lugar por equipo** —Arco y Ataque, en las dos canchas que el producto soporta—: esas celdas nunca se pintan como excedidas. Cierra `OPEN-Q-07` | La diferencia de una línea de un solo lugar existe en cualquier armado posible y no se puede repartir: pintarla de rojo señalaría como problema algo que el motor no podía evitar, y con un umbral bajo iría en rojo casi siempre, hasta que el color dejara de significar nada. El motor ya lo explica en palabras en [`index.html:4481`](../../index.html#L4481), y esta decisión se limita a que el color no contradiga esa explicación. El predicado no se inventa: es el mismo que el receipt ya usa ([`index.html:4476-4478`](../../index.html#L4476-L4478)) | Easy |
+| D-23 | Los tres resúmenes en cajitas que el rediseño no dibuja —conteo de posiciones por equipo, titulares sin puntaje y jugadores bloqueados— **se retiran** del panel. Debajo de la cancha quedan sólo el Badge de diferencia total y la grilla de diferencia por línea. A cambio, la línea del receipt que cuenta titulares sin puntaje pasa a decirlo **por equipo** | Ninguno de los tres datos se pierde, cambia dónde se lee: la formación es lo que la cancha dibuja —es literalmente el Pain 1—, los candados se ven sobre las camisetas, y los bloqueados y los sin puntaje ya los enumera "Por qué quedaron así". Conservarlos sería mantener dos superficies para el mismo dato, contra el Principio II. Reemplaza en parte el `FR-009` de [`.specify/specs/003-motor-generacion-equipos`](../../.specify/specs/003-motor-generacion-equipos/spec.md) y la superficie de lectura de [`012-puntajes-coherentes-panel`](../../.specify/specs/012-puntajes-coherentes-panel/spec.md); el desglose por equipo se conserva justamente para no degradar el criterio de esa última | Hard |
+| D-24 | Sólo Copiar y Regenerar suben al encabezado de la tarjeta como botones de ícono. Los botones de ciclo de vida del partido —Finalizar partido, Editar resultado, Guardar cambios, Cancelar— siguen al pie, con texto, y adoptan los estilos de botón del design system | El handoff dibuja el encabezado de una pantalla, no el mando completo de la tarjeta: esos cuatro botones no aparecen en ninguna de sus doce vistas porque pertenecen a estados que el handoff no dibujó. Subirlos cargaría en el celular una fila que ya lleva dos íconos, y esconder tras un ícono sin texto una acción irreversible como Finalizar partido sería peor accesibilidad, no mejor. Alcanza a las rebanadas 4 y 6, que heredan la misma tarjeta | Easy |
+| D-25 | Después de un movimiento manual, los **números** del panel —el Badge de diferencia total y la grilla de diferencia por línea— se recalculan sobre el reparto que está en pantalla. El **texto** de "Por qué quedaron así" sigue describiendo la última generación del motor. Cierra la `OPEN-Q-03` de la Spec de la rebanada 2 | Son dos cosas distintas y conviene que se comporten distinto. Los números describen el estado: mostrarlos desactualizados junto a una cancha que ya cambió es un dato falso, y hoy pasa. El receipt describe una decisión que ocurrió, y el Principio III pide exactamente eso: recalcularlo exigiría volver a correr el motor sobre un reparto que el motor no produjo, que es lo que `D-01` deja fuera de alcance. Alcanza a las rebanadas siguientes, que muestran los mismos bloques | Easy |
 
 ## 11. Risks
 
@@ -554,11 +565,19 @@ fluida queda registrada como diferida (§14), no descartada.
 - **Migrar las specs de `.specify/` y `openspec/`** al formato de `docs/` —
   *diferida sin fecha* por `D-16`; se reabre sólo si la coexistencia de tres
   sistemas genera confusión real.
+- **El formato del texto que copia el botón Copiar** — *diferido sin fecha.* El
+  handoff propone listar por línea con puntajes y la diferencia al pie; el texto
+  vigente ([`index.html:1217-1231`](../../index.html#L1217-L1231)) está armado
+  para pegarse en WhatsApp, con negritas y emoji, y es el que el grupo usa. El
+  rediseño cambia dónde vive el botón y cómo confirma, no qué copia. Se reabre si
+  alguien echa de menos los puntajes en el mensaje.
 
 ## 15. Open questions
 
 Las seis preguntas abiertas del borrador inicial se cerraron en la revisión del
-2026-08-31. Se conservan con su resolución para dejar la traza de qué las cerró.
+2026-08-31, y la séptima al escribir la Spec de la rebanada 3. **No queda
+ninguna abierta en este documento.** Se conservan todas con su resolución para
+dejar la traza de qué las cerró.
 
 | ID | Question | Owner | Target stage | Notes |
 |---|---|---|---|---|
@@ -568,15 +587,16 @@ Las seis preguntas abiertas del borrador inicial se cerraron en la revisión del
 | OPEN-Q-04 | ¿Las medidas de la franja 360–390 las derivamos o se piden al diseño? | Lucas Manoukian | *Resuelta* | Cerrada por `D-13`: se derivan y se validan mirándolas en la aplicación real |
 | OPEN-Q-05 | Verificar las cláusulas de accesibilidad citadas de memoria | Lucas Manoukian | *Resuelta* | Cerrada por `D-17`: se retiran las citas normativas y la obligación se enuncia en términos comprobables |
 | OPEN-Q-06 | ¿Cuándo y con qué alcance se ejecuta la enmienda de la constitución? | Lucas Manoukian | *Resuelta* | Cerrada por `D-16`: alcance mínimo, en rama propia, antes de la primera Spec |
-| OPEN-Q-07 | Cuando **sí** hay un umbral configurado, ¿la regla de color aplica también a Arco y Ataque? Son líneas de un solo lugar por equipo, donde la diferencia es estructural y el motor ya la explica como esperada ([`index.html:3913`](../../index.html#L3913)) | Lucas Manoukian | Spec (rebanada 3) | Con un umbral bajo esas dos celdas irían en rojo casi siempre, y el color perdería su valor de señal |
+| OPEN-Q-07 | Cuando **sí** hay un umbral configurado, ¿la regla de color aplica también a Arco y Ataque? Son líneas de un solo lugar por equipo, donde la diferencia es estructural y el motor ya la explica como esperada ([`index.html:4481`](../../index.html#L4481)) | Lucas Manoukian | *Resuelta* | Cerrada por `D-22` al escribir la Spec de la rebanada 3: no aplica. El color no contradice al receipt, que ya declara esa diferencia como inevitable |
 
 ## 16. Handoff to the Spec
 
 - **Settled (do not relitigate):** `D-01`, `D-02`, `D-03`, `D-04`, `D-05`,
   `D-06`, `D-07`, `D-08`, `D-09`, `D-10`, `D-11`, `D-12`, `D-13`, `D-14`,
-  `D-15`, `D-16`, `D-17`, `D-18`, `D-19`, `D-20`, `D-21`.
-- **Decide in Spec:** `OPEN-Q-07` (Spec de la rebanada 3). Las otras seis se
-  cerraron en la revisión del 2026-08-31; ver §15.
+  `D-15`, `D-16`, `D-17`, `D-18`, `D-19`, `D-20`, `D-21`, `D-22`, `D-23`,
+  `D-24`, `D-25`.
+- **Decide in Spec:** ninguna. Las siete preguntas de §15 están cerradas; la
+  última, `OPEN-Q-07`, la cerró `D-22` al escribirse la Spec de la rebanada 3.
 - **Must remain non-goals:**
   - *"No se modifica el motor de generación de equipos, ni sus estrategias, ni sus reglas."*
   - *"No se convierte esto en administración del partido en tiempo real."*
@@ -637,6 +657,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 3: se incorporan `D-22` a `D-25`, las cuatro decisiones de producto tomadas con el propietario al fijar el alcance del panel de armado. `D-22` cierra la `OPEN-Q-07` que este documento había dejado abierta para esta Spec, y `D-25` cierra la `OPEN-Q-03` que la rebanada 2 había elevado. Se agrega a §14 el diferido del texto de Copiar, y el bloque de encabezado pasa a listar las tres rebanadas escritas. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Enmienda desde la rebanada 2: se incorporan `D-18` a `D-21`, las cuatro decisiones de producto que se tomaron al escribir su Spec y que habían quedado registradas dentro de ella. Por la separación de tres documentos (`MD-01`) su lugar es esta §10: `D-19` y `D-21` en particular alcanzan a las rebanadas siguientes, no sólo a la 2. Se agrega además a §17 la lección sobre inferir capacidades desde la ausencia de código. Cierra la `OPEN-Q-07` de la Spec de la rebanada 2. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Initial draft, más las seis resoluciones del barrido del mismo día (`D-12` a `D-17`; `OPEN-Q-01` a `OPEN-Q-06` cerradas, `OPEN-Q-07` abierta). Self-critique: passed (1🔴 / 2🟡 / 2🔵) — el 🔴 (cita a `explicacionesGeneracion`, símbolo inexistente heredado del handoff) y un 🟡 (rango de líneas de las funciones de fila) resueltos; el 🟡 restante, sobre el encuadre de §2, elevado al autor. |
 
