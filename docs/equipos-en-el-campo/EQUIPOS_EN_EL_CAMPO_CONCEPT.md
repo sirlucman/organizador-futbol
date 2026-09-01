@@ -11,8 +11,8 @@
 > | 1 | La cancha | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-1-cancha/CANCHA_SPEC.md) · [Plan](./rebanada-1-cancha/CANCHA_IMPLEMENTATION_PLAN.md) |
 > | 2 | El arrastre | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-2-arrastre/ARRASTRE_SPEC.md) · [Plan](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md) |
 > | 3 | El panel de armado | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) · [Plan](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md) |
-> | 4 | El partido finalizado | **En curso** — rama `docs/partido-finalizado` abierta, Spec y Plan escritos, código pendiente | [Spec](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) · [Plan](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md) |
-> | 5 | El modelo de eventos | Pendiente — la única sin efecto visible | *not yet written* |
+> | 4 | El partido finalizado | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) · [Plan](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md) |
+> | 5 | El modelo de eventos | **En curso** — rama `docs/modelo-eventos` abierta, Spec escrita, Plan y código pendientes | [Spec](./rebanada-5-modelo-eventos/MODELO_EVENTOS_SPEC.md) |
 > | 6 | La carga por toque | Pendiente | *not yet written* |
 > | 7 | La configuración | Pendiente — **opcional** (§14) | *not yet written* |
 >
@@ -666,6 +666,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Actualización de estado, al empezar la Spec de la rebanada 5: la fila de la rebanada 4 pasa de "en curso" a "Mergeada a `main` el 2026-09-01" (verificado contra el commit de merge `65f5701`), y la fila de la rebanada 5 pasa de "Pendiente" a "En curso", enlazando `MODELO_EVENTOS_SPEC.md`, ya escrita. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de estado, verificada contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa a enlazar también `PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md`, ya escrito, y el puntero de cierre anuncia el código de `feature/partido-finalizado` como próximo paso en vez del Plan. Sin cambios de contenido. Self-critique: no corresponde (actualización de estado). |
 | 2026-09-01 | Lucas Manoukian | Actualización de referencias: las dos citas a `.specify/memory/constitution.md` (§6 *Related work* y §6.5 *Industry-standard evidence*) se actualizan tras el retiro de ese archivo el 2026-09-01. §6 pasa a apuntar a `openspec/config.yaml`, sin conservar la numeración de principios (que ahí ya no existe); §6.5, al ser un ledger de grounding con versión pinneada (v2.4.0, la vigente al escribir este documento), conserva la cita íntegra y agrega una nota de dónde vive el contenido ahora. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de referencias, verificada contra los archivos reales). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa de "sin documentos todavía" a enlazar `PARTIDO_FINALIZADO_SPEC.md`, ya escrita. Se corrige el puntero de cierre para anunciar el Implementation Plan de la rebanada 4 como próximo documento. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |
