@@ -52,7 +52,13 @@ const DECLARACIONES = [
   'sumasPorLinea',
   'balanceLineasDe',
   'canonicalDuplas',
+  'CANCHAS',
+  'titularesRequeridos',
+  'getUnidadesConvocatoria',
   'getTitularIds',
+  'reglasOrdenadas',
+  'motorConfigHash',
+  'equiposStale',
   'balanceLineasVigente',
   'celdasDiferenciaPorLinea',
   'resumenDiferenciaEquipos',
@@ -75,10 +81,12 @@ function cargarPanel() {
   const prelude = `
     let players = [];
     function __setPlayers(p){ players = p; }
+    let motorConfig = { reglas: [] };
+    function __setMotorConfig(c){ motorConfig = c; }
     const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia3:{}, estrategia4:{} };
   `;
   try {
-    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
+    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setMotorConfig, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
   } catch (e) {
     throw new Error(`El código extraído de index.html no evaluó: ${e.message}`);
   }
@@ -442,6 +450,52 @@ prueba('"panel/S-22b" el escapado alcanza a cualquier explicación, no sólo a l
 prueba('"panel/S-05c" sin explicaciones no se dibuja el bloque ni su divisor', () => {
   eq(P.renderPorQueQuedaronAsi([]), '', 'lista vacía no produce nada');
   eq(P.renderPorQueQuedaronAsi(null), '', 'null tampoco');
+});
+
+console.log('');
+console.log('\x1b[1mEL AVISO Y EL COMBO\x1b[0m — cuándo el armado está desactualizado\n');
+
+/* `equiposStale` compara el armado guardado contra el estado actual del partido. Los cuatro
+   disparadores son los que el texto del aviso nombra, y por eso D-05 conserva ese texto en vez
+   del del handoff, que sólo habla de la estrategia. */
+function partidoConArmadoAlDia() {
+  const m = M([['b1','Arquero',9],['b2','Defensor',7]], [['n1','Arquero',5],['n2','Defensor',7]]);
+  m.estrategia = 'estrategia4';
+  m.equipos.titularesSnapshot = [...m.convocados];
+  m.equipos.duplasSnapshot = P.canonicalDuplas(m);
+  m.equipos.configHash = P.motorConfigHash();
+  return m;
+}
+
+prueba('"panel/S-03a" cambiar la estrategia elegida deja el armado desactualizado', () => {
+  const m = partidoConArmadoAlDia();
+  eq(P.equiposStale(m), false, 'recién generado, el armado está al día');
+  m.estrategia = 'estrategia3';
+  eq(P.equiposStale(m), true, 'elegir otra estrategia sin regenerar lo desactualiza');
+});
+
+prueba('"panel/S-03b" crear o deshacer una dupla también lo desactualiza', () => {
+  const m = partidoConArmadoAlDia();
+  eq(P.equiposStale(m), false, 'punto de partida al día');
+  m.duplas = [['b1', 'b2']];
+  eq(P.equiposStale(m), true, 'cambiar las duplas cambia cómo el motor agrupó para repartir');
+});
+
+prueba('"panel/S-03" cambiar la configuración del motor lo desactualiza', () => {
+  const m = partidoConArmadoAlDia();
+  m.equipos.configHash = 'otro-hash';
+  eq(P.equiposStale(m), true, 'el cuarto disparador que el texto del aviso nombra (D-05)');
+});
+
+prueba('"panel/S-02a" cada estrategia del catálogo tiene su propio resumen, no vacío', () => {
+  /* El combo muestra el `resumen` de la estrategia ELEGIDA, siempre visible: es lo que
+     reemplaza al tooltip que había que descubrir y tocar (D-14, FR-011). */
+  const catalogo = src.match(/const ESTRATEGIAS = \{[\s\S]*?\n  \};/);
+  ok(catalogo, 'el catálogo de estrategias sigue existiendo');
+  const resumenes = [...catalogo[0].matchAll(/resumen: '([^']+)'/g)].map(m => m[1]);
+  eq(resumenes.length, 4, 'las cuatro estrategias del catálogo traen resumen');
+  ok(resumenes.every(r => r.trim().length > 10), 'ninguno está vacío ni es un placeholder');
+  eq(new Set(resumenes).size, 4, 'y los cuatro son distintos entre sí');
 });
 
 console.log('');

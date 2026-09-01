@@ -388,9 +388,25 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
-    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b'], invariante: INVARIANTE_INPUTS_DE_CARGA,
+    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c'], invariante: INVARIANTE_INPUTS_DE_CARGA,
     invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
-    async preparar(page) { await abrirPartido(page, '2026-08-27'); } },
+    async preparar(page) { await abrirPartido(page, '2026-08-27'); },
+    async comprobar(page) {
+      /* Con la inscripción cerrada el combo se sigue viendo pero deshabilitado, el aviso de
+         desactualizado no aparece, y los bloques del panel que no dependen de la cancha siguen
+         ahí (panel S-02b, S-03c, S-11, S-11b). */
+      return page.evaluate(() => {
+        const problemas = [];
+        const combo = document.querySelector('#selectEstrategia');
+        if (!combo) problemas.push('el combo de estrategia desapareció con la inscripción cerrada (panel FR-010)');
+        else if (!combo.disabled) problemas.push('el combo quedó habilitado con la inscripción cerrada (panel FR-015, S-02b)');
+        if (document.querySelector('.panel-aviso')) problemas.push('apareció el aviso de desactualizado con la inscripción cerrada (panel FR-024, S-03c)');
+        if (!document.querySelector('.panel-header')) problemas.push('la tarjeta sin cancha perdió el encabezado nuevo (panel S-11)');
+        if (!document.querySelector('.panel-receipt')) problemas.push('la tarjeta sin cancha perdió el receipt (panel S-11)');
+        if (!document.querySelector('.panel-lineas')) problemas.push('la tarjeta sin cancha perdió la diferencia por línea (panel S-11)');
+        return problemas;
+      });
+    } },
 
   { clave: 'partido-finalizado', rol: 'admin', nombre: 'detalle de partido · finalizado',
     spec: ['cancha/S-10a', 'arrastre/S-10a', 'panel/S-11a'], invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
@@ -446,7 +462,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-jugador', rol: 'jugador', nombre: 'equipos generados sobre la cancha (rol jugador)',
-    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20'],
+    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20', 'panel/S-20a', 'panel/S-20b', 'panel/S-20c'],
     invariantes: [INVARIANTE_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
@@ -608,7 +624,7 @@ const ESCENARIOS = [
        los escenarios de cancha. Acá se mira uno de cada lado del punto de corte, porque la
        píldora cambia de lugar (FR-004 vs FR-005). */
     anchos: [360, 1200],
-    spec: ['panel/S-01', 'panel/S-01c', 'panel/S-02', 'panel/S-03', 'panel/S-05', 'panel/S-07', 'panel/S-07c', 'panel/S-10'],
+    spec: ['panel/S-01', 'panel/S-01c', 'panel/S-02', 'panel/S-03', 'panel/S-05', 'panel/S-07', 'panel/S-07a', 'panel/S-07b', 'panel/S-07c', 'panel/S-10'],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
       const problemas = [];
