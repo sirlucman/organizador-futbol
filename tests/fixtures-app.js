@@ -213,11 +213,24 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     { id: 'm-finalizado', fecha: '2026-08-20', cancha: 'futbol8', estado: 'Finalizado',
       convocados: ids, inscripcionCerrada: true, estrategia: 'estrategia4',
       bloqueados: [], duplas: duplasIds, equipos: { ...equipos, duplasSnapshot },
+      /* `golesEnContra` en dos titulares — el índice 0 (Claudio, integrante de la dupla `d1`) y
+         el índice 5 (Anibal, suelto) —, elegidos porque ya son válidos respecto de `golesPenal`
+         en el patrón `i % 3` / `i % 2` existente: sin esto ningún escenario de layout podía
+         ejercitar el chip ni la fila de detalle de gol en contra (rebanada 4, S-03b, S-05c). */
       resultado: { finalizadoEn: 1756000000000,
-        statsPorJugador: Object.fromEntries(titulares.map((id, i) => [id, { goles: i % 3, golesPenal: i % 2, asistencias: (i + 1) % 3 }])) } },
+        statsPorJugador: Object.fromEntries(titulares.map((id, i) => [id, {
+          goles: i % 3, golesPenal: i % 2, asistencias: (i + 1) % 3,
+          ...(i === 0 || i === 5 ? { golesEnContra: 1 } : {}) }])) } },
     { id: 'm-nueve', fecha: '2026-09-10', cancha: 'futbol9', estado: 'Inscripción abierta',
       convocados: ids, inscripcionCerrada: false, estrategia: 'estrategia4',
       bloqueados: [equipos9.blanco[0]], duplas: duplasIds, equipos: equipos9 },
+    /* Partido de fútbol 9 finalizado, sin editar: el único caso de la cancha de 9 en este
+       estado (rebanada 4, S-01b, S-10, S-10a). Mismo plantel que `m-nueve`, reusando `equipos9`. */
+    { id: 'm-finalizado-nueve', fecha: '2026-09-24', cancha: 'futbol9', estado: 'Finalizado',
+      convocados: ids, inscripcionCerrada: true, estrategia: 'estrategia4',
+      bloqueados: [], duplas: duplasIds, equipos: equipos9,
+      resultado: { finalizadoEn: 1756100000000,
+        statsPorJugador: Object.fromEntries([...equipos9.blanco, ...equipos9.negro].map((id, i) => [id, { goles: i % 2, golesPenal: 0, asistencias: (i + 1) % 2 }])) } },
     /* Sin `equipos`: la tarjeta no pinta ni cancha ni lista, y es el estado que verifica que la
        cancha no aparece antes de que el motor reparta (Spec de la cancha, S-10c). */
     { id: 'm-sin-equipos', fecha: '2026-09-17', cancha: 'futbol8', estado: 'Inscripción abierta',
