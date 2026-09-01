@@ -412,14 +412,14 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-pad: 6px; --stat-gap: -6px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-pad: 6px; --stat-gap: -6px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 18px; --stat-icon: 12px; --stat-fs: 10.5px; --stat-edge: -8px; --stat-pad: 5px; --stat-gap: -5px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 18px; --stat-icon: 12px; --stat-fs: 10.5px; --stat-edge: -8px; --stat-pad: 5px; --stat-gap: -5px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 18px; --stat-icon: 12px; --stat-fs: 10.5px; --stat-edge: -8px; --stat-pad: 5px; --stat-gap: -5px; }
   }
   /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
      olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
@@ -582,6 +582,62 @@
     .panel-receipt li{ gap: 8px; }
     .panel-receipt li::before{ margin-top: 6px; }
   }
+
+  /* ------------------------------------------------------------------ EL PARTIDO FINALIZADO
+     Rebanada 4 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md
+
+     Los valores salen del handoff (§ Chips de estadística, § Fila de resultado,
+     § Filas de detalle), traducidos a los tokens del repositorio (TC-030, TC-031). */
+
+  /* --- Encabezado (reutiliza .panel-header / .panel-icono de la rebanada 3) --- */
+  .panel-header-titulo{ min-width: 0; }
+  .panel-header-titulo h3{ text-transform: capitalize; }
+  .panel-header-estrategia{ margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--muted); }
+  .panel-icono-editar{ color: var(--ink); }
+  .panel-icono-editar:hover{ color: var(--pitch-deep); }
+
+  /* --- Chips de estadística (sobre la camiseta) ---
+     Prefijo `stat-` y no `chip-`: `--chip-bg`/`--chip-w`/`--chip-size` ya los usa el dibujo de la
+     camiseta y la columna de la cancha (rebanada 1) — reusar el prefijo pisaría esas variables.
+     `--stat-bg` es un color del handoff sin token propio en el design system (excepción de
+     TC-031, igual que `--chip-bg` ya lo es para el relleno de la camiseta). */
+  :root{ --stat-bg: #E8EBE6; }
+  .stat-asistencias, .stat-goles{ position: absolute; bottom: -3px; display: flex; align-items: center; }
+  .stat-asistencias{ left: var(--stat-edge); padding-left: var(--stat-pad); }
+  .stat-goles{ right: var(--stat-edge); padding-right: var(--stat-pad); }
+  .stat-pill{ display: flex; align-items: center; gap: 2px; height: var(--stat-h); padding: 0 4px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); margin-left: var(--stat-gap); }
+  .stat-pill:first-child{ margin-left: 0; }
+  .stat-pill img{ width: var(--stat-icon); height: var(--stat-icon); display: block; }
+
+  /* --- Fila de resultado --- */
+  .fila-resultado{ display: flex; align-items: center; justify-content: center; gap: 24px; padding: 12px 0; margin-bottom: 12px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); }
+  .resultado-equipo{ flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .resultado-equipo.der{ align-items: flex-end; }
+  .resultado-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; }
+  .resultado-puntaje{ font-family: var(--font-display); font-weight: 900; font-size: 16px; line-height: 24px; font-variant-numeric: tabular-nums; }
+  .resultado-pts{ font-size: 12px; color: var(--muted); margin-left: 3px; }
+  .resultado-marcador{ flex: none; display: flex; align-items: baseline; gap: 4px; font-family: var(--font-display); font-weight: 900; font-size: 40px; line-height: 44px; font-variant-numeric: tabular-nums; }
+  .resultado-guion{ font-size: 22px; color: var(--muted); }
+  /* El puntaje de armado sólo se ve en dos columnas (FR-041, FR-042): es CSS, no una rama en JS
+     (TD-07) — el marcado siempre lleva los dos `<span>`, y acá se ocultan. */
+  @media (max-width: 900px){
+    .resultado-puntaje, .resultado-pts{ display: none; }
+    .resultado-marcador{ font-size: 30px; line-height: 34px; }
+    .resultado-guion{ font-size: 17px; }
+  }
+
+  /* --- Filas de detalle (debajo de cada campo) --- */
+  .detalle-equipo{ margin-top: 10px; }
+  .detalle-fila{ display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+  .detalle-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--ink); }
+  .detalle-cifra{ display: flex; align-items: center; gap: 3px; font-family: var(--font-display); font-weight: 900; font-size: 12px; }
+  .detalle-cifra img{ width: 14px; height: 14px; }
+  .detalle-nota{ font-size: 11px; color: var(--muted); }
+  .detalle-vacio{ margin-top: 6px; font-size: 13px; color: var(--muted); opacity: 0.75; }
+  .team-panel.negro .detalle-nombre{ color: var(--chalk); }
+  .team-panel.negro .detalle-nota{ color: rgba(255,255,255,0.65); }
+  .team-panel.negro .detalle-vacio{ color: rgba(255,255,255,0.65); }
 
   .modal-overlay{ position: fixed; inset: 0; background: rgba(32,29,26,0.45); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px; }
   .modal-overlay.open{ display:flex; }
