@@ -3812,9 +3812,10 @@
     if(!isAdmin()) return;
     const m = matches.find(mm => mm.id === matchId);
     if(!m || m.estado !== 'Finalizado' || !m.resultado || !m.equipos) return;
+    const statsActuales = statsPorJugadorDelPartido(m); // rebanada 5, FR-024: eventos o statsPorJugador, sin distinguir
     const stats = {};
     [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = m.resultado.statsPorJugador[id] || { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 };
+      const st = statsActuales[id] || { goles: 0, golesPenal: 0, golesEnContra: 0, asistencias: 0 };
       stats[id] = { goles: st.goles || 0, golesPenal: st.golesPenal || 0, golesEnContra: st.golesEnContra || 0, asistencias: st.asistencias || 0 };
     });
     resultadoDraft = { matchId: m.id, stats };
@@ -3838,7 +3839,15 @@
       '¿Guardar los cambios en el resultado? Se van a recalcular las estadísticas acumuladas de los jugadores convocados.',
       () => {
         if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
-        m.resultado.statsPorJugador = {...resultadoDraft.stats};
+        // Preserva el formato que el partido ya tenía: si nació con eventos, se reescribe la
+        // secuencia completa; si es histórico (sólo statsPorJugador), sigue así — nunca se migra
+        // al editarlo (rebanada 5, FR-022, FR-023, D-06).
+        if(Array.isArray(m.resultado.eventos)){
+          const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+          m.resultado.eventos = eventosDesdeStats(idsConvocados, resultadoDraft.stats);
+        }else{
+          m.resultado.statsPorJugador = {...resultadoDraft.stats};
+        }
         m.resultado.editadoEn = Date.now();
         recomputeAllPlayerStatsFromMatches();
         saveMatches();
