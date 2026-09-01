@@ -31,6 +31,7 @@ node tests/motor.test.js                  # el motor de generación de equipos
 node tests/cancha.test.js                 # la cancha: agrupado en líneas, arrastre, escapado
 node tests/panel.test.js                  # el panel de armado: números, regla de color, receipt
 node tests/finalizado.test.js             # el partido finalizado: chips, fila de resultado, filas de detalle
+node tests/eventos.test.js                # el modelo de eventos: síntesis, derivación, recálculo mixto
 node tests/layout.test.js                 # el layout responsive (Principio V)
 LAYOUT_STRICT=1 node tests/layout.test.js # en CI: la ausencia de Playwright falla
 ```
