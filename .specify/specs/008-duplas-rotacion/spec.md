@@ -4,6 +4,15 @@
 
 **Created**: 2026-08-15
 
+> **Reemplazo parcial (Principio I).** La **fila de dupla del panel** que esta
+> spec describe queda reemplazada por
+> [`docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md)
+> (2026-08-31): pasa a ser la cápsula de dupla sobre una sola camiseta (`FR-026`).
+> **No se reemplaza ninguna regla** de armado, de puntaje ni de candado. En
+> particular su regla de que arrastrar a un integrante mueve al otro con él sigue
+> vigente, y la conserva el `FR-016` de
+> [`ARRASTRE_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md).
+
 **Status**: Draft
 
 **Input**: User description: "Separar a los jugadores que hoy se anotan como 'dupla' (típicamente padre e hijo) en dos jugadores independientes, en vez de un único jugador combinado, para poder calcular estadísticas individuales correctas. Agregar la posibilidad de configurar, antes del armado de equipos, qué jugador rota con quién." (ver `feature-description-duplas-rotacion.md` para el detalle original completo).

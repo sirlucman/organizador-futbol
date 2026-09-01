@@ -175,7 +175,7 @@ justamente para poder mirar cada uno en la aplicación real).
 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `feature/arrastre` | `main` | Not started | — | — | Se mergea después de `docs/arrastre`, según `D-11` |
+| 1 | `feature/arrastre` | `main` | Implementada, sin mergear | — | `motor` 64/64 · `cancha` 42/42 · `layout` 25 escenarios / 240 mediciones | Se mergea después de `docs/arrastre`, según `D-11` |
 
 ```mermaid
 flowchart LR
@@ -342,7 +342,7 @@ en su propio commit de arreglo, nunca doblado dentro de uno anterior:
 - [ ] T-1.D2 Los tests existentes pasan, sin regresiones — `node tests/motor.test.js` y `LAYOUT_STRICT=1 node tests/layout.test.js`
 - [ ] T-1.D3 Linter — no aplica (§5). Se declara, no se marca en silencio
 - [ ] T-1.D4 Type-checker — no aplica (§5). Se declara, no se marca en silencio
-- [ ] T-1.D5 No quedan `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- index.html tests/` no devuelve nada nuevo
+- [x] T-1.D5 No quedan `TODO`/`FIXME`/`HACK`. **El recetario ingenuo no sirve en este repositorio**: el código está comentado en español y `todo` es una palabra corriente, así que `grep TODO` da falsos positivos. Se busca la forma de MARCADOR: `git grep -nE '(TODO|FIXME|HACK)[(:]' -- index.html tests/`
 - [ ] T-1.D6 La implementación sigue §5 (releer §5 antes de abrir el PR)
 - [ ] T-1.D7 Cada `FR-*`, `NFR-*`, `TC-*` y `AC-*` de la Spec está implementado o verificado. Incluye recorrer §11 de la Spec confirmando que ningún criterio exige un dispositivo ausente (`NFR-008`, `AC-17`, `OBS-07`)
 - [ ] T-1.D8 Cada `S-NN` y cada variante tiene test — `comm -23 <(grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "(prueba\('|spec: \[|', ')S-[0-9]+[a-z]*" tests/ | grep -oE "S-[0-9]+[a-z]*" | sort -u)` devuelve vacío (`AC-50`)
@@ -359,7 +359,7 @@ en su propio commit de arreglo, nunca doblado dentro de uno anterior:
 - [ ] T-1.D17 Cada `R-*` de §14 registra vía de mitigación
 - [ ] T-1.D18 Pasada de auto-consistencia dentro de este Plan
 - [ ] T-1.D19 Pasada de consistencia cruzada contra la Spec y el Concept Note
-- [ ] T-1.D20 Auditoría de cadena de suministro — §5 declara `Supply-chain: none`, así que pasa de forma vacua. Se confirma con `ls package-lock.json` sin resultado (`AC-55`)
+- [x] T-1.D20 Auditoría de cadena de suministro — §5 declara `Supply-chain: none`, así que pasa de forma vacua. **Se confirma con `git ls-files package-lock.json package.json` sin resultado, no con `ls`**: los dos archivos SÍ existen en el disco (Playwright los deja al instalarse) pero `.gitignore` los excluye, así que no hay lockfile *versionado* que auditar. La primera versión de esta tarea miraba el disco y habría reportado un lockfile que la rama no contiene (`AC-55`)
 
 ## 8. Data model & migrations
 
@@ -407,49 +407,53 @@ Ninguno (`TD-09`). La red de seguridad de esta rebanada es la rama sin mergear.
 
 | Spec scenario | Test | Level | Branch |
 |---|---|---|---|
-| S-01 (parent) mover al otro equipo | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['S-01']`) | e2e | Branch 1 |
-| S-01a `[boundary]` único de su línea | `tests/cancha.test.js` — `prueba('S-01a …')` | unit | Branch 1 |
-| S-01b `[boundary]` unidad fijada | `tests/cancha.test.js` — `prueba('S-01b …')` | unit | Branch 1 |
-| S-01c `[boundary]` equipos desparejos | `tests/cancha.test.js` — `prueba('S-01c …')` | unit | Branch 1 |
-| S-01d `[failure]` pestaña propia | `tests/cancha.test.js` — `prueba('S-01d …')` | unit | Branch 1 |
-| S-01e `[failure]` arrastre cancelado | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['S-01e']`) | e2e | Branch 1 |
-| S-01f `[property]` unidades conservadas | `tests/cancha.test.js` — `prueba('S-01f …')` | unit + property | Branch 1 |
-| S-02 (parent) intercambio en ancho | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['S-02']`) | e2e | Branch 1 |
-| S-02a `[boundary]` destino fijado | `tests/cancha.test.js` — `prueba('S-02a …')` | unit | Branch 1 |
-| S-02b `[boundary]` cancha, no camiseta | `tests/cancha.test.js` — `prueba('S-02b …')` | unit | Branch 1 |
-| S-02c `[failure]` camiseta propia | `tests/cancha.test.js` — `prueba('S-02c …')` | unit | Branch 1 |
-| S-02d `[failure]` cancha propia | `tests/cancha.test.js` — `prueba('S-02d …')` | unit | Branch 1 |
-| S-02e `[property]` cantidades idénticas | `tests/cancha.test.js` — `prueba('S-02e …')` | unit + property | Branch 1 |
-| S-03 (parent) dupla entera | `tests/cancha.test.js` — `prueba('S-03 …')` | unit | Branch 1 |
-| S-03a `[boundary]` dupla contra dupla | `tests/cancha.test.js` — `prueba('S-03a …')` | unit | Branch 1 |
-| S-03b `[boundary]` dupla contra individual | `tests/cancha.test.js` — `prueba('S-03b …')` | unit | Branch 1 |
-| S-04 (parent) el selector decide | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['S-04']`) | e2e | Branch 1 |
-| S-04a `[boundary]` 900 px, una columna | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['S-04a']`) | e2e | Branch 1 |
-| S-04b `[boundary]` 901 px, dos columnas | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['S-04b']`) | e2e | Branch 1 |
-| S-04c `[boundary]` rol jugador a 360 px | `tests/layout.test.js` escenario `arrastre-jugador` (`spec: ['S-04c']`) | e2e | Branch 1 |
-| S-04d `[property]` una cancha con selector | `tests/layout.test.js` — `INVARIANTE_SELECTOR` (`spec: ['S-04d']`) | property | Branch 1 |
-| S-05 el candado sigue siendo el candado | `tests/layout.test.js` escenario `cancha-candado` (`spec: ['S-05']`) | e2e | Branch 1 |
-| S-06 (parent) el DOM declara lo que acepta | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['S-06']`) | e2e | Branch 1 |
-| S-06a `[boundary]` rol jugador | `tests/layout.test.js` escenario `arrastre-jugador` (`spec: ['S-06a']`) | e2e | Branch 1 |
-| S-06b `[boundary]` inscripción cerrada | `tests/layout.test.js` escenario `partido-cerrado` (`spec: ['S-06b']`) | e2e | Branch 1 |
-| S-10 (parent) pantallas sin arrastre | `tests/layout.test.js` escenario `partido-cerrado` (`spec: ['S-10']`) | e2e | Branch 1 |
-| S-10a `[boundary]` finalizado | `tests/layout.test.js` escenario `partido-finalizado` (`spec: ['S-10a']`) | e2e | Branch 1 |
-| S-10b `[boundary]` finalizado en edición | `tests/layout.test.js` escenario `partido-editando` (`spec: ['S-10b']`) | e2e | Branch 1 |
-| S-10c `[boundary]` sin equipos generados | `tests/layout.test.js` escenario `partido-sin-equipos` (`spec: ['S-10c']`) | e2e | Branch 1 |
-| S-20 (parent) rol sin permiso | `tests/cancha.test.js` — `prueba('S-20 …')` | unit | Branch 1 |
-| S-20a `[failure]` inscripción cerrada | `tests/cancha.test.js` — `prueba('S-20a …')` | unit | Branch 1 |
-| S-20b `[failure]` partido finalizado | `tests/cancha.test.js` — `prueba('S-20b …')` | unit | Branch 1 |
-| S-20c `[failure]` drop de pestaña, rol jugador | `tests/cancha.test.js` — `prueba('S-20c …')` | unit | Branch 1 |
-| S-21 (parent) contenido ajeno al partido | `tests/cancha.test.js` — `prueba('S-21 …')` | unit | Branch 1 |
-| S-21a `[failure]` texto arbitrario | `tests/cancha.test.js` — `prueba('S-21a …')` | unit | Branch 1 |
-| S-21b `[failure]` jugador no convocado | `tests/cancha.test.js` — `prueba('S-21b …')` | unit | Branch 1 |
-| S-21c `[failure]` destino ajeno | `tests/cancha.test.js` — `prueba('S-21c …')` | unit | Branch 1 |
-| S-21d `[failure]` inválido sobre la pestaña | `tests/cancha.test.js` — `prueba('S-21d …')` | unit | Branch 1 |
-| S-22 nombre con marcado en el `title` | `tests/cancha.test.js` — `prueba('S-22 …')` | unit | Branch 1 |
+| S-01 (parent) mover al otro equipo | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-01']`) | e2e | Branch 1 |
+| S-01a `[boundary]` único de su línea | `tests/cancha.test.js` — `prueba('arrastre/S-01a …')` | unit | Branch 1 |
+| S-01b `[boundary]` unidad fijada | `tests/cancha.test.js` — `prueba('arrastre/S-01b …')` | unit | Branch 1 |
+| S-01c `[boundary]` equipos desparejos | `tests/cancha.test.js` — `prueba('arrastre/S-01c …')` | unit | Branch 1 |
+| S-01d `[failure]` pestaña propia | `tests/cancha.test.js` — `prueba('arrastre/S-01d …')` | unit | Branch 1 |
+| S-01e `[failure]` arrastre cancelado | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-01e']`) | e2e | Branch 1 |
+| S-01f `[property]` unidades conservadas | `tests/cancha.test.js` — `prueba('arrastre/S-01f …')` | unit + property | Branch 1 |
+| S-02 (parent) intercambio en ancho | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-02']`) | e2e | Branch 1 |
+| S-02a `[boundary]` destino fijado | `tests/cancha.test.js` — `prueba('arrastre/S-02a …')` | unit | Branch 1 |
+| S-02b `[boundary]` cancha, no camiseta | `tests/cancha.test.js` — `prueba('arrastre/S-02b …')` | unit | Branch 1 |
+| S-02c `[failure]` camiseta propia | `tests/cancha.test.js` — `prueba('arrastre/S-02c …')` | unit | Branch 1 |
+| S-02d `[failure]` cancha propia | `tests/cancha.test.js` — `prueba('arrastre/S-02d …')` | unit | Branch 1 |
+| S-02e `[property]` cantidades idénticas | `tests/cancha.test.js` — `prueba('arrastre/S-02e …')` | unit + property | Branch 1 |
+| S-03 (parent) dupla entera | `tests/cancha.test.js` — `prueba('arrastre/S-03 …')` | unit | Branch 1 |
+| S-03a `[boundary]` dupla contra dupla | `tests/cancha.test.js` — `prueba('arrastre/S-03a …')` | unit | Branch 1 |
+| S-03b `[boundary]` dupla contra individual | `tests/cancha.test.js` — `prueba('arrastre/S-03b …')` | unit | Branch 1 |
+| S-04 (parent) el selector decide | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['arrastre/S-04']`) | e2e | Branch 1 |
+| S-04a `[boundary]` 900 px, una columna | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['arrastre/S-04a']`) | e2e | Branch 1 |
+| S-04b `[boundary]` 901 px, dos columnas | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['arrastre/S-04b']`) | e2e | Branch 1 |
+| S-04c `[boundary]` rol jugador a 360 px | `tests/layout.test.js` escenario `arrastre-jugador` (`spec: ['arrastre/S-04c']`) | e2e | Branch 1 |
+| S-04d `[property]` una cancha con selector | `tests/layout.test.js` — `INVARIANTE_SELECTOR` (`spec: ['arrastre/S-04d']`) | property | Branch 1 |
+| S-05 el candado sigue siendo el candado | `tests/layout.test.js` escenario `cancha-candado` (`spec: ['arrastre/S-05']`) | e2e | Branch 1 |
+| S-06 (parent) el DOM declara lo que acepta | `tests/layout.test.js` escenario `arrastre-selector` (`spec: ['arrastre/S-06']`) | e2e | Branch 1 |
+| S-06a `[boundary]` rol jugador | `tests/layout.test.js` escenario `arrastre-jugador` (`spec: ['arrastre/S-06a']`) | e2e | Branch 1 |
+| S-06b `[boundary]` inscripción cerrada | `tests/layout.test.js` escenario `partido-cerrado` (`spec: ['arrastre/S-06b']`) | e2e | Branch 1 |
+| S-10 (parent) pantallas sin arrastre | `tests/layout.test.js` escenario `partido-cerrado` (`spec: ['arrastre/S-10']`) | e2e | Branch 1 |
+| S-10a `[boundary]` finalizado | `tests/layout.test.js` escenario `partido-finalizado` (`spec: ['arrastre/S-10a']`) | e2e | Branch 1 |
+| S-10b `[boundary]` finalizado en edición | `tests/layout.test.js` escenario `partido-editando` (`spec: ['arrastre/S-10b']`) | e2e | Branch 1 |
+| S-10c `[boundary]` sin equipos generados | `tests/layout.test.js` escenario `partido-sin-equipos` (`spec: ['arrastre/S-10c']`) | e2e | Branch 1 |
+| S-20 (parent) rol sin permiso | `tests/layout.test.js` escenario `arrastre-permisos` (`spec: ['arrastre/S-20']`) | e2e | Branch 1 |
+| S-20a `[failure]` inscripción cerrada | `tests/layout.test.js` escenario `arrastre-permisos-estado` (`spec: ['arrastre/S-20a']`) | e2e | Branch 1 |
+| S-20b `[failure]` partido finalizado | `tests/layout.test.js` escenario `arrastre-permisos-estado` (`spec: ['arrastre/S-20b']`) | e2e | Branch 1 |
+| S-20c `[failure]` drop de pestaña, rol jugador | `tests/layout.test.js` escenario `arrastre-permisos` (`spec: ['arrastre/S-20c']`) | e2e | Branch 1 |
+| S-21 (parent) contenido ajeno al partido | `tests/cancha.test.js` — `prueba('arrastre/S-21 …')` | unit | Branch 1 |
+| S-21a `[failure]` texto arbitrario | `tests/cancha.test.js` — `prueba('arrastre/S-21a …')` | unit | Branch 1 |
+| S-21b `[failure]` jugador no convocado | `tests/cancha.test.js` — `prueba('arrastre/S-21b …')` | unit | Branch 1 |
+| S-21c `[failure]` destino ajeno | `tests/cancha.test.js` — `prueba('arrastre/S-21c …')` | unit | Branch 1 |
+| S-21d `[failure]` inválido sobre la pestaña | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-21d']`) | e2e | Branch 1 |
+| S-22 nombre con marcado en el `title` | `tests/cancha.test.js` — `prueba('arrastre/S-22 …')` | unit | Branch 1 |
 
-Treinta y nueve filas: diez escenarios padre y veintinueve variantes. Veinticinco
-se resuelven sin navegador gracias a `TD-05`; las catorce restantes necesitan
-DOM y van a `tests/layout.test.js`.
+Treinta y nueve filas: diez escenarios padre y veintinueve variantes.
+**Diecinueve** se resuelven sin navegador gracias a `TD-05`; las **veinte**
+restantes necesitan DOM y van a `tests/layout.test.js`. El borrador de este Plan
+decía «veinticinco y catorce»: la cuenta estaba mal, y además cuatro escenarios de
+permiso (`S-20`, `S-20a`, `S-20b`, `S-20c`) y `S-21d` se movieron de unidad a e2e
+al implementarlos, porque la guarda de rol y de estado vive en el manejador —que
+no es puro— y probarla en el sandbox habría exigido duplicar la regla.
 
 ### 12.2 Impact Traceability
 
@@ -596,9 +600,9 @@ finalizados.
 | Spec AC | Satisfied by | Test |
 |---|---|---|
 | AC-01 | Branch 1 | Suite de §12.1 completa — cubre `S-01`..`S-06` con sus variantes |
-| AC-02 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['S-01']`) |
-| AC-03 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['S-02']`) |
-| AC-04 | Branch 1 | `tests/layout.test.js` — `INVARIANTE_SELECTOR` (`spec: ['S-04d']`) |
+| AC-02 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-01']`) |
+| AC-03 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-02']`) |
+| AC-04 | Branch 1 | `tests/layout.test.js` — `INVARIANTE_SELECTOR` (`spec: ['arrastre/S-04d']`) |
 | AC-05 | Branch 1 | `tests/layout.test.js` escenarios `partido-cerrado`, `partido-finalizado`, `partido-editando` (`spec: ['S-10'…]`) |
 | AC-06 | Branch 1 | `tests/layout.test.js` escenario `arrastre-jugador` (`spec: ['S-06a', 'S-04c']`) |
 | AC-10 | Branch 1 | `node tests/layout.test.js` completo (`OBS-01`) |
@@ -607,7 +611,7 @@ finalizados.
 | AC-13 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop`, marca de `performance.now()` (`OBS-04`) |
 | AC-14 | Branch 1 | `window.__escrituras` y diff de campos en `arrastre-drop` (`OBS-05`) |
 | AC-15 | Branch 1 | §7.2.3 de este Plan más el chequeo de literales de `tests/cancha.test.js` (`OBS-06`) |
-| AC-16 | Branch 1 | `tests/cancha.test.js` — `prueba('S-21 …')` y variantes (`OBS-05`) |
+| AC-16 | Branch 1 | `tests/cancha.test.js` — `prueba('arrastre/S-21 …')` y variantes (`OBS-05`) |
 | AC-17 | Branch 1 | `T-1.D7` — recorrido de Spec §11 confirmando que cada criterio nombra `layout.test.js`, `cancha.test.js` o revisión (`OBS-07`) |
 | AC-20 | Branch 1 | §12.9 `TC-001`, `TC-002` |
 | AC-21 | Branch 1 | §12.9 `TC-003` |
@@ -625,10 +629,10 @@ finalizados.
 | AC-33 | Branch 1 | §12.9 `TC-040` |
 | AC-34 | Branch 1 | §12.9 `TC-041` |
 | AC-35 | Branch 1 | §12.9 `TC-042` |
-| AC-40 | Branch 1 | `tests/cancha.test.js` — `prueba('S-20 …')` y variantes |
-| AC-41 | Branch 1 | `tests/cancha.test.js` — `prueba('S-21 …')` y variantes |
-| AC-42 | Branch 1 | `tests/cancha.test.js` — `prueba('S-22 …')` |
-| AC-43 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['S-01e']`) |
+| AC-40 | Branch 1 | `tests/cancha.test.js` — `prueba('arrastre/S-20 …')` y variantes |
+| AC-41 | Branch 1 | `tests/cancha.test.js` — `prueba('arrastre/S-21 …')` y variantes |
+| AC-42 | Branch 1 | `tests/cancha.test.js` — `prueba('arrastre/S-22 …')` |
+| AC-43 | Branch 1 | `tests/layout.test.js` escenario `arrastre-drop` (`spec: ['arrastre/S-01e']`) |
 | AC-50 | Branch 1 | (meta-gate — §12.1 con las treinta y nueve filas pobladas; `T-1.D8` y `T-1.D8b` devuelven vacío) |
 | AC-51 | Branch 1 | (meta-gate — `T-1.D9` sobre la lista cerrada del preámbulo de Spec §8) |
 | AC-52 | Branch 1 | (meta-gate — §12.9 con los diecinueve `TC-*`; `T-1.D10` y `T-1.D10b`) |
@@ -640,6 +644,7 @@ finalizados.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-08-31 | Lucas Manoukian | **Implementada.** Ocho hallazgos que el Plan no anticipaba, todos resueltos en la rama: (1) el arnés de layout sólo corría `comprobar` en el primer ancho **global**, así que un escenario que acotaba `anchos` sin incluir 360 nunca se comprobaba y se reportaba en verde — salteo silencioso, corregido para que corra en el primer ancho del propio escenario; (2) `saveMatches` es `async`, y leer el contador de escrituras justo después del manejador daba cero siempre, con guarda y sin ella; (3) un escenario de permisos pasaba el mismo jugador como origen y destino del intercambio, que no hace nada por su propia regla: no ejercitaba lo que decía ejercitar; (4) las dos Specs de la feature usan los mismos números de escenario y de NFR, así que las etiquetas `spec:` se prefijaron por rebanada (`cancha/`, `arrastre/`) — sin eso ningún gate podía distinguirlas; (5) la pestaña medía 36 px con el `padding` literal del handoff, contra el piso de 44 px de `NFR-002`, que gana porque es el destino de todo movimiento en angosto; (6) la pista del selector quedaba del mismo color que el fondo de página, porque el handoff la dibuja sobre una tarjeta blanca y acá va sobre el papel — lo detectó mirar la pantalla, no un test, y quedó cubierta por un invariante nuevo; (7) `T-1.D5` no sirve tal como estaba en un código comentado en español, donde `todo` es palabra corriente; (8) `T-1.D20` miraba el disco en vez de git, y `package-lock.json` existe pero está en `.gitignore`. La §12.1 quedó actualizada: el reparto real es 19 unitarios y 20 e2e, no 25 y 14, y cinco escenarios de permiso se movieron a e2e. Self-critique: passed (2🔴 / 4🟡 / 2🔵) sobre el borrador. |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Resuelve `OPEN-Q-03` por lectura del código (la diferencia por línea es la única que no se recalcula tras un movimiento manual, y es hueco previo a esta rebanada), `OPEN-Q-04` (la anotación recíproca la hace `T-1.27`, para las cuatro specs de una vez) y `OPEN-Q-06` (el subtítulo). Self-critique: passed (2🔴 / 4🟡 / 2🔵). Los dos 🔴: catorce `FR-*` y dos `NFR-*` no aparecían en ninguna tarea de §7.2.9, de modo que `T-1.D7` no tenía dónde comprobarlos —citados ahora en `T-1.8` a `T-1.11` y en `T-1.D7`, distinguiendo los que se **heredan** de `__moverJugadorManual` de los que se escriben—; y `AC-15` junto con §12.3 daban por existente un chequeo de literales visuales que ninguna tarea creaba, que es la forma más peligrosa de hueco: un criterio declarado satisfecho por un test inexistente (ahora `T-1.19b`). Los 🟡: `FR-044` no tenía verificación de no-regresión, que la rebanada 1 sí tenía (ahora `T-1.9b`); `R-09` tenía detección pero ninguna tarea de mitigación (`T-1.10` fija dónde va el `draggable` para no envolver al candado); tres afirmaciones sobre la enmienda al Concept Note se contradecían entre §3.4, §17 y `OPEN-Q-07` de la Spec —unificadas en «las cuatro decisiones, con los números que la enmienda asigne», lo que además eliminó cuatro `D-*` colgados que `T-1.D19` reportaba—; y dos referencias a otros documentos (`S-06d`, `A-06`) que los gates intra-documento reportaban siempre, reformuladas. Los 🔵: la línea *Spec coverage* de la rama usa un rango en vez de enumerar como hizo la rebanada 1, aceptable con una sola rama; y los dos bloques mermaid se validaron renderizándolos con el Chromium de Playwright (§3 con 10 nodos sobre un tope de 15). |
 
 ---

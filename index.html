@@ -300,8 +300,6 @@
      Arreglar el grid (minmax(0,1fr), más abajo) sacó el mínimo duro del PANEL, pero la FILA
      seguía desbordando. Envuelve solo donde no entra: a 768px en una columna sigue en una línea. */
   .team-player-row{ display:flex; align-items:center; gap:8px; padding: 6px 0; font-size: 13.5px; border-bottom: 1px solid rgba(0,0,0,0.1); flex-wrap: wrap; }
-  .team-player-row[draggable="true"]{ cursor: grab; }
-  .team-player-row[draggable="true"]:active{ cursor: grabbing; }
   .team-panel{ transition: background-color .15s ease; }
   .team-panel.negro .team-player-row{ border-bottom-color: rgba(255,255,255,0.14); }
   .team-player-row:last-child{ border-bottom: none; }
@@ -445,6 +443,50 @@
      importan: camisetas más chicas Y más nombres cortados —a 360px y a 390px, contra sólo 360px
      con el del handoff—. Así que se usa el del handoff y se borró el derivado.
      Ver OPEN-Q-03 y OPEN-Q-04 del Implementation Plan. */
+
+  /* --- El selector de equipo y los realces de drop (rebanada 2) ---
+     docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md
+
+     El selector aparece sólo en una columna, donde se ve un equipo por vez. Su geometría sale
+     literal del handoff (§ Selector segmentado) y los realces de la tabla de drag-over de
+     § Arrastre, en su variante compacta `6a` (TC-033). */
+  /* El handoff pinta la pista del selector con `canvas-soft` porque allí el control vive sobre
+     una tarjeta BLANCA. Acá vive sobre el fondo de página, que ES `canvas-soft` (`--paper`), así
+     que copiar el valor literal dejaba la pista invisible y el control no se leía como uno de dos
+     posiciones. Se conserva la RELACIÓN que el handoff busca —pista apenas distinta del fondo—
+     invirtiendo el token, que es el mismo criterio con el que el resto de la aplicación pinta
+     sus campos: blanco sobre papel (TC-031). Lo detectó mirar la pantalla, no un test. */
+  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--chalk); }
+  .equipo-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
+  .equipo-tabs[data-visible="negro"] .equipo-tabs-thumb{ left: 50%; }
+  /* `min-height` es una desviación deliberada del handoff, no un descuido: su `padding: 10px 0`
+     sobre texto de 13px da una pestaña de 36px, y NFR-002 fija el piso en 44px porque en una
+     columna la pestaña es el destino de TODO movimiento — su tamaño es funcional, no estético.
+     El propio handoff declara `--touch-target-min: 48px`, así que su padding se contradice con
+     su token. Se conserva el padding literal y se agrega el piso (TC-031). */
+  .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; min-height: 44px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: var(--radius-pill); }
+  .equipo-tab:hover{ opacity: 0.7; }
+  .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
+
+  /* Los tres realces son hermanos que se dibujan por encima y NO capturan el puntero: si lo
+     capturaran se comerían el `dragover` que los mantiene vivos y parpadearían (TC-034). */
+  .drop-realce{ position: absolute; pointer-events: none; display: none; }
+  .equipo-tab.drop-activo .drop-realce,
+  .camiseta.drop-activo .drop-realce,
+  .cancha.drop-activo > .drop-realce{ display: block; }
+
+  .equipo-tab .drop-realce{ inset: -2px; border-radius: var(--radius-pill); background: rgb(133 182 50 / 0.28); box-shadow: inset 0 0 0 2px var(--pitch-light); }
+  .camiseta .drop-realce{ inset: -4px -3px; border-radius: 15px; background: rgb(133 182 50 / 0.3); box-shadow: inset 0 0 0 2px var(--pitch-light); }
+  /* El realce del campo entero es DERIVADO: el handoff da el de la línea y el de la camiseta,
+     pero la vista `6a` no dibuja el campo como zona de drop —ahí la zona es la pestaña— y la `4a`,
+     que sí lo hace, no tabula su estilo. Se toma el tratamiento de la camiseta (tinte verde y
+     anillo de 2px) con el radio propio de la cancha, y el tinte baja de 0.3 a 0.16 porque acá
+     cubre todo el campo y a 0.3 se come la lectura de las camisetas (Implementation Plan, TC-031). */
+  .cancha > .drop-realce{ inset: 0; border-radius: var(--radius-field); background: rgb(133 182 50 / 0.16); box-shadow: inset 0 0 0 2px var(--pitch-light); }
+
+  .camiseta{ position: relative; }
+  .camiseta[draggable="true"]{ cursor: grab; }
+  .camiseta[draggable="true"]:active{ cursor: grabbing; }
 
   /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
      desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
@@ -1796,7 +1838,7 @@
   }
 
   // FR-010/FR-011 — reusa el mismo patrón de drag and drop nativo ya usado para mover jugadores
-  // entre equipos (window.__dragStartJugador/window.__dropOnTeam).
+  // entre equipos (window.__dragStartJugador/window.__dropEnCancha).
   window.__dragStartRosterRow = function(e, playerId){
     if(!isAdmin()) return; // TC-040
     e.dataTransfer.setData('text/plain', playerId);
@@ -3748,7 +3790,7 @@
     const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
     const lockBtn = renderLockBtn(m, p.id, editable, bloqueado);
     return `
-      <div class="team-player-row" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${p.id}')"` : ''}>
+      <div class="team-player-row">
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
         <span style="flex:1 1 auto;">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
         ${puntajeHtml}
@@ -3795,7 +3837,7 @@
       ? `<span class="team-avg team-avg-unidad" title="Puntaje de la dupla: es el que suma al total del equipo">${valorUnidad === null ? 'sin puntaje' : valorUnidad}</span>`
       : '';
     return `
-      <div class="team-player-row team-player-row-dupla" ${editable ? `draggable="true" ondragstart="window.__dragStartJugador(event,'${pA.id}')"` : ''}>
+      <div class="team-player-row team-player-row-dupla">
         <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
         <div class="team-dupla-members">
           ${miembroHtml(pA)}
@@ -3923,10 +3965,13 @@
     const completos = grupo.map(fullName).join(' / ');
     const secundaria = grupo.some(j => j.principal !== posAsignada);
 
+    const arrastrable = esFilaEditable(m);
     const partes = [completos];
     if(esUnidadDupla) partes.push('dupla de rotación');
     partes.push(secundaria ? posAsignada + ' (posición secundaria)' : posAsignada);
     if(admin && valor === null) partes.push('sin puntaje');
+    // El `title` anuncia el gesto sin desplazar lo que ya llevaba (FR-003).
+    if(arrastrable) partes.push('arrastrala al otro equipo para pasarlo');
     const titulo = escaparHtml(partes.join(' · '));
 
     const puntajeHtml = (admin && valor !== null)
@@ -3937,7 +3982,7 @@
     const bloqueado = (m.bloqueados || []).includes(p.id);
     const accion = bloqueado ? 'Desbloquear a ' + completos : 'Bloquear a ' + completos + ' en este equipo';
     const candadoHtml = esFilaEditable(m)
-      ? '<button type="button" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
+      ? '<button type="button" draggable="false" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
         + ' aria-label="' + escaparHtml(accion) + '" title="' + escaparHtml(accion) + '"'
         + ' onclick="window.__toggleBloqueo(\'' + m.id + '\',\'' + p.id + '\')">'
         + '<span class="cand-badge">' + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</span></button>'
@@ -3948,11 +3993,19 @@
         + ICON_ROTACION + '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(grupo[1])) + '</span></div>'
       : '<span class="camiseta-nombre">' + escaparHtml(nombreCorto(p)) + '</span>';
 
-    return '<div class="camiseta ' + equipo + '-eq" title="' + titulo + '">'
+    /* El `draggable` va en el contenedor y el candado lleva `draggable="false"`, para que
+       activarlo siga siendo un click y no el arranque de un arrastre (FR-007b). */
+    const arrastreAttrs = arrastrable
+      ? ' draggable="true" ondragstart="window.__dragStartJugador(event,\'' + p.id + '\')"'
+        + ' ondragend="window.__dragFin()"'
+        + ' ondragover="window.__dragSobre(event,this)"'
+        + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
+      : '';
+    return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
       + puntajeHtml + candadoHtml
-      + '</div>' + nombreHtml + '</div>';
+      + '</div>' + nombreHtml + '<span class="drop-realce"></span></div>';
   }
 
   /* El campo de un equipo, con sus marcas y la capa de camisetas repartidas en líneas.
@@ -3970,8 +4023,13 @@
       '<div class="cancha-linea">' + subfilas.map(sf =>
         '<div class="cancha-subfila">' + sf.map(g => renderCamiseta(g, m, equipo)).join('') + '</div>'
       ).join('') + '</div>').join('');
-    return '<div class="cancha" data-max-fila="' + maxFila + '">' + MARCAS_CANCHA
-      + '<div class="cancha-lineas">' + lineasHtml + '</div></div>';
+    const dropAttrs = esFilaEditable(m)
+      ? ' ondragover="window.__dragSobre(event,this)"'
+        + ' ondrop="window.__dropEnCancha(event,\'' + m.id + '\',\'' + equipo + '\')"'
+      : '';
+    return '<div class="cancha" data-max-fila="' + maxFila + '"' + dropAttrs + '>' + MARCAS_CANCHA
+      + '<div class="cancha-lineas">' + lineasHtml + '</div>'
+      + (dropAttrs ? '<span class="drop-realce"></span>' : '') + '</div>';
   }
 
   window.__toggleBloqueo = function(matchId, playerId){
@@ -3993,16 +4051,228 @@
     renderMatchesTab();
   };
 
+  /* ------------------------------------------------------------------ EL SELECTOR DE EQUIPO
+     Rebanada 2 de "Equipos en el campo".
+
+     En una sola columna los dos equipos no se apilan: se ve uno por vez, con dos pestañas
+     arriba. Reemplaza el apilado que fijó el FR-054 de la rebanada 1, y la razón no es
+     estética — con las canchas apiladas, en un teléfono el destino de todo movimiento queda
+     fuera de pantalla y alcanzarlo depende de cómo cada navegador desplace durante un arrastre,
+     que es justo lo que no se puede verificar sin un teléfono a mano. */
+
+  /* Estado de PANTALLA, no del partido: no se persiste (TC-035). Guardarlo en Firestore
+     agregaría un campo que NFR-005 prohíbe, y guardarlo en el DOM lo perdería en cada
+     repintado. `partidoDelEquipoVisible` es lo que hace que abrir otro partido vuelva a
+     empezar por el Blanco (FR-033). */
+  let equipoVisibleCancha = 'blanco';
+  let partidoDelEquipoVisible = null;
+
+  /* El mismo punto de corte que `.teams-wrap` usa para pasar a una columna. El literal queda
+     duplicado entre el CSS y este archivo porque no hay forma de compartirlo; lo que impide que
+     se desincronicen son los escenarios S-04a (900px) y S-04b (901px) de layout.test.js, que
+     fallan si discrepan (TC-015). */
+  const ANCHO_UNA_COLUMNA = 900;
+  function enUnaColumna(){
+    return window.matchMedia('(max-width: ' + ANCHO_UNA_COLUMNA + 'px)').matches;
+  }
+
+  /* Cruzar el punto de corte cambia la ESTRUCTURA y no sólo el estilo —en una columna hay
+     selector y una cancha; en dos, dos canchas y ningún selector—, y eso lo decide el render.
+     Por eso hay que volver a pintar cuando el modo cambia; el CSS solo no alcanza. */
+  window.matchMedia('(max-width: ' + ANCHO_UNA_COLUMNA + 'px)').addEventListener('change', () => {
+    if(document.querySelector('.teams-wrap')) renderMatchesTab();
+  });
+
+  /* Las dos pestañas. Se dibujan también para el rol jugador, que puede mirar el otro equipo
+     aunque no pueda mover a nadie (FR-038). */
+  function renderSelectorEquipo(m){
+    const editable = esFilaEditable(m);
+    const tab = (equipo, etiqueta) => {
+      const activo = equipoVisibleCancha === equipo;
+      /* Sólo la pestaña del equipo que NO se está viendo recibe el drop: soltar sobre la propia
+         no hace nada (FR-013), y con rol jugador no hay drop en ninguna (FR-038b). */
+      const dropAttrs = (editable && !activo)
+        ? ' ondragover="window.__dragSobre(event,this)"'
+          + ' ondrop="window.__dropEnPestana(event,\'' + m.id + '\',\'' + equipo + '\')"'
+        : '';
+      return '<button type="button" class="equipo-tab"' + dropAttrs
+        + ' aria-pressed="' + (activo ? 'true' : 'false') + '"'
+        + ' onclick="window.__verEquipo(\'' + m.id + '\',\'' + equipo + '\')">'
+        + etiqueta + '<span class="drop-realce"></span></button>';
+    };
+    return '<div class="equipo-tabs" data-visible="' + equipoVisibleCancha + '">'
+      + '<span class="equipo-tabs-thumb"></span>'
+      + tab('blanco', 'Equipo Blanco') + tab('negro', 'Equipo Negro') + '</div>';
+  }
+
+  window.__verEquipo = function(matchId, equipo){
+    if(equipo !== 'blanco' && equipo !== 'negro') return;
+    equipoVisibleCancha = equipo;
+    partidoDelEquipoVisible = matchId;
+    renderMatchesTab();
+  };
+
+  /* La zona de los dos equipos: el selector cuando corresponde, y las canchas o las listas.
+     `paneles` es { blanco: {header, contenido}, negro: {...} }, porque el encabezado difiere
+     entre la vista de admin (total de puntaje) y la de jugador (goles).
+
+     En una columna se dibuja UNA sola cancha, no las dos con una escondida: un elemento con
+     `display:none` devuelve rectángulos de cero, y el invariante de layout compara rectángulos,
+     así que dos canchas escondidas le harían reportar solapamientos que no existen. */
+  function renderZonaEquipos(m, paneles){
+    if(partidoDelEquipoVisible !== m.id){
+      equipoVisibleCancha = 'blanco';
+      partidoDelEquipoVisible = m.id;
+    }
+    const unaColumna = enUnaColumna() && mostrarCanchaDeEquipos(m);
+    const panel = equipo => '<div class="team-panel ' + equipo + '"><h4>' + paneles[equipo].header
+      + '</h4>' + paneles[equipo].contenido + '</div>';
+    const visibles = unaColumna ? [equipoVisibleCancha] : ['blanco', 'negro'];
+    return (unaColumna ? renderSelectorEquipo(m) : '')
+      + '<div class="teams-wrap">' + visibles.map(panel).join('') + '</div>';
+  }
+
+  /* ------------------------------------------------------------------ EL ARRASTRE
+     Rebanada 2 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-2-arrastre/ARRASTRE_SPEC.md
+
+     La decisión de QUÉ hace un drop vive separada del manejador del evento, en las tres
+     funciones puras de abajo (Implementation Plan, TD-05). No es prolijidad: el navegador no
+     deja sintetizar un arrastre nativo de punta a punta desde un test, así que con la decisión
+     metida adentro del `drop` la mayoría de los escenarios de la Spec no tendría test
+     ejecutable y AC-50 no se podría cumplir de verdad. Acá no hay DOM ni efectos. */
+
+  /* A qué equipo pertenece una unidad de armado, o null si no está en el reparto.
+     Es la validación que impide que un `dataTransfer` con contenido ajeno escriba algo: ese
+     canal lo puede llenar otra aplicación, otra pestaña o el propio sistema, y el manejador
+     que había antes lo consumía sin mirar más que si estaba vacío (FR-025, TC-041). */
+  function unidadDelPartido(m, playerId){
+    if(!m || !m.equipos || !playerId) return null;
+    if((m.equipos.blanco || []).includes(playerId)) return 'blanco';
+    if((m.equipos.negro || []).includes(playerId)) return 'negro';
+    return null;
+  }
+
+  /* Qué movimiento corresponde a soltar `idArrastrado` sobre `destino`, o null si no
+     corresponde ninguno. `destino` es { clase: 'cancha' | 'camiseta' | 'pestana', equipo, id }.
+
+     Devuelve null —y no un error— para todo drop que simplemente no hace nada: sobre el propio
+     equipo (FR-013) o con identificadores ajenos al partido (FR-025). Soltar en el lugar
+     equivocado es parte del uso normal, no una condición excepcional.
+     (Spec del arrastre, FR-010 a FR-013.) */
+  function resolverDestinoDrop(m, idArrastrado, destino){
+    const origen = unidadDelPartido(m, idArrastrado);
+    if(!origen || !destino) return null;
+    /* La camiseta gana sobre la cancha que la contiene (FR-012). Se resuelve acá, por orden de
+       evaluación, y además en el manejador con `stopPropagation`. */
+    if(destino.clase === 'camiseta'){
+      const equipoDestino = unidadDelPartido(m, destino.id);
+      if(!equipoDestino || equipoDestino === origen) return null;
+      return { tipo: 'intercambiar', idDestino: destino.id };
+    }
+    /* Cancha y pestaña deciden lo mismo: mover al equipo que representan. Lo único que las
+       distingue es que la pestaña, además, revela el destino, y de eso se ocupa el manejador
+       (FR-010, FR-034). */
+    if(destino.clase === 'cancha' || destino.clase === 'pestana'){
+      if(destino.equipo !== 'blanco' && destino.equipo !== 'negro') return null;
+      if(destino.equipo === origen) return null;
+      return { tipo: 'mover', equipo: destino.equipo };
+    }
+    return null;
+  }
+
+  /* Intercambia dos unidades de equipo. Cada una viaja con su pareja de dupla, y el movimiento
+     lo aplica `moverUnJugadorDeEquipo`, que es la misma función que usa el movimiento simple:
+     los totales se recalculan con el criterio que ya existía y la posición asignada no se toca
+     (FR-011, FR-017, FR-021, FR-022, FR-024).
+
+     Los dos equipos se leen ANTES de mover a nadie. Mover la primera unidad cambiaría el equipo
+     de la segunda si estuvieran en el mismo, cosa que `resolverDestinoDrop` ya descartó — pero
+     esta función no se apoya en eso, porque también se la llama desde los tests. */
+  function intercambiarUnidades(m, idA, idB){
+    const equipoA = unidadDelPartido(m, idA);
+    const equipoB = unidadDelPartido(m, idB);
+    if(!equipoA || !equipoB || equipoA === equipoB) return;
+    const parA = getDuplaPartner(m, idA);
+    const parB = getDuplaPartner(m, idB);
+    moverUnJugadorDeEquipo(m, idA, equipoB);
+    if(parA) moverUnJugadorDeEquipo(m, parA, equipoB);
+    moverUnJugadorDeEquipo(m, idB, equipoA);
+    if(parB) moverUnJugadorDeEquipo(m, parB, equipoA);
+  }
+
+  /* --- Realce de la zona bajo el puntero ---
+     `dragover` hay que CANCELARLO para que el navegador acepte el drop; es la parte
+     contraintuitiva de esta API y sin eso el drop nunca llega.
+
+     Se limpia todo y se marca la zona actual en cada `dragover`, en vez de emparejar
+     `dragenter`/`dragleave`: esos dos disparan también al entrar y salir de los hijos, y
+     llevar la cuenta de eso a mano es la fuente clásica de realces que parpadean o quedan
+     pegados. Así el estado se recalcula solo. Lo que queda suelto —salir de toda zona hacia el
+     fondo de la página— lo cierra `dragend`, que siempre dispara (FR-008, FR-014, FR-015). */
+  function limpiarRealces(){
+    document.querySelectorAll('.drop-activo').forEach(x => x.classList.remove('drop-activo'));
+  }
+
+  window.__dragSobre = function(e, el){
+    if(!isAdmin()) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if(el.classList.contains('drop-activo')) return;
+    limpiarRealces();
+    el.classList.add('drop-activo');
+  };
+
+  window.__dragFin = function(){ limpiarRealces(); };
+
+  /* Los tres drops comparten camino: validar rol y estado, resolver qué movimiento corresponde
+     con la función pura, y aplicarlo por la ruta de escritura que ya existía.
+
+     La guarda de rol está acá y no sólo en el render: una vista que apenas deja de marcar la
+     camiseta como arrastrable deja la acción alcanzable desde la consola (TC-040). Y el
+     identificador se valida contra el reparto antes de tocar nada, porque el `dataTransfer` lo
+     puede llenar cualquier cosa que se arrastre desde afuera (TC-041). */
+  function aplicarDrop(e, matchId, destino){
+    e.preventDefault();
+    e.stopPropagation();
+    limpiarRealces();
+    if(!isAdmin()) return;                                   // TC-040, FR-042
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !m.equipos || !esFilaEditable(m)) return;        // TC-040
+    const idArrastrado = e.dataTransfer.getData('text/plain');
+    const mov = resolverDestinoDrop(m, idArrastrado, destino);
+    if(!mov) return;                                          // FR-005, FR-013, FR-025
+    /* Soltar sobre la pestaña revela además ese equipo, para que el resultado del movimiento
+       quede a la vista y no detrás de un toque (FR-034). Se hace ANTES de mover para que el
+       repintado que dispara el movimiento ya muestre el equipo correcto: un solo render. */
+    if(destino.clase === 'pestana'){
+      equipoVisibleCancha = destino.equipo;
+      partidoDelEquipoVisible = matchId;
+    }
+    if(mov.tipo === 'intercambiar'){
+      intercambiarUnidades(m, idArrastrado, mov.idDestino);
+      saveMatches();
+      renderMatchesTab();
+    } else {
+      window.__moverJugadorManual(matchId, idArrastrado, mov.equipo);
+    }
+  }
+
+  window.__dropEnCancha = function(e, matchId, equipo){
+    aplicarDrop(e, matchId, { clase: 'cancha', equipo: equipo });
+  };
+  /* La camiseta gana sobre la cancha que la contiene (FR-012): `aplicarDrop` corta la
+     propagación, así que el manejador del campo no llega a correr. */
+  window.__dropEnCamiseta = function(e, matchId, playerId){
+    aplicarDrop(e, matchId, { clase: 'camiseta', id: playerId });
+  };
+  window.__dropEnPestana = function(e, matchId, equipo){
+    aplicarDrop(e, matchId, { clase: 'pestana', equipo: equipo });
+  };
+
   window.__dragStartJugador = function(e, playerId){
     if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
     e.dataTransfer.setData('text/plain', playerId);
-  };
-
-  window.__dropOnTeam = function(e, matchId, targetTeam){
-    e.preventDefault();
-    if(!isAdmin()) return; // FR-008
-    const playerId = e.dataTransfer.getData('text/plain');
-    if(playerId) window.__moverJugadorManual(matchId, playerId, targetTeam);
   };
 
   // Mueve un único id de un equipo a otro (misma lógica que ya existía). Extraída de
@@ -4115,20 +4385,18 @@
       }
       section.innerHTML = `
         <h3>Equipos</h3>
-        <div class="teams-wrap">
-          <div class="team-panel blanco">
-            <h4>Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}</h4>
-            ${mostrarCanchaDeEquipos(m)
+        ${renderZonaEquipos(m, {
+          blanco: {
+            header: `Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
+            contenido: mostrarCanchaDeEquipos(m)
               ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
-              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-          </div>
-          <div class="team-panel negro">
-            <h4>Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}</h4>
-            ${mostrarCanchaDeEquipos(m)
+              : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('') },
+          negro: {
+            header: `Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}`,
+            contenido: mostrarCanchaDeEquipos(m)
               ? renderCanchaEquipo(m, negroPlayers, 'negro')
-              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-          </div>
-        </div>
+              : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
+        })}
         <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
           <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
         </div>
@@ -4342,32 +4610,27 @@
       if(chips) balanceLineasHtml = `<div class="conv-summary">${chips}</div>`;
     }
 
-    const dragAttrsBlanco = !locked ? `ondragover="event.preventDefault()" ondrop="window.__dropOnTeam(event,'${m.id}','blanco')"` : '';
-    const dragAttrsNegro = !locked ? `ondragover="event.preventDefault()" ondrop="window.__dropOnTeam(event,'${m.id}','negro')"` : '';
-
     section.innerHTML = `
       <h3>Equipos</h3>
       ${selectorEstrategia}
-      <div class="teams-subtitle">Estrategia utilizada en la última generación: ${eq.estrategia}${!locked ? ' · arrastrá un jugador a otro equipo, o usá el candado para bloquearlo' : ''}</div>
+      <div class="teams-subtitle">Estrategia utilizada en la última generación: ${eq.estrategia}${!locked ? ' · arrastrá una camiseta al otro equipo para pasarlo, o usá el candado para fijarlo' : ''}</div>
       ${(stale && !locked) ? `
         <div class="stale-banner">
           <span>La convocatoria, la estrategia o la configuración del motor cambiaron desde la última generación. Estos equipos pueden no reflejar la configuración actual.</span>
           <button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')" style="white-space:nowrap;">Regenerar equipos</button>
         </div>` : ''}
-      <div class="teams-wrap">
-        <div class="team-panel blanco" ${dragAttrsBlanco}>
-          <h4>Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span></h4>
-          ${mostrarCanchaDeEquipos(m)
+      ${renderZonaEquipos(m, {
+        blanco: {
+          header: `Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
+          contenido: mostrarCanchaDeEquipos(m)
             ? renderCanchaEquipo(m, blancoPlayers, 'blanco')
-            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-        </div>
-        <div class="team-panel negro" ${dragAttrsNegro}>
-          <h4>Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span></h4>
-          ${mostrarCanchaDeEquipos(m)
+            : agruparFilasDeEquipo(m, blancoPlayers).map(g => renderFilaEquipo(g, m)).join('') },
+        negro: {
+          header: `Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span>`,
+          contenido: mostrarCanchaDeEquipos(m)
             ? renderCanchaEquipo(m, negroPlayers, 'negro')
-            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('')}
-        </div>
-      </div>
+            : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
+      })}
       <div class="conv-summary">
         <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${ventajaOtorgada > 0 ? ` <span style="opacity:0.7;">(buscada: ${ventajaOtorgada} a favor del ${eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro'})</span>` : ''}${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(desvío aceptable ≤ ${diffObjetivo})</span>` : ''}</div>
         <div class="stat">Sin puntaje — Blanco: <b>${sinPuntajeBlanco}</b></div>
@@ -4745,7 +5008,7 @@
     return true;
   }
 
-  // FR-070/FR-075 — mirror de window.__dragStartJugador/window.__dropOnTeam (equipos), pero
+  // FR-070/FR-075 — mirror de window.__dragStartJugador/window.__dropEnCancha (equipos), pero
   // sobre la cola de convocatoria en vez de sobre `m.equipos`.
   window.__dragStartConvocatoria = function(e, matchId, playerId){
     if(!isAdmin()) return; // TC-040
