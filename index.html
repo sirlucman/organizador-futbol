@@ -1313,8 +1313,9 @@
 
   let currentMatchId = null;
   let matchSearchTerm = '';
-  let resultadoDraft = null; // { matchId, stats: { [playerId]: {goles, asistencias} } } — borrador en memoria hasta "Finalizar partido"
+  let resultadoDraft = null; // { matchId, eventos: [{jugadorId, tipo}] } — borrador en memoria hasta "Finalizar partido" (rebanada 6, FR-005)
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
+  let tipoEventoActivo = 'gol'; // tipo del selector de carga por toque; sólo de interfaz, no se persiste (rebanada 6, TD-07)
   let duplaModalMatchId = null; // partido para el que se está eligiendo compañero de rotación
   let duplaModalPlayerId = null; // fila (jugador) desde la que se abrió "Agregar rotación"
   let duplaSearchTerm = '';
@@ -3908,6 +3909,82 @@
     return m.resultado.statsPorJugador || {};
   }
 
+  /* --- LA CARGA POR TOQUE (rebanada 6 de "Equipos en el campo") ---
+     docs/equipos-en-el-campo/rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md
+
+     Siete funciones puras, sin DOM, agregadas en el mismo vecindario que las de la rebanada 5
+     porque son del mismo tipo: funciones sobre `stats`/`eventos` (TD-05). */
+
+  // Familia de un tipo de evento para el botón "−": 'gol' y 'golPenal' agrupan como 'goles', un
+  // solo grupo (FR-051, handoff/README.md:662-663).
+  function familiaDeTipo(tipo){
+    if(tipo === 'gol' || tipo === 'golPenal') return 'goles';
+    if(tipo === 'golEnContra') return 'contra';
+    return 'asist';
+  }
+
+  // Valida un toque antes de agregarlo al borrador. Rechaza un jugador fuera de la convocatoria
+  // (FR-034, TC-041) y una asistencia cuando el equipo del jugador tocado todavía no metió ningún
+  // gol propio en el borrador (FR-032, misma regla que index.html:3955-3960 tenía para la grilla).
+  // Nunca deshabilita un golPenal por los goles previos del jugador (FR-033, D-04).
+  function puedeAgregarEvento(eventos, idsConvocados, jugadorId, tipo, idsEquipoDeJugador){
+    if(!idsConvocados.includes(jugadorId)) return false;
+    if(tipo === 'asistencia'){
+      const golesDelEquipo = eventos.filter(ev => idsEquipoDeJugador.includes(ev.jugadorId) && familiaDeTipo(ev.tipo) === 'goles').length;
+      if(golesDelEquipo === 0) return false;
+    }
+    return true;
+  }
+
+  // Agrega un evento al borrador, de forma inmutable (FR-030, FR-031: sin límite superior fijo).
+  function agregarEvento(eventos, jugadorId, tipo){
+    return [...eventos, { jugadorId, tipo }];
+  }
+
+  // Quita del borrador el evento agregado más recientemente de esa `familia` para ese jugador
+  // (FR-051); si no hay ninguno, devuelve `eventos` sin cambios. Recorre de atrás hacia adelante
+  // para que el que se quita sea siempre el más reciente, sin importar qué otros eventos de otros
+  // jugadores se hayan cargado entre medio.
+  function quitarUltimoDeFamilia(eventos, jugadorId, familia){
+    for(let i = eventos.length - 1; i >= 0; i--){
+      if(eventos[i].jugadorId === jugadorId && familiaDeTipo(eventos[i].tipo) === familia){
+        return [...eventos.slice(0, i), ...eventos.slice(i + 1)];
+      }
+    }
+    return eventos;
+  }
+
+  // Quita del borrador el evento agregado más recientemente, sin importar jugador, equipo ni tipo
+  // (FR-061, handoff/README.md:664).
+  function deshacerUltimoEvento(eventos){
+    return eventos.slice(0, -1);
+  }
+
+  // Si el modo de carga por toque está activo sobre este partido: inscripción cerrada sin
+  // finalizar, o finalizado con su edición en curso (FR-001, FR-002). Extrae el cálculo que antes
+  // vivía duplicado en `esFilaEditable` y en `renderStatsYPuntajeMiembro` (que esta rebanada
+  // borra, D-12).
+  function enModoCarga(m){
+    return (m.inscripcionCerrada && m.estado !== 'Finalizado') || (m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id);
+  }
+
+  // Una fila de detalle por jugador y por familia con al menos un evento cargado en el borrador,
+  // incluida la de asistencias — a diferencia de `goleadoresDeEquipo` (rebanada 4, modo lectura),
+  // que nunca la tuvo (TD-06). Deriva con `statsPorJugadorDesdeEventos`, la única vía (TC-002).
+  function detalleCargaDeEquipo(ids, eventos){
+    const stats = statsPorJugadorDesdeEventos(eventos, ids);
+    const filas = [];
+    ids.forEach(id => {
+      const p = players.find(pl => pl.id === id);
+      if(!p) return;
+      const st = stats[id];
+      if(st.goles > 0) filas.push({ p, familia: 'goles', cantidad: st.goles, nota: st.golesPenal > 0 ? `(${st.golesPenal} de penal)` : '' });
+      if(st.golesEnContra > 0) filas.push({ p, familia: 'contra', cantidad: st.golesEnContra, nota: '(EC)' });
+      if(st.asistencias > 0) filas.push({ p, familia: 'asist', cantidad: st.asistencias, nota: '' });
+    });
+    return filas;
+  }
+
   // Total de goles de un equipo: sus propios goles (que ya incluyen los de penal) más los goles
   // en contra que los jugadores del equipo RIVAL metieron en su propio arco (spec resultados-partido
   // → "goles en contra"). Un gol en contra no suma para quien lo hizo, suma para el rival.
@@ -4211,6 +4288,8 @@
   const ICON_CANDADO_CERRADO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 9 0v3.5"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
   const ICON_CANDADO_ABIERTO = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.5 10.5V7a4.5 4.5 0 0 1 8.6-1.7"/><rect x="4.5" y="10.5" width="15" height="9.5" rx="2.5"/></svg>';
   const ICON_ROTACION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+  /* Único asset visual nuevo de esta rebanada (TC-031): el botón Deshacer de la carga por toque. */
+  const ICON_DESHACER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H9"/></svg>';
   /* Las marcas del campo, iguales para los dos equipos. Todas en porcentajes, así que el dibujo
      es el mismo a cualquier ancho; el lado de abajo espeja al de arriba vía la clase `abajo`. */
   const MARCAS_CANCHA = [
