@@ -11,7 +11,7 @@
 > [rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) ·
 > [rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [MODELO_EVENTOS_IMPLEMENTATION_PLAN.md](./MODELO_EVENTOS_IMPLEMENTATION_PLAN.md)
 
 > **Nota de gobernanza.** Esta Spec sigue viviendo en `docs/<feature>/`, no en
 > `openspec/`, aunque [`openspec/config.yaml`](../../../openspec/config.yaml)
