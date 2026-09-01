@@ -12,7 +12,7 @@
 > | 2 | El arrastre | **Mergeada** a `main` el 2026-08-31 | [Spec](./rebanada-2-arrastre/ARRASTRE_SPEC.md) · [Plan](./rebanada-2-arrastre/ARRASTRE_IMPLEMENTATION_PLAN.md) |
 > | 3 | El panel de armado | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) · [Plan](./rebanada-3-panel-armado/PANEL_ARMADO_IMPLEMENTATION_PLAN.md) |
 > | 4 | El partido finalizado | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) · [Plan](./rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md) |
-> | 5 | El modelo de eventos | **En curso** — rama `docs/modelo-eventos` abierta, Spec y Plan escritos, código pendiente | [Spec](./rebanada-5-modelo-eventos/MODELO_EVENTOS_SPEC.md) · [Plan](./rebanada-5-modelo-eventos/MODELO_EVENTOS_IMPLEMENTATION_PLAN.md) |
+> | 5 | El modelo de eventos | **Mergeada** a `main` el 2026-09-01 | [Spec](./rebanada-5-modelo-eventos/MODELO_EVENTOS_SPEC.md) · [Plan](./rebanada-5-modelo-eventos/MODELO_EVENTOS_IMPLEMENTATION_PLAN.md) |
 > | 6 | La carga por toque | Pendiente | *not yet written* |
 > | 7 | La configuración | Pendiente — **opcional** (§14) | *not yet written* |
 >
@@ -666,6 +666,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-01 | Lucas Manoukian | Actualización de estado: la rebanada 5 pasa de "En curso" a "Mergeada a `main` el 2026-09-01" (`feature/modelo-eventos`, verificado contra el repositorio real). El puntero de cierre anuncia la Spec de la rebanada 6 (la carga por toque), todavía sin escribir, como próximo documento. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de estado). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 5 pasa a enlazar también `MODELO_EVENTOS_IMPLEMENTATION_PLAN.md`, ya escrito. Se corrige el puntero de cierre, que seguía anunciando el código de la rebanada 4 (ya mergeada) como próximo paso, para anunciar en su lugar el código de `feature/modelo-eventos`. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado, al empezar la Spec de la rebanada 5: la fila de la rebanada 4 pasa de "en curso" a "Mergeada a `main` el 2026-09-01" (verificado contra el commit de merge `65f5701`), y la fila de la rebanada 5 pasa de "Pendiente" a "En curso", enlazando `MODELO_EVENTOS_SPEC.md`, ya escrita. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de estado, verificada contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 4 pasa a enlazar también `PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md`, ya escrito, y el puntero de cierre anuncia el código de `feature/partido-finalizado` como próximo paso en vez del Plan. Sin cambios de contenido. Self-critique: no corresponde (actualización de estado). |
@@ -678,8 +679,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 ---
 
-*Next document: el código de `feature/modelo-eventos`, según
-`MODELO_EVENTOS_IMPLEMENTATION_PLAN.md`
-(`docs/equipos-en-el-campo/rebanada-5-modelo-eventos/`). El Concept Note cubre
-el rediseño completo; cada rebanada de `D-08` recibe su propia Spec e
-Implementation Plan, en su subcarpeta `rebanada-N-<nombre>/`.*
+*Next document: la Spec de la rebanada 6 (la carga por toque), en
+`docs/equipos-en-el-campo/rebanada-6-carga-por-toque/`, todavía sin escribir.
+El Concept Note cubre el rediseño completo; cada rebanada de `D-08` recibe su
+propia Spec e Implementation Plan, en su subcarpeta `rebanada-N-<nombre>/`.*
