@@ -292,13 +292,11 @@
   .team-player-row:last-child{ border-bottom: none; }
   .team-avg{ font-family: var(--font-mono); font-size: 11.5px; opacity: 0.7; margin-left: auto; flex-shrink:0; }
   .team-stat-label{ font-size: 9px; opacity: 1; margin-left: 6px; }
-  .team-stat-input{ width: 30px; padding: 3px 2px; text-align:center; border: 1px solid var(--paper-line); border-radius: 8px; font-family: var(--font-mono); font-size: 11.5px; background: var(--paper); flex-shrink:0; }
-  /* Ver el comentario en renderStatsYPuntajeMiembro: los inputs de carga bajan de
-     línea juntos, no de a uno. El gap replica el de la fila que los contiene, para
-     que agrupar no cambie cómo se ven cuando SÍ entran en una línea. */
+  /* Los pares etiqueta+input de una fila de carga bajaban de línea juntos, no de a uno. El gap
+     replica el de la fila que los contiene, para que agrupar no cambie cómo se ven cuando SÍ
+     entran en una línea. */
   .team-stat-group{ display:inline-flex; align-items:center; gap:8px; flex-shrink:0; }
   .team-dupla-member .team-stat-group{ gap:4px; }
-  .team-panel.negro .team-stat-input{ background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.28); color: var(--chalk); }
   .team-stat-readonly{ font-family: var(--font-mono); font-size: 11px; opacity: 0.85; margin-left: 8px; flex-shrink:0; white-space: nowrap; }
 
   /* Dupla de rotación agrupada en un mismo renglón dentro del equipo generado: un integrante
@@ -3963,8 +3961,8 @@
 
   // Si el modo de carga por toque está activo sobre este partido: inscripción cerrada sin
   // finalizar, o finalizado con su edición en curso (FR-001, FR-002). Extrae el cálculo que antes
-  // vivía duplicado en `esFilaEditable` y en `renderStatsYPuntajeMiembro` (que esta rebanada
-  // borra, D-12).
+  // vivía duplicado en `esFilaEditable` y en la función de la fila de la grilla numérica que esta
+  // rebanada borra (D-12).
   function enModoCarga(m){
     return (m.inscripcionCerrada && m.estado !== 'Finalizado') || (m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id);
   }
@@ -4017,58 +4015,6 @@
     if(spanN) spanN.textContent = teamHeaderTotalText(m.equipos.negro, m.equipos.sumaNegro, m);
   }
 
-  // Goles/asistencias (o resultado ya cargado) y puntaje individual de un jugador dentro del
-  // equipo generado — común a la fila individual y a cada integrante de una fila de dupla
-  // (FR-013/FR-014: cada integrante carga/muestra sus propios valores, nunca combinados).
-  function renderStatsYPuntajeMiembro(p, m, posAsignada){
-    const finalizado = m.estado === 'Finalizado';
-    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    const cerrada = (m.inscripcionCerrada && !finalizado) || editandoFinalizado;
-    let statsHtml = '';
-    if(finalizado && m.resultado && !editandoFinalizado){
-      const st = statsPorJugadorDelPartido(m)[p.id] || {goles:0, golesPenal:0, asistencias:0}; // rebanada 5, TC-012
-      statsHtml = `<span class="team-stat-readonly">${st.goles}</span><span class="stat-goal-icon">${GOAL_ICON}</span><span class="team-stat-readonly"> · ${st.asistencias}${BOOT_ICON}</span>`;
-    }else if(cerrada && isAdmin()){
-      const draft = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.stats[p.id] : null;
-      const g = draft ? draft.goles : 0;
-      // Un equipo que no hizo goles no puede tener asistencias cargadas (spec sección 5, Resultado).
-      const equipoDeP = m.equipos.blanco.includes(p.id) ? 'blanco' : 'negro';
-      const golesEquipo = (resultadoDraft && resultadoDraft.matchId === m.id)
-        ? m.equipos[equipoDeP].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0) : 0;
-      const asisHabil = golesEquipo > 0;
-      const a = (draft && asisHabil) ? draft.asistencias : 0;
-      // Los penales de un jugador no pueden superar sus propios goles (spec resultados-partido).
-      const penalHabil = g > 0;
-      const pen = (draft && penalHabil) ? Math.min(draft.golesPenal || 0, g) : 0;
-      // El gol en contra es independiente de los goles propios del jugador: a diferencia del penal,
-      // no se deshabilita ni se clampa contra `g` (spec resultados-partido → "goles en contra").
-      const gec = draft ? (draft.golesEnContra || 0) : 0;
-      /* Los tres pares etiqueta+input van dentro de un contenedor propio para que
-         viajen como UNA unidad cuando la fila envuelve. Sueltos, cada fila cortaba
-         en un punto distinto según el largo del nombre y la columna de inputs
-         quedaba dentada; agrupados, la fila corta siempre en el mismo lugar:
-         identidad arriba, carga de goles abajo (Principio V). */
-      statsHtml = `
-        <span class="team-stat-group">
-        ${GOAL_ICON}
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="goles" value="${g}" title="Goles">
-        <span class="team-stat-label" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}">P</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesPenal" value="${pen}" title="${penalHabil?'Goles de penal':'El jugador no hizo goles: no se pueden cargar penales'}" ${penalHabil?'':'disabled'}>
-        <span class="team-stat-label" title="Gol en contra">${RED_GOAL_ICON}</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="golesEnContra" value="${gec}" title="Gol en contra">
-        <span class="team-stat-label">${BOOT_ICON}</span>
-        <input type="number" min="0" class="team-stat-input" data-player="${p.id}" data-tipo="asistencias" value="${a}" title="${asisHabil?'Asistencias':'El equipo no hizo goles: no se pueden cargar asistencias'}" ${asisHabil?'':'disabled'}>
-        </span>`;
-    }
-    // Puntaje individual: nunca para "jugador" (FR-004/FR-013), sea propio o ajeno.
-    let puntajeHtml = '';
-    if(isAdmin()){
-      const valor = valorDePuntaje([p], m);
-      puntajeHtml = `<span class="team-avg">${valor === null ? 'sin puntaje' : valor}</span>`;
-    }
-    return { statsHtml, puntajeHtml };
-  }
-
   function posicionAsignadaDe(p, m){
     return (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
       || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
@@ -4090,29 +4036,6 @@
     return valor > 0 ? valor : null;
   }
 
-  function renderLockBtn(m, playerId, editable, bloqueado){
-    if(!editable) return '';
-    return `
-      <button class="icon-btn" title="${bloqueado ? 'Desbloquear' : 'Bloquear en este equipo'}" onclick="window.__toggleBloqueo('${m.id}','${playerId}')" style="${bloqueado?'color:var(--brick);':''}">
-        ${bloqueado
-          ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>'
-          : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="11" width="14" height="9" rx="1"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>'}
-      </button>`;
-  }
-
-  /* Dónde va la cancha y dónde sigue la lista de filas. Es un predicado de ESTADO, no de rol: el
-     jugador ve la misma cancha que el admin, sin puntajes ni candados (FR-060). La carga de
-     resultado y el partido finalizado conservan la lista hasta las rebanadas 4 y 6 (FR-042), así
-     que la frontera se corre desde acá y desde ningún otro lado. (Spec de la cancha, FR-040.) */
-  function mostrarCanchaDeEquipos(m){
-    const finalizado = m.estado === 'Finalizado';
-    const editandoFinalizado = finalizado && editandoResultadoFinalizado === m.id;
-    // La cancha se extiende al partido finalizado sin editar (rebanada 4, FR-020, FR-063, FR-064):
-    // sólo queda fuera la inscripción cerrada SIN finalizar, y mientras se edita el resultado.
-    const cerradaSinFinalizar = m.inscripcionCerrada && !finalizado;
-    return !cerradaSinFinalizar && !editandoFinalizado;
-  }
-
   function esFilaEditable(m){
     const finalizado = m.estado === 'Finalizado';
     const cerrada = enModoCarga(m); // rebanada 6: delega en la misma función que gobierna el toque (A-03)
@@ -4120,77 +4043,6 @@
     // nunca ve los inputs de carga, solo el resultado ya finalizado (goles/asistencias son
     // estadísticas visibles para todos, ver Clarifications).
     return isAdmin() && !cerrada && !finalizado;
-  }
-
-  function renderTeamPlayerRow(p, m){
-    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
-      || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
-      || p.principal;
-    const esSecundaria = posAsignada !== p.principal;
-    const editable = esFilaEditable(m);
-    const bloqueado = (m.bloqueados || []).includes(p.id);
-    const { statsHtml, puntajeHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
-    const lockBtn = renderLockBtn(m, p.id, editable, bloqueado);
-    return `
-      <div class="team-player-row">
-        <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${esSecundaria ? 'Jugando de '+posAsignada+' (secundaria)' : posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
-        <span style="flex:1 1 auto;">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}</span>
-        ${puntajeHtml}
-        ${statsHtml}
-        ${lockBtn}
-      </div>`;
-  }
-
-  // Fila agrupada de una dupla dentro del equipo generado: un solo renglón, con un integrante
-  // arriba y el otro abajo, compartiendo posición y candado (ambos siempre en el mismo equipo,
-  // con la misma posición asignada — FR-007/FR-008), pero cada uno con su propio puntaje y sus
-  // propios goles/asistencias (FR-013/FR-014, "única excepción" de Key Entities en spec.md).
-  function renderTeamPlayerRowDupla(pA, pB, m){
-    const posAsignada = (m.equipos.posicionAsignada && m.equipos.posicionAsignada[pA.id])
-      || (m.equipos.posicionOverride && m.equipos.posicionOverride[pA.id])
-      || pA.principal;
-    const editable = esFilaEditable(m);
-    const bloqueado = (m.bloqueados || []).includes(pA.id);
-    const lockBtn = renderLockBtn(m, pA.id, editable, bloqueado);
-    // Cada integrante muestra su propia nota en la posición asignada al lado del nombre (dato
-    // informativo), pero el puntaje que suma al total del equipo es uno solo, el de la unidad, y
-    // va en la columna de puntaje (012-puntajes-coherentes-panel, FR-001).
-    // Si el integrante no tiene nota cargada en ese puesto, al lado del nombre va la leyenda "sin
-    // puntaje" (014, FR-012): aclara que su aporte al número de la columna se estimó con su
-    // promedio general. La columna siempre muestra el número mientras la unidad tenga valor
-    // calculable, incluso cuando ninguno de los dos cubre la posición (FR-011).
-    const miembroHtml = (p) => {
-      const esSecundaria = posAsignada !== p.principal;
-      const { statsHtml } = renderStatsYPuntajeMiembro(p, m, posAsignada);
-      const nota = m.equipos.posicionAsignada ? puntajeEnPosicion(p, posAsignada) : computeAvg(p.scores);
-      const tieneNota = nota > 0;
-      const titulo = tieneNota
-        ? `Puntaje de ${fullName(p)} en ${posAsignada}`
-        : `${fullName(p)} no tiene puntaje cargado en ${posAsignada}: aporta su promedio general`;
-      const notaHtml = isAdmin() ? `<span class="team-nota-pos admin-only" title="${titulo}">${tieneNota ? nota : 'sin puntaje'}</span>` : '';
-      return `
-        <div class="team-dupla-member">
-          <span class="team-dupla-name">${fullName(p)}${esSecundaria ? ' <span class="tag" style="margin-left:4px;">secundaria</span>' : ''}${notaHtml}</span>
-          ${statsHtml}
-        </div>`;
-    };
-    const valorUnidad = valorDePuntaje([pA, pB], m);
-    const puntajeUnidadHtml = isAdmin()
-      ? `<span class="team-avg team-avg-unidad" title="Puntaje de la dupla: es el que suma al total del equipo">${valorUnidad === null ? 'sin puntaje' : valorUnidad}</span>`
-      : '';
-    return `
-      <div class="team-player-row team-player-row-dupla">
-        <div class="conv-pos-badge" style="${posBadgeStyle(posAsignada)}" title="${posAsignada}">${posAsignada.slice(0,3).toUpperCase()}</div>
-        <div class="team-dupla-members">
-          ${miembroHtml(pA)}
-          ${miembroHtml(pB)}
-        </div>
-        ${puntajeUnidadHtml}
-        <div class="team-dupla-side">
-          ${lockBtn}
-          <span class="team-dupla-marker" title="Dupla de rotación">${ICON_DUPLA_CREAR}</span>
-        </div>
-      </div>`;
   }
 
   // Agrupa la lista de jugadores (ya ordenada por posición) en filas: unidades individuales o
@@ -4229,10 +4081,6 @@
       }
     }
     return filas;
-  }
-
-  function renderFilaEquipo(grupo, m){
-    return grupo.length === 2 ? renderTeamPlayerRowDupla(grupo[0], grupo[1], m) : renderTeamPlayerRow(grupo[0], m);
   }
 
   /* --- LA CANCHA (rebanada 1 de "Equipos en el campo") ---
@@ -5223,9 +5071,9 @@
     }
 
     if(!isAdmin()){
-      // "jugador" ve qué jugador quedó en qué equipo (con sus estadísticas, vía renderTeamPlayerRow),
-      // pero nunca estrategia, diferencia de puntaje, jugadores sin puntaje, bloqueados ni la
-      // explicación de armado (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
+      // "jugador" ve la cancha con qué jugador quedó en qué equipo, pero nunca estrategia,
+      // diferencia de puntaje, jugadores sin puntaje, bloqueados ni la explicación de armado
+      // (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
       let golesBlanco = null, golesNegro = null;
       if(m.estado === 'Finalizado' && m.resultado){
         const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
@@ -5277,41 +5125,6 @@
       ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `<div class="explain-box" style="margin-top:14px;">Editando el resultado de un partido finalizado. Al guardar, se van a recalcular los partidos jugados, ganados, empatados, perdidos, goles y asistencias de todos los jugadores convocados.</div>` : ''}
     `;
     bindSelectorEstrategia(m);
-  }
-
-  // Recalcula, sin re-render completo, qué inputs de asistencias quedan habilitados según los goles de cada equipo.
-  function actualizarAsistenciasHabilitadas(m, section){
-    if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
-    ['blanco','negro'].forEach(team => {
-      const goles = m.equipos[team].reduce((s,id) => s + ((resultadoDraft.stats[id]||{}).goles||0), 0);
-      const habil = goles > 0;
-      m.equipos[team].forEach(id => {
-        const inp = section.querySelector(`.team-stat-input[data-player="${id}"][data-tipo="asistencias"]`);
-        if(!inp) return;
-        inp.disabled = !habil;
-        inp.title = habil ? 'Asistencias' : 'El equipo no hizo goles: no se pueden cargar asistencias';
-        if(!habil){ inp.value = 0; if(resultadoDraft.stats[id]) resultadoDraft.stats[id].asistencias = 0; }
-      });
-    });
-  }
-
-  // Recalcula, sin re-render completo, qué inputs de penal quedan habilitados y los clampa a los
-  // goles del propio jugador (los penales de un jugador no pueden superar sus propios goles).
-  function actualizarPenalesHabilitados(m, section){
-    if(!resultadoDraft || resultadoDraft.matchId !== m.id) return;
-    [...m.equipos.blanco, ...m.equipos.negro].forEach(id => {
-      const st = resultadoDraft.stats[id];
-      if(!st) return;
-      const goles = st.goles || 0;
-      const habil = goles > 0;
-      const inp = section.querySelector(`.team-stat-input[data-player="${id}"][data-tipo="golesPenal"]`);
-      if(!inp) return;
-      inp.disabled = !habil;
-      inp.title = habil ? 'Goles de penal' : 'El jugador no hizo goles: no se pueden cargar penales';
-      const clamped = Math.min(st.golesPenal || 0, goles);
-      st.golesPenal = clamped;
-      inp.value = clamped;
-    });
   }
 
   /* ------------------------------------------------------------------ EL PARTIDO FINALIZADO
