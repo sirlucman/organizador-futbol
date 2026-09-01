@@ -10,7 +10,7 @@
 > [rebanada-2-arrastre/ARRASTRE_SPEC.md](../rebanada-2-arrastre/ARRASTRE_SPEC.md) ·
 > [rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md](./PARTIDO_FINALIZADO_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5 *Sources
 > & Origins* del Concept Note y en las Specs de las rebanadas 1 a 3, que fijaron
