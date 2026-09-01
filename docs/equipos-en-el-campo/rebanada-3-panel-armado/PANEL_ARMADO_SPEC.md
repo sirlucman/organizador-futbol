@@ -41,6 +41,13 @@
 >   cuenta sea por **unidad de armado** y coincida con lo que el motor repartió
 >   sin puntaje— se conserva sin cambios y es lo que `AC-06` verifica.
 >
+> - [`rebanada-2-arrastre/ARRASTRE_SPEC.md`](../rebanada-2-arrastre/ARRASTRE_SPEC.md),
+>   `FR-043` — queda reemplazado: el subtítulo que aquella rebanada hizo nombrar el
+>   gesto de arrastre **desaparece** (`FR-084`). El gesto se sigue anunciando en el
+>   `title` de cada camiseta, que es el `FR-003` de aquella Spec y no se toca. Es
+>   una enmienda dentro de la misma feature, una rebanada después, y la razón está
+>   en `OPEN-Q-05`.
+>
 > Tampoco se reemplaza nada de
 > [`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/spec.md):
 > su modelo de permisos —que el rol `jugador` no vea puntajes, estrategia,
@@ -115,7 +122,8 @@ de en seis bloques que crecieron uno al lado del otro.
 - La botonera al pie de la tarjeta, con los estilos de botón del design system.
 - El recálculo de la diferencia total y de la diferencia por línea sobre el
   reparto que está en pantalla.
-- El subtítulo de la tarjeta, que la rebanada 2 dejó nombrando el gesto.
+- El retiro del subtítulo de la tarjeta, que la rebanada 2 dejó nombrando el
+  gesto y que además repetía la estrategia.
 - Los escenarios nuevos de `tests/layout.test.js` que cubren la tarjeta
   rediseñada.
 
@@ -559,14 +567,16 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **FR-083b** — Mientras los equipos se muestren como lista de filas, el sistema
   mostrará igualmente los bloques de esta rebanada que no dependen de la cancha:
   la píldora de diferencia, la diferencia por línea, el receipt y la botonera.
-- **FR-084** — El sistema seguirá declarando en la tarjeta cuál fue la estrategia
-  **aplicada**, distinta de la elegida que muestra el combo, para que cuando las
-  dos difieran se puedan leer las dos. El aviso de `FR-020` señala que difieren;
-  no dice cuál se aplicó.
-- **FR-085** — El sistema conservará en el subtítulo de la tarjeta la mención del
-  gesto de arrastre que la rebanada 2 le agregó
-  ([`index.html:4616`](../../../index.html#L4616)), en las mismas condiciones en
-  que hoy aparece.
+- **FR-084** — El sistema retirará el subtítulo de la tarjeta. Con él dejan de
+  mostrarse la estrategia **aplicada** y la mención del gesto de arrastre.
+- **FR-085** — El sistema no declarará en ninguna parte de la tarjeta cuál fue la
+  estrategia aplicada. Cuando la elegida y la aplicada difieran, lo único que lo
+  señala es el aviso de `FR-020`, que dice **que** difieren y no **cuál** se
+  aplicó. Es una pérdida de información, decidida a la vista de la pantalla real:
+  el subtítulo repetía en cuatro renglones grises, arriba de la cancha y en un
+  teléfono, un nombre que el combo ya muestra dos píxeles más arriba, y el caso en
+  que aportaba algo —elegida y aplicada distintas— es el minoritario. Ver
+  `OPEN-Q-05`.
 
 ## 8. Non-functional requirements
 
@@ -1047,6 +1057,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 | OPEN-Q-01 | La anotación recíproca en los documentos que esta Spec reemplaza (`003-motor-generacion-equipos` `FR-009`, `012-puntajes-coherentes-panel`) sigue pendiente, igual que la de la rebanada 2 | Lucas Manoukian | Implementation Plan | La rebanada 2 dejó la misma deuda y la saldó con un commit propio (`ea9b76f`). Conviene saldar las dos juntas |
 | OPEN-Q-02 | ¿El arrastre necesita un equivalente alcanzable sin gesto de puntero? | Lucas Manoukian | Spec revision o rebanada 6 | Heredada de la rebanada 2. Esta rebanada no la resuelve ni la empeora: no toca el arrastre. Se traslada a la rebanada 6, que introduce el otro gesto sobre la camiseta y es el momento natural para decidir el conjunto |
 | OPEN-Q-03 | ¿La grilla de diferencia por línea debería mostrarse también con "Por posición y puntaje", calculándola en la pantalla? | Lucas Manoukian | Rebanada 7 o revisión | Esta Spec lo deja fuera (§3.2) porque sería agregar al panel un dato que el motor no produjo. Ahora que el recálculo existe, es técnicamente barato; lo que falta es decidir si el dato tiene sentido en una estrategia que no empareja líneas |
+| OPEN-Q-05 | Con el subtítulo retirado (`FR-084`), la estrategia **aplicada** no se nombra en ninguna parte. ¿Alcanza con que el aviso señale que difiere de la elegida, o el aviso debería nombrarla? | Lucas Manoukian | Revisión posterior al merge | Decidido a la vista de la pantalla real el 2026-09-01: el subtítulo repetía el nombre que el combo ya muestra, y cuatro renglones grises antes de la cancha se leían cargados en el celular. La salida barata si se extraña es que el aviso diga "se armaron con {aplicada}", que es lo que el handoff propone para su disclaimer; `D-05` conservó el texto actual y habría que enmendarla |
 | OPEN-Q-04 | ¿El rótulo del bloque "Por qué quedaron así" debería aclarar que describe la última generación y no el estado actual? | Lucas Manoukian | Revisión posterior al merge | Sale del riesgo de §15. No se resuelve ahora porque agregar texto explicativo antes de saber si confunde es exactamente lo que `D-14` evitó en el combo. Se decide mirándolo en uso |
 
 ## 17. Handoff to the Implementation Plan
@@ -1076,6 +1087,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 |---|---|---|
 | 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las seis decisiones tomadas con el propietario el mismo día, que por `MD-01` se registraron como `D-22` a `D-25` en el Concept Note y como diferido de su §14 (el texto de Copiar), y no dentro de esta Spec. Cierra la `OPEN-Q-05` de la rebanada 2 (el selector se conserva donde está) y hereda la `OPEN-Q-03` de aquella Spec ya resuelta por `D-25`. Declara el reemplazo del `FR-009` de `003-motor-generacion-equipos` y de la superficie de lectura de `012-puntajes-coherentes-panel`. Self-critique: passed (2🔴 / 2🟡 / 1🔵), los cinco resueltos. Los 🔴: `TC-020` no tenía criterio de cumplimiento en §11.3 pese a que la rúbrica lo exige para todo `TC-*` (se agregó `AC-29b`), y la §9.4 usaba un `flowchart`, tipo que `MD-24` no admite en la §9 de una Spec (se reemplazó por una tabla, con la razón declarada). Los 🟡: tres `FR-*` compuestos partidos conservando los identificadores estables (`FR-002b`, `FR-006b`, `FR-083`), y `D-03` heredada de hecho por `NFR-001` pero ausente de §3.3. El 🔵: `FR-003` llevaba dos casos de contenido en una línea, partido en `FR-003b` y `FR-003c`. |
 | 2026-08-31 | Lucas Manoukian | Corrección durante la implementación: `FR-046` y `FR-081` decían que el rol `jugador` ve la píldora, la diferencia por línea y el receipt. **Es falso y contradice una spec vigente**: `007-permisos-por-usuario` `FR-005` y su escenario 2 declaran que ese rol no ve puntajes, estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del armado, y la aplicación ya lo implementaba así. Los dos requisitos quedan invertidos, se agrega la declaración de que esa spec **no** se reemplaza, y `AC-09`, `US-07` y `S-01d` se corrigen en consecuencia; `S-04g` y `S-05e` se agregan para cubrir los dos bloques nuevos con ese rol. El error fue inventar un requisito que ninguna decisión respaldaba, en vez de leer el modelo de permisos vigente. En la misma pasada se corrigió `FR-001`, que hacía a Copiar exclusivo de `admin`: el rol `jugador` ya lo tenía y el texto que copia son nombres, así que quitárselo habría sido una pérdida de función que ninguna decisión pidió. Self-critique: no corresponde (corrección acotada, verificada con las pasadas de consistencia). |
+| 2026-09-01 | Lucas Manoukian | Decisión tomada a la vista de la pantalla real: el subtítulo de la tarjeta se retira entero. `FR-084` y `FR-085` quedan invertidos —de "conservar la estrategia aplicada y la ayuda del arrastre" a "retirar las dos"—, se declara el reemplazo del `FR-043` de la Spec de la rebanada 2, y la pérdida de información queda registrada en `OPEN-Q-05` en vez de disimulada. El motivo: entre el combo y la cancha quedaban cuatro renglones grises que, en el caso mayoritario, repetían el nombre que el combo ya muestra. |
 
 ---
 

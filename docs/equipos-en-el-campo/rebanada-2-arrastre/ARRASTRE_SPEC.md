@@ -491,11 +491,17 @@ esta rebanada:
 - **FR-042** — Si el rol de la sesión no es `admin`, entonces el sistema no
   aplicará ningún movimiento aunque se lo invoque directamente, y no modificará
   el partido (`TC-040`).
-- **FR-043** — El sistema actualizará el subtítulo de la tarjeta para que nombre
-  el gesto que la pantalla efectivamente ofrece. Hoy dice "arrastrá un jugador a
-  otro equipo, o usá el candado para bloquearlo"
-  ([`index.html:4351`](../../../index.html#L4351)), lo que en una sola columna ya
-  no describe dónde soltar.
+> **Reemplazado por la rebanada 3 (2026-09-01).** El subtítulo de la tarjeta se
+> retira entero: repetía en cuatro renglones grises el nombre de estrategia que el
+> combo ya muestra. El gesto se sigue anunciando en el `title` de cada camiseta
+> (`FR-003`), que no se toca. Ver `FR-084` de
+> [`PANEL_ARMADO_SPEC.md`](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md).
+>
+> - **FR-043** — El sistema actualizará el subtítulo de la tarjeta para que nombre
+>   el gesto que la pantalla efectivamente ofrece. Hoy dice "arrastrá un jugador a
+>   otro equipo, o usá el candado para bloquearlo"
+>   ([`index.html:4351`](../../../index.html#L4351)), lo que en una sola columna ya
+>   no describe dónde soltar.
 - **FR-044** — El sistema no modificará ningún otro elemento de la tarjeta de
   equipos ni de la cancha respecto de como quedaron tras la rebanada 1.
 
