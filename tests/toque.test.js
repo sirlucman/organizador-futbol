@@ -112,6 +112,15 @@ prueba('"toque/S-02" un penal a un jugador con cero goles previos se permite (FR
   eq(puede, true, 'un golPenal nunca se deshabilita por los goles previos del jugador');
 });
 
+prueba('"toque/S-02a" [boundary] un penal adicional a un jugador con goles de juego previos suma al total sin afectarlos', () => {
+  let eventos = P.agregarEvento([], 'j1', 'gol');
+  const puede = P.puedeAgregarEvento(eventos, CONVOCADOS, 'j1', 'golPenal', BLANCO);
+  eq(puede, true, 'FR-033: un penal nunca se deshabilita, tenga o no goles previos');
+  eventos = P.agregarEvento(eventos, 'j1', 'golPenal');
+  const st = P.statsPorJugadorDesdeEventos(eventos, CONVOCADOS).j1;
+  eq(st, { goles: 2, golesPenal: 1, golesEnContra: 0, asistencias: 0 }, 'el gol de juego previo sigue contando, más el penal nuevo');
+});
+
 prueba('"toque/S-03" una asistencia se permite cuando el equipo del jugador ya tiene un gol en el borrador', () => {
   const eventos = [{ jugadorId: 'j1', tipo: 'gol' }];
   const puede = P.puedeAgregarEvento(eventos, CONVOCADOS, 'j2', 'asistencia', BLANCO);
