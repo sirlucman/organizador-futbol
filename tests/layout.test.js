@@ -277,6 +277,43 @@ const INVARIANTE_SELECTOR = () => {
   return [...new Set(problemas)].slice(0, 4);
 };
 
+/* El panel de armado (rebanada 3). Corre en las pantallas que tienen cancha y equipos
+   generados, en los trece anchos: es donde el encabezado nuevo tiene que entrar y donde sus dos
+   botones tienen que seguir siendo alcanzables (NFR-002, NFR-003).
+
+   El piso de 44px es el mismo que la rebanada 2 le puso a la pestaña, y por la misma razón: el
+   handoff dibuja el ícono en 16px con 6px de padding —28px de lado— y su propio design system
+   declara un mínimo táctil de 48. El dibujo se conserva y el área se agrega. */
+const INVARIANTE_PANEL = () => {
+  const header = document.querySelector('.panel-header');
+  if (!header) return [];
+  const problemas = [];
+  for (const b of document.querySelectorAll('.panel-icono')) {
+    const r = b.getBoundingClientRect();
+    if (r.width < 44 - 0.5 || r.height < 44 - 0.5) {
+      problemas.push(`el botón "${b.getAttribute('aria-label')}" mide ${Math.round(r.width)}x${Math.round(r.height)}px, por debajo del piso de 44px`);
+    }
+    if (!(b.getAttribute('aria-label') || '').trim()) {
+      problemas.push('un botón de ícono del encabezado quedó sin nombre accesible');
+    }
+  }
+  /* Ninguna de las cuatro cajitas retiradas puede reaparecer dentro de la tarjeta de equipos:
+     el retiro es retiro y no ocultamiento (TC-014, AC-07). */
+  const seccion = document.getElementById('teamsSection');
+  if (seccion && seccion.querySelector('.conv-summary')) {
+    problemas.push('volvió un .conv-summary a la tarjeta de equipos: los tres resúmenes se retiraron (D-23)');
+  }
+  /* El color no puede ser el único portador de "esta línea se pasó": la celda dice además el
+     número con su signo y el bloque declara el umbral en palabras (NFR-003). */
+  for (const celda of document.querySelectorAll('.panel-celda.excedida')) {
+    const dif = celda.querySelector('.panel-celda-dif');
+    if (!dif || !dif.textContent.trim() || dif.textContent.trim() === 'Parejo') {
+      problemas.push('una celda marcada como excedida no dice en texto cuánto ni a favor de quién');
+    }
+  }
+  return [...new Set(problemas)].slice(0, 4);
+};
+
 /* Donde no hay cancha no puede haber arrastre: ni camisetas arrastrables, ni zonas de drop, ni
    selector. Corre en TODAS las pantallas, que es lo que hace que valga — un escenario que sólo
    mira la pantalla que le toca no puede afirmar que el arrastre no se filtró a otra
@@ -351,12 +388,28 @@ const ESCENARIOS = [
     async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
-    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b'], invariante: INVARIANTE_INPUTS_DE_CARGA,
+    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c'], invariante: INVARIANTE_INPUTS_DE_CARGA,
     invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
-    async preparar(page) { await abrirPartido(page, '2026-08-27'); } },
+    async preparar(page) { await abrirPartido(page, '2026-08-27'); },
+    async comprobar(page) {
+      /* Con la inscripción cerrada el combo se sigue viendo pero deshabilitado, el aviso de
+         desactualizado no aparece, y los bloques del panel que no dependen de la cancha siguen
+         ahí (panel S-02b, S-03c, S-11, S-11b). */
+      return page.evaluate(() => {
+        const problemas = [];
+        const combo = document.querySelector('#selectEstrategia');
+        if (!combo) problemas.push('el combo de estrategia desapareció con la inscripción cerrada (panel FR-010)');
+        else if (!combo.disabled) problemas.push('el combo quedó habilitado con la inscripción cerrada (panel FR-015, S-02b)');
+        if (document.querySelector('.panel-aviso')) problemas.push('apareció el aviso de desactualizado con la inscripción cerrada (panel FR-024, S-03c)');
+        if (!document.querySelector('.panel-header')) problemas.push('la tarjeta sin cancha perdió el encabezado nuevo (panel S-11)');
+        if (!document.querySelector('.panel-receipt')) problemas.push('la tarjeta sin cancha perdió el receipt (panel S-11)');
+        if (!document.querySelector('.panel-lineas')) problemas.push('la tarjeta sin cancha perdió la diferencia por línea (panel S-11)');
+        return problemas;
+      });
+    } },
 
   { clave: 'partido-finalizado', rol: 'admin', nombre: 'detalle de partido · finalizado',
-    spec: ['cancha/S-10a', 'arrastre/S-10a'], invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    spec: ['cancha/S-10a', 'arrastre/S-10a', 'panel/S-11a'], invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); } },
 
   /* --- la cancha (rebanada 1 de "Equipos en el campo") --- */
@@ -368,8 +421,8 @@ const ESCENARIOS = [
     /* El invariante del selector se suma acá porque estos dos escenarios son los que corren en
        los TRECE anchos: es donde 'una cancha con selector, dos sin él' se verifica de verdad
        en todo el rango, y no sólo en los cuatro que mide `arrastre-selector` (S-04d). */
-    spec: ['cancha/S-01', 'cancha/S-01f', 'cancha/S-03', 'cancha/NFR-001', 'cancha/NFR-006', 'arrastre/S-04d', 'arrastre/NFR-001'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR],
+    spec: ['cancha/S-01', 'cancha/S-01f', 'cancha/S-03', 'cancha/NFR-001', 'cancha/NFR-006', 'arrastre/S-04d', 'arrastre/NFR-001', 'panel/S-01b', 'panel/NFR-001', 'panel/NFR-002', 'panel/NFR-003'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL],
     /* La línea de base se toma DESPUÉS de que la aplicación cargó y ANTES de entrar al partido.
        Al arrancar, la aplicación corre sus migraciones y escribe `players`, `playerScores` y
        `ordenJugadoresMigrado`; eso es de siempre y no tiene nada que ver con la cancha. Lo que
@@ -391,8 +444,8 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-9', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 9 (fila de cuatro)',
-    spec: ['cancha/S-01a', 'cancha/S-01f', 'cancha/S-03a', 'cancha/S-06', 'cancha/S-06a', 'cancha/S-06b', 'cancha/S-06c', 'cancha/S-06d', 'cancha/NFR-001', 'cancha/NFR-002', 'arrastre/S-04d', 'arrastre/NFR-001'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR],
+    spec: ['cancha/S-01a', 'cancha/S-01f', 'cancha/S-03a', 'cancha/S-06', 'cancha/S-06a', 'cancha/S-06b', 'cancha/S-06c', 'cancha/S-06d', 'cancha/NFR-001', 'cancha/NFR-002', 'arrastre/S-04d', 'arrastre/NFR-001', 'panel/NFR-001', 'panel/NFR-002'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL],
     async preparar(page) { await abrirPartido(page, '2026-09-10'); },
     async comprobar(page) {
       return page.evaluate(() => {
@@ -409,7 +462,7 @@ const ESCENARIOS = [
     } },
 
   { clave: 'cancha-jugador', rol: 'jugador', nombre: 'equipos generados sobre la cancha (rol jugador)',
-    spec: ['cancha/S-05', 'cancha/S-04c'],
+    spec: ['cancha/S-05', 'cancha/S-04c', 'panel/S-01d', 'panel/S-02c', 'panel/S-04g', 'panel/S-05e', 'panel/S-20', 'panel/S-20a', 'panel/S-20b', 'panel/S-20c'],
     invariantes: [INVARIANTE_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
@@ -418,6 +471,28 @@ const ESCENARIOS = [
         if (!document.querySelector('.cancha')) problemas.push('el rol jugador no ve la cancha');
         if (document.querySelector('.camiseta-puntaje')) problemas.push('el rol jugador ve puntajes sobre las camisetas (FR-024)');
         if (document.querySelector('.camiseta-candado')) problemas.push('el rol jugador ve candados (FR-030)');
+        /* Los bloques que la rebanada 3 agrega son datos de armado, y 007-permisos-por-usuario
+           se los prohíbe a este rol. Copiar SÍ lo tiene: el texto que copia son nombres. */
+        if (document.querySelector('.panel-pildora')) problemas.push('el rol jugador ve la píldora de diferencia (panel FR-081)');
+        if (document.querySelector('.panel-lineas')) problemas.push('el rol jugador ve la diferencia por línea (panel FR-081)');
+        if (document.querySelector('.panel-receipt')) problemas.push('el rol jugador ve el receipt del motor (panel FR-046)');
+        if (document.querySelector('.panel-estrategia')) problemas.push('el rol jugador ve el combo de estrategia (panel FR-080)');
+        if (document.querySelector('.panel-aviso')) problemas.push('el rol jugador ve el aviso de equipos desactualizados (panel FR-080)');
+        if (document.querySelector('.panel-icono-regenerar')) problemas.push('el rol jugador ve el botón de regenerar (panel FR-080)');
+        if (document.querySelector('.panel-botonera')) problemas.push('el rol jugador ve la botonera de ciclo de vida (panel FR-080)');
+        if (!document.querySelector('.panel-icono-copiar')) problemas.push('el rol jugador perdió el botón de copiar, que ya tenía (panel FR-001)');
+        /* La guarda tiene que estar en el HANDLER y no sólo en la decisión de dibujar: es lo que
+           un rol sin permiso puede invocar desde la consola (panel S-20a, S-20b, TC-040). */
+        const escrituras0 = (window.__escrituras || []).length;
+        if (window.__generarEquipos) { window.__generarEquipos('m-abierto'); await new Promise(r => setTimeout(r, 150)); }
+        if ((window.__escrituras || []).length > escrituras0) {
+          problemas.push('__generarEquipos escribió con rol jugador: la guarda de rol no está en el handler (panel S-20a)');
+        }
+        const escrituras1 = (window.__escrituras || []).length;
+        if (window.__finalizarPartido) { window.__finalizarPartido('m-abierto'); await new Promise(r => setTimeout(r, 150)); }
+        if ((window.__escrituras || []).length > escrituras1) {
+          problemas.push('__finalizarPartido escribió con rol jugador (panel S-20c)');
+        }
         /* Esconder el botón no alcanza: la acción tiene que estar cerrada también en el handler,
            que es lo que un rol sin permiso puede invocar desde la consola (FR-034, TC-040). */
         const antes = (window.__escrituras || []).length;
@@ -539,6 +614,201 @@ const ESCENARIOS = [
         if (b.visible === a.visible) problemas.push(`activar la otra pestaña no cambió el equipo visible (sigue en ${b.visible})`);
         if (b.canchas !== 1) problemas.push(`tras cambiar de pestaña hay ${b.canchas} canchas y debería haber 1`);
       }
+      return problemas;
+    } },
+
+  /* --- el panel de armado (rebanada 3 de "Equipos en el campo") --- */
+
+  { clave: 'panel-armado', rol: 'admin', nombre: 'el panel alrededor de la cancha',
+    /* Comportamiento y estructura, no medidas: los invariantes ya cubren los trece anchos desde
+       los escenarios de cancha. Acá se mira uno de cada lado del punto de corte, porque la
+       píldora cambia de lugar (FR-004 vs FR-005). */
+    anchos: [360, 1200],
+    spec: ['panel/S-01', 'panel/S-01c', 'panel/S-02', 'panel/S-03', 'panel/S-05', 'panel/S-07', 'panel/S-07a', 'panel/S-07b', 'panel/S-07c', 'panel/S-10'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const ancho = page.viewportSize().width;
+      const estructura = await page.evaluate(() => {
+        const sec = document.getElementById('teamsSection');
+        const header = sec.querySelector('.panel-header');
+        return {
+          titulo: header ? header.querySelector('h3').textContent.trim() : null,
+          pildoraEnHeader: !!(header && header.querySelector('.panel-pildora')),
+          pildoraEnFila: !!sec.querySelector('.panel-pildora-fila .panel-pildora'),
+          copiar: !!sec.querySelector('.panel-icono-copiar'),
+          regenerar: !!sec.querySelector('.panel-icono-regenerar'),
+          ordenIconos: [...sec.querySelectorAll('.panel-icono')].map(b => b.className.includes('copiar') ? 'copiar' : 'regenerar'),
+          combo: !!sec.querySelector('#selectEstrategia'),
+          resumen: (sec.querySelector('.panel-estrategia-resumen') || {}).textContent || '',
+          interrogacion: !!sec.querySelector('.info-icon'),
+          celdas: [...sec.querySelectorAll('.panel-celda')].map(c => c.querySelector('.panel-celda-linea').textContent.trim()),
+          receipt: !!sec.querySelector('.panel-receipt'),
+          receiptItems: sec.querySelectorAll('.panel-receipt li').length,
+          receiptConCaja: sec.querySelector('.panel-receipt')
+            ? getComputedStyle(sec.querySelector('.panel-receipt')).backgroundColor !== 'rgba(0, 0, 0, 0)' : false,
+          cajitas: sec.querySelectorAll('.conv-summary').length,
+          copiarEnPie: !!sec.querySelector('.panel-botonera .btn-ghost[onclick*="copiarFormacion"]'),
+        };
+      });
+      if (estructura.titulo !== 'Alineaciones') problemas.push(`el encabezado dice "${estructura.titulo}" y debería decir "Alineaciones" (FR-001)`);
+      if (!estructura.copiar || !estructura.regenerar) problemas.push('faltan los botones de ícono del encabezado (FR-001, FR-002)');
+      if (estructura.ordenIconos.join(',') !== 'copiar,regenerar') problemas.push(`los íconos van Copiar primero y quedaron ${estructura.ordenIconos.join(',')} (FR-002b)`);
+      if (estructura.copiarEnPie) problemas.push('Copiar sigue al pie: subió al encabezado (FR-063)');
+      if (estructura.cajitas) problemas.push(`quedaron ${estructura.cajitas} .conv-summary en la tarjeta: los tres resúmenes se retiraron (D-23, AC-07)`);
+      if (!estructura.combo) problemas.push('no se dibujó el combo de estrategia (FR-010)');
+      if (!estructura.resumen.trim()) problemas.push('el combo no muestra el resumen de la estrategia (FR-011)');
+      if (estructura.interrogacion) problemas.push('sigue el ícono "?" en el combo: lo reemplaza el resumen visible (FR-012)');
+      /* La grilla sólo aparece si el armado guardado lleva balance por línea. El fixture ahora lo
+         lleva, así que ausencia acá es un fallo y no un "no aplica" (FR-030, S-10). */
+      if (estructura.celdas.join(',') !== 'Arco,Defensa,Medio,Ataque') {
+        problemas.push(`la grilla dibujó [${estructura.celdas.join(', ')}] y se esperaban las cuatro líneas (FR-030, FR-031b)`);
+      }
+      if (!estructura.receipt) problemas.push('no se dibujó el bloque "Por qué quedaron así" (FR-040)');
+      if (!estructura.receiptItems) problemas.push('el receipt quedó sin ninguna viñeta (FR-041)');
+      if (estructura.receiptConCaja) problemas.push('el receipt conserva fondo propio: va sin caja, con divisor (FR-042)');
+      /* La píldora vive en el encabezado en dos columnas y baja a su propia fila en una. */
+      if (ancho >= 901 && !estructura.pildoraEnHeader) problemas.push('en dos columnas la píldora va en el encabezado (FR-004)');
+      if (ancho <= 900 && !estructura.pildoraEnFila) problemas.push('en una columna la píldora baja a la fila del equipo visible (FR-005)');
+
+      /* S-03: el aviso aparece con su texto de siempre cuando algo cambió desde la generación.
+         El fixture lo dispara porque su configHash no coincide con el de la aplicación. */
+      const aviso = await page.evaluate(() => {
+        const a = document.querySelector('.panel-aviso');
+        return a ? { texto: a.textContent, regenerar: !!a.querySelector('button') } : null;
+      });
+      if (!aviso) problemas.push('no se dibujó el aviso de equipos desactualizados (S-03)');
+      else {
+        if (!aviso.texto.includes('La convocatoria, la estrategia o la configuración del motor cambiaron')) {
+          problemas.push('el aviso no conserva el texto que cubre los cuatro disparadores (D-05, FR-021)');
+        }
+        if (!aviso.regenerar) problemas.push('el aviso no ofrece regenerar (FR-022)');
+      }
+
+      /* S-07a / S-07b: el navegador conducido arranca SIN permiso de portapapeles, que es
+         exactamente el caso de fallo. La confirmación no aparece y el error se cuenta con el
+         aviso flotante, que es lo único que queda para contarlo (FR-006b, FR-006c). */
+      const denegado = await page.evaluate(async () => {
+        const btn = document.querySelector('.panel-icono-copiar');
+        btn.click();
+        await new Promise(r => setTimeout(r, 300));
+        return {
+          tilde: document.querySelector('.panel-icono-copiar').classList.contains('copiado'),
+          aviso: !!document.querySelector('#appToast.show'),
+        };
+      });
+      if (denegado.tilde) problemas.push('sin acceso al portapapeles apareció el tilde de confirmación (FR-006c)');
+      if (!denegado.aviso) problemas.push('sin acceso al portapapeles no se avisó el error (FR-006b)');
+
+      /* S-07 y S-07c: con permiso, copiar confirma con su propio ícono y sin aviso flotante, y
+         dos clicks seguidos no dejan el tilde trabado ni dos temporizadores compitiendo. */
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      const copiado = await page.evaluate(async () => {
+        const btn = () => document.querySelector('.panel-icono-copiar');
+        const toast = document.getElementById('appToast');
+        if (toast) toast.classList.remove('show');
+        btn().click();
+        await new Promise(r => setTimeout(r, 300));
+        const tras1 = btn().classList.contains('copiado');
+        const avisoTras1 = !!document.querySelector('#appToast.show');
+        btn().click();
+        await new Promise(r => setTimeout(r, 300));
+        const tras2 = btn().classList.contains('copiado');
+        return { tras1, tras2, avisoTras1 };
+      });
+      if (!copiado.tras1) problemas.push('copiar no cambió el ícono a un tilde (FR-006)');
+      if (copiado.avisoTras1) problemas.push('copiar mostró un aviso flotante además del tilde: la confirmación es el ícono (FR-006)');
+      if (!copiado.tras2) problemas.push('un segundo click antes del plazo dejó el tilde trabado o apagado (S-07c)');
+      await page.waitForTimeout(2000);
+      const volvio = await page.evaluate(() => !document.querySelector('.panel-icono-copiar').classList.contains('copiado'));
+      if (!volvio) problemas.push('el tilde no volvió solo al ícono de copiar pasados 1800ms (FR-006)');
+      return problemas;
+    } },
+
+  { clave: 'panel-umbral', rol: 'admin', nombre: 'la regla de color con un desvío aceptable configurado',
+    /* Un solo ancho: la regla de color no depende del layout, y lo que se mide acá es cuáles
+       celdas quedan marcadas. La regla en sí está cubierta por unidad en panel.test.js. */
+    anchos: [1200],
+    spec: ['panel/S-04', 'panel/S-04a'],
+    /* El umbral se pone por la pantalla de Configuración y no por el fixture, para no cambiar el
+       camino sin umbral que miden todos los demás escenarios (Implementation Plan, TD-10). */
+    async preparar(page) {
+      await irAPestania(page, 'Configuración');
+      const campo = await page.$('input[type="number"]');
+      if (campo) { await campo.fill('1'); await campo.dispatchEvent('change'); await page.waitForTimeout(250); }
+      await abrirPartido(page, '2026-09-03');
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const celdas = await page.evaluate(() => [...document.querySelectorAll('.panel-celda')].map(c => ({
+        linea: c.querySelector('.panel-celda-linea').textContent.trim(),
+        texto: c.querySelector('.panel-celda-dif').textContent.trim(),
+        excedida: c.classList.contains('excedida'),
+      })));
+      const desvio = await page.evaluate(() => {
+        const d = document.querySelector('.panel-lineas-desvio');
+        return d ? d.textContent.trim() : null;
+      });
+      if (!celdas.length) return ['no se dibujó la grilla de diferencia por línea (FR-030)'];
+      if (!desvio || !desvio.includes('Desvío aceptable')) problemas.push('con umbral configurado, el bloque debe declararlo en palabras (FR-032, NFR-003)');
+      const por = Object.fromEntries(celdas.map(c => [c.linea, c]));
+      /* El plantel testigo tiene un solo candidato a arquero y un solo titular con puntaje de
+         delantero, así que el Arco y el Ataque quedan desparejos por 6 — y son justamente las
+         dos líneas que la regla NO puede marcar. Las dos de campo quedan desparejas por 4 y sí.
+         Es el caso que distingue a `D-22`, y sale del plantel real, no de números inventados. */
+      if (!por.Defensa || !por.Defensa.excedida) problemas.push('la Defensa supera el desvío y podía repartirse: debería quedar marcada (FR-033)');
+      if (!por.Medio || !por.Medio.excedida) problemas.push('el Medio supera el desvío y podía repartirse: debería quedar marcado (FR-033)');
+      if (!por.Arco) problemas.push('el Arco no se dibujó: el fixture debería dejarlo con puntaje');
+      else if (por.Arco.excedida) problemas.push(`el Arco quedó marcado (${por.Arco.texto}): es línea de un solo lugar y nunca se marca (FR-034, D-22)`);
+      if (!por.Ataque) problemas.push('el Ataque no se dibujó: el fixture debería dejarlo con puntaje');
+      else if (por.Ataque.excedida) problemas.push(`el Ataque quedó marcado (${por.Ataque.texto}): es línea de un solo lugar y nunca se marca (FR-034, D-22)`);
+      return problemas;
+    } },
+
+  { clave: 'panel-recalculo', rol: 'admin', nombre: 'los números siguen al reparto y el texto no',
+    anchos: [1200],
+    spec: ['panel/S-06', 'panel/S-06b', 'panel/NFR-004', 'panel/NFR-005'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
+      const leer = () => page.evaluate(() => ({
+        pildora: (document.querySelector('.panel-pildora') || {}).textContent || null,
+        celdas: [...document.querySelectorAll('.panel-celda')].map(c => c.querySelector('.panel-celda-cifras').textContent.trim()),
+        receipt: [...document.querySelectorAll('.panel-receipt li')].map(li => li.textContent.trim()),
+      }));
+      const antes = await leer();
+      const ms = await page.evaluate(async () => {
+        const cam = document.querySelector('.camiseta[draggable="true"]');
+        const otra = [...document.querySelectorAll('.cancha')][1];
+        const dt = new DataTransfer();
+        cam.dispatchEvent(new DragEvent('dragstart', { bubbles: true, dataTransfer: dt }));
+        const t0 = performance.now();
+        otra.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+        await new Promise(res => requestAnimationFrame(res));
+        return performance.now() - t0;
+      });
+      await page.waitForTimeout(300);
+      const despues = await leer();
+      if (!antes.celdas.length) return ['no había grilla que recalcular: el fixture debería llevar balanceLineas'];
+      if (JSON.stringify(antes.celdas) === JSON.stringify(despues.celdas)) {
+        problemas.push('la grilla muestra los mismos números después de mover a alguien: no se recalculó (FR-071, D-25)');
+      }
+      if (antes.pildora === despues.pildora) {
+        problemas.push('la píldora muestra la misma diferencia después de mover a alguien (FR-070)');
+      }
+      /* La otra mitad de D-25: el texto NO sigue al reparto. Describe la última generación. */
+      if (JSON.stringify(antes.receipt) !== JSON.stringify(despues.receipt)) {
+        problemas.push('el receipt cambió tras un movimiento manual: describe la generación, no el estado (FR-072)');
+      }
+      if (ms > 150) problemas.push(`el ciclo mover-recalcular-repintar tardó ${Math.round(ms)}ms, por encima del techo de 150ms (NFR-004)`);
+      /* El recálculo es de render: no escribe nada por sí mismo. Lo que escribe es el movimiento,
+         que ya existía (FR-073, NFR-005). */
+      const claves = await page.evaluate(() =>
+        [...new Set((window.__escrituras || []).slice(window.__escrituras_base || 0))]);
+      const permitidas = ['partidos', 'partidosArmado'];
+      const deMas = claves.filter(k => !permitidas.includes(k));
+      if (deMas.length) problemas.push(`el recálculo escribió claves inesperadas: ${deMas.join(', ')} (FR-073, NFR-005)`);
       return problemas;
     } },
 

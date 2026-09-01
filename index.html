@@ -25,6 +25,9 @@
     --clay: #fb923c;        /* tertiary accent (illustration/decorative only) */
     --pitch-grass: #417513; /* green-700 — el césped de la cancha */
     --pitch-pale: #e4f0c4;  /* green-100 / color-primary-pale — candado fijado */
+    --brick-light: #ef4444; /* negative-500 / color-negative — píldora de diferencia excedida */
+    --mustard-light: #facc15;/* warning-400 / color-warning — filete del aviso de desactualizado */
+    --slate: #374151;       /* gray-700 / color-body — texto del receipt */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -98,20 +101,6 @@
   .field-row{ display:flex; gap:12px; margin-bottom: 12px; flex-wrap: wrap; }
   .field{ flex: 1 1 160px; }
   .field label{ display:block; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
-  .info-icon{ position: relative; display:inline-flex; align-items:center; justify-content:center; width:14px; height:14px; border-radius:50%; border:1px solid var(--muted); color: var(--muted); font-size:10px; font-family: var(--font-mono); cursor: help; margin-left:5px; text-transform: none; letter-spacing: 0; }
-  .info-tip{
-    position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%);
-    width: 250px; max-width: 70vw;
-    background: var(--ink); color: var(--chalk);
-    padding: 10px 12px; border-radius: var(--radius-control);
-    font-family: var(--font-body); font-size: 12.5px; line-height: 1.4;
-    text-transform: none; letter-spacing: 0; font-weight: 400;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.28);
-    opacity: 0; visibility: hidden; transition: opacity .12s ease;
-    z-index: 60; pointer-events: none;
-  }
-  .info-tip::after{ content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%); border:6px solid transparent; border-top-color: var(--ink); }
-  .info-icon:hover .info-tip, .info-icon:focus .info-tip, .info-icon.show-tip .info-tip{ opacity: 1; visibility: visible; }
   .field input[type=text], .field input[type=date], .field select{ width:100%; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--paper); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
   .field input:focus, .field select:focus{ outline: 2px solid var(--pitch-light); outline-offset:1px; }
 
@@ -249,8 +238,6 @@
   /* ---------- Equipos (Slice 3) ---------- */
   .teams-section{ margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--paper-line); }
   .teams-section h3{ font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 4px; }
-  .teams-subtitle{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-bottom: 14px; }
-  .stale-banner{ background: #f5e3d0; border: 1px solid var(--clay); color: var(--ink); padding: 10px 14px; border-radius: var(--radius-control); font-size: 13px; margin-bottom: 14px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; }
   /* minmax(0,1fr) y no 1fr: una pista `1fr` es `minmax(auto,1fr)`, cuyo mínimo es el min-content
      de lo que contiene. Con los inputs de goles/penal/asistencias visibles (carga de resultado),
      ese min-content son ~426px por panel, así que la pista se negaba a achicarse y estiraba toda
@@ -494,6 +481,106 @@
      antes, la fila entra en una sola línea y el wrap no cuesta alto en tablet. */
   @media (max-width: 900px){
     .teams-wrap{ grid-template-columns: minmax(0,1fr); }
+  }
+
+  /* ------------------------------------------------------------------ EL PANEL DE ARMADO
+     Rebanada 3 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md
+
+     Todo lo que rodea a la cancha: encabezado, combo, aviso de desactualizado, grilla de
+     diferencia por línea y receipt. Los valores salen del handoff (§ Botones de ícono del header,
+     § Combo de estrategia, § Diferencia por línea y desvío aceptable, § Por qué quedaron así),
+     traducidos a los tokens del repositorio; las desviaciones van comentadas (TC-030, TC-031). */
+
+  /* --- Encabezado de la tarjeta --- */
+  .panel-header{ display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+  .panel-header h3{ margin: 0; }
+  .panel-header-acciones{ display: flex; align-items: center; gap: 8px; }
+
+  /* El handoff da `padding: 6px` sobre un ícono de 16px, o sea 28px de lado. NFR-002 fija el piso
+     en 44px: son las dos acciones que el administrador usa a diario y viven en la esquina de la
+     tarjeta, donde el pulgar llega peor. Se conserva el dibujo del handoff y se agrega el área
+     alrededor, igual que la rebanada 2 hizo con la pestaña (TC-031). */
+  .panel-icono{ display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; padding: 0; border: none; border-radius: var(--radius-pill); background: none; cursor: pointer; transition: color .15s ease; }
+  .panel-icono svg{ width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .panel-icono:active{ transform: scale(0.97); }
+  .panel-icono-copiar{ color: var(--muted); }
+  .panel-icono-copiar:hover{ color: var(--ink); }
+  .panel-icono-copiar.copiado svg{ stroke: var(--pitch); stroke-width: 2.4; }
+  /* Regenerar es la acción principal del encabezado y el único verde: el ícono lleva el trazo
+     de primary aunque el botón herede el color de texto (§ Botones de ícono del header). */
+  .panel-icono-regenerar{ color: var(--ink); }
+  .panel-icono-regenerar:hover{ color: var(--pitch-deep); }
+  .panel-icono-regenerar svg{ stroke: var(--pitch); stroke-width: 2.2; }
+
+  /* --- Píldora de diferencia --- */
+  .panel-pildora{ display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--paper); color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; white-space: nowrap; }
+  .panel-pildora.excedida{ background: var(--brick-light); color: var(--ink); }
+  /* En una columna la píldora baja a la fila del equipo visible, que es donde el handoff la pone
+     en su vista compacta `6a` (FR-005). */
+  /* Sin rótulo a la izquierda: el puntaje del equipo visible ya lo lleva el encabezado de su
+     panel, y la píldora se explica sola con su propio texto. */
+  .panel-pildora-fila{ display: flex; align-items: center; justify-content: flex-end; margin: 0 0 8px; }
+
+  /* --- Combo de estrategia --- */
+  .panel-estrategia{ display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .panel-estrategia-label{ flex: none; font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .panel-estrategia-campo{ position: relative; flex: 1; min-width: 0; }
+  .panel-estrategia-campo select{ width: 100%; min-height: 40px; padding: 0 38px 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-control); background: var(--chalk); color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; appearance: none; cursor: pointer; }
+  .panel-estrategia-campo select:disabled{ cursor: default; opacity: 0.6; }
+  .panel-estrategia-chevron{ position: absolute; right: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  /* El resumen de la estrategia, visible y permanente: reemplaza al tooltip que había que
+     descubrir y tocar (D-14, FR-011). */
+  .panel-estrategia-resumen{ font-size: 12px; line-height: 16px; color: var(--muted); margin: 0 0 12px; }
+
+  /* --- Aviso de equipos desactualizados --- */
+  /* La forma sale del disclaimer del handoff (§ Combo de estrategia); el TEXTO es el que la
+     aplicación ya tenía, porque cubre los cuatro disparadores de equiposStale() y el del handoff
+     sólo cubre el de estrategia (D-05, FR-021). */
+  .panel-aviso{ display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 18px; margin-bottom: 14px; border-radius: var(--radius-field); background: var(--paper); box-shadow: inset 0 0 0 1.5px var(--mustard-light); }
+  .panel-aviso-cuerpo{ display: flex; align-items: flex-start; gap: 10px; flex: 1; min-width: 0; }
+  .panel-aviso svg{ flex: none; width: 18px; height: 18px; margin-top: 1px; fill: none; stroke: var(--mustard); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .panel-aviso-texto{ font-size: 12px; line-height: 16px; color: var(--slate); }
+
+  /* --- Diferencia por línea y desvío aceptable --- */
+  .panel-lineas{ padding-top: 12px; border-top: 1px solid var(--paper); }
+  .panel-lineas-header{ display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+  .panel-lineas-label{ font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .panel-lineas-desvio{ font-size: 12px; line-height: 16px; color: var(--muted); }
+  .panel-lineas-grilla{ display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+  .panel-celda{ display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius-control); background: var(--paper); }
+  .panel-celda-linea{ font-size: 12px; line-height: 16px; color: var(--muted); }
+  .panel-celda-cifras{ font-family: var(--font-display); font-weight: 900; font-size: 16px; line-height: 22px; font-variant-numeric: tabular-nums; }
+  .panel-celda-vs{ font-family: var(--font-body); font-weight: 400; font-size: 12px; line-height: 16px; color: var(--muted); }
+  /* El color es la regla de D-22: verde profundo cuando la diferencia entra en el desvío
+     aceptable, rojo cuando lo supera Y la línea tenía margen para arreglarse. Arco y Ataque
+     nunca llevan `excedida`, así que nunca se pintan de rojo (FR-034). */
+  .panel-celda-dif{ font-family: var(--font-display); font-weight: 600; font-size: 12px; line-height: 16px; color: var(--pitch-deep); }
+  .panel-celda.excedida .panel-celda-dif{ color: var(--brick); }
+
+  /* --- Por qué quedaron así --- */
+  /* Sin caja: el .explain-box tenía fondo y filete propios, y sobre la cancha eso compite. Acá el
+     bloque se separa con un divisor, como el de la grilla (FR-042). */
+  .panel-receipt{ display: flex; flex-direction: column; gap: 8px; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--paper); }
+  .panel-receipt-label{ font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .panel-receipt ul{ list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .panel-receipt li{ display: flex; gap: 9px; font-size: 14px; line-height: 20px; color: var(--slate); text-wrap: pretty; }
+  .panel-receipt li::before{ content: ""; flex: none; width: 5px; height: 5px; margin-top: 7px; border-radius: 50%; background: var(--pitch); }
+
+  /* --- Botonera al pie --- */
+  .panel-botonera{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+
+  @media (max-width: 900px){
+    .panel-estrategia{ flex-wrap: wrap; }
+    .panel-estrategia-campo select{ min-height: 44px; font-size: 13px; line-height: 18px; }
+    .panel-aviso{ flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
+    .panel-lineas-grilla{ grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .panel-celda{ padding: 10px 12px; }
+    .panel-celda-cifras{ font-size: 15px; line-height: 20px; }
+    .panel-receipt{ gap: 7px; }
+    .panel-receipt ul{ gap: 7px; }
+    .panel-receipt li{ gap: 8px; }
+    .panel-receipt li::before{ margin-top: 6px; }
   }
 
   .modal-overlay{ position: fixed; inset: 0; background: rgba(32,29,26,0.45); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px; }
@@ -1230,16 +1317,39 @@
     return bloques.join('\n\n');
   }
 
+  /* La confirmación de copiado es el PROPIO ÍCONO, que pasa a un tilde y vuelve solo: el botón
+     no tiene texto donde poner un cambio de rótulo, y un aviso flotante para una acción que ya
+     se ve confirmada sobraba (rebanada 3, FR-006, handoff § Botones de ícono del header).
+
+     Es estado de pantalla y no se persiste (TC-035): guarda qué partido se copió, para que el
+     tilde no aparezca en la tarjeta de otro partido. Un segundo click antes del plazo sólo corre
+     la marca —el temporizador viejo se cancela—, así que no quedan dos compitiendo (S-07c). */
+  const MS_TILDE_COPIADO = 1800;
+  let copiadoDelPartido = null;
+  let copiadoTimer = null;
+  function marcarCopiado(matchId){
+    copiadoDelPartido = matchId;
+    if(copiadoTimer) clearTimeout(copiadoTimer);
+    copiadoTimer = setTimeout(() => {
+      copiadoDelPartido = null;
+      copiadoTimer = null;
+      renderMatchesTab();
+    }, MS_TILDE_COPIADO);
+    renderMatchesTab();
+  }
+
   window.__copiarFormacion = function(matchId){
     const m = matches.find(x => x.id === matchId);
     if(!m || !m.equipos) return;
+    // El TEXTO que se copia no cambia: está armado para pegarse en un chat (FR-008).
     const texto = formatearFormacionParaCopiar(m, players);
     if(!navigator.clipboard || !navigator.clipboard.writeText){
+      // El fallo sí necesita el aviso flotante: no hay nada en pantalla que lo cuente (FR-006b).
       window.__showToast('No se pudo copiar: tu navegador no permite acceder al portapapeles.', 'error');
       return;
     }
     navigator.clipboard.writeText(texto)
-      .then(() => window.__showToast('Formaci\u00f3n copiada al portapapeles.', 'ok'))
+      .then(() => marcarCopiado(matchId))
       .catch(() => window.__showToast('No se pudo copiar la formaci\u00f3n. Intent\u00e1 de nuevo.', 'error'));
   };
 
@@ -2446,6 +2556,21 @@
   // más a los efectos de mostrarla, aunque no se reparta con las mismas reglas (FR-005).
   const ORDEN_LINEAS = ['Arquero', ...ORDEN_FORMACION];
   const LABEL_LINEA = { Arquero: 'Arco', Defensor: 'Defensa', Volante: 'Medio', Delantero: 'Ataque' };
+
+  /* Una línea que la formación llena con UN solo jugador por equipo. Su diferencia existe en
+     cualquier armado posible y no se puede repartir: sólo cruzarla de equipo para que compense
+     otra. El arco lo es siempre, porque se resuelve antes del reparto (FR-005); el resto, cuando
+     su cupo en la formación objetivo es 1 — en fútbol 8 y 9, el ataque.
+
+     El predicado sale de la FORMACIÓN y no de una lista de nombres a propósito: el día que haya
+     una cancha con dos delanteros, un literal mentiría y esto no. Lo consumen el receipt del
+     motor y la regla de color de la grilla de diferencia por línea, que es lo que impide que
+     el color contradiga al texto (rebanada 3, FR-034, TC-013). */
+  function lineaDeUnSoloLugar(pos, formacion){
+    if(pos === 'Arquero') return true;
+    if(!formacion || !formacion.objetivo) return false;
+    return formacion.objetivo[FORMACION_KEY_POR_POSICION[pos]] === 1;
+  }
 
   function tieneScoreEnPosicion(p, pos){
     const v = p.scores && p.scores[pos];
@@ -3856,6 +3981,21 @@
   // (expandirUnidadesEnResultado los agrega consecutivos) y el sort por posición es estable, así
   // que siguen adyacentes después de ordenar — si por algún motivo no lo estuvieran, cada uno cae
   // a una fila individual en vez de romper el render.
+  /* Los jugadores de un equipo, en el orden en que se leen: Arco, Defensa, Medio, Ataque.
+
+     El orden NO es cosmético: `agruparFilasDeEquipo` reconoce una dupla de rotación sólo cuando
+     sus dos integrantes quedan ADYACENTES en la lista, y es este orden el que los deja así. Una
+     lista sin ordenar hace que una dupla se cuente como dos unidades de armado.
+
+     Vivía adentro de `renderTeamsSection`, que era el único lugar que lo necesitaba. Sube a
+     ámbito de módulo porque el receipt también lo necesita (rebanada 3, TD-01b). */
+  const ORDEN_POSICION_LECTURA = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
+  function jugadoresDeEquipoOrdenados(m, ids){
+    const lista = (ids || []).map(id => players.find(p => p.id === id)).filter(Boolean);
+    return lista.sort((a, b) =>
+      (ORDEN_POSICION_LECTURA[posicionAsignadaDe(a, m)] ?? 99) - (ORDEN_POSICION_LECTURA[posicionAsignadaDe(b, m)] ?? 99));
+  }
+
   function agruparFilasDeEquipo(m, playersOrdenados){
     const filas = [];
     let i = 0;
@@ -4312,10 +4452,424 @@
      Cambiar el default NO desactualiza a ningún otro partido: `motorConfigHash` no incluye la
      estrategia, justamente porque cada partido guarda la suya y se compara contra esa
      (`equiposStale`). El único partido que queda marcado para regenerar es este. */
+  /* ------------------------------------------------------------------ EL PANEL DE ARMADO
+     Rebanada 3 de "Equipos en el campo".
+     docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md
+
+     Todo lo que DECIDE un número o un estado vive en las funciones puras de abajo, separado del
+     render, igual que la rebanada 2 separó la resolución del drop (Implementation Plan, TD-01).
+     No es prolijidad: la regla de color de `D-22` y el recálculo de `D-25` no tienen forma
+     honesta de probarse desde el DOM —el fixture de layout no tiene umbral configurado y el
+     arrastre no se sintetiza de punta a punta—, así que con la decisión metida adentro del
+     render la mayoría de los escenarios de la Spec no tendría test ejecutable. Acá no hay DOM. */
+
+  /* La diferencia por línea del reparto que está EN PANTALLA, no la que se guardó al generar.
+     Es la corrección de `D-25`: mover un jugador a mano cambia los equipos, y hasta ahora la
+     grilla seguía mostrando los números de la última generación.
+
+     Devuelve `null` cuando el armado guardado no lleva balance por línea, que es exactamente
+     la condición con la que el bloque aparece hoy (TC-015): se recalcula el VALOR, no se
+     inventa el BLOQUE. El valor guardado no se toca ni se pisa (TC-011): queda como registro
+     de lo que la generación produjo. (FR-071.) */
+  function balanceLineasVigente(m, porId){
+    const eq = m && m.equipos;
+    if(!eq || !eq.balanceLineas) return null;
+    return balanceLineasDe(eq.blanco || [], eq.negro || [], eq.posicionAsignada || {}, porId);
+  }
+
+  /* Las celdas de la grilla de diferencia por línea, en el orden de ORDEN_LINEAS y sólo las que
+     tienen contenido. `excedida` es la regla de color, y lleva las tres condiciones juntas:
+     que haya umbral configurado, que la diferencia lo SUPERE —no que lo alcance— y que la línea
+     no sea de un solo lugar por equipo (D-22).
+
+     Esa tercera condición es la que evita que el color contradiga al receipt, que ya explica esa
+     diferencia como inevitable. (FR-031, FR-033, FR-034, FR-035.) */
+  function celdasDiferenciaPorLinea(m, porId, diffObjetivo){
+    const balance = balanceLineasVigente(m, porId);
+    if(!balance) return null;
+    const hayUmbral = diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && !Number.isNaN(Number(diffObjetivo));
+    const umbral = hayUmbral ? Number(diffObjetivo) : null;
+    const formacion = (m.equipos && m.equipos.formacion) || null;
+    return ORDEN_LINEAS.map(pos => {
+      const l = balance[pos];
+      if(!l || (l.blanco === 0 && l.negro === 0)) return null;
+      const d = Math.abs(l.diferencia);
+      return {
+        pos,
+        etiqueta: LABEL_LINEA[pos] || pos,
+        blanco: l.blanco,
+        negro: l.negro,
+        diferencia: d,
+        aFavor: d === 0 ? null : (l.diferencia > 0 ? 'Blanco' : 'Negro'),
+        texto: d === 0 ? 'Parejo' : `+${d} ${l.diferencia > 0 ? 'Blanco' : 'Negro'}`,
+        excedida: hayUmbral && d > umbral && !lineaDeUnSoloLugar(pos, formacion)
+      };
+    }).filter(Boolean);
+  }
+
+  /* La píldora de diferencia del encabezado. Lo que se compara con el desvío aceptable es el
+     DESVÍO respecto de la diferencia buscada, no la diferencia cruda: con una ventaja de 6
+     configurada, terminar 6 puntos apartados es un acierto y no un problema. Es la regla de
+     009-ventaja-sin-arquero FR-010, que mover el aviso de la cajita a la píldora no cambia.
+     (FR-003, FR-003b, FR-003c, FR-009, FR-037, TC-016.) */
+  function resumenDiferenciaEquipos(m, diffObjetivo){
+    const eq = m.equipos;
+    const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
+    const objetivoDiff = objetivoDiferencia(eq.arquerosInfo);
+    const desvio = Math.round(Math.abs((eq.sumaBlanco - eq.sumaNegro) - objetivoDiff) * 10) / 10;
+    const hayUmbral = diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && !Number.isNaN(Number(diffObjetivo));
+    return {
+      diferencia,
+      texto: diferencia === 0 ? 'Equipos parejos' : `Diferencia ${diferencia} pt${diferencia === 1 ? '' : 's'}`,
+      excedida: hayUmbral && desvio > Number(diffObjetivo),
+      desvio,
+      buscada: Math.abs(objetivoDiff),
+      aFavorDe: objetivoDiff === 0 ? null : (eq.arquerosInfo && eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro')
+    };
+  }
+
+  /* Titulares sin puntaje, en total y por equipo. Cuenta UNIDADES de armado y no jugadores: una
+     dupla ocupa una sola vacante de titular entre sus dos integrantes, que es la regla que fijó
+     012-puntajes-coherentes-panel y que esta rebanada conserva al mover el dato del contador al
+     receipt. El desglose por equipo es lo que evita que ese reemplazo pierda información
+     (FR-052, D-23). */
+  function conteoSinPuntajePorEquipo(m, blancoPlayers, negroPlayers){
+    const contar = lista => agruparFilasDeEquipo(m, lista).filter(grupo => valorDePuntaje(grupo, m) === null).length;
+    const blanco = contar(blancoPlayers), negro = contar(negroPlayers);
+    return { total: blanco + negro, blanco, negro };
+  }
+
+  /* El valor de un `<select>` es tan modificable desde la consola como cualquier otro campo del
+     DOM, así que se valida antes de escribirlo en el partido (FR-014, TC-042). Vive separada del
+     manejador para poder probarla sin navegador. */
+  function estrategiaValida(clave){
+    return typeof clave === 'string' && Object.prototype.hasOwnProperty.call(ESTRATEGIAS, clave);
+  }
+
+  /* El receipt del motor: la lista de razones que justifican el armado que se ve en pantalla.
+     Estaba armada EN LÍNEA dentro de renderTeamsSection, sin función con nombre — el handoff de
+     diseño la llamaba `explicacionesGeneracion` y ese símbolo nunca existió. Se extrae sin
+     cambiar ninguna cadena ni el orden de emisión, por dos razones:
+
+       1. `tests/harness.js` recorta declaraciones de este archivo POR NOMBRE. Sin nombre no hay
+          forma de comparar la lista antes y después de un cambio, que es lo que exige NFR-007.
+       2. El bloque describe la ÚLTIMA GENERACIÓN, no el estado actual (D-25). Tenerlo aparte de
+          los números —que sí se recalculan— deja esa frontera a la vista en el código.
+
+     Devuelve las cadenas SIN escapar: el escapado lo aplica quien las inserta en el DOM.
+     (Rebanada 3, FR-040 a FR-046, TC-012, TD-01b.) */
+  function explicacionesDelArmado(m, eq, jugadores){
+    const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
+    const esFormacionFija = eq.estrategiaKey === 'estrategia3' || eq.estrategiaKey === 'estrategia4';
+    const esEstrategia4 = eq.estrategiaKey === 'estrategia4';
+    const players = jugadores;
+    const titularIds = getTitularIds(m);
+    const bloqueados = m.bloqueados || [];
+    /* `ordenarPorPosicion` NO es cosmético acá: `agruparFilasDeEquipo` agrupa una dupla sólo
+       cuando sus dos integrantes quedan ADYACENTES en la lista, y es el orden por posición lo que
+       los deja así. Sin ordenar, una dupla se contaría como dos unidades sin puntaje. Es la misma
+       lista que arma el llamador; se reconstruye acá para que la función no dependa de él. */
+    const sinPuntaje = conteoSinPuntajePorEquipo(m,
+      jugadoresDeEquipoOrdenados(m, eq.blanco), jugadoresDeEquipoOrdenados(m, eq.negro));
+    const sinPuntajeBlanco = sinPuntaje.blanco, sinPuntajeNegro = sinPuntaje.negro;
+    const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
+    /* Diferencia buscada en ESTE armado, con signo. Se lee de la info de arqueros guardada con el
+       armado y no de la config actual, para que el resumen siga explicando lo que realmente se
+       hizo aunque después se cambie la configuración (009-ventaja-sin-arquero). */
+    const objetivoDiff = objetivoDiferencia(eq.arquerosInfo);
+    const ventajaOtorgada = Math.abs(objetivoDiff);
+    const desvio = Math.round(Math.abs((eq.sumaBlanco - eq.sumaNegro) - objetivoDiff) * 10) / 10;
+    const diffObjetivo = reglaEnabled('puntaje') ? reglaParam('puntaje', 'diferenciaMaxima') : null;
+    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && desvio > Number(diffObjetivo));
+
+  const explicaciones = [];
+  const totalSinPuntaje = sinPuntajeBlanco + sinPuntajeNegro;
+  if(totalSinPuntaje > 0){
+    // "titular" y no "jugador" porque la cuenta es por unidad de armado, y una dupla ocupa una
+    // sola vacante de titular entre sus dos integrantes (008-duplas-rotacion).
+    /* El desglose por equipo es lo que reemplaza a las cajitas "Sin puntaje — Blanco/Negro" que
+       la rebanada 3 retiró (D-23). Sin él, el dato que 012-puntajes-coherentes-panel pide leer
+       —cuántas UNIDADES sin puntaje repartió el motor a cada lado— se perdía al sacarlas. Es la
+       única cadena del receipt que esta rebanada modifica (FR-052, TC-012). */
+    explicaciones.push(`Se distribuyeron ${totalSinPuntaje} titular${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos (${sinPuntajeBlanco} en el Blanco, ${sinPuntajeNegro} en el Negro).`);
+  }
+  if(esEstrategia2 || esFormacionFija){
+    (eq.swaps || []).forEach(s => {
+      const p = players.find(pl => pl.id === s.playerId);
+      if(!p) return;
+      explicaciones.push(s.motivo === 'formacion'
+        ? `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para completar la formación fija.`
+        : `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
+    });
+  }
+  if(esFormacionFija && eq.formacion){
+    const obj = eq.formacion.objetivo;
+    const label = `${obj.defensores}-${obj.volantes}-${obj.delanteros}`;
+    const { blanco: fB, negro: fN } = eq.formacion;
+    if(fB.cumplida && fN.cumplida){
+      explicaciones.push(`Formación ${label} cumplida en ambos equipos.`);
+    } else {
+      const noCumplidos = [!fB.cumplida ? 'Blanco' : null, !fN.cumplida ? 'Negro' : null].filter(Boolean);
+      explicaciones.push(`No se pudo completar la formación ${label} en el Equipo ${noCumplidos.join(' y en el Equipo ')}.`);
+    }
+  }
+  /* Balance por línea: qué logró (o no) la Estrategia 4. Se explica lo que el usuario no puede
+     deducir del panel: cuál quedó peor, y cuáles no se podían emparejar de ninguna forma. */
+  if(esEstrategia4 && eq.balanceLineas){
+    const campo = ORDEN_FORMACION.map(pos => ({ pos, d: (eq.balanceLineas[pos] || {}).diferencia || 0 }));
+    const peor = campo.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a, campo[0]);
+    explicaciones.push(Math.abs(peor.d) > 0
+      ? `Se emparejó cada línea además del total: la más despareja quedó en ${LABEL_LINEA[peor.pos]}, por ${Math.abs(peor.d)} punto${Math.abs(peor.d) === 1 ? '' : 's'}.`
+      : 'Se emparejó cada línea además del total: las líneas de campo quedaron exactamente iguales.');
+    // Líneas de UN solo lugar por equipo: su diferencia no se puede repartir, solo cruzar de
+    // equipo para que se compense con otra. Es la parte del resultado que más se malinterpreta.
+    const unSoloLugar = ORDEN_LINEAS
+      .filter(pos => lineaDeUnSoloLugar(pos, eq.formacion))
+      .filter(pos => eq.balanceLineas[pos] && eq.balanceLineas[pos].diferencia !== 0);
+    if(unSoloLugar.length >= 2){
+      const compensan = new Set(unSoloLugar.map(pos => Math.sign(eq.balanceLineas[pos].diferencia))).size > 1;
+      explicaciones.push(`${unSoloLugar.map(pos => LABEL_LINEA[pos]).join(' y ')} tienen un solo lugar por equipo: esa diferencia existe en cualquier armado posible y no se puede repartir. ${compensan ? 'Quedaron a favor de equipos distintos para que se compensen entre sí en vez de sumarse.' : 'No se pudieron cruzar sin romper el resto del armado.'}`);
+    }
+    const margen = margenTotalPorLinea();
+    if(margen === 0 && Math.abs(peor.d) > 1){
+      explicaciones.push('El motor no tiene margen para alejarse del total buscado, así que solo pudo elegir entre repartos que empatan en el mejor total posible. Subiendo el "Margen del total para emparejar líneas" en la configuración, las líneas pueden quedar más parejas.');
+    }
+    if(eq.enumeracionTruncada){
+      explicaciones.push('Había demasiadas combinaciones de reparto para probarlas todas: se eligió la mejor de las que se alcanzaron a evaluar, que puede no ser la mejor posible.');
+    }
+  }
+  // El invariante de arqueros aplica a todas las estrategias
+  if(eq.arquerosInfo){
+    if(eq.arquerosInfo.total === 0){
+      explicaciones.push('No hay arqueros entre los titulares: se armó con lo que hay y el arco lo rotan los jugadores de ambos equipos.');
+    }else if(eq.arquerosInfo.compensado){
+      const eqComp = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro';
+      // Con la ventaja en 0 no se afirma que se compensó, porque no se compensó (009, FR-009).
+      // Con una ventaja configurada se dice cuánta y cuánta diferencia se logró, para que el
+      // dato sea auditable en vez de una afirmación genérica (009, FR-008).
+      if(ventajaOtorgada > 0){
+        const aFavorDe = (eq.sumaBlanco - eq.sumaNegro) === 0 ? null
+          : ((eq.sumaBlanco > eq.sumaNegro) ? 'Blanco' : 'Negro');
+        explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se le dieron ${ventajaOtorgada} puntos de ventaja. Diferencia lograda: ${diferencia}${aFavorDe ? ` a favor del Equipo ${aFavorDe}` : ' (empate)'}.`);
+      }else{
+        explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan el arco entre los jugadores de campo).`);
+      }
+    }
+  }
+  /* Reparto de duplas de rotación (011 FR-007/FR-007a, 013 FR-001). Es una restricción
+     dura que cambia el armado, así que el Principio III de la constitución pide que quede
+     en el resumen: hasta acá el administrador no tenía forma de saber que la regla actuó.
+     Se deriva de lo que EFECTIVAMENTE pasó —las duplas del armado guardado y en qué equipo
+     terminó cada una— y no del criterio que se quiso aplicar, para no afirmar un reparto
+     que un bloqueo pudo haber torcido (013 FR-005). Se usa `duplasSnapshot` y no `m.duplas`
+     por el mismo motivo que la info de arqueros: el resumen sigue explicando el armado que
+     se hizo aunque después se toque la convocatoria. */
+  const duplasDelArmado = (() => {
+    try{ return JSON.parse(eq.duplasSnapshot || '[]'); }
+    catch(e){ return (m.duplas || []); }
+  })();
+  if(duplasDelArmado.length > 0){
+    const enBlanco = duplasDelArmado.filter(par => eq.blanco.includes(par[0])).length;
+    const enNegro = duplasDelArmado.filter(par => eq.negro.includes(par[0])).length;
+    const ubicadas = enBlanco + enNegro;
+    // Una dupla de suplentes no entró a ningún equipo: no hay reparto que explicar.
+    if(ubicadas > 0){
+      // Con un solo arquero fijo, la que sobra va al equipo QUE LO TIENE, porque el otro
+      // ya recibe la ventaja de puntaje por rotar el arco (011 FR-007a).
+      const eqConArquero = (eq.arquerosInfo && eq.arquerosInfo.compensado)
+        ? (eq.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco')
+        : null;
+      const label = (k) => k === 'blanco' ? 'Blanco' : 'Negro';
+      const porArquero = eqConArquero
+        && Math.abs(enBlanco - enNegro) === 1
+        && (enBlanco > enNegro ? 'blanco' : 'negro') === eqConArquero;
+      const razonArquero = ` La que sobra fue al Equipo ${label(eqConArquero)}, que tiene arquero fijo, porque el otro ya recibe la ventaja de puntaje por rotar el arco.`;
+      const razonBloqueo = ' El reparto parejo cede ante los jugadores bloqueados, que no se mueven de equipo.';
+
+      if(ubicadas === 1){
+        const donde = label(enBlanco === 1 ? 'blanco' : 'negro');
+        explicaciones.push(`La dupla de rotación quedó en el Equipo ${donde}.${porArquero ? ' Es el que tiene arquero fijo: el otro ya recibe la ventaja de puntaje por rotar el arco.' : ''}`);
+      }else if(enBlanco === enNegro){
+        explicaciones.push(`Las ${ubicadas} duplas de rotación se repartieron en partes iguales: ${enBlanco} en cada equipo.`);
+      }else{
+        const conteo = `${enBlanco} en el Blanco y ${enNegro} en el Negro`;
+        const razon = porArquero ? razonArquero : (bloqueados.length > 0 ? razonBloqueo : '');
+        explicaciones.push(`Las ${ubicadas} duplas de rotación quedaron ${conteo}.${razon}`);
+      }
+    }
+  }
+
+  (eq.arquerosExcedentes || []).forEach(s => {
+    const p = players.find(pl => pl.id === s.playerId);
+    if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} porque cada equipo lleva un solo arquero.`);
+  });
+  (eq.arquerosPorSecundaria || []).forEach(s => {
+    const p = players.find(pl => pl.id === s.playerId);
+    if(p) explicaciones.push(`${fullName(p)} ocupó el arco por su posición secundaria.`);
+  });
+  bloqueados.forEach(id => {
+    const p = players.find(pl => pl.id === id);
+    const equipo = eq.blanco.includes(id) ? 'Blanco' : (eq.negro.includes(id) ? 'Negro' : null);
+    if(p && equipo) explicaciones.push(`${fullName(p)} permaneció en el Equipo ${equipo} porque estaba bloqueado.`);
+  });
+  if(!eq.esPrimeraGeneracion){
+    explicaciones.push(eq.cambios === 0
+      ? 'No hubo cambios de equipo respecto de la generación anterior.'
+      : `Se mantuvieron ${titularIds.length - eq.cambios} asignaciones de la generación anterior; ${eq.cambios} jugador${eq.cambios===1?'':'es'} cambiaron de equipo.`);
+  }
+  if(superaObjetivo){
+    explicaciones.push(ventajaOtorgada > 0
+      ? `El armado quedó a ${desvio} de la diferencia buscada (${ventajaOtorgada} a favor del equipo sin arquero fijo), y supera lo aceptable (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`
+      : `La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
+  }
+  // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
+  const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
+    return aplicaEnEstrategia(REGLAS_CATALOGO[r.key].soloEn, eq.estrategiaKey);
+  });
+  if(reglasApagadas.length > 0){
+    explicaciones.push(`Reglas desactivadas en el motor: ${reglasApagadas.map(r => REGLAS_CATALOGO[r.key].label).join(', ')}.`);
+  }
+    return explicaciones;
+  }
+
+  /* --- Los seis bloques que rodean a la cancha ---
+     Cada uno devuelve una cadena y no toca el DOM. `renderTeamsSection` los compone. Estaban
+     todos dentro de una sola plantilla de sesenta líneas, que no se podía revisar contra la Spec
+     pieza por pieza (Implementation Plan, TD-06). */
+
+  const ICON_COPIAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
+  const ICON_TILDE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
+  const ICON_REGENERAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+  const ICON_ATENCION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
+  const ICON_CHEVRON = '<svg class="panel-estrategia-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+
+  /* La píldora de diferencia. En dos columnas vive en el encabezado; en una baja a la fila del
+     equipo visible, que es donde el handoff la pone en su vista compacta (FR-004, FR-005). */
+  function renderPildoraDiferencia(resumen){
+    const titulo = resumen.buscada > 0
+      ? `Diferencia buscada en este armado: ${resumen.buscada} a favor del Equipo ${resumen.aFavorDe}`
+      : '';
+    return '<span class="panel-pildora' + (resumen.excedida ? ' excedida' : '') + '"'
+      + (titulo ? ' title="' + escaparHtml(titulo) + '"' : '') + '>'
+      + escaparHtml(resumen.texto) + '</span>';
+  }
+
+  /* Encabezado: título a la izquierda; a la derecha la píldora —sólo en dos columnas— y los dos
+     botones de ícono, Copiar primero (FR-001 a FR-009). */
+  function renderEncabezadoTarjeta(m, resumen){
+    const admin = isAdmin();
+    const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
+    const copiado = copiadoDelPartido === m.id;
+    const accionCopiar = copiado ? 'Equipos copiados' : 'Copiar equipos';
+    const botones = [];
+    /* Copiar NO es exclusivo de admin: el rol jugador ya lo tenía y el texto que copia son
+       nombres, sin puntajes ni estrategia, así que no revela nada que 007-permisos-por-usuario
+       le prohíba ver. Regenerar sí es sólo de admin (FR-001, FR-002). */
+    botones.push('<button type="button" class="panel-icono panel-icono-copiar' + (copiado ? ' copiado' : '') + '"'
+      + ' aria-label="' + accionCopiar + '" title="' + accionCopiar + '"'
+      + ' onclick="window.__copiarFormacion(\'' + m.id + '\')">' + (copiado ? ICON_TILDE : ICON_COPIAR) + '</button>');
+    if(admin){
+      if(!locked){
+        botones.push('<button type="button" class="panel-icono panel-icono-regenerar"'
+          + ' aria-label="Regenerar equipos" title="Regenerar equipos"'
+          + ' onclick="window.__generarEquipos(\'' + m.id + '\')">' + ICON_REGENERAR + '</button>');
+      }
+    }
+    const pildora = (admin && resumen && !enUnaColumna()) ? renderPildoraDiferencia(resumen) : '';
+    const derecha = (pildora || botones.length)
+      ? '<div class="panel-header-acciones">' + pildora + botones.join('') + '</div>' : '';
+    return '<div class="panel-header"><h3>Alineaciones</h3>' + derecha + '</div>';
+  }
+
+  /* El combo, con el resumen de la estrategia ELEGIDA visible debajo. Desaparece el ícono `?`:
+     el texto que escondía es el mismo `resumen` que ahora se lee siempre (D-14, FR-010 a FR-012). */
+  function renderComboEstrategia(m){
+    if(!isAdmin()) return '';
+    const actual = estrategiaValida(m.estrategia) ? m.estrategia : 'estrategia1';
+    const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
+    const opciones = Object.entries(ESTRATEGIAS)
+      .map(([key, e]) => '<option value="' + key + '"' + (key === actual ? ' selected' : '') + '>' + escaparHtml(e.label) + '</option>')
+      .join('');
+    return '<div class="panel-estrategia admin-only">'
+      + '<span class="panel-estrategia-label">Estrategia</span>'
+      + '<span class="panel-estrategia-campo">'
+      + '<select id="selectEstrategia"' + (locked ? ' disabled' : '') + '>' + opciones + '</select>'
+      + ICON_CHEVRON + '</span></div>'
+      + '<p class="panel-estrategia-resumen" id="resumenEstrategia">' + escaparHtml(ESTRATEGIAS[actual].resumen) + '</p>';
+  }
+
+  /* El aviso de equipos desactualizados. La forma es la del handoff; el TEXTO es el que la
+     aplicación ya tenía, porque cubre los cuatro disparadores de `equiposStale()` y el del
+     handoff sólo cubre el de estrategia (D-05, FR-020 a FR-024). */
+  function renderAvisoDesactualizado(m){
+    const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
+    if(!isAdmin() || locked || !equiposStale(m)) return '';
+    return '<div class="panel-aviso">'
+      + '<span class="panel-aviso-cuerpo">' + ICON_ATENCION
+      + '<span class="panel-aviso-texto">La convocatoria, la estrategia o la configuración del motor cambiaron desde la última generación. Estos equipos pueden no reflejar la configuración actual.</span>'
+      + '</span>'
+      + '<button class="btn-ghost" onclick="window.__generarEquipos(\'' + m.id + '\')" style="white-space:nowrap;">Regenerar equipos</button>'
+      + '</div>';
+  }
+
+  /* La grilla de diferencia por línea. El umbral se declara en palabras y no sólo por color, que
+     es lo que NFR-003 pide; las celdas excedidas llevan además su número con signo (FR-030 a
+     FR-037). */
+  function renderDiferenciaPorLinea(celdas, diffObjetivo){
+    if(!celdas || celdas.length === 0) return '';
+    const hayUmbral = diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '';
+    const desvio = hayUmbral
+      ? '<span class="panel-lineas-desvio">Desvío aceptable ≤ ' + diffObjetivo + ' pt' + (Number(diffObjetivo) === 1 ? '' : 's') + '</span>'
+      : '';
+    const cuerpo = celdas.map(c =>
+      '<div class="panel-celda' + (c.excedida ? ' excedida' : '') + '">'
+      + '<span class="panel-celda-linea">' + escaparHtml(c.etiqueta) + '</span>'
+      + '<span class="panel-celda-cifras">' + c.blanco + ' <span class="panel-celda-vs">vs</span> ' + c.negro + '</span>'
+      + '<span class="panel-celda-dif">' + escaparHtml(c.texto) + '</span>'
+      + '</div>').join('');
+    return '<div class="panel-lineas"><div class="panel-lineas-header">'
+      + '<span class="panel-lineas-label">Diferencia por línea</span>' + desvio + '</div>'
+      + '<div class="panel-lineas-grilla">' + cuerpo + '</div></div>';
+  }
+
+  /* El receipt, sin caja. Cada explicación se inserta ESCAPADA: varias interpolan nombres de
+     jugador y hasta esta rebanada se insertaban crudas (FR-044, TC-041). */
+  function renderPorQueQuedaronAsi(explicaciones){
+    if(!explicaciones || explicaciones.length === 0) return '';
+    return '<div class="panel-receipt">'
+      + '<span class="panel-receipt-label">Por qué quedaron así</span>'
+      + '<ul>' + explicaciones.map(e => '<li>' + escaparHtml(e) + '</li>').join('') + '</ul>'
+      + '</div>';
+  }
+
+  /* La botonera al pie: sólo el ciclo de vida del partido. Copiar y Regenerar subieron al
+     encabezado (D-24, FR-060 a FR-064). */
+  function renderBotoneraTarjeta(m){
+    if(!isAdmin()) return '';
+    const botones = [];
+    if(m.inscripcionCerrada && m.estado !== 'Finalizado'){
+      botones.push('<button class="btn-primary" onclick="window.__finalizarPartido(\'' + m.id + '\')">Finalizar partido</button>');
+    }
+    if(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id){
+      botones.push('<button class="btn-ghost" onclick="window.__editarResultadoFinalizado(\'' + m.id + '\')">Editar resultado</button>');
+    }
+    if(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id){
+      botones.push('<button class="btn-primary" onclick="window.__guardarEdicionResultado(\'' + m.id + '\')">Guardar cambios</button>');
+      botones.push('<button class="btn-ghost" onclick="window.__cancelarEdicionResultado(\'' + m.id + '\')">Cancelar</button>');
+    }
+    return botones.length ? '<div class="panel-botonera">' + botones.join('') + '</div>' : '';
+  }
+
   function bindSelectorEstrategia(m){
     const sel = el('selectEstrategia');
     if(!sel) return;
     sel.addEventListener('change', () => {
+      /* El valor de un `<select>` se puede cambiar desde la consola como cualquier campo del DOM,
+         así que se valida antes de escribirlo en el partido (FR-014, TC-042). */
+      if(!estrategiaValida(sel.value)){
+        sel.value = estrategiaValida(m.estrategia) ? m.estrategia : 'estrategia1';
+        return;
+      }
       m.estrategia = sel.value;
       saveMatches();
       if(motorConfig.estrategia !== sel.value){
@@ -4330,49 +4884,28 @@
   function renderTeamsSection(m){
     const section = el('teamsSection');
     const titularIds = getTitularIds(m);
-    const estrategiaActual = m.estrategia || 'estrategia1';
-    const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
 
     // Elegir/ver la estrategia de armado es exclusivo de "admin" (FR-005, FR-008).
-    const selectorEstrategia = isAdmin() ? `
-      <div class="field admin-only" style="max-width:340px; margin-bottom:12px;">
-        <label>Estrategia
-          <span class="info-icon" tabindex="0" onclick="this.classList.toggle('show-tip')" onblur="this.classList.remove('show-tip')">?
-            <span class="info-tip">${ESTRATEGIAS[estrategiaActual].descripcion}</span>
-          </span>
-        </label>
-        <select id="selectEstrategia" ${locked ? 'disabled' : ''}>
-          ${Object.entries(ESTRATEGIAS).map(([key, e]) => `<option value="${key}" ${key===estrategiaActual?'selected':''}>${e.label}</option>`).join('')}
-        </select>
-      </div>` : '';
+    const selectorEstrategia = renderComboEstrategia(m);
 
     if(titularIds.length === 0){
-      section.innerHTML = `<h3>Equipos</h3>${selectorEstrategia}<div class="empty-state"><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
+      section.innerHTML = `<h3>Alineaciones</h3>${selectorEstrategia}<div class="empty-state"><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
       if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
 
     if(!m.equipos){
       section.innerHTML = isAdmin()
-        ? `<h3>Equipos</h3>${selectorEstrategia}<button class="btn-primary" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>`
-        : `<h3>Equipos</h3><div class="empty-state"><p>Todavía no se generaron los equipos de este partido.</p></div>`;
+        ? `<h3>Alineaciones</h3>${selectorEstrategia}<button class="btn-primary" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>`
+        : `<h3>Alineaciones</h3><div class="empty-state"><p>Todavía no se generaron los equipos de este partido.</p></div>`;
       if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
 
     ensureResultadoDraft(m);
     const eq = m.equipos;
-    const ordenPosicion = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
-    function posDeJugador(p){
-      return (eq.posicionAsignada && eq.posicionAsignada[p.id])
-        || (eq.posicionOverride && eq.posicionOverride[p.id])
-        || p.principal;
-    }
-    function ordenarPorPosicion(lista){
-      return [...lista].sort((a, b) => (ordenPosicion[posDeJugador(a)] ?? 99) - (ordenPosicion[posDeJugador(b)] ?? 99));
-    }
-    const blancoPlayers = ordenarPorPosicion(eq.blanco.map(id => players.find(p => p.id === id)).filter(Boolean));
-    const negroPlayers = ordenarPorPosicion(eq.negro.map(id => players.find(p => p.id === id)).filter(Boolean));
+    const blancoPlayers = jugadoresDeEquipoOrdenados(m, eq.blanco);
+    const negroPlayers = jugadoresDeEquipoOrdenados(m, eq.negro);
 
     if(!isAdmin()){
       // "jugador" ve qué jugador quedó en qué equipo (con sus estadísticas, vía renderTeamPlayerRow),
@@ -4384,7 +4917,7 @@
         golesNegro = totalGolesEquipo(eq.negro, eq.blanco, m.resultado.statsPorJugador);
       }
       section.innerHTML = `
-        <h3>Equipos</h3>
+        ${renderEncabezadoTarjeta(m, null)}
         ${renderZonaEquipos(m, {
           blanco: {
             header: `Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
@@ -4397,228 +4930,25 @@
               ? renderCanchaEquipo(m, negroPlayers, 'negro')
               : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
         })}
-        <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-          <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
-        </div>
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
       `;
       return;
     }
 
-    const stale = equiposStale(m);
-    const esEstrategia2 = eq.estrategiaKey === 'estrategia2';
-    // La 4 comparte con la 3 todo lo que se explica en el resumen (posiciones, formación fija,
-    // arqueros): solo cambia el reparto entre equipos.
-    const esFormacionFija = eq.estrategiaKey === 'estrategia3' || eq.estrategiaKey === 'estrategia4';
-    const esEstrategia4 = eq.estrategiaKey === 'estrategia4';
-
-    // Cuenta UNIDADES de armado sin puntaje, no jugadores: una dupla cuenta una sola vez y solo si
-    // la unidad no tiene puntaje — es la unidad lo que el motor repartió (012, FR-003). Antes
-    // contaba a cada integrante por separado, así que una dupla con puntaje aparecía como dos
-    // jugadores sin puntaje.
-    function sinPuntajeCount(lista){
-      return agruparFilasDeEquipo(m, lista).filter(grupo => valorDePuntaje(grupo, m) === null).length;
-    }
-    const sinPuntajeBlanco = sinPuntajeCount(blancoPlayers);
-    const sinPuntajeNegro = sinPuntajeCount(negroPlayers);
-    const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
-    const bloqueados = m.bloqueados || [];
-    /* Diferencia buscada en ESTE armado, con signo (sumaBlanco - sumaNegro). Se lee de la info de
-       arqueros guardada con el armado, no de la config actual, para que el resumen siga explicando
-       lo que realmente se hizo aunque después se cambie la configuración (009-ventaja-sin-arquero). */
-    const objetivoDiff = objetivoDiferencia(eq.arquerosInfo);
-    const ventajaOtorgada = Math.abs(objetivoDiff);
-    // Lo que se compara con la "Diferencia aceptable" es el DESVÍO respecto del objetivo, no la
-    // diferencia cruda: con una ventaja de 6 configurada, terminar 6 puntos apartados es un acierto
-    // y no un problema (009, FR-010).
-    const desvio = Math.round(Math.abs((eq.sumaBlanco - eq.sumaNegro) - objetivoDiff) * 10) / 10;
+    /* Los números del panel salen de las funciones puras de arriba, aplicadas al reparto que
+       está EN PANTALLA. El receipt, en cambio, describe la última generación: es la frontera de
+       D-25, y por eso los dos se calculan por caminos distintos. */
     const diffObjetivo = reglaEnabled('puntaje') ? reglaParam('puntaje', 'diferenciaMaxima') : null;
-    const superaObjetivo = (diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && desvio > Number(diffObjetivo));
-
-    const explicaciones = [];
-    const totalSinPuntaje = sinPuntajeBlanco + sinPuntajeNegro;
-    if(totalSinPuntaje > 0){
-      // "titular" y no "jugador" porque la cuenta es por unidad de armado, y una dupla ocupa una
-      // sola vacante de titular entre sus dos integrantes (008-duplas-rotacion).
-      explicaciones.push(`Se distribuyeron ${totalSinPuntaje} titular${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos.`);
-    }
-    if(esEstrategia2 || esFormacionFija){
-      (eq.swaps || []).forEach(s => {
-        const p = players.find(pl => pl.id === s.playerId);
-        if(!p) return;
-        explicaciones.push(s.motivo === 'formacion'
-          ? `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para completar la formación fija.`
-          : `Se utilizó la posición secundaria de ${fullName(p)} (${s.hacia}) para mejorar el equilibrio de posiciones.`);
-      });
-    }
-    if(esFormacionFija && eq.formacion){
-      const obj = eq.formacion.objetivo;
-      const label = `${obj.defensores}-${obj.volantes}-${obj.delanteros}`;
-      const { blanco: fB, negro: fN } = eq.formacion;
-      if(fB.cumplida && fN.cumplida){
-        explicaciones.push(`Formación ${label} cumplida en ambos equipos.`);
-      } else {
-        const noCumplidos = [!fB.cumplida ? 'Blanco' : null, !fN.cumplida ? 'Negro' : null].filter(Boolean);
-        explicaciones.push(`No se pudo completar la formación ${label} en el Equipo ${noCumplidos.join(' y en el Equipo ')}.`);
-      }
-    }
-    /* Balance por línea: qué logró (o no) la Estrategia 4. Se explica lo que el usuario no puede
-       deducir del panel: cuál quedó peor, y cuáles no se podían emparejar de ninguna forma. */
-    if(esEstrategia4 && eq.balanceLineas){
-      const campo = ORDEN_FORMACION.map(pos => ({ pos, d: (eq.balanceLineas[pos] || {}).diferencia || 0 }));
-      const peor = campo.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a, campo[0]);
-      explicaciones.push(Math.abs(peor.d) > 0
-        ? `Se emparejó cada línea además del total: la más despareja quedó en ${LABEL_LINEA[peor.pos]}, por ${Math.abs(peor.d)} punto${Math.abs(peor.d) === 1 ? '' : 's'}.`
-        : 'Se emparejó cada línea además del total: las líneas de campo quedaron exactamente iguales.');
-      // Líneas de UN solo lugar por equipo: su diferencia no se puede repartir, solo cruzar de
-      // equipo para que se compense con otra. Es la parte del resultado que más se malinterpreta.
-      const unSoloLugar = ORDEN_LINEAS.filter(pos => {
-        if(pos === 'Arquero') return true;
-        return eq.formacion && eq.formacion.objetivo[FORMACION_KEY_POR_POSICION[pos]] === 1;
-      }).filter(pos => eq.balanceLineas[pos] && eq.balanceLineas[pos].diferencia !== 0);
-      if(unSoloLugar.length >= 2){
-        const compensan = new Set(unSoloLugar.map(pos => Math.sign(eq.balanceLineas[pos].diferencia))).size > 1;
-        explicaciones.push(`${unSoloLugar.map(pos => LABEL_LINEA[pos]).join(' y ')} tienen un solo lugar por equipo: esa diferencia existe en cualquier armado posible y no se puede repartir. ${compensan ? 'Quedaron a favor de equipos distintos para que se compensen entre sí en vez de sumarse.' : 'No se pudieron cruzar sin romper el resto del armado.'}`);
-      }
-      const margen = margenTotalPorLinea();
-      if(margen === 0 && Math.abs(peor.d) > 1){
-        explicaciones.push('El motor no tiene margen para alejarse del total buscado, así que solo pudo elegir entre repartos que empatan en el mejor total posible. Subiendo el "Margen del total para emparejar líneas" en la configuración, las líneas pueden quedar más parejas.');
-      }
-      if(eq.enumeracionTruncada){
-        explicaciones.push('Había demasiadas combinaciones de reparto para probarlas todas: se eligió la mejor de las que se alcanzaron a evaluar, que puede no ser la mejor posible.');
-      }
-    }
-    // El invariante de arqueros aplica a todas las estrategias
-    if(eq.arquerosInfo){
-      if(eq.arquerosInfo.total === 0){
-        explicaciones.push('No hay arqueros entre los titulares: se armó con lo que hay y el arco lo rotan los jugadores de ambos equipos.');
-      }else if(eq.arquerosInfo.compensado){
-        const eqComp = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro';
-        // Con la ventaja en 0 no se afirma que se compensó, porque no se compensó (009, FR-009).
-        // Con una ventaja configurada se dice cuánta y cuánta diferencia se logró, para que el
-        // dato sea auditable en vez de una afirmación genérica (009, FR-008).
-        if(ventajaOtorgada > 0){
-          const aFavorDe = (eq.sumaBlanco - eq.sumaNegro) === 0 ? null
-            : ((eq.sumaBlanco > eq.sumaNegro) ? 'Blanco' : 'Negro');
-          explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan) y se le dieron ${ventajaOtorgada} puntos de ventaja. Diferencia lograda: ${diferencia}${aFavorDe ? ` a favor del Equipo ${aFavorDe}` : ' (empate)'}.`);
-        }else{
-          explicaciones.push(`Hay un solo arquero: el Equipo ${eqComp} quedó sin arquero fijo (rotan el arco entre los jugadores de campo).`);
-        }
-      }
-    }
-    /* Reparto de duplas de rotación (011 FR-007/FR-007a, 013 FR-001). Es una restricción
-       dura que cambia el armado, así que el Principio III de la constitución pide que quede
-       en el resumen: hasta acá el administrador no tenía forma de saber que la regla actuó.
-       Se deriva de lo que EFECTIVAMENTE pasó —las duplas del armado guardado y en qué equipo
-       terminó cada una— y no del criterio que se quiso aplicar, para no afirmar un reparto
-       que un bloqueo pudo haber torcido (013 FR-005). Se usa `duplasSnapshot` y no `m.duplas`
-       por el mismo motivo que la info de arqueros: el resumen sigue explicando el armado que
-       se hizo aunque después se toque la convocatoria. */
-    const duplasDelArmado = (() => {
-      try{ return JSON.parse(eq.duplasSnapshot || '[]'); }
-      catch(e){ return (m.duplas || []); }
-    })();
-    if(duplasDelArmado.length > 0){
-      const enBlanco = duplasDelArmado.filter(par => eq.blanco.includes(par[0])).length;
-      const enNegro = duplasDelArmado.filter(par => eq.negro.includes(par[0])).length;
-      const ubicadas = enBlanco + enNegro;
-      // Una dupla de suplentes no entró a ningún equipo: no hay reparto que explicar.
-      if(ubicadas > 0){
-        // Con un solo arquero fijo, la que sobra va al equipo QUE LO TIENE, porque el otro
-        // ya recibe la ventaja de puntaje por rotar el arco (011 FR-007a).
-        const eqConArquero = (eq.arquerosInfo && eq.arquerosInfo.compensado)
-          ? (eq.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco')
-          : null;
-        const label = (k) => k === 'blanco' ? 'Blanco' : 'Negro';
-        const porArquero = eqConArquero
-          && Math.abs(enBlanco - enNegro) === 1
-          && (enBlanco > enNegro ? 'blanco' : 'negro') === eqConArquero;
-        const razonArquero = ` La que sobra fue al Equipo ${label(eqConArquero)}, que tiene arquero fijo, porque el otro ya recibe la ventaja de puntaje por rotar el arco.`;
-        const razonBloqueo = ' El reparto parejo cede ante los jugadores bloqueados, que no se mueven de equipo.';
-
-        if(ubicadas === 1){
-          const donde = label(enBlanco === 1 ? 'blanco' : 'negro');
-          explicaciones.push(`La dupla de rotación quedó en el Equipo ${donde}.${porArquero ? ' Es el que tiene arquero fijo: el otro ya recibe la ventaja de puntaje por rotar el arco.' : ''}`);
-        }else if(enBlanco === enNegro){
-          explicaciones.push(`Las ${ubicadas} duplas de rotación se repartieron en partes iguales: ${enBlanco} en cada equipo.`);
-        }else{
-          const conteo = `${enBlanco} en el Blanco y ${enNegro} en el Negro`;
-          const razon = porArquero ? razonArquero : (bloqueados.length > 0 ? razonBloqueo : '');
-          explicaciones.push(`Las ${ubicadas} duplas de rotación quedaron ${conteo}.${razon}`);
-        }
-      }
-    }
-
-    (eq.arquerosExcedentes || []).forEach(s => {
-      const p = players.find(pl => pl.id === s.playerId);
-      if(p) explicaciones.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} porque cada equipo lleva un solo arquero.`);
-    });
-    (eq.arquerosPorSecundaria || []).forEach(s => {
-      const p = players.find(pl => pl.id === s.playerId);
-      if(p) explicaciones.push(`${fullName(p)} ocupó el arco por su posición secundaria.`);
-    });
-    bloqueados.forEach(id => {
-      const p = players.find(pl => pl.id === id);
-      const equipo = eq.blanco.includes(id) ? 'Blanco' : (eq.negro.includes(id) ? 'Negro' : null);
-      if(p && equipo) explicaciones.push(`${fullName(p)} permaneció en el Equipo ${equipo} porque estaba bloqueado.`);
-    });
-    if(!eq.esPrimeraGeneracion){
-      explicaciones.push(eq.cambios === 0
-        ? 'No hubo cambios de equipo respecto de la generación anterior.'
-        : `Se mantuvieron ${titularIds.length - eq.cambios} asignaciones de la generación anterior; ${eq.cambios} jugador${eq.cambios===1?'':'es'} cambiaron de equipo.`);
-    }
-    if(superaObjetivo){
-      explicaciones.push(ventajaOtorgada > 0
-        ? `El armado quedó a ${desvio} de la diferencia buscada (${ventajaOtorgada} a favor del equipo sin arquero fijo), y supera lo aceptable (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`
-        : `La diferencia de puntaje (${diferencia}) supera el objetivo configurado (≤ ${diffObjetivo}). Probá bloquear jugadores clave y regenerar, o revisá la config del motor.`);
-    }
-    // reglas desactivadas que aplicaban a esta estrategia (las siempre fijas nunca cuentan como desactivadas)
-    const reglasApagadas = motorConfig.reglas.filter(r => !r.enabled && !REGLAS_CATALOGO[r.key].siempreFija).filter(r => {
-      return aplicaEnEstrategia(REGLAS_CATALOGO[r.key].soloEn, eq.estrategiaKey);
-    });
-    if(reglasApagadas.length > 0){
-      explicaciones.push(`Reglas desactivadas en el motor: ${reglasApagadas.map(r => REGLAS_CATALOGO[r.key].label).join(', ')}.`);
-    }
-
-    let balancePosicionesHtml = '';
-    if(esEstrategia2 || esFormacionFija){
-      function contarPosiciones(lista){
-        const c = { Arquero:0, Defensor:0, Volante:0, Delantero:0 };
-        lista.forEach(p => { const pos = eq.posicionAsignada[p.id] || p.principal; if(c[pos] !== undefined) c[pos]++; });
-        return c;
-      }
-      const cB = contarPosiciones(blancoPlayers), cN = contarPosiciones(negroPlayers);
-      balancePosicionesHtml = `
-        <div class="conv-summary">
-          <div class="stat">Blanco — Arq: <b>${cB.Arquero}</b> Def: <b>${cB.Defensor}</b> Vol: <b>${cB.Volante}</b> Del: <b>${cB.Delantero}</b></div>
-          <div class="stat">Negro — Arq: <b>${cN.Arquero}</b> Def: <b>${cN.Defensor}</b> Vol: <b>${cN.Volante}</b> Del: <b>${cN.Delantero}</b></div>
-        </div>`;
-    }
-
-    /* Puntaje de cada línea, Blanco contra Negro. Se muestra en TODAS las estrategias que asignan
-       posiciones, también en las que no lo optimizan: es el dato que faltaba para darse cuenta de
-       que un armado con la diferencia total en 0 podía tener la defensa despareja por 6. */
-    let balanceLineasHtml = '';
-    if(eq.balanceLineas){
-      const chips = ORDEN_LINEAS.map(pos => {
-        const l = eq.balanceLineas[pos];
-        if(!l || (l.blanco === 0 && l.negro === 0)) return '';
-        const d = Math.abs(l.diferencia);
-        const aFavor = l.diferencia > 0 ? 'Blanco' : 'Negro';
-        return `<div class="stat">${LABEL_LINEA[pos] || pos}: <b>${l.blanco}</b> vs <b>${l.negro}</b> <span style="opacity:0.7;">${d === 0 ? '(parejo)' : `(+${d} ${aFavor})`}</span></div>`;
-      }).filter(Boolean).join('');
-      if(chips) balanceLineasHtml = `<div class="conv-summary">${chips}</div>`;
-    }
+    const porId = Object.fromEntries(players.map(p => [p.id, p]));
+    const resumenDif = resumenDiferenciaEquipos(m, diffObjetivo);
+    const celdasLineas = celdasDiferenciaPorLinea(m, porId, diffObjetivo);
+    const explicaciones = explicacionesDelArmado(m, eq, players);
 
     section.innerHTML = `
-      <h3>Equipos</h3>
-      ${selectorEstrategia}
-      <div class="teams-subtitle">Estrategia utilizada en la última generación: ${eq.estrategia}${!locked ? ' · arrastrá una camiseta al otro equipo para pasarlo, o usá el candado para fijarlo' : ''}</div>
-      ${(stale && !locked) ? `
-        <div class="stale-banner">
-          <span>La convocatoria, la estrategia o la configuración del motor cambiaron desde la última generación. Estos equipos pueden no reflejar la configuración actual.</span>
-          <button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')" style="white-space:nowrap;">Regenerar equipos</button>
-        </div>` : ''}
+      ${renderEncabezadoTarjeta(m, resumenDif)}
+      ${renderComboEstrategia(m)}
+      ${renderAvisoDesactualizado(m)}
+      ${enUnaColumna() ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
       ${renderZonaEquipos(m, {
         blanco: {
           header: `Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
@@ -4631,28 +4961,9 @@
             ? renderCanchaEquipo(m, negroPlayers, 'negro')
             : agruparFilasDeEquipo(m, negroPlayers).map(g => renderFilaEquipo(g, m)).join('') }
       })}
-      <div class="conv-summary">
-        <div class="stat" ${superaObjetivo ? 'style="border-color:var(--brick);"' : ''}>Diferencia de puntaje: <b style="${superaObjetivo ? 'color:var(--brick);' : ''}">${diferencia}</b>${ventajaOtorgada > 0 ? ` <span style="opacity:0.7;">(buscada: ${ventajaOtorgada} a favor del ${eq.arquerosInfo.equipoCompensado === 'blanco' ? 'Blanco' : 'Negro'})</span>` : ''}${(diffObjetivo!==null && diffObjetivo!==undefined && diffObjetivo!=='') ? ` <span style="opacity:0.7;">(desvío aceptable ≤ ${diffObjetivo})</span>` : ''}</div>
-        <div class="stat">Sin puntaje — Blanco: <b>${sinPuntajeBlanco}</b></div>
-        <div class="stat">Sin puntaje — Negro: <b>${sinPuntajeNegro}</b></div>
-        <div class="stat">Jugadores bloqueados: <b>${bloqueados.length}</b></div>
-      </div>
-      ${balancePosicionesHtml}
-      ${balanceLineasHtml}
-      ${explicaciones.length > 0 ? `
-        <div class="explain-box">
-          <b>Por qué quedaron así:</b>
-          <ul>${explicaciones.map(e => `<li>${e}</li>`).join('')}</ul>
-        </div>` : ''}
-      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap;">
-        <button class="btn-ghost" onclick="window.__copiarFormacion('${m.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;vertical-align:-2px;margin-right:4px"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>Copiar</button>
-        ${!locked ? `<button class="btn-ghost" onclick="window.__generarEquipos('${m.id}')">Regenerar equipos</button>` : ''}
-        ${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? `<button class="btn-primary" onclick="window.__finalizarPartido('${m.id}')">Finalizar partido</button>` : ''}
-        ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<button class="btn-ghost" onclick="window.__editarResultadoFinalizado('${m.id}')">Editar resultado</button>` : ''}
-        ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `
-          <button class="btn-primary" onclick="window.__guardarEdicionResultado('${m.id}')">Guardar cambios</button>
-          <button class="btn-ghost" onclick="window.__cancelarEdicionResultado('${m.id}')">Cancelar</button>` : ''}
-      </div>
+      ${renderDiferenciaPorLinea(celdasLineas, diffObjetivo)}
+      ${renderPorQueQuedaronAsi(explicaciones)}
+      ${renderBotoneraTarjeta(m)}
       ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados — cuando construyamos el Historial, se van a usar desde ahí.</div>` : ''}
       ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `<div class="explain-box" style="margin-top:14px;">Editando el resultado de un partido finalizado. Al guardar, se van a recalcular los partidos jugados, ganados, empatados, perdidos, goles y asistencias de todos los jugadores convocados.</div>` : ''}
     `;

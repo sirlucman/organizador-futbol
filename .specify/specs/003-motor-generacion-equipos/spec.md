@@ -19,6 +19,22 @@
 > iOS y en Chrome para Android (verificada en producción el 2026-08-27) sigue
 > vigente y es la que fundamenta el `TC-003` de aquella Spec.
 
+> **Segundo reemplazo parcial (Principio I).** El `FR-009` de esta spec —el
+> resumen posterior a cada generación— queda reemplazado **en su forma** por
+> [`docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md)
+> (2026-09-01). Los datos que enumera se siguen mostrando todos, pero tres dejan
+> de tener cajita propia y se leen donde ya estaban dichos: la formación de cada
+> equipo es lo que la cancha dibuja, y los jugadores bloqueados, los titulares sin
+> puntaje y los que cambiaron de equipo los enumera el bloque "Por qué quedaron
+> así". La diferencia de puntaje pasa a una píldora en el encabezado, y el balance
+> por línea a una grilla de cuatro celdas.
+>
+> **Lo que no cambia:** qué calcula el motor, qué explicaciones emite y en qué
+> orden las emite. La única cadena modificada es la de titulares sin puntaje, que
+> gana el desglose por equipo para no perder el dato que las cajitas retiradas
+> daban. Y su regla de que el balance por línea se informa también con la
+> Estrategia 3 sigue intacta: el bloque aparece exactamente donde aparecía.
+
 **Status**: Implemented (migrado desde `Spec.md` monolítico v1). El gap del invariante "Balancear puntaje" (FR-004/FR-010) se cerró — ver [tasks.md](tasks.md). El gap del pool de candidatos a arquero (AC3/AC4/AC5, FR-005) también se cerró: el motor busca primero entre los titulares con Arquero como posición principal, y solo si algún equipo queda sin arquero después de agotarlos, busca entre los que la tienen como posición secundaria para cubrir ese lugar — un natural nunca es desplazado por un secundario. La Estrategia 3 (formación fija, FR-018 a FR-021) quedó implementada y validada end-to-end en navegador contra staging — ver `tasks.md`. La Estrategia 4 (formación fija pareja, FR-022 a FR-028) quedó implementada, cubierta por tests del motor —incluidas dos verificaciones por enumeración exhaustiva independiente: la del reparto (SC-008) y la del espacio conjunto de posiciones × reparto (SC-009)— y validada end-to-end en navegador contra staging sobre el partido real que la motivó. El gap del desempate de posiciones que quedaba abierto se cerró (FR-028) y se validó end-to-end en navegador contra staging: sobre los dos partidos reales con equipos generados el armado quedó idéntico al anterior ("no hubo cambios de equipo"), sin errores de consola y con el resumen y la explicación completos. Que no cambie es el resultado esperado y la comprobación de que no hay regresión: los planteles reales tienen muy pocas posiciones secundarias cargadas, así que sus clases de empate son de 1 o 2 escenarios y el motor anterior ya llegaba al óptimo en ellos. La mejora sobre los casos con empate está cubierta por SC-009 y por una búsqueda sobre planteles generados, no por el navegador.
 
 **Input**: Migración del contenido ya vigente de `Spec.md` (secciones 9 a 17, más el orden de listado de equipos y la explicación de estrategia de la sección 19) a la estructura nativa de spec-kit. Durante la migración se corrigió una inconsistencia de la sección 13 de `Spec.md`: "Balancear puntaje" pasa a ser un invariante no configurable (igual que "máximo un arquero por equipo"), en vez de una regla que se podía desactivar para emparejar equipos solo por cantidad de jugadores ignorando el puntaje — ese comportamiento contradecía el propósito mismo de la estrategia.

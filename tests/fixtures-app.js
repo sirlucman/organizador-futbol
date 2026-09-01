@@ -59,14 +59,65 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
      produciría un armado que el motor nunca genera. */
   const dA = duplasIds[0] || [], dB = duplasIds[1] || [];
   const sueltos = titulares.filter(id => ![...dA, ...dB].includes(id));
-  const equipos = {
-    blanco: [...dA, ...sueltos.slice(0, 8 - dA.length)],
-    negro: [...dB, ...sueltos.slice(8 - dA.length, 16 - dA.length - dB.length)],
-    sumaBlanco: 51.8, sumaNegro: 51.3,
-    posicionAsignada: Object.fromEntries(titulares.map((id, i) => {
+  const blancoIds = [...dA, ...sueltos.slice(0, 8 - dA.length)];
+  const negroIds = [...dB, ...sueltos.slice(8 - dA.length, 16 - dA.length - dB.length)];
+
+  /* La formación 3-3-1 repartida sobre cada equipo, eligiendo para cada lugar a alguien que
+     TENGA puntaje en esa posición.
+
+     Antes esto era `i % 8 === 0 ? 'Arquero' : principal`, que ubicaba de arquero a quien tocara
+     por índice. El resultado era un armado que el motor nunca produce, y sobre todo un armado
+     donde el Arco y el Ataque sumaban CERO en los dos equipos: sin puntaje en la posición
+     asignada, esas dos líneas quedaban vacías y el bloque de diferencia por línea no las
+     dibujaba. O sea que el fixture no podía ejercitar justo el caso que distingue a `D-22`.
+
+     Con el plantel testigo, además, el reparto queda naturalmente desparejo en las dos líneas
+     de un solo lugar —hay un único candidato a arquero (011 § Caso testigo)—, que es
+     exactamente el caso que la regla de color tiene que dejar sin marcar. */
+  /* El orden en que se LLENAN los lugares no es el orden en que se leen: primero las líneas de
+     un solo lugar —arco y ataque—, que son las escasas, y después las de tres. Llenando por el
+     orden de lectura, el único titular con puntaje de delantero se gastaba antes como volante y
+     el ataque quedaba en cero para los dos equipos. El motor real resuelve el arco primero por
+     la misma razón (003 FR-005). */
+  const FORMACION_831 = ['Arquero', 'Delantero', 'Defensor', 'Defensor', 'Defensor', 'Volante', 'Volante', 'Volante'];
+  function asignarFormacion(equipoIds, formacion) {
+    const out = {};
+    const pendientes = [...equipoIds];
+    /* Una unidad de dupla ocupa UN lugar entre sus dos integrantes: los dos reciben la misma
+       posición, como hace el motor. */
+    const pareja = id => duplasIds.find(par => par.includes(id));
+    const puntajeEn = (id, pos) => {
       const p = players.find(x => x.id === id);
-      return [id, i % 8 === 0 ? 'Arquero' : p.principal];
-    })),
+      const v = p && p.scores ? p.scores[pos] : null;
+      return (v === null || v === undefined || v === '') ? -1 : Number(v);
+    };
+    formacion.forEach(pos => {
+      if (!pendientes.length) return;
+      // El mejor disponible para este lugar; si nadie puntúa ahí, el primero que quede.
+      let elegido = pendientes[0], mejor = -2;
+      pendientes.forEach(id => {
+        const v = puntajeEn(id, pos);
+        if (v > mejor) { mejor = v; elegido = id; }
+      });
+      const unidad = pareja(elegido) || [elegido];
+      unidad.forEach(id => { out[id] = pos; });
+      unidad.forEach(id => {
+        const i = pendientes.indexOf(id);
+        if (i >= 0) pendientes.splice(i, 1);
+      });
+    });
+    pendientes.forEach(id => { out[id] = (players.find(x => x.id === id) || {}).principal || 'Volante'; });
+    return out;
+  }
+
+  const equipos = {
+    blanco: blancoIds,
+    negro: negroIds,
+    sumaBlanco: 51.8, sumaNegro: 51.3,
+    posicionAsignada: {
+      ...asignarFormacion(blancoIds, FORMACION_831),
+      ...asignarFormacion(negroIds, FORMACION_831),
+    },
     /* Campos que el generador siempre escribe y el resumen lee. Sin ellos la explicación
        renderizaba "Se mantuvieron NaN asignaciones; undefined jugadores cambiaron de
        equipo": ruido de fixture que puede tapar un problema real. */
@@ -74,6 +125,25 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     cambios: 0,
     estrategia: 'Formación fija pareja',
     estrategiaKey: 'estrategia4',
+    /* `formacion` y `balanceLineas` los escribe el generador con las Estrategias 3 y 4, y sin
+       ellos el bloque de diferencia por línea NO SE DIBUJA — así que hasta la rebanada 3 ningún
+       escenario de layout medía la pantalla que se publica. Los valores están elegidos para que
+       la grilla ejercite el caso que distingue D-22: el Arco desparejo por 4 y la Defensa por 3,
+       con un desvío aceptable de 1, la Defensa se marca y el Arco no. Ver PANEL_ARMADO
+       Implementation Plan, TD-11. */
+    formacion: {
+      objetivo: { defensores: 3, volantes: 3, delanteros: 1 },
+      /* `blanco`/`negro` con su `cumplida` son parte de la forma que el generador escribe, y el
+         resumen los lee sin guarda: un `formacion` con sólo `objetivo` rompe el render entero. */
+      blanco: { cumplida: true, faltantes: [] },
+      negro: { cumplida: true, faltantes: [] },
+    },
+    balanceLineas: {
+      Arquero:   { blanco: 9,    negro: 5,    diferencia: 4 },
+      Defensor:  { blanco: 21,   negro: 18,   diferencia: 3 },
+      Volante:   { blanco: 14.8, negro: 14.8, diferencia: 0 },
+      Delantero: { blanco: 7,    negro: 13.5, diferencia: -6.5 },
+    },
   };
   /* Forma canónica de las duplas, igual que `canonicalDuplas` en index.html: es lo que el
      armado guarda para poder detectar que la convocatoria cambió, y lo que el resumen usa
@@ -114,6 +184,19 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     esPrimeraGeneracion: true, cambios: 0,
     estrategia: 'Formación fija pareja', estrategiaKey: 'estrategia4',
     duplasSnapshot,
+    /* Cancha de 9: el Medio tiene CUATRO lugares por equipo, así que sí puede marcarse como
+       excedido — es lo que distingue este fixture del de 8 para la regla de D-22. */
+    formacion: {
+      objetivo: { defensores: 3, volantes: 4, delanteros: 1 },
+      blanco: { cumplida: true, faltantes: [] },
+      negro: { cumplida: true, faltantes: [] },
+    },
+    balanceLineas: {
+      Arquero:   { blanco: 9,    negro: 5,  diferencia: 4 },
+      Defensor:  { blanco: 20,   negro: 19, diferencia: 1 },
+      Volante:   { blanco: 23.5, negro: 20, diferencia: 3.5 },
+      Delantero: { blanco: 7,    negro: 14, diferencia: -7 },
+    },
   };
 
   /* Un partido por estado, porque cada estado pinta una fila distinta: sin

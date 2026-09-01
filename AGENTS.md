@@ -28,6 +28,8 @@ tipo(scope): asunto en minúscula, ≤ 72 caracteres (IDs de la Spec)
 
 ```sh
 node tests/motor.test.js                  # el motor de generación de equipos
+node tests/cancha.test.js                 # la cancha: agrupado en líneas, arrastre, escapado
+node tests/panel.test.js                  # el panel de armado: números, regla de color, receipt
 node tests/layout.test.js                 # el layout responsive (Principio V)
 LAYOUT_STRICT=1 node tests/layout.test.js # en CI: la ausencia de Playwright falla
 ```
