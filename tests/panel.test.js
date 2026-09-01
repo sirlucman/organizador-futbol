@@ -61,6 +61,15 @@ const DECLARACIONES = [
   'renderPorQueQuedaronAsi',
 ];
 
+/* Las declaraciones que necesita `explicacionesDelArmado`, que se carga aparte para poder
+   compararlo contra la versión anterior de index.html (ver S-05d). */
+const DECLARACIONES_RECEIPT = [
+  'aplicaEnEstrategia',
+  'margenTotalPorLinea',
+  'objetivoDiferencia',
+  'explicacionesDelArmado',
+];
+
 function cargarPanel() {
   const cuerpo = DECLARACIONES.map(n => extraer(src, n)).join('\n\n');
   const prelude = `
@@ -75,6 +84,26 @@ function cargarPanel() {
   }
 }
 const P = cargarPanel();
+
+/* El receipt se carga aparte y desde una FUENTE arbitraria, para poder correr el mismo armado
+   contra este index.html y contra el de un commit anterior. Es lo que hace de `NFR-007` —"el
+   receipt dice exactamente lo mismo que decía"— un criterio medible y no una declaración.
+   Mismo mecanismo que `tools/medir-motor.js` usa para comparar motores entre commits. */
+function cargarReceipt(fuente) {
+  const nombres = [...DECLARACIONES, ...DECLARACIONES_RECEIPT]
+    .filter(n => new RegExp(`\\n[ \\t]*(function|const|let)[ \\t]+${n}\\b`).test(fuente));
+  const cuerpo = nombres.map(n => extraer(fuente, n)).join('\n\n');
+  const prelude = `
+    let players = [];
+    function __setPlayers(p){ players = p; }
+    let motorConfig = { reglas: [] };
+    function reglaEnabled(){ return true; }
+    function reglaParam(){ return null; }
+    const REGLAS_CATALOGO = {};
+    const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia3:{}, estrategia4:{} };
+  `;
+  return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, ${nombres.join(', ')} };`)();
+}
 
 /* ---------- helpers de aserción (mismos que motor.test.js y cancha.test.js) ---------- */
 class FalloAssert extends Error {}
@@ -413,6 +442,71 @@ prueba('"panel/S-22b" el escapado alcanza a cualquier explicación, no sólo a l
 prueba('"panel/S-05c" sin explicaciones no se dibuja el bloque ni su divisor', () => {
   eq(P.renderPorQueQuedaronAsi([]), '', 'lista vacía no produce nada');
   eq(P.renderPorQueQuedaronAsi(null), '', 'null tampoco');
+});
+
+console.log('');
+console.log('\x1b[1mEL RECEIPT NO CAMBIÓ\x1b[0m — la extracción movió código, no texto (NFR-007)\n');
+
+prueba('"panel/S-05d" el receipt produce las mismas cadenas que antes de extraerlo', () => {
+  /* La versión de referencia sale del index.html de `main` en el commit del merge de la Spec,
+     leído con git. Sin git —un tarball, un CI sin historia— el caso se declara salteado en vez
+     de dar un falso verde: lo que no se pudo comparar, no se afirma. */
+  let anterior;
+  try {
+    anterior = require('child_process')
+      .execFileSync('git', ['show', '0488d7b:index.html'], { cwd: path.join(__dirname, '..'), maxBuffer: 64 * 1024 * 1024 })
+      .toString('utf8');
+  } catch (e) {
+    console.log('      \x1b[33m∅ salteado\x1b[0m — no se pudo leer index.html de 0488d7b con git');
+    return;
+  }
+  const receiptAntes = cargarReceipt(anterior);
+  const receiptAhora = cargarReceipt(src);
+  ok(!receiptAntes.explicacionesDelArmado,
+    'en la versión anterior el receipt NO tenía función con nombre: por eso hubo que extraerlo');
+  ok(typeof receiptAhora.explicacionesDelArmado === 'function',
+    'en esta versión sí, que es lo que hace comparable la lista');
+  /* Con la versión anterior no hay función que llamar —el bloque vivía en línea dentro de
+     renderTeamsSection—, así que lo que se compara es el TEXTO del bloque, carácter por
+     carácter, ignorando la indentación que la extracción cambió. */
+  const bloqueDe = (fuente) => {
+    const i = fuente.indexOf('const explicaciones = [];');
+    const j = fuente.indexOf('Reglas desactivadas en el motor:', i);
+    const k = fuente.indexOf('}', j);
+    /* Se comparan LÍNEAS DE CÓDIGO: los comentarios se sacan antes, porque la extracción los
+       reescribió a propósito y compararlos sería comparar prosa. */
+    return fuente.slice(i, k + 1)
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n')
+      .map(l => l.replace(/\/\/.*$/, '').trim())
+      .filter(Boolean)
+      .join('\n');
+  };
+  const antes = bloqueDe(anterior), ahora = bloqueDe(src);
+  const lineasAntes = antes.split('\n'), lineasAhora = ahora.split('\n');
+  /* Las diferencias esperadas y declaradas son exactamente dos: el predicado de línea de un solo
+     lugar, que pasó a llamar a `lineaDeUnSoloLugar` (TC-013), y la línea de titulares sin
+     puntaje, que ganó el desglose por equipo (FR-052). Cualquier otra es una regresión. */
+  const soloEn = (a, b) => a.filter(l => !b.includes(l));
+  const nuevas = soloEn(lineasAhora, lineasAntes);
+  const perdidas = soloEn(lineasAntes, lineasAhora);
+  const esperado = l => l.includes('lineaDeUnSoloLugar')
+    || l.includes('unSoloLugar = ORDEN_LINEAS')
+    || l.includes('.filter(pos =>')
+    || l.includes("if(pos === 'Arquero') return true;")
+    || l.includes('eq.formacion && eq.formacion.objetivo')
+    || l.includes('Se distribuyeron ');
+  const inesperadasNuevas = nuevas.filter(l => !esperado(l));
+  const inesperadasPerdidas = perdidas.filter(l => !esperado(l));
+  eq(inesperadasNuevas, [], 'la extracción no debería haber agregado ninguna línea de lógica nueva');
+  eq(inesperadasPerdidas, [], 'la extracción no debería haber perdido ninguna línea de lógica');
+});
+
+prueba('"panel/S-05a" la línea de titulares sin puntaje declara el desglose por equipo', () => {
+  const linea = src.match(/Se distribuyeron \$\{totalSinPuntaje\}[^`]*/);
+  ok(linea, 'la línea de titulares sin puntaje sigue existiendo');
+  ok(linea[0].includes('en el Blanco') && linea[0].includes('en el Negro'),
+    'y dice cuántos quedaron en cada equipo, que es lo que reemplaza a las cajitas retiradas (FR-052)');
 });
 
 /* ---------- salida ---------- */

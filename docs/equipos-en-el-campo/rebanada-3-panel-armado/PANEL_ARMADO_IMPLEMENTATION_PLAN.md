@@ -381,7 +381,7 @@ Implementation tasks (agrupadas en commits atómicos):
 - [ ] T-1.30 Agregar el escenario `panel-umbral`, que configura la "Diferencia aceptable" por la pantalla de Configuración con `irAPestania` ([`tests/layout.test.js:822`](../../../tests/layout.test.js)) y después abre el partido, comprobando que la celda de campo queda marcada y la de Arco no (`S-04`, `S-04a`, `TD-10`)
 - [ ] T-1.31 Agregar `INVARIANTE_PANEL`: en cada ancho medido, cada botón de ícono del encabezado mide al menos 44 px de lado y expone un nombre accesible no vacío (`NFR-002`, `NFR-003`, `AC-11`, `AC-12`)
 - [ ] T-1.32 [P] Agregar el escenario `panel-recalculo`, que sintetiza un `drop` con `DataTransfer` como hace `arrastre-drop` y comprueba que los números cambian, que el receipt no, que no hay escrituras nuevas, y mide el ciclo con `performance.now()` (`S-06`, `S-06b`, `S-06d`, `NFR-004`, `NFR-005`, `FR-073`)
-- [ ] T-1.33 [P] Agregar el escenario `panel-jugador` (rol `jugador`): sin combo, sin aviso, sin botones de ícono y sin botonera; con píldora, grilla y receipt (`S-01d`, `S-02c`, `S-20`)
+- [ ] T-1.33 [P] Agregar el escenario `panel-jugador` (rol `jugador`): sin combo, sin aviso, sin botones de ícono, sin botonera, **sin píldora, sin grilla y sin receipt**, y con la cancha y los nombres. Conserva el modelo de permisos de `007-permisos-por-usuario`, que la aplicación ya implementaba (`S-01d`, `S-02c`, `S-04g`, `S-05e`, `S-20`, `FR-046`, `FR-081`)
 - [ ] T-1.C8 Commit — `test(layout): el panel rediseñado y el invariante de los botones de ícono (S-01, S-04)`
 
 - [ ] T-1.34 Agregar la anotación recíproca de reemplazo en las dos specs pisadas: `FR-009` de [`003-motor-generacion-equipos`](../../../.specify/specs/003-motor-generacion-equipos/spec.md) y la superficie de lectura de [`012-puntajes-coherentes-panel`](../../../.specify/specs/012-puntajes-coherentes-panel/spec.md) (`OPEN-Q-01`, Principio I)
@@ -493,11 +493,13 @@ El único parámetro que el panel lee —`diferenciaMaxima`— ya existe y no ca
 | S-04d `[boundary]` fútbol 9, el Medio sí puede | `tests/panel.test.js` — `prueba('"panel/S-04d" …')` | unit | Branch 1 |
 | S-04e `[property]` ninguna línea de un lugar se marca | `tests/panel.test.js` — `prueba('"panel/S-04e" …')` | unit + property | Branch 1 |
 | S-04f `[failure]` armado sin balance por línea | `tests/panel.test.js` — `prueba('"panel/S-04f" …')` | unit | Branch 1 |
+| S-04g `[failure]` rol jugador sin grilla | `tests/layout.test.js` escenario `panel-jugador` (`spec: ['panel/S-04g']`) | e2e | Branch 1 |
 | S-05 (parent) el receipt sin caja | `tests/layout.test.js` escenario `panel-armado` (`spec: ['panel/S-05']`) | e2e | Branch 1 |
 | S-05a `[boundary]` un solo titular sin puntaje | `tests/panel.test.js` — `prueba('"panel/S-05a" …')` | unit | Branch 1 |
 | S-05b `[boundary]` ningún titular sin puntaje | `tests/panel.test.js` — `prueba('"panel/S-05b" …')` | unit | Branch 1 |
 | S-05c `[boundary]` sin explicaciones, sin bloque | `tests/layout.test.js` escenario `panel-armado` (`spec: ['panel/S-05c']`) | e2e | Branch 1 |
 | S-05d `[property]` cadenas idénticas a las de antes | `tests/panel.test.js` — `prueba('"panel/S-05d" …')` | unit + property | Branch 1 |
+| S-05e `[failure]` rol jugador sin receipt | `tests/layout.test.js` escenario `panel-jugador` (`spec: ['panel/S-05e']`) | e2e | Branch 1 |
 | S-06 (parent) los números siguen al reparto | `tests/layout.test.js` escenario `panel-recalculo` (`spec: ['panel/S-06']`) | e2e | Branch 1 |
 | S-06a `[property]` las líneas suman el total | `tests/panel.test.js` — `prueba('"panel/S-06a" …')` | unit + property | Branch 1 |
 | S-06b `[boundary]` intercambio de dos | `tests/layout.test.js` escenario `panel-recalculo` (`spec: ['panel/S-06b']`) | e2e | Branch 1 |
@@ -524,7 +526,7 @@ El único parámetro que el panel lee —`diferenciaMaxima`— ya existe y no ca
 | S-22a `[failure]` comilla doble | `tests/panel.test.js` — `prueba('"panel/S-22a" …')` | unit | Branch 1 |
 | S-22b `[failure]` la otra explicación con nombre | `tests/panel.test.js` — `prueba('"panel/S-22b" …')` | unit | Branch 1 |
 
-Reparto resultante: **33 filas `unit`** (cinco de ellas además `property`) y **18
+Reparto resultante: **33 filas `unit`** (cinco de ellas además `property`) y **20
 filas `e2e`**. No se declara ninguna proporción objetivo (`MD-22`): la forma sale
 de haber aplicado el árbol fila por fila, y el sesgo hacia `unit` es consecuencia
 de `TD-01` —los números son decisiones puras— y no de una meta.
@@ -666,6 +668,7 @@ commit propio (`T-1.C5`), así que reponerlos sin perder el resto es
 | R-08 | Escapar el receipt rompe alguna explicación que hoy dependa de marcado | Low | Low | OBS-07, `S-05d` | `T-1.18` y la comparación cadena por cadena de `S-05d` | Escapar sólo el nombre interpolado en vez de la explicación entera |
 | R-09 | El `<select>` restilado se ve distinto en iOS de lo que el handoff dibuja | Low | High | OBS-08 | `TC-003` mantiene el control nativo a propósito: el aspecto exacto es negociable, el comportamiento del sistema no | Ajustar el CSS; no se reemplaza el control |
 | R-10 | Los gates del §6 son comandos locales: ningún CI los aplica en el merge, así que dependen de la disciplina de quien ejecute el Plan | High | Med | Ninguna automática — es exactamente el problema | `monitored only — see OBS-01`. Queda fuera de alcance por decisión explícita (§2) y registrado como `IMP-05` | No aplica: es una brecha de proceso |
+| R-12 | Los bloques nuevos se cablean en la rama de render del rol `admin` y alguien los mueve al camino común, exponiéndolos al rol `jugador` | Low | High | Escenario `panel-jugador` (`S-04g`, `S-05e`) | `T-1.33`. La Spec lo declara en `FR-046` y `FR-081`, y la corrección del 2026-08-31 dejó registrado por qué | Volver a la rama de admin; el escenario lo atrapa antes del merge |
 | R-11 | La aplicación no tiene telemetría, así que un problema que los tests no atrapen se descubre recién cuando alguien del grupo lo cuenta | Med | Med | OBS-08 | `accepted (rationale: agregar telemetría para esta rebanada sería la infraestructura anticipada que prohíbe el Principio II; el grupo es chico y el canal de reporte es inmediato)` | No aplica |
 
 **Worst-case blast radius:** un panel que muestra bien los equipos pero explica
@@ -708,7 +711,7 @@ rebanada no escribe ningún campo y no toca partidos finalizados.
 | AC-06 | `T-1.6`, `T-1.19` | `tests/panel.test.js` (`panel/S-05a`, `panel/S-05b`) |
 | AC-07 | `T-1.20`, `T-1.22` | `tests/layout.test.js` escenario `panel-armado` (`panel/S-01`) |
 | AC-08 | `T-1.3`, `T-1.32` | `tests/layout.test.js` escenario `panel-recalculo` (`panel/S-06`) |
-| AC-09 | `T-1.33` | `tests/layout.test.js` escenario `panel-jugador` (`panel/S-01d`, `panel/S-20`) |
+| AC-09 | `T-1.33` | `tests/layout.test.js` escenario `panel-jugador` (`panel/S-01d`, `panel/S-04g`, `panel/S-05e`, `panel/S-20`) |
 | AC-10 | `T-1.29`, `T-1.D1` | `node tests/layout.test.js` — trece anchos, sin desborde (`OBS-01`) |
 | AC-11 | `T-1.31` | `tests/layout.test.js` — `INVARIANTE_PANEL` (`OBS-02`) |
 | AC-12 | `T-1.31` | `tests/layout.test.js` — `INVARIANTE_PANEL` (`OBS-02`) |
@@ -751,6 +754,7 @@ rebanada no escribe ningún campo y no toca partidos finalizados.
 | Date | Author | Change |
 |---|---|---|
 | 2026-08-31 | Lucas Manoukian | Initial draft. Deriva de `PANEL_ARMADO_SPEC.md` con una rama (`Custom arc: 1 branch`, como las rebanadas 1 y 2) y nueve commits atómicos. Resuelve la `OPEN-Q-01` de la Spec (`T-1.34` hace la anotación recíproca) y traslada sus otras tres más la deuda de verificación del CWE Top 25. Reverte a propósito el `TD-10` de la rebanada 2 con `TD-08`: las funciones puras del panel van a un archivo de test propio, porque consumen salidas del motor y no geometría de la cancha. Registra dos hallazgos de la lectura del código que la Spec no podía anticipar: el bloque de diferencia por línea **no se dibuja hoy en ningún escenario de layout** porque el fixture no lleva `balanceLineas` (`TD-11`, `T-1.28`), y el fixture tampoco tiene umbral configurado, así que la regla de color se ejercita por la pantalla de Configuración y no por el fixture (`TD-10`). Self-critique: passed (2🔴 / 1🟡 / 0🔵), los tres resueltos. Los 🔴: §12.1 asignaba `S-21`, `S-21a` y `S-21b` a nivel `unit` mientras la validación del combo vivía dentro de un manejador de DOM (se extrajo `estrategiaValida`, `TD-01`), y asignaba `S-05a`, `S-05b`, `S-05d` y `S-22b` a `unit` mientras el arreglo `explicaciones` se construía **en línea**, sin nombre por el que `tests/harness.js` pudiera recortarlo — el mismo hueco que el Concept Note §17 había registrado como error del handoff (se extrajo `explicacionesDelArmado`, `TD-01b`). El 🟡: `NFR-007` pedía comparar la lista de explicaciones "con la de antes" sin decir de dónde salía; ahora sale del `index.html` de `main` en `618b2ae`, cargado con el mismo mecanismo que `tools/medir-motor.js`. |
+| 2026-08-31 | Lucas Manoukian | Corrección durante la implementación, en espejo con la de la Spec: el rol `jugador` **no** ve la píldora, la grilla ni el receipt — `007-permisos-por-usuario` lo prohíbe y la aplicación ya lo implementaba así. `T-1.33` se reescribe, se agregan las filas `S-04g` y `S-05e` a §12.1 (el reparto pasa a 33 `unit` / 20 `e2e`) y se agrega `R-12`, que es el riesgo de cablear los bloques nuevos en el camino común en vez del de admin. |
 
 ---
 

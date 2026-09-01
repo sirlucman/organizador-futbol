@@ -34,6 +34,19 @@
 > resultado y de partido finalizado siguen usando la lista de filas que esta spec
 > describe, sin cambios.
 
+> **⚠️ Segundo reemplazo parcial (2026-09-01).** La **superficie donde se lee la
+> cuenta de titulares sin puntaje** —el par de cajitas "Sin puntaje — Blanco: N" /
+> "Sin puntaje — Negro: N", sobre el que está escrito el criterio de éxito de esta
+> spec— fue reemplazada por
+> [`docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md`](../../../docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md):
+> las cajitas se retiran y la cuenta pasa a leerse en el bloque "Por qué quedaron
+> así", que a partir de esa rebanada la declara **desglosada por equipo**.
+>
+> **Lo que NO se reemplaza:** la regla que esta spec fija, que es que la cuenta sea
+> por **unidad de armado** —una dupla cuenta una sola vez, y sólo si la unidad no
+> tiene puntaje— y que coincida con lo que el motor realmente repartió sin
+> puntaje. Aquella Spec la conserva en su `FR-052` y la verifica en su `AC-06`.
+
 ## Contexto
 
 En el panel de equipos generados, cada jugador muestra su puntaje en la posición asignada, y el encabezado del equipo muestra el total. Con las Estrategias 2 y 3, un jugador sin nota cargada en esa posición se muestra como "sin puntaje", y hay dos contadores ("Sin puntaje — Blanco: N", "Sin puntaje — Negro: N").

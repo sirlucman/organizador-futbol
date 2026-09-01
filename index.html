@@ -4588,7 +4588,11 @@
   if(totalSinPuntaje > 0){
     // "titular" y no "jugador" porque la cuenta es por unidad de armado, y una dupla ocupa una
     // sola vacante de titular entre sus dos integrantes (008-duplas-rotacion).
-    explicaciones.push(`Se distribuyeron ${totalSinPuntaje} titular${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos.`);
+    /* El desglose por equipo es lo que reemplaza a las cajitas "Sin puntaje — Blanco/Negro" que
+       la rebanada 3 retiró (D-23). Sin él, el dato que 012-puntajes-coherentes-panel pide leer
+       —cuántas UNIDADES sin puntaje repartió el motor a cada lado— se perdía al sacarlas. Es la
+       única cadena del receipt que esta rebanada modifica (FR-052, TC-012). */
+    explicaciones.push(`Se distribuyeron ${totalSinPuntaje} titular${totalSinPuntaje===1?'':'es'} sin puntaje de la forma más equilibrada posible entre ambos equipos (${sinPuntajeBlanco} en el Blanco, ${sinPuntajeNegro} en el Negro).`);
   }
   if(esEstrategia2 || esFormacionFija){
     (eq.swaps || []).forEach(s => {

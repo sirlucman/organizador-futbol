@@ -41,6 +41,13 @@
 >   cuenta sea por **unidad de armado** y coincida con lo que el motor repartió
 >   sin puntaje— se conserva sin cambios y es lo que `AC-06` verifica.
 >
+> Tampoco se reemplaza nada de
+> [`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/spec.md):
+> su modelo de permisos —que el rol `jugador` no vea puntajes, estrategia,
+> diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del
+> armado— se conserva entero, y es lo que `FR-046` y `FR-081` restatean para los
+> bloques que esta rebanada rediseña.
+>
 > No se reemplaza nada de
 > [`009-ventaja-sin-arquero`](../../../.specify/specs/009-ventaja-sin-arquero/spec.md):
 > su `FR-010` —que el aviso se evalúe sobre el **desvío** respecto del objetivo y
@@ -338,7 +345,7 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 | US-04 | Como administrador, quiero que la diferencia por línea me señale sólo lo que el reparto podía haber arreglado, para que el rojo signifique algo. | FR-034 |
 | US-05 | Como administrador, quiero que después de mover un jugador a mano los números de abajo digan lo que estoy viendo arriba. | FR-070, FR-071 |
 | US-06 | Como administrador, quiero entender por qué el motor armó así sin que el texto compita visualmente con la cancha. | FR-040, FR-042 |
-| US-07 | Como jugador, quiero leer cómo quedaron los equipos y por qué, sin ver el combo ni los botones de armado. | FR-080, FR-081 |
+| US-07 | Como jugador, quiero ver cómo quedaron los equipos sobre la cancha, sin controles ni datos que no me corresponden. | FR-080, FR-081 |
 
 ## 6. Glossary
 
@@ -370,9 +377,11 @@ significado y no se redefinen. Los propios de esta rebanada:
 
 ### 7.1 El encabezado de la tarjeta
 
-- **FR-001** — Donde el rol de la sesión sea `admin` y el partido tenga equipos
-  generados, el sistema mostrará en el encabezado de la tarjeta un botón de sólo
-  ícono para copiar los equipos.
+- **FR-001** — Mientras el partido tenga equipos generados, el sistema mostrará en
+  el encabezado de la tarjeta un botón de sólo ícono para copiar los equipos, con
+  cualquiera de los dos roles. El rol `jugador` ya lo tenía, y el texto que copia
+  son nombres, sin puntajes ni estrategia, así que no expone nada que
+  `007-permisos-por-usuario` le prohíba ver.
 - **FR-002** — Donde el rol de la sesión sea `admin`, el partido tenga equipos
   generados y la inscripción no esté cerrada, el sistema mostrará en el
   encabezado de la tarjeta un botón de sólo ícono para regenerar los equipos.
@@ -481,8 +490,8 @@ significado y no se redefinen. Los propios de esta rebanada:
   que aparezca dentro de una explicación.
 - **FR-045** — Si el motor no emitió ninguna explicación, entonces el sistema no
   mostrará el bloque ni su divisor.
-- **FR-046** — El sistema mostrará el bloque tanto al administrador como al
-  jugador, como hoy.
+- **FR-046** — Donde el rol de la sesión sea `jugador`, el sistema no mostrará
+  el bloque, como hoy.
 
 ### 7.6 Los resúmenes que se retiran
 
@@ -530,11 +539,16 @@ significado y no se redefinen. Los propios de esta rebanada:
 ### 7.9 Estados y roles
 
 - **FR-080** — Donde el rol de la sesión sea `jugador`, el sistema no mostrará el
-  combo de estrategia, ni el aviso de equipos desactualizados, ni los botones de
-  ícono del encabezado, ni la botonera.
-- **FR-081** — Donde el rol de la sesión sea `jugador`, el sistema mostrará la
-  píldora de diferencia, la diferencia por línea y el receipt, que son lectura del
-  armado.
+  combo de estrategia, ni el aviso de equipos desactualizados, ni el botón de
+  regenerar, ni la botonera. El botón de copiar sí se muestra (`FR-001`).
+- **FR-081** — Donde el rol de la sesión sea `jugador`, el sistema no mostrará la
+  píldora de diferencia, ni la diferencia por línea, ni el receipt. Conserva sin
+  cambios el modelo de permisos de
+  [`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/spec.md)
+  `FR-005`, cuyo escenario 2 declara que el rol `jugador` no ve puntajes,
+  estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la
+  explicación del armado. El jugador sigue viendo la cancha con los nombres, que
+  es lo que la rebanada 1 le dio.
 - **FR-082** — Si el rol de la sesión no es `admin`, entonces el sistema no
   ejecutará regenerar, ni el cambio de estrategia, ni ninguna acción de la
   botonera, aunque se las invoque directamente.
@@ -598,7 +612,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-01a [boundary]` — la diferencia es exactamente 0: la píldora dice "Equipos parejos" y no "Diferencia 0 pts"
 - `S-01b [boundary]` — en un viewport de 360 px la píldora no está en el encabezado sino en la fila del equipo visible (`FR-005`)
 - `S-01c [failure]` — la inscripción está cerrada: el botón de regenerar no está en el encabezado y el de copiar sí (`FR-002`)
-- `S-01d [failure]` — la sesión es de rol `jugador`: ninguno de los dos botones está en el DOM (`FR-080`)
+- `S-01d [failure]` — la sesión es de rol `jugador`: el botón de regenerar y la píldora no están en el DOM, y el de copiar sí (`FR-001`, `FR-080`, `FR-081`)
 - `S-01e [boundary]` — el armado tiene una diferencia buscada distinta de cero: la píldora la declara en su descripción emergente (`FR-009`)
 
 #### Scenario S-02 — El combo explica la estrategia sin esconderla (covers FR-010, FR-011, FR-012, FR-013)
@@ -653,6 +667,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-04d [boundary]` — el partido es de fútbol 9: el Medio tiene cuatro lugares por equipo y sí puede quedar distinguido; Arco y Ataque siguen sin poder
 - `S-04e [property]` — para todo armado, ninguna línea cuyo cupo en la formación objetivo sea 1 queda distinguida como excedida
 - `S-04f [failure]` — el armado guardado no lleva balance por línea: el bloque no se dibuja (`TC-015`)
+- `S-04g [failure]` — la sesión es de rol `jugador`: el bloque no se dibuja aunque el armado lleve balance (`FR-081`)
 
 #### Scenario S-05 — El receipt dice lo mismo que decía, sin caja (covers FR-040, FR-041, FR-042, FR-043, FR-052, NFR-007)
 
@@ -669,6 +684,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-05a [boundary]` — hay un solo titular sin puntaje: la línea usa el singular y ubica el equipo correcto
 - `S-05b [boundary]` — no hay ningún titular sin puntaje: la línea no se emite
 - `S-05c [boundary]` — el motor no emitió ninguna explicación: el bloque y su divisor no se dibujan (`FR-045`)
+- `S-05e [failure]` — la sesión es de rol `jugador`: el bloque no se dibuja aunque haya explicaciones (`FR-046`)
 - `S-05d [property]` — para cada armado de prueba, la lista de explicaciones coincide cadena por cadena con la de antes del cambio, salvo la de titulares sin puntaje
 
 #### Scenario S-06 — Los números siguen al reparto y el texto no (covers FR-070, FR-071, FR-072, FR-073, FR-074, D-25)
@@ -847,8 +863,9 @@ ninguna. El modelo de datos cambia en la rebanada 5.
   resultante, y la lista de explicaciones es idéntica a la de antes del
   movimiento (cubre `FR-070`, `FR-071`, `FR-072`).
 - **AC-09** — Con una sesión de rol `jugador`, la tarjeta no contiene el combo, ni
-  el aviso, ni los botones de ícono, ni la botonera, y sí contiene la píldora, la
-  diferencia por línea y el receipt (cubre `FR-080`, `FR-081`).
+  el aviso, ni el botón de regenerar, ni la botonera, ni la píldora, ni la
+  diferencia por línea, ni el receipt; y sí contiene la cancha con los nombres y
+  el botón de copiar (cubre `FR-001`, `FR-080`, `FR-081`, `FR-046`).
 
 ### 11.2 Non-functional acceptance
 
@@ -1058,6 +1075,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 | Date | Author | Change |
 |---|---|---|
 | 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las seis decisiones tomadas con el propietario el mismo día, que por `MD-01` se registraron como `D-22` a `D-25` en el Concept Note y como diferido de su §14 (el texto de Copiar), y no dentro de esta Spec. Cierra la `OPEN-Q-05` de la rebanada 2 (el selector se conserva donde está) y hereda la `OPEN-Q-03` de aquella Spec ya resuelta por `D-25`. Declara el reemplazo del `FR-009` de `003-motor-generacion-equipos` y de la superficie de lectura de `012-puntajes-coherentes-panel`. Self-critique: passed (2🔴 / 2🟡 / 1🔵), los cinco resueltos. Los 🔴: `TC-020` no tenía criterio de cumplimiento en §11.3 pese a que la rúbrica lo exige para todo `TC-*` (se agregó `AC-29b`), y la §9.4 usaba un `flowchart`, tipo que `MD-24` no admite en la §9 de una Spec (se reemplazó por una tabla, con la razón declarada). Los 🟡: tres `FR-*` compuestos partidos conservando los identificadores estables (`FR-002b`, `FR-006b`, `FR-083`), y `D-03` heredada de hecho por `NFR-001` pero ausente de §3.3. El 🔵: `FR-003` llevaba dos casos de contenido en una línea, partido en `FR-003b` y `FR-003c`. |
+| 2026-08-31 | Lucas Manoukian | Corrección durante la implementación: `FR-046` y `FR-081` decían que el rol `jugador` ve la píldora, la diferencia por línea y el receipt. **Es falso y contradice una spec vigente**: `007-permisos-por-usuario` `FR-005` y su escenario 2 declaran que ese rol no ve puntajes, estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del armado, y la aplicación ya lo implementaba así. Los dos requisitos quedan invertidos, se agrega la declaración de que esa spec **no** se reemplaza, y `AC-09`, `US-07` y `S-01d` se corrigen en consecuencia; `S-04g` y `S-05e` se agregan para cubrir los dos bloques nuevos con ese rol. El error fue inventar un requisito que ninguna decisión respaldaba, en vez de leer el modelo de permisos vigente. En la misma pasada se corrigió `FR-001`, que hacía a Copiar exclusivo de `admin`: el rol `jugador` ya lo tenía y el texto que copia son nombres, así que quitárselo habría sido una pérdida de función que ninguna decisión pidió. Self-critique: no corresponde (corrección acotada, verificada con las pasadas de consistencia). |
 
 ---
 
