@@ -412,14 +412,14 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-group-gap: 6px; --stat-gap: -6px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-group-gap: 6px; --stat-gap: -6px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-group-gap: 4px; --stat-gap: -5px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --stat-gap: -6px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --stat-gap: -6px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-group-gap: 4px; --stat-gap: -5px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-group-gap: 4px; --stat-gap: -5px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
   }
   /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
      olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
@@ -604,15 +604,20 @@
      TC-031, igual que `--chip-bg` ya lo es para el relleno de la camiseta).
 
      El handoff ancla asistencias y goles cada uno a su propio borde de la camiseta
-     (`left:-9px` / `right:-9px`), con anchos fijos. Sobre una camiseta de 44 a 52px —el caso
-     común, no el borde: ver el comentario de `INVARIANTE_CHIPS_ESTADISTICA`— dos grupos anclados
-     así no tienen lugar y se solapan. Acá los dos grupos son hijos de UN solo `flex` centrado
-     bajo la camiseta: asistencias primero (queda a la izquierda), goles después (a la derecha),
-     con un `gap` real entre ambos — el mismo mecanismo que ya evita que se solapen los dos PILLS
-     de un mismo grupo (goles y en contra), aplicado también entre los dos grupos. */
+     (`left:-9px` / `right:-9px`). Con un jugador que tiene un solo tipo de evento eso entra
+     perfecto (`.camiseta-fig > .stat-asistencias` / `> .stat-goles`, abajo). El problema es
+     cuando tiene los DOS a la vez: sobre una camiseta de 44 a 52px —el caso común, no el
+     borde: ver el comentario de `INVARIANTE_CHIPS_ESTADISTICA`— los dos grupos anclados cada
+     uno a su lado no tienen lugar y se solapan. Ahí, y sólo ahí, `renderCamiseta` los envuelve
+     en `.stat-chips`, un `flex` centrado bajo la camiseta con un `gap` real entre los dos —el
+     mismo mecanismo que ya evita que se solapen los dos PILLS de un mismo grupo (goles y en
+     contra)—, y por eso ya no son hijos DIRECTOS de `.camiseta-fig` y el ancla de abajo no les
+     aplica. */
   :root{ --stat-bg: #E8EBE6; }
   .stat-chips{ position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: var(--stat-group-gap); white-space: nowrap; }
   .stat-asistencias, .stat-goles{ display: flex; align-items: center; }
+  .camiseta-fig > .stat-asistencias{ position: absolute; bottom: -3px; left: var(--stat-edge); }
+  .camiseta-fig > .stat-goles{ position: absolute; bottom: -3px; right: var(--stat-edge); }
   .stat-pill{ display: flex; align-items: center; gap: 1px; height: var(--stat-h); padding: 0 3px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); margin-left: var(--stat-gap); }
   .stat-pill:first-child{ margin-left: 0; }
   .stat-pill img{ width: var(--stat-icon); height: var(--stat-icon); display: block; }
@@ -4222,11 +4227,13 @@
     const chips = finalizadoSinEditarChips
       ? renderChipsEstadistica(statsAgregadasDeUnidad(grupo, m.resultado.statsPorJugador))
       : { asistenciasHtml: '', golesHtml: '' };
-    // Un solo `flex` con los dos grupos adentro (asistencias primero, goles después): así el
-    // navegador les da lugar a los dos sin que se solapen, en vez de que cada uno se ancle a su
-    // borde de la camiseta sin saber cuánto ocupa el otro (INVARIANTE_CHIPS_ESTADISTICA).
-    const chipsHtml = (chips.asistenciasHtml || chips.golesHtml)
-      ? '<div class="stat-chips">' + chips.asistenciasHtml + chips.golesHtml + '</div>' : '';
+    // Con un solo tipo de evento, ese chip queda como hijo DIRECTO de .camiseta-fig y se ancla a
+    // su propio borde (asistencias a la izquierda, goles a la derecha). Con los dos a la vez, se
+    // envuelven en un flex centrado para que no se solapen (INVARIANTE_CHIPS_ESTADISTICA) — ver
+    // el comentario del CSS de .stat-chips.
+    const chipsHtml = (chips.asistenciasHtml && chips.golesHtml)
+      ? '<div class="stat-chips">' + chips.asistenciasHtml + chips.golesHtml + '</div>'
+      : (chips.asistenciasHtml || chips.golesHtml);
     return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
