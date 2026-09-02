@@ -267,7 +267,11 @@
   .team-panel.negro{ background: var(--ink); color: var(--chalk); }
   .team-panel.negro h4{ color: var(--pitch); }
   .team-panel h4{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
-  .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; }
+  /* `margin-left:auto` en vez de depender sólo de `justify-content:space-between` del `h4`: en
+     una columna el nombre se oculta (ver 900px) y el total queda como único hijo del flex, que
+     `space-between` alinearía al principio — con el margen automático se mantiene pegado a la
+     derecha con o sin el nombre al lado. */
+  .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; margin-left: auto; }
   .team-panel{ transition: background-color .15s ease; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
   .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
@@ -500,6 +504,10 @@
      antes, la fila entra en una sola línea y el wrap no cuesta alto en tablet. */
   @media (max-width: 900px){
     .teams-wrap{ grid-template-columns: minmax(0,1fr); }
+    /* En una columna la pestaña activa ya dice qué equipo es (FR-033/S-04a): repetir el nombre
+       arriba de la cancha es redundante, así que sólo el total (goles/puntaje) queda en el
+       encabezado del panel. */
+    .team-panel h4 .team-name{ display: none; }
   }
 
   /* ------------------------------------------------------------------ EL PANEL DE ARMADO
@@ -4473,7 +4481,15 @@
     if(equipo !== 'blanco' && equipo !== 'negro') return;
     equipoVisibleCancha = equipo;
     partidoDelEquipoVisible = matchId;
+    /* Repintar reemplaza el contenido de #teamsSection entero (pestañas incluidas), y ese
+       reemplazo puede correr el scroll de la página aunque no haya ningún scrollTo explícito:
+       el navegador reancla la posición cuando el nodo que estaba usando de referencia
+       desaparece. Guardar y reimponer scrollY después del repintado deja a la persona exactamente
+       donde estaba, con solo la cancha cambiada — que es lo único que el toque en la pestaña
+       debía hacer. */
+    const scrollY = window.scrollY;
     renderMatchesTab();
+    window.scrollTo(0, scrollY);
   };
 
   /* La zona de los dos equipos: el selector cuando corresponde, y las canchas o las listas.
@@ -5145,9 +5161,9 @@
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
         ${renderZonaEquipos(m, {
-          blanco: { header: 'Equipo Blanco',
+          blanco: { header: '<span class="team-name">Equipo Blanco</span>',
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + `<div class="detalle-equipo">${renderFilasDetalle(eq.blanco, stats)}</div>` },
-          negro: { header: 'Equipo Negro',
+          negro: { header: '<span class="team-name">Equipo Negro</span>',
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + `<div class="detalle-equipo">${renderFilasDetalle(eq.negro, stats)}</div>` }
         })}
       `;
@@ -5168,10 +5184,10 @@
         ${renderEncabezadoTarjeta(m, null)}
         ${renderZonaEquipos(m, {
           blanco: {
-            header: `Equipo Blanco ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
+            header: `<span class="team-name">Equipo Blanco</span> ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
           negro: {
-            header: `Equipo Negro ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}`,
+            header: `<span class="team-name">Equipo Negro</span> ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}`,
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
         })}
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
@@ -5196,10 +5212,10 @@
       ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {
         blanco: {
-          header: `Equipo Blanco <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
+          header: `<span class="team-name">Equipo Blanco</span> <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
           contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
         negro: {
-          header: `Equipo Negro <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span>`,
+          header: `<span class="team-name">Equipo Negro</span> <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span>`,
           contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
       })}
       ${renderDiferenciaPorLinea(celdasLineas, diffObjetivo)}
