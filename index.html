@@ -468,14 +468,19 @@
   /* NFR-002: el mismo piso táctil de 44×44 que `.panel-icono` ya tenía (TC-020), reutilizado sin
      un tamaño nuevo. */
   .panel-icono:disabled{ opacity: 0.35; cursor: not-allowed; }
-  /* El botón "−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos ≥390px, 38×38 debajo
-     (NFR-002, handoff/README.md:675-676). Sin ícono nuevo: el glyph "−" reutiliza tipografía, no
-     agrega un asset (TC-031). */
-  .detalle-quitar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; margin-left: auto; padding: 0; border: none; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
-  .detalle-quitar-btn:hover{ color: var(--ink); }
-  .team-panel.negro .detalle-quitar-btn{ color: rgba(255,255,255,0.65); }
+  /* Los botones "+"/"−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos ≥390px, 38×38
+     debajo (NFR-002, handoff/README.md:675-676). Sin ícono nuevo: los glyphs "+"/"−" reutilizan
+     tipografía, no agregan un asset (TC-031). Sólo el primero (el "−") lleva `margin-left:auto`
+     — empuja al par entero al borde derecho de la fila; si los dos lo llevaran, el auto-margin se
+     repartiría entre ambos y los separaría en vez de dejarlos pegados. */
+  .detalle-quitar-btn, .detalle-agregar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: none; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  /* `.detalle-fila` ya pone `gap:6px` entre todos sus hijos (TC-031): alcanza para separar este
+     par sin un margen propio. */
+  .detalle-quitar-btn{ margin-left: auto; }
+  .detalle-quitar-btn:hover, .detalle-agregar-btn:hover{ color: var(--ink); }
+  .team-panel.negro .detalle-quitar-btn, .team-panel.negro .detalle-agregar-btn{ color: rgba(255,255,255,0.65); }
   @media (max-width: 389px){
-    .detalle-quitar-btn{ width: 38px; height: 38px; font-size: 18px; }
+    .detalle-quitar-btn, .detalle-agregar-btn{ width: 38px; height: 38px; font-size: 18px; }
   }
 
   /* Los tres realces son hermanos que se dibujan por encima y NO capturan el puntero: si lo
@@ -522,7 +527,10 @@
   /* --- Encabezado de la tarjeta --- */
   .panel-header{ display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
   .panel-header h3{ margin: 0; }
-  .panel-header-acciones{ display: flex; align-items: center; gap: 8px; }
+  /* `margin-left:auto` además de `justify-content:space-between` del padre: cuando el título es
+     largo y `flex-wrap` manda las acciones a su propio renglón, el auto-margin las sigue pegando
+     al borde derecho de ESE renglón en vez de dejarlas arrancar desde la izquierda. */
+  .panel-header-acciones{ display: flex; align-items: center; gap: 8px; margin-left: auto; }
 
   /* El handoff da `padding: 6px` sobre un ícono de 16px, o sea 28px de lado. NFR-002 fija el piso
      en 44px: son las dos acciones que el administrador usa a diario y viven en la esquina de la
@@ -621,7 +629,10 @@
   .panel-header-titulo{ min-width: 0; }
   .panel-header-titulo h3{ text-transform: capitalize; }
   .panel-header-estrategia{ margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--muted); }
-  .panel-icono-editar{ color: var(--ink); }
+  /* Mismo tono que `.panel-icono-copiar` (var(--muted)): los dos íconos del encabezado del
+     partido finalizado tienen que verse con el mismo peso visual, ninguno más marcado que el
+     otro con sólo un vistazo. */
+  .panel-icono-editar{ color: var(--muted); }
   .panel-icono-editar:hover{ color: var(--pitch-deep); }
 
   /* --- Chips de estadística (sobre la camiseta) ---
@@ -654,18 +665,22 @@
 
   /* --- Fila de resultado --- */
   .fila-resultado{ display: flex; align-items: center; justify-content: center; gap: 24px; padding: 12px 0; margin-bottom: 12px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); }
-  .resultado-equipo{ flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-  .resultado-equipo.der{ align-items: flex-end; }
+  /* El nombre y el puntaje de armado se mudaron al encabezado de cada panel de equipo (arriba de
+     la cancha, con o sin pestaña según el ancho): esta fila ya no muestra ninguno de los dos, así
+     que el bloque que los contenía no aporta nada y se saca del flujo. */
+  .resultado-equipo{ display: none; }
   .resultado-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; }
   .resultado-puntaje{ font-family: var(--font-display); font-weight: 900; font-size: 16px; line-height: 24px; font-variant-numeric: tabular-nums; }
   .resultado-pts{ font-size: 12px; color: var(--muted); margin-left: 3px; }
-  .resultado-marcador{ flex: none; display: flex; align-items: baseline; gap: 4px; font-family: var(--font-display); font-weight: 900; font-size: 40px; line-height: 44px; font-variant-numeric: tabular-nums; }
-  .resultado-guion{ font-size: 22px; color: var(--muted); }
-  /* El puntaje de armado sólo se ve en dos columnas (FR-041, FR-042): es CSS, no una rama en JS
-     (TD-07) — el marcado siempre lleva los dos `<span>`, y acá se ocultan. */
+  /* Cada gol se centra bajo la mitad de la zona de SU equipo — la pestaña en una columna
+     (`.equipo-tabs`), el panel en dos (`.teams-wrap`, misma grilla acá para que los centros
+     coincidan) — en vez de agruparse los dos en el medio de toda la fila. El guion se posiciona
+     encima por su cuenta para no correr el centro de ninguna de las dos columnas. */
+  .resultado-marcador{ position: relative; flex: 1; display: grid; align-items: baseline; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; font-family: var(--font-display); font-weight: 900; font-size: 40px; line-height: 44px; font-variant-numeric: tabular-nums; }
+  .resultado-gol{ text-align: center; }
+  .resultado-guion{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; color: var(--muted); }
   @media (max-width: 900px){
-    .resultado-puntaje, .resultado-pts{ display: none; }
-    .resultado-marcador{ font-size: 30px; line-height: 34px; }
+    .resultado-marcador{ grid-template-columns: 1fr 1fr; gap: 0; font-size: 30px; line-height: 34px; }
     .resultado-guion{ font-size: 17px; }
   }
 
@@ -3952,6 +3967,15 @@
     return 'asist';
   }
 
+  // Tipo que agrega el botón "+" de cada fila de detalle: el inverso de `familiaDeTipo`, salvo
+  // que 'goles' es ambiguo (agrupa 'gol' y 'golPenal') — ahí se suma un gol de juego, la misma
+  // ambigüedad que el "−" ya acepta al sacar el último de la familia sin distinguir cuál era.
+  function tipoPorDefectoDeFamilia(familia){
+    if(familia === 'contra') return 'golEnContra';
+    if(familia === 'asist') return 'asistencia';
+    return 'gol';
+  }
+
   // Valida un toque antes de agregarlo al borrador. Rechaza un jugador fuera de la convocatoria
   // (FR-034, TC-041) y una asistencia cuando el equipo del jugador tocado todavía no metió ningún
   // gol propio en el borrador (FR-032, misma regla que index.html:3955-3960 tenía para la grilla).
@@ -4377,6 +4401,23 @@
     if(!m || !enModoCarga(m)) return;
     if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
     resultadoDraft.eventos = quitarUltimoDeFamilia(resultadoDraft.eventos, jugadorId, familia);
+    renderTeamsSection(m);
+  };
+
+  // El botón "+" de cada fila de detalle: mismo gesto que tocar la camiseta, pero sin tener que
+  // cambiar de tipo activo en la toolbar para sumar uno más de la estadística que la fila ya
+  // muestra. Misma validación que `__tocarNombreJugador` (convocatoria y la regla de asistencia
+  // sin gol, FR-032/FR-034), para que este atajo nunca cargue algo que el toque directo rechazaría.
+  window.__agregarUnoDeFamiliaCarga = function(matchId, jugadorId, familia){
+    if(!isAdmin()) return; // FR-080
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !enModoCarga(m)) return;
+    if(!resultadoDraft || resultadoDraft.matchId !== matchId) return;
+    const idsConvocados = [...m.equipos.blanco, ...m.equipos.negro];
+    const idsEquipoDeJugador = m.equipos.blanco.includes(jugadorId) ? m.equipos.blanco : m.equipos.negro;
+    const tipo = tipoPorDefectoDeFamilia(familia);
+    if(!puedeAgregarEvento(resultadoDraft.eventos, idsConvocados, jugadorId, tipo, idsEquipoDeJugador)) return;
+    resultadoDraft.eventos = agregarEvento(resultadoDraft.eventos, jugadorId, tipo);
     renderTeamsSection(m);
   };
 
@@ -5024,15 +5065,19 @@
      el texto que escondía es el mismo `resumen` que ahora se lee siempre (D-14, FR-010 a FR-012). */
   function renderComboEstrategia(m){
     if(!isAdmin()) return '';
-    const actual = estrategiaValida(m.estrategia) ? m.estrategia : 'estrategia1';
+    // Bloqueado (inscripción cerrada, o editando un resultado finalizado): la estrategia ya no se
+    // puede cambiar en este estado, así que no alcanza con deshabilitar el combo — se saca
+    // entero, mismo criterio que ya usa `renderAvisoDesactualizado` para lo que dejó de aplicar.
     const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
+    if(locked) return '';
+    const actual = estrategiaValida(m.estrategia) ? m.estrategia : 'estrategia1';
     const opciones = Object.entries(ESTRATEGIAS)
       .map(([key, e]) => '<option value="' + key + '"' + (key === actual ? ' selected' : '') + '>' + escaparHtml(e.label) + '</option>')
       .join('');
     return '<div class="panel-estrategia admin-only">'
       + '<span class="panel-estrategia-label">Estrategia</span>'
       + '<span class="panel-estrategia-campo">'
-      + '<select id="selectEstrategia"' + (locked ? ' disabled' : '') + '>' + opciones + '</select>'
+      + '<select id="selectEstrategia">' + opciones + '</select>'
       + ICON_CHEVRON + '</span></div>'
       + '<p class="panel-estrategia-resumen" id="resumenEstrategia">' + escaparHtml(ESTRATEGIAS[actual].resumen) + '</p>';
   }
@@ -5119,7 +5164,19 @@
     });
   }
 
+  /* Repinta reemplazando el contenido de #teamsSection entero, y ese reemplazo puede correr el
+     scroll de la página aunque ninguna de las ramas de abajo llame a un scrollTo explícito: el
+     navegador reancla la posición cuando el nodo que estaba usando de referencia desaparece
+     (mismo caso que `window.__verEquipo`). Envolver acá, en el único punto por el que pasan todos
+     los llamados —tocar la camiseta, el "+"/"−" de una fila, deshacer, cambiar de pestaña,
+     etc.—, alcanza para los dos sin repetir el guardado/restaurado en cada handler. */
   function renderTeamsSection(m){
+    const scrollY = window.scrollY;
+    renderTeamsSectionImpl(m);
+    window.scrollTo(0, scrollY);
+  }
+
+  function renderTeamsSectionImpl(m){
     const section = el('teamsSection');
     const titularIds = getTitularIds(m);
 
@@ -5157,13 +5214,18 @@
        dos ramas de abajo y retorna temprano: no se toca ninguna de sus líneas (R-04). */
     if(m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id){
       const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
+      /* El puntaje de armado que antes vivía en la fila de resultado (lado izq/der) se muda acá:
+         en una columna reemplaza al nombre (que ya repite la pestaña activa), y en dos columnas
+         queda alineado a la derecha del mismo `h4` junto al nombre, que ahí sí hace falta porque
+         no hay pestaña que lo diga. */
+      const puntajeTexto = (pts) => Math.round(pts * 10) / 10 + ' pts';
       section.innerHTML = `
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
         ${renderZonaEquipos(m, {
-          blanco: { header: '<span class="team-name">Equipo Blanco</span>',
+          blanco: { header: `<span class="team-name">Equipo Blanco</span> <span class="team-total">${puntajeTexto(m.equipos.sumaBlanco)}</span>`,
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + `<div class="detalle-equipo">${renderFilasDetalle(eq.blanco, stats)}</div>` },
-          negro: { header: '<span class="team-name">Equipo Negro</span>',
+          negro: { header: `<span class="team-name">Equipo Negro</span> <span class="team-total">${puntajeTexto(m.equipos.sumaNegro)}</span>`,
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + `<div class="detalle-equipo">${renderFilasDetalle(eq.negro, stats)}</div>` }
         })}
       `;
@@ -5239,11 +5301,11 @@
      cancha (FR-003, FR-005, FR-005b, FR-005c). */
   function lineaEstrategiaPartidoFinalizado(m, unaColumna){
     const esNueve = m.cancha === 'futbol9';
-    const resumen = ESTRATEGIAS[m.equipos.estrategiaKey].resumen;
+    const nombre = ESTRATEGIAS[m.equipos.estrategiaKey].label;
     const partes = [];
     if(unaColumna) partes.push(canchaLabel(m));
     if(esNueve) partes.push('Formación ' + formacionTexto(m));
-    partes.push('Estrategia: ' + resumen);
+    partes.push('Estrategia: ' + nombre);
     return partes.join(' · ');
   }
 
@@ -5352,8 +5414,8 @@
   }
 
   // Las filas de detalle debajo de la cancha en modo de carga: una por jugador y por familia con
-  // al menos un evento (FR-042), con el botón "−" sólo cuando `editable` (FR-050, FR-051; nunca
-  // para el rol jugador, FR-003). "Sin eventos cargados para este equipo" si no hay ninguna
+  // al menos un evento (FR-042), con los botones "+"/"−" sólo cuando `editable` (FR-050, FR-051;
+  // nunca para el rol jugador, FR-003). "Sin eventos cargados para este equipo" si no hay ninguna
   // (FR-043).
   function renderFilasDetalleCarga(m, ids, eventos, editable){
     const filas = detalleCargaDeEquipo(ids, eventos);
@@ -5363,6 +5425,8 @@
       const btn = editable
         ? '<button type="button" class="detalle-quitar-btn" title="Sacar uno" aria-label="Sacar uno"'
           + ' onclick="window.__quitarUltimoDeFamiliaCarga(\'' + m.id + '\',\'' + f.p.id + '\',\'' + f.familia + '\')">&minus;</button>'
+          + '<button type="button" class="detalle-agregar-btn" title="Sumar uno" aria-label="Sumar uno"'
+          + ' onclick="window.__agregarUnoDeFamiliaCarga(\'' + m.id + '\',\'' + f.p.id + '\',\'' + f.familia + '\')">+</button>'
         : '';
       return '<div class="detalle-fila"><span class="detalle-nombre">' + escaparHtml(fullName(f.p)) + '</span>'
         + '<span class="detalle-cifra">' + f.cantidad + iconoDe[f.familia] + '</span>'
@@ -5383,7 +5447,7 @@
       + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>';
     return '<div class="fila-resultado">'
       + lado('Blanco', m.equipos.sumaBlanco, 'izq')
-      + '<div class="resultado-marcador"><span>' + golesBlanco + '</span><span class="resultado-guion">-</span><span>' + golesNegro + '</span></div>'
+      + '<div class="resultado-marcador"><span class="resultado-gol">' + golesBlanco + '</span><span class="resultado-guion">-</span><span class="resultado-gol">' + golesNegro + '</span></div>'
       + lado('Negro', m.equipos.sumaNegro, 'der')
       + '</div>';
   }
