@@ -399,15 +399,15 @@ const ESCENARIOS = [
     invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); },
     async comprobar(page) {
-      /* Con la inscripción cerrada el combo se sigue viendo pero deshabilitado, el aviso de
-         desactualizado no aparece, y los bloques del panel que no dependen de la cancha siguen
-         ahí (panel S-02b, S-03c, S-11, S-11b). */
+      /* NOTA (2026-09-02): a pedido del usuario, el combo de estrategia deja de mostrarse
+         (deshabilitado) con la inscripción cerrada — la estrategia ya no se puede tocar en ese
+         estado, así que se saca entero en vez de quedar ahí sin poder usarse; cambia lo que
+         describían `panel/FR-010`/`FR-015`/`S-02b`. El aviso de desactualizado sigue sin
+         aparecer, y los bloques del panel que no dependen de la cancha siguen ahí (S-11, S-11b). */
       return page.evaluate(() => {
         const problemas = [];
         if (!document.querySelector('.cancha')) problemas.push('no se dibujó la cancha con la inscripción cerrada (D-12, TC-011)');
-        const combo = document.querySelector('#selectEstrategia');
-        if (!combo) problemas.push('el combo de estrategia desapareció con la inscripción cerrada (panel FR-010)');
-        else if (!combo.disabled) problemas.push('el combo quedó habilitado con la inscripción cerrada (panel FR-015, S-02b)');
+        if (document.querySelector('#selectEstrategia')) problemas.push('el combo de estrategia sigue viéndose con la inscripción cerrada, ya no se puede modificar');
         if (document.querySelector('.panel-aviso')) problemas.push('apareció el aviso de desactualizado con la inscripción cerrada (panel FR-024, S-03c)');
         if (!document.querySelector('.panel-header')) problemas.push('la tarjeta perdió el encabezado nuevo (panel S-11)');
         if (!document.querySelector('.panel-receipt')) problemas.push('la tarjeta perdió el receipt (panel S-11)');
@@ -420,13 +420,21 @@ const ESCENARIOS = [
     /* `cancha/S-10a`, `arrastre/S-10a` y `panel/S-11a` decían "partido finalizado: mismo
        resultado que cerrado, sin cancha" — la rebanada 4 invierte exactamente eso (FR-020), así
        que esos tres tags dejan de describir esta pantalla y se reemplazan por los de la Spec de
-       esta rebanada. */
+       esta rebanada.
+
+       NOTA (2026-09-02): a pedido del usuario, el puntaje de armado se mudó de la fila de
+       resultado al encabezado de cada panel de equipo (reemplaza al nombre en una columna, va a
+       su derecha en dos) — el comportamiento que describían `finalizado/S-04`, `S-04b` y
+       `FR-042b` cambió y este archivo ya lo verifica; falta reflejarlo en
+       PARTIDO_FINALIZADO_SPEC.md. */
     spec: ['finalizado/S-01', 'finalizado/S-01a', 'finalizado/S-02', 'finalizado/S-02a', 'finalizado/S-03', 'finalizado/S-04', 'finalizado/S-04b', 'finalizado/S-05'],
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); },
     async comprobar(page) {
-      /* A 360px (una columna): título con sólo la fecha, selector sin puntaje de armado en la
-         fila de resultado, y ningún bloque del panel de armado que ya no aplica a este estado. */
+      /* A 360px (una columna): título con sólo la fecha, la fila de resultado sin nombre ni
+         puntaje de armado (los dos viven ahora en el encabezado de la cancha, y ahí el nombre se
+         reemplaza por el puntaje porque la pestaña activa ya dice qué equipo es), y ningún
+         bloque del panel de armado que ya no aplica a este estado. */
       const unaColumna = await page.evaluate(() => {
         const problemas = [];
         if (!document.querySelector('.cancha')) problemas.push('no se dibujó la cancha del partido finalizado (finalizado/S-02)');
@@ -436,27 +444,42 @@ const ESCENARIOS = [
         if (document.querySelector('.panel-lineas')) problemas.push('sigue la diferencia por línea en el partido finalizado (FR-043)');
         if (document.querySelector('.panel-receipt')) problemas.push('sigue el receipt en el partido finalizado (FR-043)');
         if (document.querySelector('.panel-pildora')) problemas.push('sigue la píldora de diferencia en el partido finalizado (FR-043)');
-        const h4 = document.querySelector('.team-panel h4');
-        if (h4 && /\d/.test(h4.textContent)) problemas.push(`el encabezado del panel de equipo repite un número (finalizado/FR-042b): "${h4.textContent.trim()}"`);
+        const nombre = document.querySelector('.team-panel h4 .team-name');
+        if (nombre && nombre.getBoundingClientRect().width > 0) problemas.push('a 360px se ve el nombre del equipo en el encabezado de la cancha, repite la pestaña activa');
+        const total = document.querySelector('.team-panel h4 .team-total');
+        if (!total || total.getBoundingClientRect().width === 0 || !/\d/.test(total.textContent)) {
+          problemas.push('a 360px no se ve el puntaje de armado en el encabezado de la cancha');
+        }
         const titulo = (document.querySelector('.panel-header-titulo h3') || {}).textContent || '';
         if (titulo.includes(' - ')) problemas.push(`a 360px el título incluyó el tamaño de cancha (finalizado/S-01a): "${titulo}"`);
+        const nombresResultado = [...document.querySelectorAll('.resultado-nombre')];
+        if (nombresResultado.some(n => n.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el nombre del equipo en la fila de resultado, ahora vive en el encabezado de la cancha');
         const puntajes = [...document.querySelectorAll('.resultado-puntaje')];
-        if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado (finalizado/S-04b)');
+        if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado, ahora vive en el encabezado de la cancha');
         const iconos = document.querySelectorAll('.panel-header-acciones .panel-icono');
         if (iconos.length !== 2) problemas.push(`el encabezado nuevo tiene ${iconos.length} ícono(s) de acción en vez de 2 (finalizado/S-01)`);
         return problemas;
       });
-      /* A 1200px (dos columnas): el título suma el tamaño de cancha y la fila de resultado
-         vuelve a mostrar el puntaje de armado (FR-002, FR-041). */
+      /* A 1200px (dos columnas): el título suma el tamaño de cancha; la fila de resultado ya no
+         muestra ni el nombre ni el puntaje de armado (los dos viven ahora en el encabezado de
+         cada panel de equipo, nombre a la izquierda y puntaje a la derecha). */
       await page.setViewportSize({ width: 1200, height: 900 });
       await page.waitForTimeout(200);
       const dosColumnas = await page.evaluate(() => {
         const problemas = [];
         const titulo = (document.querySelector('.panel-header-titulo h3') || {}).textContent || '';
         if (!titulo.includes(' - ')) problemas.push(`a 1200px el título no incluyó el tamaño de cancha (finalizado/S-01): "${titulo}"`);
-        const puntajes = [...document.querySelectorAll('.resultado-puntaje')];
-        if (!puntajes.length || puntajes.some(p => p.getBoundingClientRect().width === 0)) {
-          problemas.push('a 1200px no se ve el puntaje de armado en la fila de resultado (finalizado/S-04)');
+        const nombresResultado = [...document.querySelectorAll('.resultado-nombre')];
+        if (nombresResultado.some(n => n.getBoundingClientRect().width > 0)) problemas.push('a 1200px se ve el nombre del equipo en la fila de resultado, repite el encabezado de la cancha');
+        const puntajesResultado = [...document.querySelectorAll('.resultado-puntaje')];
+        if (puntajesResultado.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 1200px se ve el puntaje de armado en la fila de resultado, ahora vive en el encabezado de la cancha');
+        const nombres = [...document.querySelectorAll('.team-panel h4 .team-name')];
+        if (!nombres.length || nombres.some(n => n.getBoundingClientRect().width === 0)) {
+          problemas.push('a 1200px no se ve el nombre del equipo en el encabezado de la cancha');
+        }
+        const totales = [...document.querySelectorAll('.team-panel h4 .team-total')];
+        if (!totales.length || totales.some(t => t.getBoundingClientRect().width === 0 || !/\d/.test(t.textContent))) {
+          problemas.push('a 1200px no se ve el puntaje de armado en el encabezado de la cancha');
         }
         return problemas;
       });
@@ -811,15 +834,16 @@ const ESCENARIOS = [
       if (!desvio || !desvio.includes('Desvío aceptable')) problemas.push('con umbral configurado, el bloque debe declararlo en palabras (FR-032, NFR-003)');
       const por = Object.fromEntries(celdas.map(c => [c.linea, c]));
       /* El plantel testigo tiene un solo candidato a arquero y un solo titular con puntaje de
-         delantero, así que el Arco y el Ataque quedan desparejos por 6 — y son justamente las
-         dos líneas que la regla NO puede marcar. Las dos de campo quedan desparejas por 4 y sí.
-         Es el caso que distingue a `D-22`, y sale del plantel real, no de números inventados. */
+         delantero, así que el Arco y el Ataque quedan desparejos por 6. Aunque son líneas de un
+         solo lugar por equipo (esa diferencia sigue siendo inevitable y el receipt la sigue
+         explicando así), el color ya no distingue: con el umbral en 1, las cuatro líneas que
+         superan el desvío se marcan igual. */
       if (!por.Defensa || !por.Defensa.excedida) problemas.push('la Defensa supera el desvío y podía repartirse: debería quedar marcada (FR-033)');
       if (!por.Medio || !por.Medio.excedida) problemas.push('el Medio supera el desvío y podía repartirse: debería quedar marcado (FR-033)');
       if (!por.Arco) problemas.push('el Arco no se dibujó: el fixture debería dejarlo con puntaje');
-      else if (por.Arco.excedida) problemas.push(`el Arco quedó marcado (${por.Arco.texto}): es línea de un solo lugar y nunca se marca (FR-034, D-22)`);
+      else if (!por.Arco.excedida) problemas.push(`el Arco supera el desvío (${por.Arco.texto}): debería quedar marcado igual que Defensa y Medio`);
       if (!por.Ataque) problemas.push('el Ataque no se dibujó: el fixture debería dejarlo con puntaje');
-      else if (por.Ataque.excedida) problemas.push(`el Ataque quedó marcado (${por.Ataque.texto}): es línea de un solo lugar y nunca se marca (FR-034, D-22)`);
+      else if (!por.Ataque.excedida) problemas.push(`el Ataque supera el desvío (${por.Ataque.texto}): debería quedar marcado igual que Defensa y Medio`);
       return problemas;
     } },
 
