@@ -312,7 +312,9 @@ const INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA = () => {
 const INVARIANTE_CARGA_TOQUE = () => {
   if (!document.querySelector('.carga-toolbar')) return [];
   const problemas = [];
-  const deshacer = document.querySelector('.carga-toolbar .panel-icono');
+  // Deshacer vive al pie de las dos canchas, junto a Guardar cuando corresponde (`.carga-acciones`,
+  // diseño 8e del handoff) — ya no arriba, en la toolbar de tipo de evento (2026-09-02).
+  const deshacer = document.querySelector('.carga-acciones .panel-icono');
   if (deshacer) {
     const b = deshacer.getBoundingClientRect();
     if (b.width < 44 - 0.5 || b.height < 44 - 0.5) {
@@ -1312,23 +1314,27 @@ const ESCENARIOS = [
 
         // toque/S-06: cambiar de pestaña de equipo conserva los eventos ya cargados de Blanco, y
         // el marcador del equipo que no está en pantalla también deriva del borrador completo
-        // (FR-020 a FR-022).
+        // (FR-020 a FR-022). El total de goles vive en la franja de resultado (`.resultado-gol`,
+        // dos spans: Blanco y Negro en ese orden) — el header del equipo (`.team-total`) sólo
+        // muestra el puntaje de armado desde que ese número se sacó de ahí por ser redundante
+        // (2026-09-02, a pedido del usuario).
         const totalBlanco = document.getElementById('totalBlancoSpan');
         const marcadorBlancoAntes = totalBlanco ? totalBlanco.textContent : null;
+        const golesResultado = () => [...document.querySelectorAll('.resultado-gol')];
         const tabOtra = document.querySelector('.equipo-tab[aria-pressed="false"]');
         if (!tabOtra) {
           problemas.push('no había pestaña del otro equipo para cambiar (toque/S-06)');
         } else {
           tabOtra.click();
-          const totalNegroAntes = document.getElementById('totalNegroSpan');
-          if (!totalNegroAntes || !/·\s*0\s*goles/.test(totalNegroAntes.textContent)) {
-            problemas.push(`el marcador de Negro antes de tocarlo no muestra "0 goles" (toque/S-06, FR-022): "${totalNegroAntes && totalNegroAntes.textContent}"`);
+          const golNegroAntes = golesResultado()[1];
+          if (!golNegroAntes || golNegroAntes.textContent.trim() !== '0') {
+            problemas.push(`el marcador de Negro antes de tocarlo no muestra "0" (toque/S-06, FR-022): "${golNegroAntes && golNegroAntes.textContent}"`);
           }
           const nombreNegro = individuales()[0];
           if (nombreNegro) nombreNegro.click();
-          const totalNegroDespues = document.getElementById('totalNegroSpan');
-          if (!totalNegroDespues || !/·\s*1\s*gol\b/.test(totalNegroDespues.textContent)) {
-            problemas.push(`tocar un nombre de Negro no actualizó su marcador a "1 gol" (toque/S-06): "${totalNegroDespues && totalNegroDespues.textContent}"`);
+          const golNegroDespues = golesResultado()[1];
+          if (!golNegroDespues || golNegroDespues.textContent.trim() !== '1') {
+            problemas.push(`tocar un nombre de Negro no actualizó su marcador a "1" (toque/S-06): "${golNegroDespues && golNegroDespues.textContent}"`);
           }
           const tabBlanco = document.querySelector('.equipo-tab[aria-pressed="false"]');
           if (tabBlanco) tabBlanco.click();
@@ -1340,7 +1346,7 @@ const ESCENARIOS = [
 
         // toque/S-05a: Deshacer está habilitado mientras el borrador tiene eventos, y se
         // deshabilita exactamente cuando queda vacío (FR-062).
-        const deshacer = () => document.querySelector('.carga-toolbar .panel-icono');
+        const deshacer = () => document.querySelector('.carga-acciones .panel-icono');
         if (!deshacer()) {
           problemas.push('no se encontró el botón Deshacer (toque/S-05a)');
         } else if (deshacer().disabled) {

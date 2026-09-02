@@ -460,16 +460,22 @@
   /* Sin esto el flex row lo achica por debajo de sus 44px explícitos en anchos angostos, donde
      el selector de cuatro opciones ya pide todo el ancho disponible (NFR-002). */
   .carga-toolbar-header .panel-icono{ flex-shrink: 0; }
+  /* Deshacer y Guardar, al pie de las dos canchas (diseño 8e del handoff) — no en la toolbar de
+     arriba ni en la botonera del pie de toda la tarjeta. */
+  .carga-acciones{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; }
   .evento-tabs{ position: relative; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: var(--radius-pill); background: var(--chalk); }
   .evento-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 4); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .evento-tabs[data-activo="1"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4); }
   .evento-tabs[data-activo="2"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4 * 2); }
   .evento-tabs[data-activo="3"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4 * 3); }
   /* El texto envuelve en vez de truncarse (NFR-001): a 360px "Gol en contra" no entra en una
-     columna, y la opción de leer bien pesa más que forzar una sola línea (D-13). */
-  .evento-tab{ position: relative; z-index: 1; padding: 8px 2px; min-height: 40px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 11.5px; line-height: 1.15; cursor: pointer; border-radius: var(--radius-pill); }
+     columna, y la opción de leer bien pesa más que forzar una sola línea (D-13). El ícono va
+     arriba de la etiqueta (no al lado): con la etiqueta en dos líneas, al lado quedaría
+     descentrado respecto del ícono (diseño 8e del handoff). */
+  .evento-tab{ position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; min-height: 40px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 11.5px; line-height: 1.15; cursor: pointer; border-radius: var(--radius-pill); }
   .evento-tab:hover{ opacity: 0.7; }
   .evento-tab:active{ opacity: 0.7; transform: scale(0.97); }
+  .evento-tab-icon{ display: block; flex: none; }
   .evento-ayuda{ margin: 6px 0 0; font-size: 12px; color: var(--muted); }
   /* NFR-002: el mismo piso táctil de 44×44 que `.panel-icono` ya tenía (TC-020), reutilizado sin
      un tamaño nuevo. */
@@ -553,6 +559,10 @@
   .panel-icono-regenerar{ color: var(--ink); }
   .panel-icono-regenerar:hover{ color: var(--pitch-deep); }
   .panel-icono-regenerar svg{ stroke: var(--pitch); stroke-width: 2.2; }
+  /* Guardar es la acción primaria de la carga (editar un resultado finalizado): mismo relleno que
+     `.btn-primary`, pero circular, como pide el diseño 8e del handoff. */
+  .panel-icono-guardar{ background: var(--pitch); color: var(--pitch-on); }
+  .panel-icono-guardar:hover{ background: var(--pitch-light); }
 
   /* --- Píldora de diferencia --- */
   .panel-pildora{ display: inline-flex; align-items: center; gap: 4px; padding: 4px 12px; border-radius: var(--radius-pill); background: var(--paper); color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; white-space: nowrap; }
@@ -954,7 +964,7 @@
         </div>
       </div>
 
-      <div class="autocomplete-wrap">
+      <div class="autocomplete-wrap" id="convBuscadorWrap">
         <div class="search">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input type="text" id="matchSearchInput" placeholder="Buscar jugador para convocar...">
@@ -4050,26 +4060,35 @@
     return propios + enContraDelRival;
   }
 
-  function teamHeaderTotalText(ids, sumaPts, m){
-    let text = `${Math.round(sumaPts*10)/10} pts`;
+  // Goles actuales de un equipo, ya sea desde el borrador de carga activo (inscripción cerrada
+  // sin finalizar, o edición de un resultado finalizado) o desde el resultado ya guardado.
+  // Única fuente de verdad para el total de goles de un equipo "en pantalla" — la reutilizan el
+  // header de admin (`teamHeaderTotalText`) y el de "jugador" en `renderTeamsSection`, para que
+  // los dos vean el mismo número mientras se carga el resultado, no sólo una vez finalizado.
+  function golesEquipoActual(ids, m){
     const idsRival = ids === m.equipos.blanco ? m.equipos.negro : m.equipos.blanco;
-    let goles = null;
     if(resultadoDraft && resultadoDraft.matchId === m.id){
       // Mientras hay un borrador activo (carga inicial o edición de un resultado finalizado), el
       // total del equipo tiene que reflejar lo que se está cargando, no el resultado ya guardado
       // (FR-022, TC-002: pasa por la misma derivación que el resto de la carga).
-      goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDesdeEventos(resultadoDraft.eventos, [...m.equipos.blanco, ...m.equipos.negro]));
-    }else if(m.estado === 'Finalizado' && m.resultado){
-      goles = totalGolesEquipo(ids, idsRival, statsPorJugadorDelPartido(m)); // rebanada 5, TC-012
+      return totalGolesEquipo(ids, idsRival, statsPorJugadorDesdeEventos(resultadoDraft.eventos, [...m.equipos.blanco, ...m.equipos.negro]));
     }
-    if(goles !== null) text += ` · ${goles} gol${goles===1?'':'es'}`;
-    return text;
+    if(m.estado === 'Finalizado' && m.resultado){
+      return totalGolesEquipo(ids, idsRival, statsPorJugadorDelPartido(m)); // rebanada 5, TC-012
+    }
+    return null;
+  }
+
+  // Sólo el puntaje de armado: el total de goles ya no se repite acá — vive en la franja de
+  // resultado (`renderFilaResultado`), que es la única fuente de ese número en pantalla.
+  function teamHeaderTotalText(sumaPts){
+    return `${Math.round(sumaPts*10)/10} pts`;
   }
 
   function updateTeamTotalsDisplay(m){
     const spanB = el('totalBlancoSpan'), spanN = el('totalNegroSpan');
-    if(spanB) spanB.textContent = teamHeaderTotalText(m.equipos.blanco, m.equipos.sumaBlanco, m);
-    if(spanN) spanN.textContent = teamHeaderTotalText(m.equipos.negro, m.equipos.sumaNegro, m);
+    if(spanB) spanB.textContent = teamHeaderTotalText(m.equipos.sumaBlanco);
+    if(spanN) spanN.textContent = teamHeaderTotalText(m.equipos.sumaNegro);
   }
 
   function posicionAsignadaDe(p, m){
@@ -4201,6 +4220,9 @@
   const ICON_ROTACION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
   /* Único asset visual nuevo de esta rebanada (TC-031): el botón Deshacer de la carga por toque. */
   const ICON_DESHACER = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H9"/></svg>';
+  // Ícono de guardar (disquete) — mismo trazo que usa el diseño 8e del handoff para el botón
+  // Guardar de la carga de resultados, reemplazando el texto "Guardar cambios".
+  const ICON_GUARDAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-7H7v7"/><path d="M7 3v5h7"/></svg>';
   /* Las marcas del campo, iguales para los dos equipos. Todas en porcentajes, así que el dibujo
      es el mismo a cualquier ancho; el lado de abajo espeja al de arriba vía la clase `abajo`. */
   const MARCAS_CANCHA = [
@@ -5145,11 +5167,8 @@
       botones.push('<button class="btn-primary" onclick="window.__finalizarPartido(\'' + m.id + '\')">Finalizar partido</button>');
     }
     // El botón "Editar resultado" se mudó al encabezado del partido finalizado, como ícono
-    // (rebanada 4, FR-006, FR-009b — reemplaza el texto que vivía acá).
-    if(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id){
-      botones.push('<button class="btn-primary" onclick="window.__guardarEdicionResultado(\'' + m.id + '\')">Guardar cambios</button>');
-      botones.push('<button class="btn-ghost" onclick="window.__cancelarEdicionResultado(\'' + m.id + '\')">Cancelar</button>');
-    }
+    // (rebanada 4, FR-006, FR-009b — reemplaza el texto que vivía acá). Guardar/Cancelar de esa
+    // edición se mudaron a `renderAccionesDeCarga`, al pie de las dos canchas (diseño 8e).
     return botones.length ? '<div class="panel-botonera">' + botones.join('') + '</div>' : '';
   }
 
@@ -5214,9 +5233,13 @@
     // Filas de detalle editables debajo de cada cancha mientras el modo de carga está activo
     // (FR-042); visibles para los dos roles, el botón "−" sólo si `isAdmin()` (FR-003, FR-050).
     const eventosDraftActivo = (resultadoDraft && resultadoDraft.matchId === m.id) ? resultadoDraft.eventos : [];
-    const detalleCargaHtml = (ids) => enModoCarga(m)
-      ? '<div class="detalle-equipo">' + renderFilasDetalleCarga(m, ids, eventosDraftActivo, isAdmin()) + '</div>'
-      : '';
+    const detalleCargaHtml = (ids) => {
+      if(!enModoCarga(m)) return '';
+      const filasHtml = renderFilasDetalleCarga(m, ids, eventosDraftActivo, isAdmin());
+      // Sin filas y sin el aviso de "admin" (rol jugador), no queda nada que envolver — evita un
+      // `.detalle-equipo` vacío que sólo aportaría su margen superior sin contenido.
+      return filasHtml ? '<div class="detalle-equipo">' + filasHtml + '</div>' : '';
+    };
 
     /* Partido finalizado, sin edición en curso: una única rama, compartida por "admin" y
        "jugador" (rebanada 4, TD-01) — FR-060 hace que los dos roles vean lo mismo salvo el
@@ -5246,20 +5269,18 @@
       // "jugador" ve la cancha con qué jugador quedó en qué equipo, pero nunca estrategia,
       // diferencia de puntaje, jugadores sin puntaje, bloqueados ni la explicación de armado
       // (FR-005/FR-006/FR-007/FR-013/FR-014 — ver data-model.md → Partido).
-      let golesBlanco = null, golesNegro = null;
-      if(m.estado === 'Finalizado' && m.resultado){
-        const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
-        golesBlanco = totalGolesEquipo(eq.blanco, eq.negro, stats);
-        golesNegro = totalGolesEquipo(eq.negro, eq.blanco, stats);
-      }
+      // Con la inscripción cerrada (modo de carga activo) el marcador ya se ve igual que en el
+      // partido finalizado (misma fila, `renderFilaResultado`, ya lee del borrador en vivo vía
+      // `golesEquipoActual`), no recién al finalizar. El header del equipo no repite el número.
       section.innerHTML = `
         ${renderEncabezadoTarjeta(m, null)}
+        ${enModoCarga(m) ? renderFilaResultado(m) : ''}
         ${renderZonaEquipos(m, {
           blanco: {
-            header: `<span class="team-name">Equipo Blanco</span> ${golesBlanco !== null ? `<span class="team-total">${golesBlanco} gol${golesBlanco===1?'':'es'}</span>` : ''}`,
+            header: `<span class="team-name">Equipo Blanco</span>`,
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
           negro: {
-            header: `<span class="team-name">Equipo Negro</span> ${golesNegro !== null ? `<span class="team-total">${golesNegro} gol${golesNegro===1?'':'es'}</span>` : ''}`,
+            header: `<span class="team-name">Equipo Negro</span>`,
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
         })}
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
@@ -5278,18 +5299,20 @@
 
     section.innerHTML = `
       ${renderEncabezadoTarjeta(m, resumenDif)}
+      ${enModoCarga(m) ? renderFilaResultado(m) : ''}
       ${renderComboEstrategia(m)}
       ${renderAvisoDesactualizado(m)}
       ${enUnaColumna() ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
       ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {
         blanco: {
-          header: `<span class="team-name">Equipo Blanco</span> <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.blanco, eq.sumaBlanco, m)}</span>`,
+          header: `<span class="team-name">Equipo Blanco</span> <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.sumaBlanco)}</span>`,
           contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
         negro: {
-          header: `<span class="team-name">Equipo Negro</span> <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.negro, eq.sumaNegro, m)}</span>`,
+          header: `<span class="team-name">Equipo Negro</span> <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.sumaNegro)}</span>`,
           contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
       })}
+      ${renderAccionesDeCarga(m)}
       ${renderDiferenciaPorLinea(celdasLineas, diffObjetivo)}
       ${renderPorQueQuedaronAsi(explicaciones)}
       ${renderBotoneraTarjeta(m)}
@@ -5394,11 +5417,13 @@
 
   // Las cuatro opciones del selector de tipo de evento, en el orden de FR-010, con el texto de
   // ayuda que le corresponde a cada una (FR-012).
+  // `icono`: mismo asset que la pastilla de estadística en vivo sobre la camiseta (rebanada 6,
+  // FR-040) — Gol y Penal comparten el ícono de gol, sólo la etiqueta los distingue (diseño 8e).
   const TIPOS_EVENTO_CARGA = [
-    { tipo: 'gol', label: 'Gol', ayuda: 'Tocá la camiseta del que convirtió' },
-    { tipo: 'golPenal', label: 'Penal', ayuda: 'Tocá la camiseta del que convirtió de penal' },
-    { tipo: 'golEnContra', label: 'Gol en contra', ayuda: 'Tocá la camiseta del que se la hizo en contra' },
-    { tipo: 'asistencia', label: 'Asistencia', ayuda: 'Tocá la camiseta del que dio el pase' },
+    { tipo: 'gol', label: 'Gol', ayuda: 'Tocá la camiseta del que convirtió', icono: 'assets/goal-icon.png' },
+    { tipo: 'golPenal', label: 'Penal', ayuda: 'Tocá la camiseta del que convirtió de penal', icono: 'assets/goal-icon.png' },
+    { tipo: 'golEnContra', label: 'Gol en contra', ayuda: 'Tocá la camiseta del que se la hizo en contra', icono: 'assets/goal-icon-red.png' },
+    { tipo: 'asistencia', label: 'Asistencia', ayuda: 'Tocá la camiseta del que dio el pase', icono: 'assets/boot-icon.png' },
   ];
 
   // El selector de tipo de evento + Deshacer, encima de la cancha en modo de carga. Vacío si el
@@ -5410,26 +5435,47 @@
     const activo = TIPOS_EVENTO_CARGA[idxActivo];
     const tabs = TIPOS_EVENTO_CARGA.map(t =>
       '<button type="button" class="evento-tab" aria-pressed="' + (t.tipo === tipoEventoActivo ? 'true' : 'false') + '"'
-      + ' onclick="window.__cambiarTipoEventoActivo(\'' + t.tipo + '\')">' + t.label + '</button>').join('');
-    const sinEventos = !resultadoDraft || resultadoDraft.matchId !== m.id || resultadoDraft.eventos.length === 0;
+      + ' onclick="window.__cambiarTipoEventoActivo(\'' + t.tipo + '\')">'
+      // Decorativo: el nombre del ícono ya lo dice la etiqueta de al lado (alt vacío).
+      + '<img class="evento-tab-icon" src="' + t.icono + '" alt="" width="15" height="15">'
+      + '<span class="evento-tab-label">' + t.label + '</span></button>').join('');
     return '<div class="carga-toolbar">'
       + '<div class="carga-toolbar-header">'
       + '<div class="evento-tabs" data-activo="' + idxActivo + '"><span class="evento-tabs-thumb"></span>' + tabs + '</div>'
-      + '<button type="button" class="panel-icono" aria-label="Deshacer el último evento cargado" title="Deshacer el último evento cargado"'
-      + ' onclick="window.__deshacerUltimoEventoCarga(\'' + m.id + '\')"' + (sinEventos ? ' disabled' : '') + '>' + ICON_DESHACER + '</button>'
       + '</div>'
       // FR-013: tocar dos veces la misma camiseta agrega dos eventos del tipo activo.
       + '<p class="evento-ayuda">' + escaparHtml(activo.ayuda) + '. Tocar dos veces agrega dos eventos; mantener presionado saca uno.</p>'
       + '</div>';
   }
 
+  /* Deshacer y Guardar, juntos y al pie de las dos canchas — no arriba (junto a los tabs de
+     tipo de evento) ni al pie de toda la tarjeta, después del receipt (diseño `8e` del handoff,
+     "Carga de resultados en cancha de 9 — escritorio"). Deshacer vive acá en las dos pantallas
+     de carga (la inicial y la de editar un resultado finalizado); Guardar (antes "Guardar
+     cambios", ahora ícono) y Cancelar sólo cuando se está editando un resultado ya finalizado —
+     en la carga inicial esa acción sigue siendo "Finalizar partido", en `renderBotoneraTarjeta`.
+     A pedido del usuario (2026-09-02), no se tocó ese botón. */
+  function renderAccionesDeCarga(m){
+    if(!enModoCarga(m) || !isAdmin()) return '';
+    const sinEventos = !resultadoDraft || resultadoDraft.matchId !== m.id || resultadoDraft.eventos.length === 0;
+    const botones = ['<button type="button" class="panel-icono" aria-label="Deshacer el último evento cargado" title="Deshacer el último evento cargado"'
+      + ' onclick="window.__deshacerUltimoEventoCarga(\'' + m.id + '\')"' + (sinEventos ? ' disabled' : '') + '>' + ICON_DESHACER + '</button>'];
+    if(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id){
+      botones.push('<button type="button" class="panel-icono panel-icono-guardar" aria-label="Guardar el resultado cargado" title="Guardar el resultado cargado"'
+        + ' onclick="window.__guardarEdicionResultado(\'' + m.id + '\')">' + ICON_GUARDAR + '</button>');
+      botones.push('<button type="button" class="btn-ghost" onclick="window.__cancelarEdicionResultado(\'' + m.id + '\')">Cancelar</button>');
+    }
+    return '<div class="carga-acciones">' + botones.join('') + '</div>';
+  }
+
   // Las filas de detalle debajo de la cancha en modo de carga: una por jugador y por familia con
   // al menos un evento (FR-042), con los botones "+"/"−" sólo cuando `editable` (FR-050, FR-051;
   // nunca para el rol jugador, FR-003). "Sin eventos cargados para este equipo" si no hay ninguna
-  // (FR-043).
+  // (FR-043), pero sólo para `admin`: es quien está tocando la cancha y a quien le sirve saber que
+  // todavía no cargó nada; el rol jugador, que no puede tocar nada, ve la cancha sin ningún aviso.
   function renderFilasDetalleCarga(m, ids, eventos, editable){
     const filas = detalleCargaDeEquipo(ids, eventos);
-    if(!filas.length) return '<div class="detalle-vacio">Sin eventos cargados para este equipo</div>';
+    if(!filas.length) return editable ? '<div class="detalle-vacio">Sin eventos cargados para este equipo</div>' : '';
     const iconoDe = { goles: GOAL_ICON, contra: RED_GOAL_ICON, asist: BOOT_ICON };
     return filas.map(f => {
       const btn = editable
@@ -5445,13 +5491,14 @@
     }).join('');
   }
 
-  /* La fila de resultado: nombre + puntaje de armado a cada costado (sólo en el marcado — el CSS
-     lo oculta en una columna, TD-07) y el marcador real al centro, con `totalGolesEquipo`
-     (FR-040 a FR-042). */
+  /* La fila de resultado: nombre + puntaje de armado a cada costado (el CSS los saca del flujo,
+     TD-07 — ver comentario de `.resultado-equipo`) y el marcador real al centro. Vía
+     `golesEquipoActual` lee tanto el resultado ya guardado como, mientras la inscripción está
+     cerrada sin finalizar, el borrador de carga en vivo — así el rol "jugador" ve el mismo
+     marcador que en el partido finalizado, no recién al finalizar (FR-040 a FR-042). */
   function renderFilaResultado(m){
-    const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
-    const golesBlanco = totalGolesEquipo(m.equipos.blanco, m.equipos.negro, stats);
-    const golesNegro = totalGolesEquipo(m.equipos.negro, m.equipos.blanco, stats);
+    const golesBlanco = golesEquipoActual(m.equipos.blanco, m) || 0;
+    const golesNegro = golesEquipoActual(m.equipos.negro, m) || 0;
     const lado = (nombre, puntaje, alineacion) =>
       '<div class="resultado-equipo ' + alineacion + '"><span class="resultado-nombre">' + nombre + '</span>'
       + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>';
@@ -5662,6 +5709,10 @@
     }
     el('matchSearchInput').disabled = locked;
     el('matchSearchInput').placeholder = locked ? 'Inscripción cerrada' : 'Buscar jugador para convocar...';
+    // Partido finalizado: la convocatoria ya quedó fija, así que ni el buscador con el copy
+    // "Inscripción cerrada" aporta algo — se saca entero (a pedido del usuario). Con la
+    // inscripción sólo cerrada (sin finalizar, todavía reversible) sigue mostrándose.
+    el('convBuscadorWrap').style.display = m.estado === 'Finalizado' ? 'none' : '';
     const btnPrueba = el('btnCompletarPrueba');
     btnPrueba.style.display = (!locked && vacantes > 0) ? '' : 'none';
     if(locked){ el('autocompleteList').style.display = 'none'; el('autocompleteList').innerHTML = ''; }
