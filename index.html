@@ -336,6 +336,13 @@
      deliberada de TC-033, que pide tomar las medidas del handoff literales, y queda anotada como
      tal. El text-shadow es lo que sostiene la legibilidad sobre el verde, no el peso. */
   .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 500; font-size: var(--chip-name); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
+  /* Antes de la cancha (rebanada 1), la fila de la lista marcaba la posición secundaria con un tag
+     de texto visible para cualquier rol. La cancha la dejó solo en el `title` (FR-023b) — invisible
+     en touch. Se repone como marca visual chica, en vez del tag de texto viejo: no entra en una
+     columna de 70-96px sin forzar el nombre a una segunda línea o cortarlo antes. `--mustard-light`
+     es el mismo tono de "warning content" que ya usa el filete del aviso de desactualizado, no un
+     color nuevo. */
+  .camiseta-nombre.secundaria::before{ content: '⇄'; display: inline-block; margin-right: 2px; color: var(--mustard-light); }
   /* Puntaje: sólo para admin (FR-024). Sin puntaje calculable no se dibuja la píldora y el
      `title` de la camiseta lo dice — "sin puntaje" no entra en una píldora de 26px (FR-025). */
   .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: var(--pill-min); padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: var(--pill-fs); line-height: calc(var(--pill-fs) + 6px); text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
@@ -4255,7 +4262,12 @@
     // contenedor no lleva onclick (FR-030b, TD-01). `renderCamiseta` sólo pinta: la validación
     // vive en `__tocarNombreJugador` (TD-03).
     const puedeTocarNombreDupla = enCarga && admin && esUnidadDupla;
-    const nombreSpan = (jug) => '<span class="camiseta-nombre"'
+    // Antes de la cancha, la fila de la lista marcaba la posición secundaria con un tag de texto
+    // al lado del nombre, visible para cualquier rol (`renderTeamPlayerRow`, pre-rebanada 1). La
+    // cancha la degradó a sólo el `title` (FR-023b) — invisible en touch, que es como se usa esta
+    // app en la práctica. Se restituye como marca visual, por INTEGRANTE (no por unidad, para que
+    // una dupla con un solo miembro corrido lo distinga del que sigue en la suya).
+    const nombreSpan = (jug) => '<span class="camiseta-nombre' + (jug.principal !== posAsignada ? ' secundaria' : '') + '"'
       + (puedeTocarNombreDupla
         ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + jug.id + '\')" role="button" tabindex="0"' + attrsPresionSostenida(jug.id)
         : '')
