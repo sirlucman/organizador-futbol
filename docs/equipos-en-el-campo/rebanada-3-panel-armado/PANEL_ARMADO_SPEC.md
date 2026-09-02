@@ -204,7 +204,9 @@ límites propios de esta rebanada:
   del motor real) — heredada. Ver `FR-040` a `FR-045` y `TC-012`.
 - **D-14** (el combo muestra el `resumen` de la estrategia elegida como caption
   visible; la `descripcion` larga queda en Configuración del motor; desaparece el
-  ícono `?`) — heredada. Ver `FR-010` a `FR-014`.
+  ícono `?`) — heredada, parcialmente revertida el 2026-09-02: el caption del
+  `resumen` se saca (ver `FR-011`, §18); la `descripcion` larga sigue sólo en
+  Configuración del motor y el ícono `?` sigue afuera. Ver `FR-010` a `FR-015`.
 - **D-15** (el desvío aceptable es el `diffObjetivo` que ya existe; la grilla se
   muestra sin depender de él y el color aparece sólo cuando está configurado) —
   heredada. Ver `FR-030` a `FR-036`.
@@ -458,17 +460,24 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **FR-010** — Donde el rol de la sesión sea `admin`, el sistema mostrará el combo
   de estrategia arriba de las canchas, con la etiqueta "ESTRATEGIA" a su
   izquierda.
-- **FR-011** — El sistema mostrará debajo del combo el resumen de la estrategia
-  **elegida**, como texto visible y permanente.
+- **FR-011** — El sistema no mostrará ningún resumen ni explicación de la
+  estrategia debajo del combo: sólo el nombre de la estrategia elegida, en el
+  propio `<select>`. *(Invertido 2026-09-02, ver §18: mostrar el resumen
+  permanente resultó ser más ruido que ayuda en la pantalla de equipos
+  generados — el campo `resumen` del catálogo sigue existiendo, pero ya no se
+  lee en ningún render.)*
 - **FR-012** — El sistema dejará de exponer el ícono `?` y su descripción
   emergente en la etiqueta del combo.
-- **FR-013** — Cuando el administrador cambie la estrategia en el combo, el
-  sistema actualizará el resumen mostrado sin regenerar los equipos.
+- **FR-013** — *(Sin efecto desde 2026-09-02, ver §18: sin resumen visible no
+  hay nada que repintar al cambiar de estrategia; el cambio ya no regenera los
+  equipos, que es lo único de este requisito que seguía aplicando.)*
 - **FR-014** — Si el valor recibido del combo no corresponde a una clave del
   catálogo de estrategias, entonces el sistema no lo escribirá en el partido y
   conservará la estrategia elegida anterior.
 - **FR-015** — Mientras la inscripción del partido esté cerrada o el partido esté
-  finalizado, el sistema mantendrá el combo deshabilitado, como hoy.
+  finalizado, el sistema no mostrará el combo. *(Enmendado 2026-09-02, ver §18:
+  antes quedaba deshabilitado pero visible; en ese estado ya no se puede tocar,
+  así que mostrarlo deshabilitado no aportaba nada.)*
 
 ### 7.3 El aviso de equipos desactualizados
 
@@ -654,21 +663,22 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-01d [failure]` — la sesión es de rol `jugador`: el botón de regenerar y la píldora no están en el DOM, y el de copiar sí (`FR-001`, `FR-080`, `FR-081`)
 - `S-01e [boundary]` — el armado tiene una diferencia buscada distinta de cero: la píldora la declara en su descripción emergente (`FR-009`)
 
-#### Scenario S-02 — El combo explica la estrategia sin esconderla (covers FR-010, FR-011, FR-012, FR-013)
+#### Scenario S-02 — El combo sólo nombra la estrategia, sin explicarla (covers FR-010, FR-011, FR-012, FR-015)
+
+*(Título y cuerpo reescritos el 2026-09-02, ver §18 — describía lo opuesto: que el combo SÍ explicaba la estrategia con un resumen permanente. `FR-013`, que este escenario cubría, quedó sin efecto y se sacó de la lista.)*
 
 - **Given** un partido con equipos generados y una sesión con rol `admin`
 - **When** se abre el detalle del partido
-- **Then** debajo del combo se muestra el resumen de la estrategia elegida, como texto visible
+- **Then** el combo muestra el nombre de la estrategia elegida, sin ningún texto de resumen debajo
 - **And** no existe en la tarjeta ningún ícono `?` con descripción emergente de estrategia
 - **When** se elige otra estrategia en el combo
-- **Then** el resumen mostrado pasa a ser el de la estrategia recién elegida
-- **And** el reparto en pantalla no cambia
+- **Then** el reparto en pantalla no cambia
 
 **Variants:**
 
-- `S-02a [property]` — para cada una de las cuatro estrategias del catálogo, el texto mostrado es exactamente su campo `resumen`
-- `S-02b [failure]` — la inscripción está cerrada: el combo está deshabilitado y el resumen se sigue mostrando (`FR-015`)
-- `S-02c [failure]` — la sesión es de rol `jugador`: no hay combo ni resumen (`FR-080`)
+- `S-02a [property]` — para cada una de las cuatro estrategias del catálogo, el campo `resumen` existe, no está vacío y es distinto del de las otras tres. *(Alcance reducido el 2026-09-02, ver §18: ya no valida qué se muestra —nada se muestra—, sino sólo la integridad del dato, que sigue viviendo en el catálogo aunque ningún render lo lea.)*
+- `S-02b [failure]` — la inscripción está cerrada: el combo no se muestra (`FR-015`)
+- `S-02c [failure]` — la sesión es de rol `jugador`: no hay combo (`FR-080`)
 
 #### Scenario S-03 — El aviso de desactualizado conserva su texto y ofrece regenerar (covers FR-020, FR-021, FR-022, FR-023)
 
@@ -1114,6 +1124,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-02 | Lucas Manoukian | Dos correcciones sobre la misma zona, a pedido del usuario. **(1)** `FR-011` se invierte: el combo deja de mostrar el resumen permanente de la estrategia elegida — resultó más ruido que ayuda en la pantalla de equipos generados, mismo motivo que ya había retirado el subtítulo el 2026-09-01. `FR-013` queda sin efecto (no hay resumen que repintar) y `D-14` se anota como parcialmente revertida; `S-02` se reescribe entero y `S-02a` reduce su alcance a validar sólo la integridad del campo `resumen` en el catálogo, no su despliegue. **(2)** `FR-015` se enmienda: con la inscripción cerrada o el partido finalizado, el combo directamente no se muestra, en vez de quedar deshabilitado y visible — cambio hecho el mismo día que el de `S-02` pero no registrado entonces; se documenta ahora al notar la omisión. Self-critique: no corresponde (correcciones acotadas a pedido explícito, verificadas con la suite de tests). |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las seis decisiones tomadas con el propietario el mismo día, que por `MD-01` se registraron como `D-22` a `D-25` en el Concept Note y como diferido de su §14 (el texto de Copiar), y no dentro de esta Spec. Cierra la `OPEN-Q-05` de la rebanada 2 (el selector se conserva donde está) y hereda la `OPEN-Q-03` de aquella Spec ya resuelta por `D-25`. Declara el reemplazo del `FR-009` de `003-motor-generacion-equipos` y de la superficie de lectura de `012-puntajes-coherentes-panel`. Self-critique: passed (2🔴 / 2🟡 / 1🔵), los cinco resueltos. Los 🔴: `TC-020` no tenía criterio de cumplimiento en §11.3 pese a que la rúbrica lo exige para todo `TC-*` (se agregó `AC-29b`), y la §9.4 usaba un `flowchart`, tipo que `MD-24` no admite en la §9 de una Spec (se reemplazó por una tabla, con la razón declarada). Los 🟡: tres `FR-*` compuestos partidos conservando los identificadores estables (`FR-002b`, `FR-006b`, `FR-083`), y `D-03` heredada de hecho por `NFR-001` pero ausente de §3.3. El 🔵: `FR-003` llevaba dos casos de contenido en una línea, partido en `FR-003b` y `FR-003c`. |
 | 2026-08-31 | Lucas Manoukian | Corrección durante la implementación: `FR-046` y `FR-081` decían que el rol `jugador` ve la píldora, la diferencia por línea y el receipt. **Es falso y contradice una spec vigente**: `007-permisos-por-usuario` `FR-005` y su escenario 2 declaran que ese rol no ve puntajes, estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del armado, y la aplicación ya lo implementaba así. Los dos requisitos quedan invertidos, se agrega la declaración de que esa spec **no** se reemplaza, y `AC-09`, `US-07` y `S-01d` se corrigen en consecuencia; `S-04g` y `S-05e` se agregan para cubrir los dos bloques nuevos con ese rol. El error fue inventar un requisito que ninguna decisión respaldaba, en vez de leer el modelo de permisos vigente. En la misma pasada se corrigió `FR-001`, que hacía a Copiar exclusivo de `admin`: el rol `jugador` ya lo tenía y el texto que copia son nombres, así que quitárselo habría sido una pérdida de función que ninguna decisión pidió. Self-critique: no corresponde (corrección acotada, verificada con las pasadas de consistencia). |
 | 2026-09-01 | Lucas Manoukian | Decisión tomada a la vista de la pantalla real: el subtítulo de la tarjeta se retira entero. `FR-084` y `FR-085` quedan invertidos —de "conservar la estrategia aplicada y la ayuda del arrastre" a "retirar las dos"—, se declara el reemplazo del `FR-043` de la Spec de la rebanada 2, y la pérdida de información queda registrada en `OPEN-Q-05` en vez de disimulada. El motivo: entre el combo y la cancha quedaban cuatro renglones grises que, en el caso mayoritario, repetían el nombre que el combo ya muestra. |

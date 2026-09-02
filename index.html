@@ -314,11 +314,17 @@
   .c-semi.abajo{ bottom: 17.5%; border-top: 2px solid rgb(255 255 255 / 0.42); border-bottom: none; border-radius: 50% 50% 0 0 / 100% 100% 0 0; }
   .c-penal.abajo{ bottom: 11.5%; transform: translate(-50%, 50%); }
 
-  /* Capa de jugadores. `space-evenly` reparte el alto entre las líneas que HAY, así que un
-     equipo sin arquero asignado no deja un hueco abajo (FR-012). */
+  /* Capa de jugadores. `space-evenly` reparte el alto entre las cuatro líneas del catálogo,
+     estén ocupadas o no: mover una unidad a mano puede dejar una sin nadie, y si esa línea no
+     reservara su lugar la de al lado subiría a ocuparlo, dando la impresión de que todos los
+     que quedaron ahí juegan en la línea de arriba. */
   .cancha-lineas{ position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-evenly; padding: 2% 0 1%; }
   .cancha-linea{ display: flex; flex-direction: column; gap: 4px; }
   .cancha-subfila{ display: flex; align-items: flex-start; justify-content: center; gap: var(--row-gap); padding: 0 var(--row-pad); }
+  /* Una línea sin nadie sólo trae esta subfila vacía (`renderCanchaEquipo`): sin alto propio no
+     reservaría nada, así que se le da el que ocuparía una fila real de camisetas (figura +
+     nombre), con los mismos tokens que ya escalan por `data-max-fila` y por ancho. */
+  .cancha-subfila:empty{ min-height: calc(var(--chip-size) + 20px); }
 
   /* La camiseta. `--chip-w` es el ancho de la COLUMNA y `--chip-size` el lado del dibujo: cuando
      hay que apretar una fila se angosta la columna antes que la camiseta, que es lo que el
@@ -564,9 +570,6 @@
   .panel-estrategia-campo select{ width: 100%; min-height: 40px; padding: 0 38px 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-control); background: var(--chalk); color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; appearance: none; cursor: pointer; }
   .panel-estrategia-campo select:disabled{ cursor: default; opacity: 0.6; }
   .panel-estrategia-chevron{ position: absolute; right: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-  /* El resumen de la estrategia, visible y permanente: reemplaza al tooltip que había que
-     descubrir y tocar (D-14, FR-011). */
-  .panel-estrategia-resumen{ font-size: 12px; line-height: 16px; color: var(--muted); margin: 0 0 12px; }
 
   /* --- Aviso de equipos desactualizados --- */
   /* La forma sale del disclaimer del handoff (§ Combo de estrategia); el TEXTO es el que la
@@ -4141,9 +4144,13 @@
      docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md */
 
   /* Reparte las unidades de armado de un equipo en las líneas de la cancha, ya en ORDEN DE
-     DIBUJO: Ataque arriba, Arco abajo — el inverso de ORDEN_LINEAS. Las líneas vacías no se
-     devuelven, así que el alto se reparte entre las que quedan (FR-012): un equipo sin arquero
-     asignado no deja un hueco abajo.
+     DIBUJO: Ataque arriba, Arco abajo — el inverso de ORDEN_LINEAS. Las cuatro líneas del
+     catálogo (Arquero/Defensor/Volante/Delantero) SIEMPRE se devuelven, aunque alguna quede sin
+     nadie: si no se reservara su lugar, al mover a mano una unidad entre equipos y dejar una
+     línea sin nadie, la de al lado sube a ocupar ese espacio y da la impresión de que todos los
+     que quedaron ahí juegan en la línea de arriba (el volante "parece" delantero). Antes esa
+     línea vacía se omitía (un equipo sin arquero asignado no dejaba un hueco abajo); ahora el
+     hueco es justamente la señal de que esa línea se quedó sin nadie.
 
      La posición sale de `posicionAsignadaDe`, la misma precedencia que usa la lista: la del
      motor, si no la override manual, si no la principal declarada. Con la Estrategia 1, que no
@@ -4152,7 +4159,8 @@
 
      El orden dentro de cada línea es el de `grupos`, que ya llega ordenado, así que dos
      renderizados del mismo reparto dan el mismo orden (FR-015). Una posición fuera del catálogo
-     no rompe el render: cae al final, debajo del arco.
+     no rompe el render: cae al final, debajo del arco — esas sí se omiten si quedan vacías,
+     porque no son una de las cuatro líneas fijas y no hay ningún hueco que reservarles.
      (Spec de la cancha, FR-010, FR-011, FR-012, FR-015.) */
   function agruparEnLineasDeCancha(m, grupos){
     const porLinea = new Map(ORDEN_LINEAS.map(pos => [pos, []]));
@@ -4162,7 +4170,7 @@
       porLinea.get(pos).push(grupo);
     });
     return [...porLinea.entries()]
-      .filter(entrada => entrada[1].length > 0)
+      .filter(entrada => ORDEN_LINEAS.includes(entrada[0]) || entrada[1].length > 0)
       .sort((a, b) => ORDEN_LINEAS.indexOf(b[0]) - ORDEN_LINEAS.indexOf(a[0]))
       .map(entrada => ({ pos: entrada[0], unidades: entrada[1] }));
   }
@@ -5061,8 +5069,11 @@
     return '<div class="panel-header"><h3>Alineaciones</h3>' + derecha + '</div>';
   }
 
-  /* El combo, con el resumen de la estrategia ELEGIDA visible debajo. Desaparece el ícono `?`:
-     el texto que escondía es el mismo `resumen` que ahora se lee siempre (D-14, FR-010 a FR-012). */
+  /* El combo, sin ningún texto de explicación debajo (FR-011 de PANEL_ARMADO_SPEC.md quedó
+     invertido el 2026-09-02: el resumen que antes se leía siempre resultó ser más ruido que
+     ayuda en la pantalla de equipos generados — sólo el nombre de la estrategia, en el combo
+     mismo, alcanza). La descripción larga de cada estrategia sigue viviendo sólo en
+     Configuración del motor. */
   function renderComboEstrategia(m){
     if(!isAdmin()) return '';
     // Bloqueado (inscripción cerrada, o editando un resultado finalizado): la estrategia ya no se
@@ -5078,8 +5089,7 @@
       + '<span class="panel-estrategia-label">Estrategia</span>'
       + '<span class="panel-estrategia-campo">'
       + '<select id="selectEstrategia">' + opciones + '</select>'
-      + ICON_CHEVRON + '</span></div>'
-      + '<p class="panel-estrategia-resumen" id="resumenEstrategia">' + escaparHtml(ESTRATEGIAS[actual].resumen) + '</p>';
+      + ICON_CHEVRON + '</span></div>';
   }
 
   /* El aviso de equipos desactualizados. La forma es la del handoff; el TEXTO es el que la
