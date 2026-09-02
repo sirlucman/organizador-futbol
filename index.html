@@ -27,6 +27,7 @@
     --pitch-pale: #e4f0c4;  /* green-100 / color-primary-pale — candado fijado */
     --brick-light: #ef4444; /* negative-500 / color-negative — píldora de diferencia excedida */
     --mustard-light: #facc15;/* warning-400 / color-warning — filete del aviso de desactualizado */
+    --mustard-deep: #713f12; /* warning-900 / color-warning-content — texto de la pastilla "2º" */
     --slate: #374151;       /* gray-700 / color-body — texto del receipt */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -339,12 +340,25 @@
   /* Puntaje: sólo para admin (FR-024). Sin puntaje calculable no se dibuja la píldora y el
      `title` de la camiseta lo dice — "sin puntaje" no entra en una píldora de 26px (FR-025). */
   .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: var(--pill-min); padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: var(--pill-fs); line-height: calc(var(--pill-fs) + 6px); text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
+  /* Pastilla "2º" de posición secundaria: geometría y color tomados literales del diseño de
+     Claude Design (proyecto "Diseño de equipos en cancha", turnos 10d — partido finalizado — y
+     11c — armado). Antes de la cancha (rebanada 1) esto vivía en un tag de texto al lado del
+     nombre, visible para cualquier rol; la cancha lo dejó sólo en el `title` (FR-023b), invisible
+     en touch. El handoff sólo mide la camiseta de 56px (26×20px, fuente 10px, `left:-11px`); los
+     demás `--chip-size` de este archivo escalan esa misma proporción, que el handoff no cubre.
+     Ocupa la esquina arriba-izquierda que el candado deja libre al bajarse (ver `.camiseta-candado`
+     más abajo) — las dos cosas nunca conviven: el candado sólo sale con `esFilaEditable` (equipos
+     sin finalizar) y la pastilla es un dato de la posición asignada, presente en cualquier estado. */
+  .camiseta-sec{ position: absolute; top: -3px; left: var(--sec-edge); display: flex; align-items: center; justify-content: center; width: var(--sec-w); height: var(--sec-h); padding: 0; border-radius: var(--radius-pill); background: var(--mustard-light); color: var(--mustard-deep); font-family: var(--font-display); font-weight: 900; font-size: var(--sec-fs); line-height: var(--sec-h); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.72), 0 2px 6px rgb(17 24 39 / 0.45); }
   /* Candado. Dos tamaños distintos a propósito: el BOTÓN mide siempre 24px de lado —el piso de
      NFR-004, el mismo objetivo táctil que tenía el `.icon-btn` de la fila que esta cancha
      reemplaza— y la insignia VISIBLE va adentro, más chica y proporcional a la camiseta. Sin esa
      separación, respetar el objetivo táctil sobre una camiseta de 42px dibujaba un candado que
-     tapaba un tercio del dibujo. */
-  .camiseta-candado{ position: absolute; top: calc((var(--cand-size) - 24px) / 2 - 4px); left: calc((var(--cand-size) - 24px) / 2 - 5px); width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; }
+     tapaba un tercio del dibujo. Ancla abajo a la izquierda (no arriba) desde el diseño de la
+     pastilla "2º" (turno 11c): esa esquina de arriba pasó a ser suya, mismo lugar que el partido
+     finalizado (10d), y el candado baja a la de abajo — la cancha ya usa `bottom` para las
+     pastillas de gol/asistencia, así que el mecanismo no es nuevo acá. */
+  .camiseta-candado{ position: absolute; bottom: calc((var(--cand-size) - 24px) / 2 - 4px); left: calc((var(--cand-size) - 24px) / 2 - 5px); width: 24px; height: 24px; padding: 0; display: flex; align-items: center; justify-content: center; border: none; background: none; cursor: pointer; }
   .cand-badge{ width: var(--cand-size); height: var(--cand-size); display: flex; align-items: center; justify-content: center; border-radius: var(--radius-pill); background: rgb(17 24 39 / 0.32); color: #ffffff; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.6); }
   .cand-badge svg{ width: calc(var(--cand-size) * 0.64); height: calc(var(--cand-size) * 0.64); display: block; }
   .cand-badge svg path{ fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
@@ -362,6 +376,16 @@
   .camiseta-dupla{ display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 3px 6px 4px; border-radius: 12px; background: rgb(17 24 39 / 0.34); box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.3); max-width: 100%; min-width: 0; }
   .camiseta-dupla .camiseta-nombre{ line-height: 14px; }
   .camiseta-dupla svg{ width: 12px; height: 12px; stroke: var(--pitch-light); stroke-width: 2.2; fill: none; }
+  /* Los chips de estadística cuelgan de `.camiseta-fig` con `bottom: -3px` (arriba), así que sólo
+     se comen 3px de los 4px de `gap` de `.camiseta` — casi nada, invisible sobre el nombre suelto
+     porque es texto sin fondo. Sobre la cápsula de dupla, que SÍ tiene fondo, ese casi-contacto se
+     ve pegado. Agrandar el hueco SÓLO en la dupla desalinea la fila: dos unidades vecinas con la
+     misma camiseta (mismo alto) y chips por igual quedaban con el nombre a distinta altura, una
+     suelta y otra en dupla. Por eso el extra de 3px se aplica a los dos — nombre suelto y cápsula
+     de dupla —, y sólo cuando hay chips (`:has`), para no separar de más en los estados sin
+     ninguno. */
+  .camiseta-fig:has(.stat-pill) + .camiseta-nombre,
+  .camiseta-fig:has(.stat-pill) + .camiseta-dupla{ margin-top: 3px; }
 
   /* --- Escalones de medidas ---
      Dos ejes: cuántas camisetas tiene la fila más ancha (lo escribe el render en
@@ -373,14 +397,14 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --stat-gap: -6px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --stat-gap: -6px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -11px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -11px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 20px; --sec-h: 16px; --sec-fs: 8.5px; --sec-edge: -8px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 22px; --sec-h: 17px; --sec-fs: 9px; --sec-edge: -9px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --stat-gap: -5px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 24px; --sec-h: 18px; --sec-fs: 9.5px; --sec-edge: -10px; }
   }
   /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
      olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
@@ -610,11 +634,10 @@
      aplica. */
   :root{ --stat-bg: #E8EBE6; }
   .stat-chips{ position: absolute; bottom: -3px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: var(--stat-group-gap); white-space: nowrap; }
-  .stat-asistencias, .stat-goles{ display: flex; align-items: center; }
+  .stat-asistencias, .stat-goles{ display: flex; align-items: center; gap: var(--stat-group-gap); }
   .camiseta-fig > .stat-asistencias{ position: absolute; bottom: -3px; left: var(--stat-edge); }
   .camiseta-fig > .stat-goles{ position: absolute; bottom: -3px; right: var(--stat-edge); }
-  .stat-pill{ display: flex; align-items: center; gap: 1px; height: var(--stat-h); padding: 0 3px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); margin-left: var(--stat-gap); }
-  .stat-pill:first-child{ margin-left: 0; }
+  .stat-pill{ display: flex; align-items: center; gap: 1px; height: var(--stat-h); padding: 0 3px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); }
   .stat-pill img{ width: var(--stat-icon); height: var(--stat-icon); display: block; }
   /* `.team-panel.negro .icon-boot` invierte la pelota a blanco para leerse sobre el panel oscuro
      (rebanada 3). El chip es un pill CLARO también en el equipo Negro, así que ahí la pelota
@@ -4255,10 +4278,25 @@
       ? '<div class="camiseta-dupla">' + nombreSpan(grupo[0]) + ICON_ROTACION + nombreSpan(grupo[1]) + '</div>'
       : nombreSpan(p);
 
+    // Pastilla "2º": diseño importado de Claude Design (turnos 10d/11c). Antes de la cancha
+    // (rebanada 1), la fila de la lista marcaba esto con un tag de texto al lado del nombre,
+    // visible para cualquier rol; la cancha lo dejó sólo en el `title` (FR-023b), invisible en
+    // touch. A nivel de UNIDAD (no por integrante): sobre una dupla la pastilla es una sola, sobre
+    // la camiseta compartida, así que no puede distinguir a cuál de los dos corrieron — el tooltip
+    // sí lo nombra.
+    const secTitle = !secundaria ? '' : (esUnidadDupla
+      ? grupo.filter(j => j.principal !== posAsignada)
+          .map(j => nombreCorto(j) + ' juega de ' + posAsignada + ', su puesto es ' + j.principal)
+          .join(' · ')
+      : 'Juega de ' + posAsignada + ', su puesto es ' + p.principal);
+    const secHtml = secundaria
+      ? '<span class="camiseta-sec" title="' + escaparHtml(secTitle) + '">2º</span>'
+      : '';
+
     return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
-      + puntajeHtml + candadoHtml + chipsHtml
+      + puntajeHtml + secHtml + candadoHtml + chipsHtml
       + '</div>' + nombreHtml + '<span class="drop-realce"></span></div>';
   }
 
