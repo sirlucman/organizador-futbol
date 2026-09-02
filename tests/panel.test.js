@@ -185,10 +185,10 @@ function porIdDe(m) {
 
 console.log(`\nEl panel de armado — ${SPEC}\n`);
 
-/* ================================================================= REGLA DE COLOR */
-console.log('\x1b[1mREGLA DE COLOR\x1b[0m — qué celda se marca como excedida y cuál no (D-22)\n');
+/* ================================================================= LÍNEA DE UN SOLO LUGAR */
+console.log('\x1b[1mLÍNEA DE UN SOLO LUGAR\x1b[0m — qué línea tiene un solo cupo por equipo (D-22)\n');
 
-prueba('"panel/S-04e" ninguna línea de un solo lugar por equipo se puede marcar como excedida', () => {
+prueba('"panel/S-04e" el arco y, cuando la formación le da un solo cupo, el ataque son líneas de un solo lugar', () => {
   const combinaciones = [FORMACION_8, FORMACION_9, { defensores: 4, volantes: 4, delanteros: 1 }];
   combinaciones.forEach(formacion => {
     ['Arquero', 'Defensor', 'Volante', 'Delantero'].forEach(pos => {
@@ -202,7 +202,7 @@ prueba('"panel/S-04e" ninguna línea de un solo lugar por equipo se puede marcar
   });
 });
 
-prueba('"panel/S-04d" en fútbol 9 el Medio tiene cuatro lugares y SÍ puede marcarse; Arco y Ataque no', () => {
+prueba('"panel/S-04d" en fútbol 9 el Medio tiene cuatro lugares y no es de un solo lugar; Arco y Ataque sí', () => {
   const f = { objetivo: FORMACION_9 };
   eq(P.lineaDeUnSoloLugar('Volante', f), false, 'el medio de la cancha de 9 no es de un solo lugar');
   eq(P.lineaDeUnSoloLugar('Arquero', f), true, 'el arco sí');
@@ -224,15 +224,15 @@ const ARMADO_8 = () => M(
   [['n1','Arquero',5],['n2','Defensor',6],['n3','Defensor',6],['n4','Defensor',6],
    ['n5','Volante',6],['n6','Volante',6],['n7','Volante',6],['n8','Delantero',7]]);
 
-prueba('"panel/S-04" con umbral, la línea de campo excedida se marca y la de un solo lugar no', () => {
+prueba('"panel/S-04" con umbral, cualquier línea que lo supere se marca, sea o no de un solo lugar', () => {
   const m = ARMADO_8();
   const celdas = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1);
   const porPos = Object.fromEntries(celdas.map(c => [c.pos, c]));
   eq(porPos.Defensor.diferencia, 3, 'la defensa se lleva 3 puntos');
   eq(porPos.Defensor.excedida, true, 'la defensa supera el desvío y podía repartirse: va marcada');
   eq(porPos.Arquero.diferencia, 4, 'el arco se lleva 4 puntos');
-  eq(porPos.Arquero.excedida, false, 'el arco es de un solo lugar: nunca se marca (D-22)');
-  eq(porPos.Delantero.excedida, false, 'el ataque tampoco');
+  eq(porPos.Arquero.excedida, true, 'el arco supera el desvío: se marca igual que defensa y medio');
+  eq(porPos.Delantero.excedida, false, 'el ataque quedó parejo (0 de diferencia): no hay nada que marcar');
 });
 
 prueba('"panel/S-04a" una diferencia igual al desvío no se marca: la regla es "supera", no "alcanza"', () => {

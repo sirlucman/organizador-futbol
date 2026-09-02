@@ -4702,18 +4702,15 @@
   }
 
   /* Las celdas de la grilla de diferencia por línea, en el orden de ORDEN_LINEAS y sólo las que
-     tienen contenido. `excedida` es la regla de color, y lleva las tres condiciones juntas:
-     que haya umbral configurado, que la diferencia lo SUPERE —no que lo alcance— y que la línea
-     no sea de un solo lugar por equipo (D-22).
-
-     Esa tercera condición es la que evita que el color contradiga al receipt, que ya explica esa
-     diferencia como inevitable. (FR-031, FR-033, FR-034, FR-035.) */
+     tienen contenido. `excedida` es la regla de color: que haya umbral configurado y que la
+     diferencia lo SUPERE —no que lo alcance—, igual para las cuatro líneas (incluidas Arco y
+     Ataque, que son de un solo lugar por equipo: esa diferencia sigue siendo inevitable y el
+     receipt la sigue explicando así, pero eso ya no le quita el color). */
   function celdasDiferenciaPorLinea(m, porId, diffObjetivo){
     const balance = balanceLineasVigente(m, porId);
     if(!balance) return null;
     const hayUmbral = diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && !Number.isNaN(Number(diffObjetivo));
     const umbral = hayUmbral ? Number(diffObjetivo) : null;
-    const formacion = (m.equipos && m.equipos.formacion) || null;
     return ORDEN_LINEAS.map(pos => {
       const l = balance[pos];
       if(!l || (l.blanco === 0 && l.negro === 0)) return null;
@@ -4726,7 +4723,7 @@
         diferencia: d,
         aFavor: d === 0 ? null : (l.diferencia > 0 ? 'Blanco' : 'Negro'),
         texto: d === 0 ? 'Parejo' : `+${d} ${l.diferencia > 0 ? 'Blanco' : 'Negro'}`,
-        excedida: hayUmbral && d > umbral && !lineaDeUnSoloLugar(pos, formacion)
+        excedida: hayUmbral && d > umbral
       };
     }).filter(Boolean);
   }

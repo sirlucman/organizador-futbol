@@ -811,15 +811,16 @@ const ESCENARIOS = [
       if (!desvio || !desvio.includes('Desvío aceptable')) problemas.push('con umbral configurado, el bloque debe declararlo en palabras (FR-032, NFR-003)');
       const por = Object.fromEntries(celdas.map(c => [c.linea, c]));
       /* El plantel testigo tiene un solo candidato a arquero y un solo titular con puntaje de
-         delantero, así que el Arco y el Ataque quedan desparejos por 6 — y son justamente las
-         dos líneas que la regla NO puede marcar. Las dos de campo quedan desparejas por 4 y sí.
-         Es el caso que distingue a `D-22`, y sale del plantel real, no de números inventados. */
+         delantero, así que el Arco y el Ataque quedan desparejos por 6. Aunque son líneas de un
+         solo lugar por equipo (esa diferencia sigue siendo inevitable y el receipt la sigue
+         explicando así), el color ya no distingue: con el umbral en 1, las cuatro líneas que
+         superan el desvío se marcan igual. */
       if (!por.Defensa || !por.Defensa.excedida) problemas.push('la Defensa supera el desvío y podía repartirse: debería quedar marcada (FR-033)');
       if (!por.Medio || !por.Medio.excedida) problemas.push('el Medio supera el desvío y podía repartirse: debería quedar marcado (FR-033)');
       if (!por.Arco) problemas.push('el Arco no se dibujó: el fixture debería dejarlo con puntaje');
-      else if (por.Arco.excedida) problemas.push(`el Arco quedó marcado (${por.Arco.texto}): es línea de un solo lugar y nunca se marca (FR-034, D-22)`);
+      else if (!por.Arco.excedida) problemas.push(`el Arco supera el desvío (${por.Arco.texto}): debería quedar marcado igual que Defensa y Medio`);
       if (!por.Ataque) problemas.push('el Ataque no se dibujó: el fixture debería dejarlo con puntaje');
-      else if (por.Ataque.excedida) problemas.push(`el Ataque quedó marcado (${por.Ataque.texto}): es línea de un solo lugar y nunca se marca (FR-034, D-22)`);
+      else if (!por.Ataque.excedida) problemas.push(`el Ataque supera el desvío (${por.Ataque.texto}): debería quedar marcado igual que Defensa y Medio`);
       return problemas;
     } },
 
