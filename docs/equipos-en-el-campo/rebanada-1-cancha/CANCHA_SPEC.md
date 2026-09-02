@@ -306,9 +306,13 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 - **FR-011** — El sistema dibujará las líneas de arriba hacia abajo en el orden
   Ataque, Medio, Defensa, Arco — es decir, el orden inverso de `ORDEN_LINEAS`
   ([`index.html:2258`](../../../index.html#L2258)).
-- **FR-012** — Si una línea no tiene ninguna unidad de armado, entonces el sistema
-  no dibujará esa línea y repartirá el alto de la cancha entre las líneas que sí
-  tienen jugadores.
+- **FR-012** — Si una de las cuatro líneas del catálogo (Arco, Defensa, Medio,
+  Ataque) no tiene ninguna unidad de armado, entonces el sistema igual dibujará
+  esa línea, vacía, en su lugar de siempre. *(Enmendado 2026-09-02, ver §18: el
+  comportamiento original — omitir la línea y repartir su alto entre las
+  restantes — hacía que la línea de al lado subiera a ocupar ese lugar, dando la
+  impresión de que esos jugadores jugaban en la posición de la línea que
+  desapareció.)*
 - **FR-013** — Mientras una línea tenga cuatro camisetas o menos, el sistema la
   dibujará en un solo renglón, con las camisetas centradas y separadas por el
   espaciado del escalón vigente.
@@ -460,7 +464,7 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 **Variants:**
 
 - `S-01a [boundary]` — fútbol 9: la línea del Medio tiene cuatro camisetas y entra completa
-- `S-01b [boundary]` — el equipo no tiene arquero asignado: la línea de Arco no se dibuja y las tres restantes se reparten el alto
+- `S-01b [boundary]` — el equipo no tiene arquero asignado: la línea de Arco se dibuja igual, vacía, en su lugar (FR-012 enmendado)
 - `S-01c [boundary]` — una línea con exactamente cuatro camisetas se dibuja en un solo renglón
 - `S-01d [boundary]` — una línea con exactamente cinco camisetas se dibuja en dos sub-filas de tres y dos
 - `S-01e [failure]` — un id del reparto no corresponde a ningún jugador del plantel: se omite esa camiseta y el resto del equipo se dibuja igual
@@ -471,13 +475,13 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 - **Given** un partido con los equipos generados con la estrategia "Solo por puntaje", que no asigna posiciones
 - **When** el administrador abre el detalle del partido
 - **Then** el sistema ubica a cada jugador en la línea de su posición principal declarada
-- **And** las líneas que quedan vacías no se dibujan
+- **And** las líneas que quedan vacías se dibujan igual, vacías (FR-012 enmendado)
 
 **Variants:**
 
 - `S-02a [boundary]` — cinco de los ocho titulares del equipo declaran Volante: la línea del Medio se parte en dos sub-filas de tres y dos
 - `S-02b [boundary]` — los ocho titulares declaran la misma posición: se dibuja una sola línea, partida en dos sub-filas de cuatro
-- `S-02c [boundary]` — ningún titular declara Arquero: la línea de Arco no se dibuja
+- `S-02c [boundary]` — ningún titular declara Arquero: la línea de Arco se dibuja igual, vacía (FR-012 enmendado)
 
 #### Scenario S-03 — Una dupla de rotación en la cancha (covers FR-020, FR-026, FR-027)
 
@@ -801,6 +805,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-02 | Lucas Manoukian | `FR-012` se invierte: una línea del catálogo sin unidades ahora se dibuja igual, vacía, en vez de omitirse. Reportado desde la rebanada 2 (el arrastre): mover a mano un jugador entre equipos puede dejar a uno sin nadie en una línea (p. ej. sin Ataque), y con el comportamiento original la línea de al lado subía a ocupar ese lugar — un volante terminaba viéndose donde antes estaba el delantero, dando la impresión de que jugaba ahí. Se ajustan `S-01b`, `S-02` y `S-02c`, que describían el comportamiento viejo como el correcto. `S-01a` de `ARRASTRE_SPEC.md` (rebanada 2) queda igual de afectado; se anota ahí también. Self-critique: no corresponde (enmienda posterior a la implementación, a pedido explícito de una corrección puntual). |
 | 2026-08-31 | Lucas Manoukian | `FR-054` y el último *Then* de `S-06` quedan reemplazados por la rebanada 2: en una sola columna los equipos dejan de apilarse y pasan al selector segmentado. Cierra además la `OPEN-Q-01` de esta Spec, cuyo *target stage* era la Spec de la rebanada 2 o la 3. Self-critique: no corresponde (enmienda desde otra rebanada). |
 | 2026-08-31 | Lucas Manoukian | `FR-053` queda sin efecto: la premisa de `D-03` —que la cancha de 9 desborda a 360 px— no se sostiene contra la implementación, porque las columnas son flexibles y se encogen. Se usan los escalones del handoff en todo el rango. Descubierto al ejecutar el gate del Principio V: el escenario nuevo **pasaba** con el escalón revertido, que es exactamente lo que ese gate existe para detectar. Self-critique: no corresponde (enmienda posterior a la implementación). |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Self-critique: passed (2🔴 / 6🟡 / 1🔵), todos resueltos antes de guardar. Los dos 🔴: una cita fabricada a `.specify/specs/006-panel-equipos/`, carpeta que no existe (006 es `copiar-formacion`) — reemplazada por las dos specs reales que esta Spec pisa en su parte de presentación; y TC-020, TC-030 y TC-031 sin criterio de cumplimiento en §11.3 — agregados como AC-23 y AC-24. Los 🟡: bandas de numeración de AC solapadas entre §11.2 y §11.3 (renumeradas a 11.1→AC-01.., 11.2→AC-10.., 11.3→AC-20.., 11.4→AC-40..), FR-023 y FR-024 compuestas (partidas), TC-013 prescribía un mecanismo de CSS en vez de una prohibición (reescrita), NFR-005 citaba un "navegador de referencia" inexistente (anclada al Chromium de Playwright que el repo ya usa), y dos afirmaciones sin verificar sin marcador (etiquetadas). El 🔵: OPEN-Q-05 se pudo cerrar a medias durante la pasada y quedó reformulada. |

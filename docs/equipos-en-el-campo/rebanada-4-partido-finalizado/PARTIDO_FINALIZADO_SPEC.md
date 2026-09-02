@@ -369,21 +369,24 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   cancha}".
 - **FR-003** — Mientras la tarjeta esté en dos columnas, el sistema mostrará
   debajo del título una línea de texto fija con la etiqueta "Estrategia:"
-  seguida del campo `resumen` de la estrategia aplicada (`ESTRATEGIAS[m.equipos.estrategiaKey].resumen`).
+  seguida del `label` (nombre corto) de la estrategia aplicada
+  (`ESTRATEGIAS[m.equipos.estrategiaKey].label`). *(Cambiado de `resumen` a
+  `label` el 2026-09-02, ver §18: el resumen —la explicación larga de qué hace
+  la estrategia— se sacó de esta línea; sólo queda el nombre.)*
 - **FR-004** — Mientras la tarjeta esté en una sola columna, el sistema
   mostrará en el título sólo la fecha del partido, sin el tamaño de cancha.
 - **FR-005** — Mientras la tarjeta esté en una sola columna, el sistema
   mostrará debajo del título una línea de texto fija con la etiqueta de
-  cancha, la palabra "Estrategia:" y el `resumen` de la estrategia aplicada,
+  cancha, la palabra "Estrategia:" y el `label` de la estrategia aplicada,
   separados por " · " (resuelve la inconsistencia de `TC-034`; ver
-  `OPEN-Q-02`).
+  `OPEN-Q-02`). *(Cambiado de `resumen` a `label` el 2026-09-02, ver §18.)*
 - **FR-005b** — Donde el tamaño de cancha sea Fútbol 9 y la tarjeta esté en
   dos columnas, el sistema mostrará la línea de `FR-003` como "Formación
-  {formación} · Estrategia: {resumen}", sin la etiqueta de cancha (que ya está
+  {formación} · Estrategia: {label}", sin la etiqueta de cancha (que ya está
   en el título por `FR-002`).
 - **FR-005c** — Donde el tamaño de cancha sea Fútbol 9 y la tarjeta esté en
   una sola columna, el sistema mostrará la línea de `FR-005` como
-  "{etiqueta de cancha} · Formación {formación} · Estrategia: {resumen}",
+  "{etiqueta de cancha} · Formación {formación} · Estrategia: {label}",
   agregando la formación entre la cancha y la estrategia sin quitar ninguna de
   las dos.
 - **FR-006** — El sistema mostrará en el encabezado un botón de sólo ícono
@@ -446,21 +449,29 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 ### 7.4 La fila de resultado
 
 - **FR-040** — El sistema mostrará, entre el encabezado y las canchas, una
-  fila con el resultado del partido en el centro, calculado con
-  `totalGolesEquipo` (`TC-010`), separado por un guion.
-- **FR-041** — Mientras la tarjeta esté en dos columnas, el sistema mostrará a
-  cada costado del resultado el nombre del equipo y su puntaje de armado
-  (`m.equipos.sumaBlanco` / `sumaNegro`), en ese orden.
-- **FR-042** — Mientras la tarjeta esté en una sola columna, el sistema
-  mostrará a cada costado del resultado sólo el nombre del equipo, sin su
-  puntaje de armado.
-- **FR-042b** — El sistema no repetirá en el encabezado de cada panel de
-  equipo (`renderZonaEquipos`) el puntaje ni el resultado que la fila de
-  resultado ya declara: en este estado, ese encabezado mostrará únicamente el
-  nombre del equipo. Evita mostrar la misma cifra dos veces en la misma
-  pantalla, algo que el handoff no puede mostrar porque sus dos bloques —fila
-  de resultado y encabezado de panel— no aparecen juntos en ninguna vista de
-  su prototipo.
+  fila con el marcador real del partido, calculado con `totalGolesEquipo`
+  (`TC-010`), separado por un guion. *(Enmendado 2026-09-02, ver §18: cada
+  número queda centrado en la mitad de la fila que corresponde a su equipo —la
+  pestaña del equipo en una columna, el panel del equipo en dos— en vez de los
+  dos agrupados en el centro de toda la fila.)*
+- **FR-041** — El sistema no mostrará en la fila de resultado ningún nombre de
+  equipo ni puntaje de armado, en ningún ancho: sólo el marcador de `FR-040`.
+  *(Invertido 2026-09-02, ver §18: mostraba el nombre del equipo y su puntaje
+  de armado a cada costado en dos columnas — los dos se mudaron al encabezado
+  de cada panel, `FR-042b`.)*
+- **FR-042** — *(Sin efecto desde 2026-09-02, ver §18: decía que en una sola
+  columna la fila mostraba sólo el nombre, sin el puntaje; `FR-041`, enmendado
+  el mismo día, ya no muestra ninguno de los dos en ningún ancho, así que la
+  distinción entre columnas que este requisito hacía dejó de existir.)*
+- **FR-042b** — El sistema mostrará en el encabezado de cada panel de equipo
+  (`renderZonaEquipos`) el puntaje de armado (`m.equipos.sumaBlanco` /
+  `sumaNegro`, redondeado a un decimal, con el sufijo "pts"): en una sola
+  columna reemplaza al nombre del equipo, que ya repite la pestaña activa; en
+  dos columnas se agrega a la derecha del nombre, que ahí sí se sigue
+  mostrando porque no hay ninguna pestaña que lo diga. *(Invertido 2026-09-02,
+  ver §18: antes este encabezado mostraba únicamente el nombre, para no
+  repetir el puntaje que la fila de resultado ya mostraba entonces — ahora que
+  `FR-041` lo sacó de esa fila, mostrarlo acá dejó de repetir nada.)*
 - **FR-043** — El sistema no mostrará ninguna otra comparación de puntaje
   (píldora de diferencia, diferencia por línea) en este estado (declaración de
   reemplazo, arriba).
@@ -546,8 +557,8 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **When** se abre el detalle del partido
 - **Then** el título del encabezado es la fecha del partido seguida de
   " - Fútbol 8"
-- **And** debajo del título se muestra "Estrategia: {resumen de la estrategia
-  aplicada}"
+- **And** debajo del título se muestra "Estrategia: {nombre de la estrategia
+  aplicada}" *(era el resumen largo; cambiado el 2026-09-02, ver §18)*
 - **And** el encabezado contiene dos botones de ícono, copiar y editar
   resultado, en ese orden, cada uno con un nombre accesible no vacío
 - **And** el encabezado no contiene el botón de regenerar
@@ -555,7 +566,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 **Variants:**
 
 - `S-01a [boundary]` — en un viewport de 360 px, el título muestra sólo la
-  fecha y la línea de abajo dice "Fútbol 8 · Estrategia: {resumen}" (`FR-004`,
+  fecha y la línea de abajo dice "Fútbol 8 · Estrategia: {nombre}" (`FR-004`,
   `FR-005`)
 - `S-01b [boundary]` — el partido es de fútbol 9: la línea de estrategia
   agrega "Formación 3-4-1 · " antes de "Estrategia:" (`FR-005b`)
@@ -612,23 +623,31 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   sobre cada integrante de la unidad, de
   `stats[jugador].goles + stats[jugador].golesEnContra + stats[jugador].asistencias`
 
-#### Scenario S-04 — La fila de resultado muestra el marcador (covers FR-040, FR-041, FR-042, FR-042b)
+#### Scenario S-04 — La fila de resultado muestra sólo el marcador, centrado por equipo (covers FR-040, FR-041, FR-042b)
+
+*(Reescrito 2026-09-02, ver §18: describía "Blanco"/"52.5 pts" a los costados
+del marcador, que la fila ya no muestra; el puntaje se mudó al encabezado de
+cada panel.)*
 
 - **Given** un partido finalizado con 4 goles del Blanco (52.5 pts de armado) y
   3 del Negro (51.5 pts)
 - **When** se muestra la tarjeta en un viewport de 1200 px
-- **Then** la fila de resultado muestra "Blanco" y "52.5 pts" a la izquierda,
-  "4 - 3" al centro, "51.5 pts" y "Negro" a la derecha
-- **And** el encabezado del panel de cada equipo muestra sólo su nombre, sin
-  puntaje ni resultado (`FR-042b`)
+- **Then** la fila de resultado muestra "4", centrado bajo la mitad del panel
+  del Equipo Blanco, un guion al medio, y "3", centrado bajo la mitad del
+  panel del Equipo Negro — sin ningún nombre ni puntaje de armado en esa fila
+- **And** el encabezado del panel del Equipo Blanco muestra "Equipo Blanco" a
+  la izquierda y "52.5 pts" a la derecha; el del Equipo Negro, "Equipo Negro"
+  y "51.5 pts" (`FR-042b`)
 
 **Variants:**
 
 - `S-04a [boundary]` — el resultado es 0 a 0: la fila muestra "0 - 0", no la
   omite
-- `S-04b [boundary]` — en un viewport de 360 px, la fila muestra sólo "Blanco"
-  y "Negro" a los costados, sin el puntaje de armado, con el mismo marcador
-  central (`FR-042`)
+- `S-04b [boundary]` — en un viewport de 360 px, la fila de resultado muestra
+  el mismo marcador, cada número centrado bajo la mitad de la pestaña de su
+  equipo; el encabezado del panel visible (el de la pestaña activa) muestra el
+  puntaje de armado en el lugar donde iría el nombre, que no se repite porque
+  la pestaña ya lo dice (`FR-042b`)
 
 #### Scenario S-05 — Las filas de detalle cuentan quién metió qué (covers FR-050 a FR-057)
 
@@ -658,12 +677,12 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **Given** un partido de fútbol 9 finalizado, con formación 3-4-1
 - **When** se muestra el encabezado en dos columnas
 - **Then** la línea de estrategia dice "Formación 3-4-1 · Estrategia:
-  {resumen}", sin la etiqueta de cancha
+  {nombre}", sin la etiqueta de cancha
 
 **Variants:**
 
 - `S-10a [boundary]` — en una sola columna (360 px): la línea dice "Fútbol 9 ·
-  Formación 3-4-1 · Estrategia: {resumen}", con las tres partes (`FR-005c`)
+  Formación 3-4-1 · Estrategia: {nombre}", con las tres partes (`FR-005c`)
 
 ### 9.3 Failure / unwanted-behaviour scenarios
 
@@ -717,16 +736,18 @@ nueva).
   de goles muestra "2" (sin desglosar penal) y el chip de asistencias muestra
   "1"; la fila de detalle sí desglosa "(1 de penal)" (cubre `FR-030`,
   `FR-031`, `FR-033`, `FR-052`).
-- **AC-05** — Con un resultado 4-3, la fila de resultado muestra "4 - 3" al
-  centro y el nombre de cada equipo a los costados, y en 1200 px además el
-  puntaje de armado de cada uno; el encabezado de cada panel de equipo no
-  repite ninguno de los dos números (cubre `FR-040`, `FR-041`, `FR-042b`).
+- **AC-05** — Con un resultado 4-3, la fila de resultado muestra "4" y "3"
+  centrados bajo la mitad de cada equipo, sin ningún nombre ni puntaje de
+  armado en esa fila, en cualquier ancho; en 1200 px el encabezado de cada
+  panel de equipo muestra su nombre y su puntaje de armado; en 360 px el
+  encabezado del panel visible muestra sólo el puntaje, en el lugar del
+  nombre (cubre `FR-040`, `FR-041`, `FR-042b`).
 - **AC-06** — Con una sesión de rol `jugador`, la tarjeta contiene la cancha
   con chips, la fila de resultado y las filas de detalle, y no contiene el
   botón de editar resultado (cubre `FR-060`, `FR-061`).
 - **AC-07** — Con un partido finalizado de fútbol 9, la línea de estrategia
-  dice "Formación 3-4-1 · Estrategia: {resumen}" en dos columnas y "Fútbol 9 ·
-  Formación 3-4-1 · Estrategia: {resumen}" en una sola columna (cubre
+  dice "Formación 3-4-1 · Estrategia: {nombre}" en dos columnas y "Fútbol 9 ·
+  Formación 3-4-1 · Estrategia: {nombre}" en una sola columna (cubre
   `FR-005b`, `FR-005c`, escenario `S-10`).
 
 ### 11.2 Non-functional acceptance
@@ -902,6 +923,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-02 | Lucas Manoukian | Actualización pendiente desde una corrección ya implementada y mergeada (avisado en su momento, quedó para una pasada aparte). Dos cambios, a pedido del usuario. **(1)** El nombre/puntaje de la fila de resultado se muda al encabezado de cada panel de equipo: `FR-041` queda invertido (la fila ya no muestra nombre ni puntaje de armado, en ningún ancho — sólo el marcador de `FR-040`, con cada número ahora centrado bajo la mitad de la zona de su equipo); `FR-042` queda sin efecto, absorbido por el `FR-041` nuevo; `FR-042b` se invierte en sentido contrario al que tenía (antes prohibía repetir el puntaje en el encabezado del panel porque la fila de resultado ya lo mostraba; ahora que la fila dejó de mostrarlo, el encabezado lo muestra él solo — reemplaza al nombre en una columna, se agrega a su derecha en dos). Se reescriben `S-04` y `AC-05` en consecuencia. **(2)** La línea de estrategia del encabezado (`FR-003`, `FR-005`, `FR-005b`, `FR-005c`) pasa de mostrar el campo `resumen` (la explicación larga de qué hace la estrategia) al `label` (su nombre corto): la explicación resultó más ruido que información en esta pantalla, mismo diagnóstico que ya había sacado el subtítulo completo el 2026-09-01 en `PANEL_ARMADO_SPEC.md`. Se ajustan `S-01`, `S-01a`, `S-10`, `S-10a` y `AC-07`. Self-critique: no corresponde (corrección puntual a pedido explícito, verificada con la suite de tests, incluida la actualización tardía del punto 1 que debí haber hecho el mismo día que el código). |
 | 2026-09-01 | Lucas Manoukian | Anotación recíproca desde la rebanada 5 (`MODELO_EVENTOS_SPEC.md`, `T-1.23` de su Plan): `TC-010` queda generalizado para admitir `m.resultado.eventos` como fuente de verdad además de `statsPorJugador`, siempre a través de una única función de despacho. Resuelve la `OPEN-Q-01` de la Spec de la **rebanada 5** (no la de ésta, que sigue pendiente y sin relación con este cambio — ver la fila de arriba). Sin cambios de comportamiento observable. Self-critique: no corresponde (anotación recíproca puntual). |
 | 2026-09-01 | Lucas Manoukian | Corrección encontrada al empezar el Implementation Plan: `FR-009` decía que el botón de copiar formación "sigue existiendo... en la botonera al pie", pero eso es falso — la rebanada 3 ya lo sacó del pie por completo (`FR-063` de esa Spec) y sólo vive en el encabezado. El handoff (5a/6b) dibuja el encabezado del partido finalizado sólo con el lápiz, sin ícono de copiar, pero nada en el Concept Note declara sacar esa función para este estado; consultado el usuario, se confirmó mantenerla. `FR-009` se reescribe para agregar el botón de copiar al encabezado junto al lápiz, y `FR-009b` (nuevo) aísla la exclusión de Regenerar, que sí seguía siendo correcta. Se ajusta `S-01` en consecuencia. El error fue tratar una omisión del mockup puntual como si fuera una decisión de producto, en vez de contrastarla contra lo que la rebanada 3 ya construyó (mismo tipo de falla que `TC-034` existe para atrapar, aunque esta la atrapó recién el Plan y no la propia Spec). |
 | 2026-09-01 | Lucas Manoukian | Segunda corrección encontrada al mismo tiempo que la de `FR-009`: `FR-036` decía que una dupla de rotación muestra los chips "de cada integrante... nunca combinados en una sola camiseta", pero eso contradice cómo la cancha ya dibuja una dupla desde la rebanada 1 — **una sola** camiseta compartida con los dos nombres, no dos camisetas. No hay una segunda forma dónde anclar un segundo juego de chips. Se reescribe `FR-036` para sumar los valores de los dos integrantes y mostrar un único juego de chips, con el mismo criterio que ya usa `valorDePuntaje` para el puntaje combinado de la dupla. Se ajustan `S-03c` y `S-03d` en consecuencia. El error fue copiar el criterio de `FR-013`/`FR-014` de `001-organizacion-partidos` (cada integrante carga sus propios valores) sin verificar que ese criterio es sobre el **dato guardado**, no sobre **cuántas camisetas existen para mostrarlo**. |

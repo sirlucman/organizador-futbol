@@ -488,8 +488,9 @@ prueba('"panel/S-03" cambiar la configuración del motor lo desactualiza', () =>
 });
 
 prueba('"panel/S-02a" cada estrategia del catálogo tiene su propio resumen, no vacío', () => {
-  /* El combo muestra el `resumen` de la estrategia ELEGIDA, siempre visible: es lo que
-     reemplaza al tooltip que había que descubrir y tocar (D-14, FR-011). */
+  /* El combo ya NO muestra este campo (FR-011 invertido el 2026-09-02: el resumen permanente
+     resultó más ruido que ayuda en la pantalla de equipos generados) — el campo sigue existiendo
+     en el catálogo igual, y este test valida sólo la integridad del dato, no dónde se usa. */
   const catalogo = src.match(/const ESTRATEGIAS = \{[\s\S]*?\n  \};/);
   ok(catalogo, 'el catálogo de estrategias sigue existiendo');
   const resumenes = [...catalogo[0].matchAll(/resumen: '([^']+)'/g)].map(m => m[1]);

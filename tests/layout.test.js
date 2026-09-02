@@ -703,7 +703,11 @@ const ESCENARIOS = [
   { clave: 'panel-armado', rol: 'admin', nombre: 'el panel alrededor de la cancha',
     /* Comportamiento y estructura, no medidas: los invariantes ya cubren los trece anchos desde
        los escenarios de cancha. Acá se mira uno de cada lado del punto de corte, porque la
-       píldora cambia de lugar (FR-004 vs FR-005). */
+       píldora cambia de lugar (FR-004 vs FR-005).
+
+       NOTA (2026-09-02): `panel/S-02` cambió de sentido (ver PANEL_ARMADO_SPEC.md §18) — el combo
+       ya no muestra ningún resumen debajo, así que este escenario ahora sólo verifica que el
+       combo se dibuje, sin ese texto. */
     anchos: [360, 1200],
     spec: ['panel/S-01', 'panel/S-01c', 'panel/S-02', 'panel/S-03', 'panel/S-05', 'panel/S-07', 'panel/S-07a', 'panel/S-07b', 'panel/S-07c', 'panel/S-10'],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
@@ -721,7 +725,6 @@ const ESCENARIOS = [
           regenerar: !!sec.querySelector('.panel-icono-regenerar'),
           ordenIconos: [...sec.querySelectorAll('.panel-icono')].map(b => b.className.includes('copiar') ? 'copiar' : 'regenerar'),
           combo: !!sec.querySelector('#selectEstrategia'),
-          resumen: (sec.querySelector('.panel-estrategia-resumen') || {}).textContent || '',
           interrogacion: !!sec.querySelector('.info-icon'),
           celdas: [...sec.querySelectorAll('.panel-celda')].map(c => c.querySelector('.panel-celda-linea').textContent.trim()),
           receipt: !!sec.querySelector('.panel-receipt'),
@@ -738,8 +741,7 @@ const ESCENARIOS = [
       if (estructura.copiarEnPie) problemas.push('Copiar sigue al pie: subió al encabezado (FR-063)');
       if (estructura.cajitas) problemas.push(`quedaron ${estructura.cajitas} .conv-summary en la tarjeta: los tres resúmenes se retiraron (D-23, AC-07)`);
       if (!estructura.combo) problemas.push('no se dibujó el combo de estrategia (FR-010)');
-      if (!estructura.resumen.trim()) problemas.push('el combo no muestra el resumen de la estrategia (FR-011)');
-      if (estructura.interrogacion) problemas.push('sigue el ícono "?" en el combo: lo reemplaza el resumen visible (FR-012)');
+      if (estructura.interrogacion) problemas.push('sigue el ícono "?" en el combo (FR-012)');
       /* La grilla sólo aparece si el armado guardado lleva balance por línea. El fixture ahora lo
          lleva, así que ausencia acá es un fallo y no un "no aplica" (FR-030, S-10). */
       if (estructura.celdas.join(',') !== 'Arco,Defensa,Medio,Ataque') {

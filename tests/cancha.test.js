@@ -107,22 +107,31 @@ prueba('"cancha/S-02" con la Estrategia 1 (sin posiciones asignadas) cada jugado
 
 prueba('"cancha/S-01" la posición del motor gana sobre la principal declarada', () => {
   const j = J('x', 'Delantero');
-  eq(lineasDe(M({ x: 'Arquero' }), [uno(j)]), [{ pos: 'Arquero', n: 1 }],
+  const lineas = lineasDe(M({ x: 'Arquero' }), [uno(j)]);
+  eq(lineas.find(l => l.pos === 'Arquero'), { pos: 'Arquero', n: 1 },
      'posicionAsignada del motor manda sobre p.principal');
+  eq(lineas.length, 4, 'las cuatro líneas del catálogo, las otras tres vacías');
 });
 
-prueba('"cancha/S-01b" una línea sin jugadores no se dibuja', () => {
+prueba('"cancha/S-01b" una línea sin jugadores se dibuja vacía, en su lugar', () => {
+  /* Antes esta línea se omitía y el alto se repartía entre las tres restantes (FR-012 original).
+     Se invirtió (ver CANCHA_SPEC.md §18, entrada 2026-09-02): omitirla hacía que la línea de al
+     lado subiera a ocupar su lugar, dando la impresión de que esos jugadores jugaban ahí. */
   const grupos = [uno(J('b', 'Defensor')), uno(J('c', 'Volante')), uno(J('d', 'Delantero'))];
   const lineas = lineasDe(M(null), grupos);
-  eq(lineas.map(l => l.pos), ['Delantero', 'Volante', 'Defensor'],
-     'sin arquero asignado, la línea de Arco no aparece y el alto se reparte entre las tres');
+  eq(lineas.map(l => l.pos), ['Delantero', 'Volante', 'Defensor', 'Arquero'],
+     'sin arquero asignado, la línea de Arco igual aparece, vacía, en su lugar de siempre');
+  eq(lineas.find(l => l.pos === 'Arquero').n, 0, 'sin nadie adentro');
 });
 
 prueba('"cancha/S-02c" un equipo sin ningún arquero no rompe el render', () => {
   const grupos = Array.from({ length: 8 }, (_, i) => uno(J('v' + i, 'Volante')));
   const lineas = lineasDe(M(null), grupos);
-  eq(lineas.length, 1, 'una sola línea');
-  eq(lineas[0], { pos: 'Volante', n: 8 }, 'los ocho volantes en la línea del Medio');
+  eq(lineas.length, 4, 'las cuatro líneas del catálogo, aunque tres queden vacías');
+  eq(lineas.find(l => l.pos === 'Volante'), { pos: 'Volante', n: 8 }, 'los ocho volantes en la línea del Medio');
+  ['Delantero', 'Defensor', 'Arquero'].forEach(pos => {
+    eq(lineas.find(l => l.pos === pos).n, 0, `${pos} queda vacía`);
+  });
 });
 
 prueba('"cancha/S-01e" una unidad que no corresponde a ningún jugador no interrumpe el dibujo del resto', () => {
@@ -130,34 +139,36 @@ prueba('"cancha/S-01e" una unidad que no corresponde a ningún jugador no interr
      no existe llega como una lista más corta, no como `undefined`. Lo que se verifica es que el
      agrupado no dependa de que la cantidad sea la esperada. */
   const grupos = [uno(J('a', 'Arquero')), uno(J('b', 'Defensor'))];
-  eq(lineasDe(M(null), grupos), [{ pos: 'Defensor', n: 1 }, { pos: 'Arquero', n: 1 }],
-     'dibuja las dos unidades que sí existen');
+  const lineas = lineasDe(M(null), grupos);
+  eq(lineas.find(l => l.pos === 'Defensor'), { pos: 'Defensor', n: 1 }, 'dibuja las dos unidades que sí existen');
+  eq(lineas.find(l => l.pos === 'Arquero'), { pos: 'Arquero', n: 1 }, 'dibuja las dos unidades que sí existen');
 });
 
 prueba('"cancha/S-01" una posición fuera del catálogo cae al final y no rompe el orden', () => {
   const grupos = [uno(J('a', 'Arquero')), uno(J('z', 'Wing'))];
-  eq(lineasDe(M(null), grupos).map(l => l.pos), ['Arquero', 'Wing'],
-     'la posición desconocida queda debajo del arco, sin excepción');
+  eq(lineasDe(M(null), grupos).map(l => l.pos), ['Delantero', 'Volante', 'Defensor', 'Arquero', 'Wing'],
+     'la posición desconocida queda debajo del arco (que aparece igual, vacío), sin excepción');
 });
 
 prueba('"cancha/S-03" una dupla de rotación ocupa UNA sola posición en su línea', () => {
   const dupla = [J('d1', 'Volante'), J('d2', 'Volante')];
   const grupos = [dupla, uno(J('v', 'Volante'))];
-  eq(lineasDe(M(null), grupos), [{ pos: 'Volante', n: 2 }],
+  eq(lineasDe(M(null), grupos).find(l => l.pos === 'Volante'), { pos: 'Volante', n: 2 },
      'dos unidades en el Medio: la dupla cuenta como una');
 });
 
 prueba('"cancha/S-03b" la dupla se ubica por la posición asignada de su PRIMER integrante', () => {
   const dupla = [J('d1', 'Volante'), J('d2', 'Delantero')];
-  eq(lineasDe(M({ d1: 'Defensor' }), [dupla]), [{ pos: 'Defensor', n: 1 }],
+  eq(lineasDe(M({ d1: 'Defensor' }), [dupla]).find(l => l.pos === 'Defensor'), { pos: 'Defensor', n: 1 },
      'la unidad va entera a una línea; no se parte entre dos');
 });
 
 prueba('"cancha/S-01" dos renderizados del mismo reparto dan el mismo orden', () => {
   const grupos = ['a', 'b', 'c'].map(id => uno(J(id, 'Volante')));
   const m = M(null);
-  const primero = C.agruparEnLineasDeCancha(m, grupos)[0].unidades.map(u => u[0].id);
-  const segundo = C.agruparEnLineasDeCancha(m, grupos)[0].unidades.map(u => u[0].id);
+  const enVolante = lineas => lineas.find(l => l.pos === 'Volante').unidades.map(u => u[0].id);
+  const primero = enVolante(C.agruparEnLineasDeCancha(m, grupos));
+  const segundo = enVolante(C.agruparEnLineasDeCancha(m, grupos));
   eq(primero, segundo, 'el orden dentro de la línea es estable entre repintados');
   eq(primero, ['a', 'b', 'c'], 'y es el orden en que llegaron los grupos');
 });
@@ -174,7 +185,7 @@ prueba('"cancha/S-01d" una línea de cinco se parte en dos sub-filas, la de arri
 
 prueba('"cancha/S-02a" cinco volantes declarados producen la línea partida, no una fila de cinco', () => {
   const grupos = Array.from({ length: 5 }, (_, i) => uno(J('v' + i, 'Volante')));
-  const linea = C.agruparEnLineasDeCancha(M(null), grupos)[0];
+  const linea = C.agruparEnLineasDeCancha(M(null), grupos).find(l => l.pos === 'Volante');
   eq(C.partirLineaEnSubfilas(linea.unidades).map(f => f.length), [3, 2],
      'es el caso real de la Estrategia 1, no uno hipotético');
 });
@@ -358,14 +369,20 @@ prueba('"arrastre/S-01b" una unidad fijada con el candado se mueve, y queda fija
   eq(m.bloqueados, ['b-vol1'], 'la lista de bloqueados no cambia por un movimiento manual');
 });
 
-prueba('"arrastre/S-01a" al mover al único de su línea, esa línea deja de dibujarse', () => {
+prueba('"arrastre/S-01a" al mover al único de su línea, esa línea se sigue dibujando, vacía', () => {
+  /* Antes esta línea desaparecía y las restantes se repartían su alto (FR-012 original). Se
+     invirtió (ver CANCHA_SPEC.md §18, entrada 2026-09-02) porque es justo el escenario que
+     generaba la confusión reportada: sin arquero, la línea de Defensa subía a ocupar el lugar
+     del Arco, y de ahí para arriba cada línea terminaba pareciendo la de más adelante. */
   const m = ochoContraOcho();
   const lineasAntes = C.agruparEnLineasDeCancha(m, m.equipos.blanco.map(id => [JP(id, id.includes('arq') ? 'Arquero' : id.includes('def') ? 'Defensor' : id.includes('vol') ? 'Volante' : 'Delantero', 5)]));
   ok(lineasAntes.some(l => l.pos === 'Arquero'), 'antes hay línea de Arco');
   soltar(m, 'b-arq', { clase: 'pestana', equipo: 'negro' });
   const restantes = m.equipos.blanco.map(id => [JP(id, id.includes('def') ? 'Defensor' : id.includes('vol') ? 'Volante' : 'Delantero', 5)]);
   const lineasDespues = C.agruparEnLineasDeCancha(m, restantes);
-  ok(!lineasDespues.some(l => l.pos === 'Arquero'), 'sin arquero, la línea de Arco no se dibuja');
+  const arco = lineasDespues.find(l => l.pos === 'Arquero');
+  ok(arco, 'sin arquero, la línea de Arco se sigue dibujando');
+  eq(arco.unidades.length, 0, 'pero vacía, sin nadie adentro');
 });
 
 prueba('"arrastre/S-01f" cualquier movimiento conserva la cantidad total de unidades', () => {
