@@ -284,7 +284,8 @@ Implementation tasks (grouped into atomic commits):
 
 - [ ] T-1.12 Escribir `tests/partido.test.js` con los casos de §7.2.6
 - [ ] T-1.13 Agregar los casos `partido/S-01`, `S-01a`, `S-01b`, `S-06`, `S-06a`, `S-06b` a
-  `tests/layout.test.js`, y **validar el breakpoint real** abriendo `index.html` en un
+  `tests/layout.test.js`, con `INVARIANTE_CANCHA_A11Y` en su lista `invariantes:`
+  (`OBS-03`, `NFR-001`), y **validar el breakpoint real** abriendo `index.html` en un
   navegador a distintos anchos entre 900px y 1280px — ajustar `TD-05` si 1100px no
   alcanza (resuelve `OPEN-Q-01`)
 - [ ] T-1.C6 Commit — `test(navegacion-partidos): cobertura de escenarios y breakpoint (S-01..S-20)`
@@ -300,7 +301,7 @@ DoD verification (§6):
 - [ ] T-1.D7 Cada FR/TC de la Spec asignado a esta rama está implementado (FR-001 a FR-015, TC-001 a TC-007)
 - [ ] T-1.D8 Cada escenario y variante de la Spec §9 tiene un test — `comm -23 <(grep -oE "S-[0-9]+[a-z]*" ../docs/navegacion-partidos/NAVEGACION_PARTIDOS_SPEC.md | sort -u) <(grep -rEho "partido/S-[0-9]+[a-z]*" tests/ | grep -oE "S-[0-9]+[a-z]*" | sort -u)` vacío
 - [ ] T-1.D8b Cada encabezado de escenario de la Spec §9 tiene un bloque `Variants:` o la declaración `Variants: none` — lint `awk` sobre `NAVEGACION_PARTIDOS_SPEC.md` (ver receta del template) vacío
-- [ ] T-1.D9 Cada NFR cuantificado tiene un test o verificación manual documentada — `NFR-001`/`NFR-004` verificados por revisión de código (ver §12.4); `NFR-002`/`NFR-003` por medición manual (§11)
+- [ ] T-1.D9 Cada NFR cuantificado tiene un test o verificación manual documentada — `NFR-001` verificado automáticamente por `INVARIANTE_CANCHA_A11Y` (`OBS-03`); `NFR-002`/`NFR-003` por medición manual (`OBS-01`/`OBS-02`); `NFR-004` verificado por revisión de código (convención de binding ya aplicada en `tests/partido.test.js`)
 - [ ] T-1.D10 Cada TC-* está referenciado en §12 de este Plan — `comm -23 <(grep -oE "TC-[0-9]+" ../docs/navegacion-partidos/NAVEGACION_PARTIDOS_SPEC.md | sort -u) <(sed -n '/^## 12\./,/^## 13\./p' NAVEGACION_PARTIDOS_IMPLEMENTATION_PLAN.md | grep -oE "TC-[0-9]+" | sort -u)` vacío
 - [ ] T-1.D10b Cada TC-* tiene un chequeo en Spec §11.3 — ya verificado al escribir la Spec
 - [ ] T-1.D11 Historial de commits limpio, formato de §5
@@ -339,6 +340,7 @@ localmente contra staging antes de mergear (`AGENTS.md` § Ramas).
 |---|---|---|---|---|---|
 | OBS-01 | Medición manual del tiempo de transición del switch con las devtools del navegador (pestaña Performance) | manual check | `toggleMobTab` | NFR-002 | ≤150ms, verificado una vez por PR (`T-1.D9`) |
 | OBS-02 | Inspección visual del ancho del panel de equipos en el breakpoint elegido | manual check | `.match-columns` | NFR-003 | El panel no cae por debajo de lo que documenta index.html:518-521 |
+| OBS-03 | `INVARIANTE_CANCHA_A11Y` ([tests/layout.test.js:171](../../tests/layout.test.js#L171)), ya existente — se agrega a la lista `invariantes:` de los nuevos casos `partido/S-01`/`S-06` en `tests/layout.test.js` (`T-1.13`) | automated check | `tests/layout.test.js` | NFR-001 | Falla el test si algún objetivo táctil nuevo (botón "+"/"−", pestañas del switch) cae debajo de 24×24px |
 
 **Dashboards:** ninguno — no aplica a este proyecto.
 
@@ -400,10 +402,30 @@ localmente contra staging antes de mergear (`AGENTS.md` § Ramas).
 - Confirmar en un dispositivo mobile real que el switch arranca en "Resultado" con la
   inscripción cerrada (`FR-010`).
 
+### 12.5 Contract tests
+
+*No aplica* — sin producer/consumer pairs, sin contratos entre servicios (feature
+enteramente client-side).
+
 ### 12.8 Performance / load tests
 
 - `NFR-002` se verifica con la pestaña Performance del navegador (`OBS-01`), no con un
   test automatizado — el proyecto no tiene infraestructura de medición continua.
+
+### 12.9 Technical constraint verification (`AC-52`)
+
+> Entrada explícita por cada `TC-*` de la Spec, para que el gate mecánico de `T-1.D10`
+> (`comm -23` entre los `TC-*` de la Spec y los de esta sección) encuentre todos.
+
+| TC | Verification |
+|---|---|
+| TC-001 | Revisión de código en el PR: `renderTeamsSectionImpl`/`renderMatchDetail` no introducen ningún sistema de componentes paralelo, sólo CSS vanilla recreando los tokens del design system (`T-1.3`, `T-1.4`) |
+| TC-002 | `tests/cancha.test.js`/`arrastre` siguen pasando sin cambios sobre `renderConvocadosList` (`T-1.D2`) — confirma que no se reescribió |
+| TC-003 | `tests/panel.test.js`/`tests/finalizado.test.js` siguen pasando sin cambios sobre `renderZonaEquipos`/`renderCanchaEquipo` (`T-1.D2`) |
+| TC-004 | `tests/partido.test.js::'partido/S-07'` verifica que el botón "+" invoca la misma función que el toque en la camiseta (`T-1.9`) |
+| TC-005 | `tests/toque.test.js` sigue pasando sin cambios sobre la función del botón "−" (`T-1.D2`, `T-1.10`) |
+| TC-006 | `tests/partido.test.js::'partido/S-05'` confirma que el subtítulo de estrategia no aparece en el finalizado (`T-1.4`) |
+| TC-007 | Revisión de código en el PR: el `@media (max-width: 900px)` de index.html:518-528 fue reemplazado, no duplicado (`T-1.2`, `IMP-03`) |
 
 ## 13. Rollout plan
 
@@ -448,7 +470,7 @@ hoy — no hay flag, no hay dato persistido nuevo, no hay migración que deshace
 | AC-02 | Branch 1 | `tests/layout.test.js` → `partido/S-01`, `S-01a`, `S-01b` |
 | AC-03 | Branch 1 | `tests/partido.test.js::'partido/S-04a'` + `'partido/S-04b'` |
 | AC-10 | Branch 1 | `OBS-01` — medición manual, `T-1.13` |
-| AC-11 | Branch 1 | Revisión contra el mismo checklist de `INVARIANTE_CANCHA_A11Y` (`T-1.D13`) |
+| AC-11 | Branch 1 | `tests/layout.test.js` — `INVARIANTE_CANCHA_A11Y` agregado a los casos `partido/S-01`/`S-06` (`OBS-03`) |
 | AC-15 | Branch 1 | Revisión de código — `TC-002`/`TC-003` no reescriben `renderConvocadosList`/`renderZonaEquipos` |
 | AC-16 | Branch 1 | `tests/partido.test.js::'partido/S-07'` confirma que "+" invoca la misma función que el toque |
 | AC-17 | Branch 1 | `tests/partido.test.js::'partido/S-05'` |
@@ -465,7 +487,7 @@ hoy — no hay flag, no hay dato persistido nuevo, no hay migración que deshace
 
 | Date | Author | Change |
 |---|---|---|
-| 2026-09-02 | Lucas Manoukian | Initial draft. |
+| 2026-09-02 | Lucas Manoukian | Initial draft. Self-critique: passed (1🔴 / 2🟡 / 0🔵) — corregidos: TC-001 a TC-006 no aparecían en §12 (el propio gate T-1.D10 los habría marcado faltantes; se agregó §12.9), NFR-001 no tenía fila OBS-* pese a existir ya un chequeo automático (`INVARIANTE_CANCHA_A11Y`) sin aprovechar (agregado OBS-03), §12.5 omitida sin declarar (agregada). |
 
 ---
 
