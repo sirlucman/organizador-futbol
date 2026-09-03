@@ -870,7 +870,12 @@ const ESCENARIOS = [
     async preparar(page) {
       await irAPestania(page, 'Configuración');
       const campo = await page.$('input[type="number"]');
-      if (campo) { await campo.fill('1'); await campo.dispatchEvent('change'); await page.waitForTimeout(250); }
+      /* En 0.2 y no en 1: con las dos duplas del plantel testigo contando como el promedio de
+         sus dos integrantes (FR-036) en vez de la suma de los dos, el Arco —que por descarte le
+         toca a una dupla, al no haber ningún candidato natural— queda desparejo por sólo 0.3, no
+         por 6. El umbral se corre para seguir por debajo de la diferencia más chica del fixture
+         y seguir ejercitando el mismo caso de D-22. */
+      if (campo) { await campo.fill('0.2'); await campo.dispatchEvent('change'); await page.waitForTimeout(250); }
       await abrirPartido(page, '2026-09-03');
     },
     async comprobar(page) {
@@ -887,11 +892,13 @@ const ESCENARIOS = [
       if (!celdas.length) return ['no se dibujó la grilla de diferencia por línea (FR-030)'];
       if (!desvio || !desvio.includes('Desvío aceptable')) problemas.push('con umbral configurado, el bloque debe declararlo en palabras (FR-032, NFR-003)');
       const por = Object.fromEntries(celdas.map(c => [c.linea, c]));
-      /* El plantel testigo tiene un solo candidato a arquero y un solo titular con puntaje de
-         delantero, así que el Arco y el Ataque quedan desparejos por 6. Aunque son líneas de un
-         solo lugar por equipo (esa diferencia sigue siendo inevitable y el receipt la sigue
-         explicando así), el color ya no distingue: con el umbral en 1, las cuatro líneas que
-         superan el desvío se marcan igual. */
+      /* El plantel testigo tiene un solo candidato a arquero (Nilo, por posición secundaria) y
+         ningún candidato a delantero fuera de Esteban, así que el Arco y el Ataque quedan
+         desparejos: el Arco por 0.3 (a la dupla que le toca de arquero se le promedia el
+         puntaje, FR-036) y el Ataque por 6. Aunque son líneas de un solo lugar por equipo (esa
+         diferencia sigue siendo inevitable y el receipt la sigue explicando así), el color no
+         las distingue de las demás: con el umbral por debajo de las cuatro diferencias, las
+         cuatro líneas se marcan igual. */
       if (!por.Defensa || !por.Defensa.excedida) problemas.push('la Defensa supera el desvío y podía repartirse: debería quedar marcada (FR-033)');
       if (!por.Medio || !por.Medio.excedida) problemas.push('el Medio supera el desvío y podía repartirse: debería quedar marcado (FR-033)');
       if (!por.Arco) problemas.push('el Arco no se dibujó: el fixture debería dejarlo con puntaje');

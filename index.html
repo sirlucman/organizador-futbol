@@ -4850,10 +4850,34 @@
      la condición con la que el bloque aparece hoy (TC-015): se recalcula el VALOR, no se
      inventa el BLOQUE. El valor guardado no se toca ni se pisa (TC-011): queda como registro
      de lo que la generación produjo. (FR-071.) */
+  /* Colapsa cada dupla de rotación de `ids` a una sola entrada antes de sumar por línea: los dos
+     integrantes quedaron expandidos como ids reales independientes (`expandirUnidadesEnResultado`)
+     pero en la cancha ocupan un único lugar, con la misma `posicionAsignada` para los dos. Sin este
+     colapso, `sumasPorLinea` suma el puntaje de cada integrante por separado y duplica esa línea
+     (mismo defecto que ya se corrigió para el número del chip en la cancha, ver `valorDePuntaje`). */
+  function colapsarDuplasParaLinea(ids, m, porId){
+    const vistos = new Set();
+    const idsColapsados = [];
+    const overrides = {}; // solo las entradas que cambian, para no pisar al fusionar Blanco y Negro
+    (ids || []).forEach(id => {
+      if(vistos.has(id)) return;
+      vistos.add(id);
+      const partnerId = getDuplaPartner(m, id);
+      if(partnerId && !vistos.has(partnerId) && ids.includes(partnerId) && porId[id] && porId[partnerId]){
+        overrides[id] = construirUnidadDupla(porId[id], porId[partnerId]);
+        vistos.add(partnerId);
+      }
+      idsColapsados.push(id);
+    });
+    return { ids: idsColapsados, overrides };
+  }
   function balanceLineasVigente(m, porId){
     const eq = m && m.equipos;
     if(!eq || !eq.balanceLineas) return null;
-    return balanceLineasDe(eq.blanco || [], eq.negro || [], eq.posicionAsignada || {}, porId);
+    const blanco = colapsarDuplasParaLinea(eq.blanco || [], m, porId);
+    const negro = colapsarDuplasParaLinea(eq.negro || [], m, porId);
+    const porIdVigente = { ...porId, ...blanco.overrides, ...negro.overrides };
+    return balanceLineasDe(blanco.ids, negro.ids, eq.posicionAsignada || {}, porIdVigente);
   }
 
   /* Las celdas de la grilla de diferencia por línea, en el orden de ORDEN_LINEAS y sólo las que
