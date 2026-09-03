@@ -602,7 +602,7 @@ const ESCENARIOS = [
         if (document.querySelector('.panel-pildora')) problemas.push('el rol jugador ve la píldora de diferencia (panel FR-081)');
         if (document.querySelector('.panel-lineas')) problemas.push('el rol jugador ve la diferencia por línea (panel FR-081)');
         if (document.querySelector('.panel-receipt')) problemas.push('el rol jugador ve el receipt del motor (panel FR-046)');
-        if (document.querySelector('.panel-estrategia')) problemas.push('el rol jugador ve el combo de estrategia (panel FR-080)');
+        if (document.querySelector('.chip-estrategia')) problemas.push('el rol jugador ve el combo de estrategia (panel FR-080)');
         if (document.querySelector('.panel-aviso')) problemas.push('el rol jugador ve el aviso de equipos desactualizados (panel FR-080)');
         if (document.querySelector('.panel-icono-regenerar')) problemas.push('el rol jugador ve el botón de regenerar (panel FR-080)');
         if (document.querySelector('.panel-botonera')) problemas.push('el rol jugador ve la botonera de ciclo de vida (panel FR-080)');

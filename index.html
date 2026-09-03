@@ -622,12 +622,22 @@
   .panel-pildora-fila{ display: flex; align-items: center; justify-content: flex-end; margin: 0 0 8px; }
 
   /* --- Combo de estrategia --- */
-  .panel-estrategia{ display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
-  .panel-estrategia-label{ flex: none; font-family: var(--font-mono); font-size: 12px; font-weight: 600; line-height: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-  .panel-estrategia-campo{ position: relative; flex: 1; min-width: 0; }
-  .panel-estrategia-campo select{ width: 100%; min-height: 40px; padding: 0 38px 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-control); background: var(--chalk); color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; appearance: none; cursor: pointer; }
-  .panel-estrategia-campo select:disabled{ cursor: default; opacity: 0.6; }
-  .panel-estrategia-chevron{ position: absolute; right: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  /* Chip compacto: vive en la fila del título ("Alineaciones"), del ancho de su contenido, en
+     vez de una fila propia de ancho completo — mismo <select> nativo por debajo, solo cambia
+     dónde vive y cuánto ancho ocupa. */
+  .chip-estrategia{ display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-control); background: var(--chalk); }
+  .chip-estrategia-label{ flex: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  .chip-estrategia-campo{ position: relative; display: inline-flex; align-items: center; }
+  .chip-estrategia-campo select{ appearance: none; border: none; background: none; padding: 0 20px 0 0; font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .chip-estrategia-campo select:disabled{ cursor: default; opacity: 0.6; }
+  .chip-estrategia-chevron{ position: absolute; right: 0; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  /* Sin espacio para la etiqueta "Estrategia" + el nombre más largo del catálogo ("Por posición
+     y puntaje") al lado de los dos íconos del encabezado: el nombre elegido se ve completo en el
+     propio combo nativo al abrirlo, así que acá alcanza con recortarlo (Principio V, piso 360px). */
+  @media (max-width: 480px){
+    .chip-estrategia-label{ display: none; }
+    .chip-estrategia-campo select{ max-width: 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  }
 
   /* --- Aviso de equipos desactualizados --- */
   /* La forma sale del disclaimer del handoff (§ Combo de estrategia); el TEXTO es el que la
@@ -667,8 +677,6 @@
   .panel-botonera{ display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 
   @media (max-width: 900px){
-    .panel-estrategia{ flex-wrap: wrap; }
-    .panel-estrategia-campo select{ min-height: 44px; font-size: 13px; line-height: 18px; }
     .panel-aviso{ flex-direction: column; align-items: stretch; gap: 10px; padding: 14px; }
     .panel-lineas-grilla{ grid-template-columns: repeat(2, minmax(0,1fr)); }
     .panel-celda{ padding: 10px 12px; }
@@ -5152,7 +5160,7 @@
   const ICON_TILDE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
   const ICON_REGENERAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
   const ICON_ATENCION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
-  const ICON_CHEVRON = '<svg class="panel-estrategia-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+  const ICON_CHEVRON = '<svg class="chip-estrategia-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   // Ícono del botón de editar resultado del partido finalizado (rebanada 4, FR-006).
   const ICON_LAPIZ = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
@@ -5189,8 +5197,9 @@
       }
     }
     const pildora = (admin && resumen && !enUnaColumna()) ? renderPildoraDiferencia(resumen) : '';
-    const derecha = (pildora || botones.length)
-      ? '<div class="panel-header-acciones">' + pildora + botones.join('') + '</div>' : '';
+    const combo = renderComboEstrategia(m);
+    const derecha = (combo || pildora || botones.length)
+      ? '<div class="panel-header-acciones">' + combo + pildora + botones.join('') + '</div>' : '';
     return '<div class="panel-header"><h3>Alineaciones</h3>' + derecha + '</div>';
   }
 
@@ -5210,11 +5219,11 @@
     const opciones = Object.entries(ESTRATEGIAS)
       .map(([key, e]) => '<option value="' + key + '"' + (key === actual ? ' selected' : '') + '>' + escaparHtml(e.label) + '</option>')
       .join('');
-    return '<div class="panel-estrategia admin-only">'
-      + '<span class="panel-estrategia-label">Estrategia</span>'
-      + '<span class="panel-estrategia-campo">'
+    return '<span class="chip-estrategia admin-only">'
+      + '<span class="chip-estrategia-label">Estrategia</span>'
+      + '<span class="chip-estrategia-campo">'
       + '<select id="selectEstrategia">' + opciones + '</select>'
-      + ICON_CHEVRON + '</span></div>';
+      + ICON_CHEVRON + '</span></span>';
   }
 
   /* El aviso de equipos desactualizados. La forma es la del handoff; el TEXTO es el que la
@@ -5320,7 +5329,7 @@
     // validación que ya existían (sin titulares vs. titulares-sin-generar): el prototipo del
     // handoff no modela la primera porque siempre parte de una convocatoria completa.
     if(titularIds.length === 0){
-      section.innerHTML = `<h3>Alineaciones</h3>${selectorEstrategia}<div class="empty-state-ds"><h4>Sin titulares</h4><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
+      section.innerHTML = `<div class="panel-header"><h3>Alineaciones</h3>${selectorEstrategia ? `<div class="panel-header-acciones">${selectorEstrategia}</div>` : ''}</div><div class="empty-state-ds"><h4>Sin titulares</h4><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
       if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
@@ -5335,11 +5344,13 @@
         + `<li>${supCount} suplente${supCount === 1 ? '' : 's'} en la cola</li>`
         + `</ul></div>`;
       section.innerHTML = `
-        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div class="panel-header">
           <h3>Alineaciones</h3>
-          ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>` : ''}
+          ${(selectorEstrategia || isAdmin()) ? `<div class="panel-header-acciones">
+            ${selectorEstrategia}
+            ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>` : ''}
+          </div>` : ''}
         </div>
-        ${selectorEstrategia}
         <div class="empty-state-ds">
           <h4>Todavía no generaste los equipos</h4>
           <p>Cuando los generes, los dos equipos aparecen acá sobre el campo. Podés seguir moviendo la cola de convocados mientras tanto.</p>
@@ -5431,7 +5442,6 @@
     section.innerHTML = `
       ${renderEncabezadoTarjeta(m, resumenDif)}
       ${enModoCarga(m) ? renderFilaResultado(m) : ''}
-      ${renderComboEstrategia(m)}
       ${renderAvisoDesactualizado(m)}
       ${enUnaColumna() ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
       ${renderToolbarCarga(m)}
