@@ -2365,6 +2365,13 @@
   }
 
   // Elige qué arqueros ocupan el arco y devuelve la info para ubicarlos.
+  //
+  // `titularBlanco`/`titularNegro` en null es ambiguo: puede significar "este equipo no tiene
+  // arquero natural, todavía hace falta uno" o "ya lo tiene, es un bloqueado (va en `bloqueados`)".
+  // Por eso también se exponen `slotBlancoLibre`/`slotNegroLibre`: son la única forma confiable de
+  // saber si a un equipo LE FALTA arquero (para decidir si corresponde buscarle uno por posición
+  // secundaria) — un null con el slot no libre significa que el arco ya está cubierto por un
+  // bloqueado, no que falte cubrirlo.
   function resolverArqueros(arqueros, sonBloqueados, prevTeamOf){
     const bloqueados = arqueros.filter(sonBloqueados);
     const libres = [...arqueros.filter(p => !sonBloqueados(p))]
@@ -2375,7 +2382,7 @@
     const titularBlanco = (slotBlancoLibre && libres[i]) ? libres[i++] : null;
     const titularNegro  = (slotNegroLibre  && libres[i]) ? libres[i++] : null;
     const excedentes = libres.slice(i);
-    return { bloqueados, titularBlanco, titularNegro, excedentes, total: arqueros.length };
+    return { bloqueados, titularBlanco, titularNegro, excedentes, total: arqueros.length, slotBlancoLibre, slotNegroLibre };
   }
 
   /* Estrategia 1 — Balance por puntaje promedio (no optimiza posiciones, pero sí respeta el invariante de arqueros) */
@@ -2408,8 +2415,10 @@
     const arq = resolverArqueros(naturalPool, sonBloqueados, prevTeamOf || {});
     let titularBlancoArq = arq.titularBlanco, titularNegroArq = arq.titularNegro;
     let iSec = 0;
-    if(!titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
-    if(!titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
+    // Solo se busca candidato por secundaria si al equipo REALMENTE le falta arquero (slot libre),
+    // no cuando el null es porque ya lo tiene cubierto un bloqueado (ver comentario de resolverArqueros).
+    if(arq.slotBlancoLibre && !titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
+    if(arq.slotNegroLibre && !titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
     if(titularBlancoArq) posicionOverride[titularBlancoArq.id] = 'Arquero'; // sin efecto si ya es su principal
     if(titularNegroArq)  posicionOverride[titularNegroArq.id]  = 'Arquero';
     const yaUbicados = new Set([...blanco, ...negro]);
@@ -2564,8 +2573,10 @@
     const arq = resolverArqueros(naturalPool, sonBloqueados, prevTeamOf || {});
     let titularBlancoArq = arq.titularBlanco, titularNegroArq = arq.titularNegro;
     let iSec = 0;
-    if(!titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
-    if(!titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
+    // Solo se busca candidato por secundaria si al equipo REALMENTE le falta arquero (slot libre),
+    // no cuando el null es porque ya lo tiene cubierto un bloqueado (ver comentario de resolverArqueros).
+    if(arq.slotBlancoLibre && !titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
+    if(arq.slotNegroLibre && !titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
     arq.bloqueados.forEach(p => {
       const valor = puntajeEnPosicion(p, 'Arquero');
       if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
