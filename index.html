@@ -245,7 +245,7 @@
   /* Dupla de rotación agrupada en un mismo renglón: un integrante arriba, el otro abajo, dentro
      de un único recuadro — se ve como una sola unidad, no como dos filas sueltas. */
   .conv-row-dupla{ align-items: stretch; }
-  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--paper-line); border-radius: var(--radius-control); padding:8px 10px; background: var(--paper); }
+  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--paper-line); border-radius: var(--radius-control); padding:8px 10px; background: #E4F0C4; }
   .conv-dupla-member{ display:flex; align-items:center; gap:10px; }
   .conv-dupla-member .conv-pos-badge{ width:22px; height:22px; }
   .conv-dupla-member .conv-name{ font-size: 14px; }
@@ -1892,8 +1892,12 @@
       const panelId = tab === 'jugadores' ? 'panelJugadores' : (tab === 'motor' ? 'panelMotor' : 'panelPartidos');
       el(panelId).classList.add('active');
       // TD-06: `.match-wide` sólo debe aplicar mientras se ve un partido — si se navega a otra
-      // pestaña sin pasar por "Volver a partidos" (renderMatchList), igual hay que sacarla.
+      // pestaña sin pasar por "Volver a partidos" (renderMatchList), igual hay que sacarla. Y si
+      // se vuelve a "partidos" con un partido abierto (`currentMatchId`), hay que volver a
+      // agregarla: quitarla al salir sin nunca reponerla al volver dejaba el detalle angosto,
+      // como si `.match-wide` no existiera (bug reportado por el usuario, 2026-09-03).
       if(tab !== 'partidos') el('appRoot').classList.remove('match-wide');
+      else if(currentMatchId) el('appRoot').classList.add('match-wide');
     });
   });
 
@@ -5338,14 +5342,21 @@
          queda alineado a la derecha del mismo `h4` junto al nombre, que ahí sí hace falta porque
          no hay pestaña que lo diga. */
       const puntajeTexto = (pts) => Math.round(pts * 10) / 10 + ' pts';
+      // Sin goleadores, `renderFilasDetalle` devuelve '' — no envolver en `.detalle-equipo` (evita
+      // un margen superior sin contenido debajo de la cancha, mismo criterio que
+      // `detalleCargaHtml` en el modo de carga).
+      const detalleEquipoHtml = (ids) => {
+        const filasHtml = renderFilasDetalle(ids, stats);
+        return filasHtml ? `<div class="detalle-equipo">${filasHtml}</div>` : '';
+      };
       section.innerHTML = `
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
         ${renderZonaEquipos(m, {
           blanco: { header: `<span class="team-name">Equipo Blanco</span> <span class="team-total">${puntajeTexto(m.equipos.sumaBlanco)}</span>`,
-            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + `<div class="detalle-equipo">${renderFilasDetalle(eq.blanco, stats)}</div>` },
+            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleEquipoHtml(eq.blanco) },
           negro: { header: `<span class="team-name">Equipo Negro</span> <span class="team-total">${puntajeTexto(m.equipos.sumaNegro)}</span>`,
-            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + `<div class="detalle-equipo">${renderFilasDetalle(eq.negro, stats)}</div>` }
+            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleEquipoHtml(eq.negro) }
         })}
       `;
       return;
@@ -5472,12 +5483,13 @@
   }
 
   /* Las filas de detalle debajo de un campo: una por goleador, con el desglose de penal y de en
-     contra en líneas separadas, y "Sin goleadores" si no hay ninguno (FR-050 a FR-057). El nombre
-     se antepone en la línea de en contra sólo cuando el jugador no tiene línea de goles propios
-     (FR-054), y todo nombre se inserta escapado (FR-057, TC-041). */
+     contra en líneas separadas, sin nada si el equipo no hizo goles (ex FR-050 a FR-057, ver
+     Change log 2026-09-03 de PARTIDO_FINALIZADO_SPEC.md). El nombre se antepone en la línea de en
+     contra sólo cuando el jugador no tiene línea de goles propios (FR-054), y todo nombre se
+     inserta escapado (FR-057, TC-041). */
   function renderFilasDetalle(ids, statsPorJugador){
     const goleadores = goleadoresDeEquipo(ids, statsPorJugador);
-    if(!goleadores.length) return '<div class="detalle-vacio">Sin goleadores</div>';
+    if(!goleadores.length) return '';
     return goleadores.map(x => {
       const lineas = [];
       if(x.goles > 0){
@@ -5556,12 +5568,13 @@
 
   // Las filas de detalle debajo de la cancha en modo de carga: una por jugador y por familia con
   // al menos un evento (FR-042), con los botones "+"/"−" sólo cuando `editable` (FR-050, FR-051;
-  // nunca para el rol jugador, FR-003). "Sin eventos cargados para este equipo" si no hay ninguna
-  // (FR-043), pero sólo para `admin`: es quien está tocando la cancha y a quien le sirve saber que
-  // todavía no cargó nada; el rol jugador, que no puede tocar nada, ve la cancha sin ningún aviso.
+  // nunca para el rol jugador, FR-003). Sin ningún evento no hay nada que mostrar (ni para admin
+  // ni para jugador): el aviso "Sin eventos cargados para este equipo" (ex FR-043) se sacó porque
+  // aparecía apenas se cerraba la inscripción, antes de que el admin tuviera chance de tocar la
+  // cancha, y se leía como un error (feedback del usuario, 2026-09-03).
   function renderFilasDetalleCarga(m, ids, eventos, editable){
     const filas = detalleCargaDeEquipo(ids, eventos);
-    if(!filas.length) return editable ? '<div class="detalle-vacio">Sin eventos cargados para este equipo</div>' : '';
+    if(!filas.length) return '';
     const iconoDe = { goles: GOAL_ICON, contra: RED_GOAL_ICON, asist: BOOT_ICON };
     return filas.map(f => {
       const btn = editable

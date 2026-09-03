@@ -382,9 +382,11 @@ aplicable acá.
   detalle por jugador y por familia de evento con al menos un evento
   cargado, con el número, el ícono, y la nota "(N de penal)" o "(EC)" cuando
   corresponda (`handoff/README.md:407-413`).
-- **FR-043** — If un equipo no tiene ningún evento cargado, then el sistema
+- ~~**FR-043** — If un equipo no tiene ningún evento cargado, then el sistema
   shall mostrar el texto "Sin eventos cargados para este equipo" en lugar de
-  la lista de filas de detalle (`handoff/README.md:420`).
+  la lista de filas de detalle (`handoff/README.md:420`).~~ Derogada — ver
+  Change log 2026-09-03: sin eventos, el sistema no shall mostrar nada en
+  lugar de la lista de filas de detalle (ni siquiera para `admin`).
 
 ### 7.6 Botón "−" por familia
 
@@ -397,8 +399,8 @@ aplicable acá.
 - **FR-052** — El sistema shall actualizar la pastilla, el marcador y la
   fila de detalle inmediatamente después de quitar un evento con "−".
 - **FR-053** — If una fila de detalle queda sin eventos después de tocar
-  "−", then el sistema shall retirar esa fila, mostrando el estado vacío de
-  `FR-043` si era la última fila del equipo.
+  "−", then el sistema shall retirar esa fila, sin mostrar ningún aviso en
+  su lugar si era la última fila del equipo (ex `FR-043`, derogada).
 
 ### 7.6b Mantener presionado (agregada 2026-09-01, ver Change log)
 
@@ -551,7 +553,7 @@ aplicable acá.
 **Variants:**
 
 - `S-04a [boundary]` — la fila tenía un solo evento: al tocar "−" la fila
-  desaparece (FR-053)
+  desaparece sin ningún aviso en su lugar (FR-053)
 - `S-04b [property]` — el evento quitado por "−" es siempre el más reciente
   cronológicamente de esa familia y jugador, sin importar en qué orden se
   cargaron eventos de otras familias o de otros jugadores entre medio
@@ -796,6 +798,7 @@ que registrar.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-03 | Lucas Manoukian | Enmienda pedida por el propietario tras ver `feature/carga-por-toque` ya en uso: `FR-043` hacía que "Sin eventos cargados para este equipo" apareciera para `admin` apenas se cerraba la inscripción, antes de tocar la cancha una sola vez — se leía como un error, no como un aviso útil. Se deroga `FR-043`: sin eventos, el sistema no shall mostrar nada (para ningún rol), ni en el estado inicial ni al vaciarse la última fila con "−" (se ajusta `FR-053` y la variante `S-04a` en consecuencia). No hay ningún requisito nuevo, sólo la eliminación de uno. Self-critique: no corresponde (derogación acotada, sin requisitos nuevos que auditar). |
 | 2026-09-01 | Lucas Manoukian | Enmienda pedida por el propietario tras usar `feature/carga-por-toque`: mantener presionado el mismo destino de toque de `FR-030`/`FR-030b` (≥550ms) también saca un evento de la familia activa, sin bajar hasta la fila de detalle a tocar "−". Se agregan `FR-054`/`FR-054b` (§7.6b) y las variantes `S-04d`/`S-04e`. Reutiliza `quitarUltimoDeFamilia`/`__quitarUltimoDeFamiliaCarga`, ya existentes (`FR-051`): no hay ninguna regla de negocio nueva, sólo un segundo gatillo para la misma acción. Self-critique: no corresponde (adición acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al probar `feature/carga-por-toque` ya mergeada en un teléfono real: el nombre del jugador (`.camiseta-nombre`) resultó un blanco de toque demasiado chico en la práctica. Se ajusta `FR-030` para que, sobre una unidad INDIVIDUAL, el toque abarque toda la camiseta (silueta y nombre); sobre una dupla sigue acotado al nombre de cada integrante, sin cambios (`FR-030b` sigue vigente tal cual). Se agrega la variante `S-01f`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al empezar el Implementation Plan: la Spec no decía qué pasa al tocar una dupla de rotación (dos jugadores compartiendo una camiseta) — el toque tal como estaba redactado (`FR-030` original, "toca la camiseta") no podía distinguir a qué integrante atribuir el evento, mientras que la grilla numérica que esta rebanada reemplaza sí permitía cargar a cada integrante por separado (`renderTeamPlayerRowDupla`). Se agrega `FR-030b`, se ajusta `FR-030` para que el toque ocurra sobre el nombre del jugador (no toda la camiseta) —lo que hace posible distinguir integrantes sin agregar un control nuevo—, y se agrega la variante `S-01e`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, encontrada y resuelta antes de escribir el Plan). |

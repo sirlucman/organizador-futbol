@@ -170,10 +170,10 @@ prueba('"finalizado/S-05" goles propios con nota de penal, y en contra en línea
   ok(html.includes('(EC)') && html.includes('Ana Gomez'), 'la línea de en contra lleva el nombre, porque no tiene línea de goles propios');
 });
 
-prueba('"finalizado/S-05a" un equipo sin goleadores muestra "Sin goleadores"', () => {
+prueba('"finalizado/S-05a" un equipo sin goleadores no muestra nada (ex FR-055, derogada)', () => {
   P.__setPlayers([J('j1', 'Juan', 'Perez')]);
   const html = P.renderFilasDetalle(['j1'], { j1: { goles: 0 } });
-  eq(html, '<div class="detalle-vacio">Sin goleadores</div>', 'texto exacto, sin ninguna fila');
+  eq(html, '', 'sin ningún aviso en lugar de las filas');
 });
 
 prueba('"finalizado/S-05b" un gol en contra y también gol propio: el nombre no se repite', () => {
