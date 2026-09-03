@@ -51,6 +51,7 @@ const DECLARACIONES = [
   'agruparFilasDeEquipo',
   'sumasPorLinea',
   'balanceLineasDe',
+  'colapsarDuplasParaLinea',
   'canonicalDuplas',
   'CANCHAS',
   'titularesRequeridos',
@@ -324,9 +325,9 @@ prueba('"panel/S-06c" una dupla entra en su línea como el promedio de sus dos i
     [['n1','Arquero',9],['n2','Volante',6],['n3','Volante',6]],
     { duplas: [['b2','b3']] });
   const medio = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Volante');
-  eq(medio.blanco, 12, 'los dos integrantes suman su puntaje en la línea, igual que en el total');
-  eq(medio.negro, 12, 'y el Negro también');
-  eq(medio.texto, 'Parejo', 'con el promedio de 6 por integrante, la línea queda pareja');
+  eq(medio.blanco, 6, 'la dupla entra una sola vez, con el promedio de sus dos integrantes (FR-036), no la suma');
+  eq(medio.negro, 12, 'sin dupla, cada volante del Negro suma su propio puntaje');
+  eq(medio.texto, '+6 Negro', 'el promedio de la dupla (6) queda por debajo de los dos volantes sueltos del Negro (12)');
 });
 
 console.log('');
