@@ -37,7 +37,10 @@ const ANCHO_MINIMO = 360;
    cambia de forma: el piso, cada breakpoint del CSS (480, 560, 700) medido de los
    dos lados, y la franja de tablet. Un dispositivo popular puede caer lejos de
    todo borde y no probar nada. */
-const ANCHOS = [360, 390, 430, 479, 481, 559, 561, 600, 699, 701, 768, 900, 1200];
+// 1099/1100: breakpoint del layout de dos columnas de la pantalla de partido
+// (NAVEGACION_PARTIDOS_SPEC.md TC-007, A-01) — medido de los dos lados, mismo criterio que el
+// resto de la lista.
+const ANCHOS = [360, 390, 430, 479, 481, 559, 561, 600, 699, 701, 768, 900, 1099, 1100, 1200];
 
 /* ------------------------------------------------------------------ servidor */
 
@@ -325,19 +328,48 @@ const INVARIANTE_CARGA_TOQUE = () => {
     }
   }
   const piso = window.innerWidth < 390 ? 38 : 26;
-  for (const btn of document.querySelectorAll('.detalle-quitar-btn')) {
+  // ".detalle-agregar-btn" (el "+"): mismo piso táctil que el "−", NFR-001 de
+  // NAVEGACION_PARTIDOS_SPEC.md — no tenía chequeo de tamaño hasta esta feature.
+  for (const btn of document.querySelectorAll('.detalle-quitar-btn, .detalle-agregar-btn')) {
+    const signo = btn.classList.contains('detalle-agregar-btn') ? '+' : '−';
     const b = btn.getBoundingClientRect();
     if (b.width < piso - 0.5 || b.height < piso - 0.5) {
-      problemas.push(`el botón "−" mide ${Math.round(b.width)}x${Math.round(b.height)}px, por debajo del piso de ${piso}px a ${window.innerWidth}px (toque/NFR-002)`);
+      problemas.push(`el botón "${signo}" mide ${Math.round(b.width)}x${Math.round(b.height)}px, por debajo del piso de ${piso}px a ${window.innerWidth}px (toque/NFR-002, partido/NFR-001)`);
     }
     if (!(btn.getAttribute('aria-label') || '').trim() || !(btn.getAttribute('title') || '').trim()) {
-      problemas.push('un botón "−" quedó sin aria-label o sin title (toque/NFR-003)');
+      problemas.push(`un botón "${signo}" quedó sin aria-label o sin title (toque/NFR-003)`);
     }
   }
   for (const tab of document.querySelectorAll('.evento-tab')) {
     if (!tab.textContent.trim()) problemas.push('una opción del selector de evento quedó sin texto (toque/NFR-003)');
   }
   return [...new Set(problemas)].slice(0, 4);
+};
+
+/* El layout de dos columnas de la pantalla de partido (NAVEGACION_PARTIDOS_SPEC.md, FR-001,
+   FR-009). Por debajo del breakpoint (A-01) el switch manda: se ve una sola columna a la vez y
+   `.match-mobile-switch` está visible. En el breakpoint para arriba, las dos columnas se ven
+   juntas y el switch se oculta. Corre en cada ancho medido (no una vez), porque es exactamente lo
+   que cambia con el ancho — "partido/S-01", "partido/S-01a", "partido/S-01b", "partido/S-06",
+   "partido/S-06b". */
+const INVARIANTE_PARTIDO_DOS_COLUMNAS = () => {
+  const columnas = document.getElementById('matchColumns');
+  if (!columnas) return [];
+  const problemas = [];
+  const conv = document.getElementById('matchColConvocados');
+  const eq = document.getElementById('matchColEquipos');
+  const switchEl = document.getElementById('matchMobileSwitch');
+  const visible = (elemento) => elemento && getComputedStyle(elemento).display !== 'none';
+  if (document.documentElement.clientWidth >= 1100) {
+    if (visible(switchEl)) problemas.push(`el switch mobile sigue visible a ${window.innerWidth}px (≥1100, partido/S-01)`);
+    if (!visible(conv) || !visible(eq)) problemas.push(`las dos columnas no se ven juntas a ${window.innerWidth}px (≥1100, partido/S-01)`);
+  } else {
+    if (!visible(switchEl)) problemas.push(`el switch mobile no se ve a ${window.innerWidth}px (<1100, partido/S-06)`);
+    const tab = columnas.getAttribute('data-mob-tab');
+    const otraVisible = tab === 'convocados' ? visible(eq) : visible(conv);
+    if (otraVisible) problemas.push(`se ven las dos columnas a la vez a ${window.innerWidth}px, con la pestaña "${tab}" activa (partido/S-06b)`);
+  }
+  return problemas;
 };
 
 /* ----------------------------------------------------------------- escenarios */
@@ -389,7 +421,16 @@ const ESCENARIOS = [
     async preparar(page) { await irAPestania(page, 'Partidos'); } },
 
   { clave: 'partido-abierto', rol: 'admin', nombre: 'detalle de partido · inscripción abierta',
-    async preparar(page) { await abrirPartido(page, '2026-09-03'); } },
+    spec: ['partido/S-01', 'partido/S-01a', 'partido/S-01b', 'partido/S-06'],
+    invariantes: [INVARIANTE_PARTIDO_DOS_COLUMNAS],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      // FR-011: con la inscripción abierta, el switch mobile arranca en "Convocados".
+      return page.evaluate(() => {
+        const tab = (document.getElementById('matchColumns') || {}).getAttribute?.('data-mob-tab');
+        return tab === 'convocados' ? [] : [`el switch no arrancó en "Convocados" con la inscripción abierta (partido/S-06, arrancó en "${tab}")`];
+      });
+    } },
 
   { clave: 'partido-cerrado', rol: 'admin', nombre: 'detalle de partido · cargar resultado',
     /* `finalizado/S-02c`: este mismo `comprobar` ya verifica que los bloques del panel de armado
@@ -397,8 +438,8 @@ const ESCENARIOS = [
        finalizada, exactamente lo que esa variante pide. Desde la rebanada 6 (D-12, TC-011) la
        cancha se muestra siempre, sin excepción: ya no hay un estado "cerrado" que vuelva a la
        lista de filas, así que esa rama dejó de existir para verificar. */
-    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c', 'finalizado/S-02c'],
-    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    spec: ['cancha/S-10', 'arrastre/S-10', 'arrastre/S-06b', 'panel/S-11', 'panel/S-11b', 'panel/S-02b', 'panel/S-03c', 'finalizado/S-02c', 'partido/S-01', 'partido/S-06a'],
+    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA, INVARIANTE_PARTIDO_DOS_COLUMNAS],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); },
     async comprobar(page) {
       /* NOTA (2026-09-02): a pedido del usuario, el combo de estrategia deja de mostrarse
@@ -414,6 +455,9 @@ const ESCENARIOS = [
         if (!document.querySelector('.panel-header')) problemas.push('la tarjeta perdió el encabezado nuevo (panel S-11)');
         if (!document.querySelector('.panel-receipt')) problemas.push('la tarjeta perdió el receipt (panel S-11)');
         if (!document.querySelector('.panel-lineas')) problemas.push('la tarjeta perdió la diferencia por línea (panel S-11)');
+        // FR-010: con la inscripción cerrada, el switch mobile arranca en "Equipos"/"Resultado".
+        const tab = (document.getElementById('matchColumns') || {}).getAttribute?.('data-mob-tab');
+        if (tab !== 'equipos') problemas.push(`el switch no arrancó en "Equipos" con la inscripción cerrada (partido/S-06a, arrancó en "${tab}")`);
         return problemas;
       });
     } },
@@ -429,8 +473,8 @@ const ESCENARIOS = [
        su derecha en dos) — el comportamiento que describían `finalizado/S-04`, `S-04b` y
        `FR-042b` cambió y este archivo ya lo verifica; falta reflejarlo en
        PARTIDO_FINALIZADO_SPEC.md. */
-    spec: ['finalizado/S-01', 'finalizado/S-01a', 'finalizado/S-02', 'finalizado/S-02a', 'finalizado/S-03', 'finalizado/S-04', 'finalizado/S-04b', 'finalizado/S-05'],
-    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    spec: ['finalizado/S-01', 'finalizado/S-01a', 'finalizado/S-02', 'finalizado/S-02a', 'finalizado/S-03', 'finalizado/S-04', 'finalizado/S-04b', 'finalizado/S-05', 'partido/S-01', 'partido/S-05'],
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA, INVARIANTE_PARTIDO_DOS_COLUMNAS],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); },
     async comprobar(page) {
       /* A 360px (una columna): título con sólo la fecha, la fila de resultado sin nombre ni
@@ -460,6 +504,11 @@ const ESCENARIOS = [
         if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado, ahora vive en el encabezado de la cancha');
         const iconos = document.querySelectorAll('.panel-header-acciones .panel-icono');
         if (iconos.length !== 2) problemas.push(`el encabezado nuevo tiene ${iconos.length} ícono(s) de acción en vez de 2 (finalizado/S-01)`);
+        // TC-006 de NAVEGACION_PARTIDOS_SPEC.md (D-06 del Concept Note): el subtítulo de
+        // estrategia aplicada NO se reintroduce en el layout de dos columnas — FR-084/D-25 de
+        // PANEL_ARMADO_SPEC.md se mantienen vigentes.
+        const encabezado = document.querySelector('.detail-header, .panel-header') || document.body;
+        if (/Estrategia:/i.test(encabezado.textContent)) problemas.push('reapareció el subtítulo de estrategia aplicada en el finalizado (partido/S-05, TC-006)');
         return problemas;
       });
       /* A 1200px (dos columnas): el título suma el tamaño de cancha; la fila de resultado ya no
@@ -507,6 +556,7 @@ const ESCENARIOS = [
     async preparar(page) {
       await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
       await abrirPartido(page, '2026-09-03');
+      await mostrarEquiposMobile(page);
     },
     async comprobar(page) {
       return page.evaluate(() => {
@@ -522,7 +572,7 @@ const ESCENARIOS = [
   { clave: 'cancha-9', rol: 'admin', nombre: 'equipos generados sobre la cancha · fútbol 9 (fila de cuatro)',
     spec: ['cancha/S-01a', 'cancha/S-01f', 'cancha/S-03a', 'cancha/S-06', 'cancha/S-06a', 'cancha/S-06b', 'cancha/S-06c', 'cancha/S-06d', 'cancha/NFR-001', 'cancha/NFR-002', 'arrastre/S-04d', 'arrastre/NFR-001', 'panel/NFR-001', 'panel/NFR-002'],
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL],
-    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
       return page.evaluate(() => {
         const problemas = [];
@@ -601,7 +651,7 @@ const ESCENARIOS = [
        la anterior: por eso el escenario lleva ahora identificadores de las dos. */
     spec: ['cancha/S-04', 'cancha/S-04a', 'cancha/S-04b', 'cancha/S-04d', 'arrastre/S-05', 'cancha/NFR-003', 'cancha/NFR-004', 'cancha/NFR-005'],
     invariantes: [INVARIANTE_CANCHA_A11Y],
-    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
       const problemas = [];
       /* S-04: fijar a un jugador desde su camiseta. Se elige uno SIN fijar, se lo toca, y se
@@ -658,7 +708,7 @@ const ESCENARIOS = [
     anchos: [360, 900, 901, 1200],
     spec: ['arrastre/S-04', 'arrastre/S-04a', 'arrastre/S-04b', 'arrastre/S-06', 'arrastre/S-04d', 'arrastre/NFR-002', 'arrastre/NFR-003'],
     invariantes: [INVARIANTE_SELECTOR],
-    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
       const problemas = [];
       const foto = () => page.evaluate(() => ({
@@ -1014,7 +1064,7 @@ const ESCENARIOS = [
     anchos: [360, 1200],
     spec: ['arrastre/S-06a', 'arrastre/S-04c'],
     invariantes: [INVARIANTE_SELECTOR],
-    async preparar(page) { await abrirPartido(page, '2026-09-10'); },
+    async preparar(page) { await abrirPartido(page, '2026-09-10'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
       const problemas = [];
       const a = await page.evaluate(() => ({
@@ -1131,12 +1181,38 @@ const ESCENARIOS = [
     } },
 
   { clave: 'partido-sin-equipos', rol: 'admin', nombre: 'detalle de partido · sin equipos generados',
-    anchos: [360, 1200], spec: ['cancha/S-10c', 'arrastre/S-10c'],
-    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA],
+    anchos: [360, 1200], spec: ['cancha/S-10c', 'arrastre/S-10c', 'partido/S-04', 'partido/S-04a'],
+    invariantes: [INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA, INVARIANTE_PARTIDO_DOS_COLUMNAS],
     async preparar(page) { await abrirPartido(page, '2026-09-17'); },
     async comprobar(page) {
-      return page.evaluate(() =>
-        document.querySelector('.cancha') ? ['se dibujó una cancha sin que el motor hubiera repartido los equipos'] : []);
+      return page.evaluate(() => {
+        const problemas = [];
+        if (document.querySelector('.cancha')) problemas.push('se dibujó una cancha sin que el motor hubiera repartido los equipos');
+        const vacio = document.querySelector('.empty-state-ds');
+        if (!vacio) problemas.push('no apareció el empty state del design system (partido/S-04, FR-006)');
+        else if (!/Todavía no generaste los equipos/.test(vacio.textContent)) problemas.push('el empty state no tiene el título esperado (partido/S-04)');
+        if (!document.querySelector('.armado-preview')) problemas.push('no apareció la lista "Con qué va a armar" (partido/S-04, FR-006)');
+        // FR-007: admin ve el botón "Generar equipos".
+        if (![...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Generar equipos')) {
+          problemas.push('el admin no ve el botón "Generar equipos" (partido/S-04a, FR-007)');
+        }
+        return problemas;
+      });
+    } },
+
+  { clave: 'partido-sin-equipos-jugador', rol: 'jugador', nombre: 'detalle de partido · sin equipos generados (rol jugador)',
+    anchos: [1200], spec: ['partido/S-04b'],
+    async preparar(page) { await abrirPartido(page, '2026-09-17'); },
+    async comprobar(page) {
+      // FR-008: el rol jugador no ve el botón "Generar equipos", aunque vea el mismo empty state.
+      return page.evaluate(() => {
+        const problemas = [];
+        if (!document.querySelector('.empty-state-ds')) problemas.push('el rol jugador no ve el empty state de equipos sin generar (partido/S-04b)');
+        if ([...document.querySelectorAll('button')].some(b => b.textContent.trim() === 'Generar equipos')) {
+          problemas.push('el rol jugador ve el botón "Generar equipos" (partido/S-04b, FR-008)');
+        }
+        return problemas;
+      });
     } },
 
   { clave: 'partido-jugador', rol: 'jugador', nombre: 'detalle de partido · finalizado (rol jugador)',
@@ -1193,7 +1269,7 @@ const ESCENARIOS = [
      selector de equipo). Guardar/editar/cancelar quedan en `eventos-finalizar`/`eventos-editar`,
      reescritos para tocar en vez de llenar inputs (toque/S-07, S-07a, S-07b, S-07c, S-07d). */
   { clave: 'carga-por-toque', rol: 'admin', nombre: 'cargar un resultado tocando la cancha',
-    spec: ['toque/S-01', 'toque/S-01a', 'toque/S-01c', 'toque/S-01e', 'toque/S-01f', 'toque/S-04d', 'toque/S-04e', 'toque/S-05a', 'toque/S-06'],
+    spec: ['toque/S-01', 'toque/S-01a', 'toque/S-01c', 'toque/S-01e', 'toque/S-01f', 'toque/S-04d', 'toque/S-04e', 'toque/S-05a', 'toque/S-06', 'partido/S-07', 'partido/S-07a', 'partido/S-07b'],
     invariantes: [INVARIANTE_CARGA_TOQUE],
     async preparar(page) { await abrirPartido(page, '2026-08-27'); }, // m-cerrado: cerrado, sin resultado
     async comprobar(page) {
@@ -1309,6 +1385,31 @@ const ESCENARIOS = [
             }
             const cifraB = filaDe(idB) && filaDe(idB).querySelector('.detalle-cifra');
             if (!cifraB || cifraB.textContent.trim() !== '1') problemas.push(`la fila del segundo integrante no muestra "1" (toque/S-01e): "${cifraB && cifraB.textContent.trim()}"`);
+
+            // partido/S-07, TC-004 de NAVEGACION_PARTIDOS_SPEC.md: el botón "+" de la fila de
+            // detalle produce el mismo efecto que tocar la camiseta — reutiliza la misma fila
+            // (idA) que ya está en "1" por el toque de arriba.
+            const filaA = filaDe(idA);
+            const botonMas = filaA && filaA.querySelector('.detalle-agregar-btn');
+            if (!botonMas) {
+              problemas.push('no se encontró el botón "+" en la fila de detalle (partido/S-07, FR-013)');
+            } else {
+              botonMas.click();
+              const cifraTrasMas = filaDe(idA).querySelector('.detalle-cifra');
+              if (!cifraTrasMas || cifraTrasMas.textContent.trim() !== '2') {
+                problemas.push(`el botón "+" no sumó la cifra a "2" (partido/S-07): "${cifraTrasMas && cifraTrasMas.textContent.trim()}"`);
+              }
+              // partido/S-07b [concurrency]: dos toques del "+" sin esperar agregan dos eventos.
+              botonMas.click(); botonMas.click();
+              const cifraTrasDoble = filaDe(idA).querySelector('.detalle-cifra');
+              if (!cifraTrasDoble || cifraTrasDoble.textContent.trim() !== '4') {
+                problemas.push(`el doble toque del "+" no dejó la cifra en "4" (partido/S-07b): "${cifraTrasDoble && cifraTrasDoble.textContent.trim()}"`);
+              }
+              // partido/S-07a [failure]: tocar "−" hasta vaciar la fila la hace desaparecer.
+              const botonMenos = filaDe(idA).querySelector('.detalle-quitar-btn');
+              for (let i = 0; i < 4; i++) { const f = filaDe(idA); if (f) f.querySelector('.detalle-quitar-btn').click(); }
+              if (filaDe(idA)) problemas.push('la fila no desapareció al sacarle todos los eventos con "−" (partido/S-07a)');
+            }
           }
         }
 
@@ -1564,6 +1665,15 @@ async function abrirPartido(page, fechaIso) {
     return v && v.style.display !== 'none';
   }, null, { timeout: 5000 });
   await page.waitForTimeout(300);
+}
+
+/* Por debajo del breakpoint del switch mobile (NAVEGACION_PARTIDOS_SPEC.md FR-009), la
+   columna de equipos arranca oculta salvo que la inscripción esté cerrada (FR-010/FR-011).
+   La mayoría de los escenarios de cancha/candado/arrastre, escritos antes de esta feature,
+   necesitan verla siempre — sólo los escenarios que prueban el switch en sí mismo (S-06,
+   S-06a en `partido-abierto`/`partido-cerrado`) deben llamar a `abrirPartido` sin esto. */
+async function mostrarEquiposMobile(page) {
+  await page.evaluate(() => { const b = document.getElementById('mobTabEquiposBtn'); if (b) b.click(); });
 }
 
 /* ------------------------------------------------------------------- medición */

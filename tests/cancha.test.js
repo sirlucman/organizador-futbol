@@ -461,7 +461,7 @@ console.log('\n\x1b[1mDESIGN SYSTEM\x1b[0m — Principio VI\n');
 
 prueba('"NFR-007" / "NFR-006" todo valor visual de la cancha y del selector sale de un token o de la lista de excepciones', () => {
   const ini = src.indexOf('/* ------------------------------------------------------------------ LA CANCHA');
-  const fin = src.indexOf('  /* 900px: con dos columnas');
+  const fin = src.indexOf('  /* Antes: @media (max-width: 900px)');
   ok(ini > 0 && fin > ini, 'no se encontró el bloque CSS de la cancha en index.html');
   const bloque = src.slice(ini, fin);
 
