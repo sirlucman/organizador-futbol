@@ -61,7 +61,7 @@
 
   .tabs{ display:flex; gap:4px; margin-top: 10px; border-top: 1px solid var(--paper-line); padding-top: 4px; flex-wrap: wrap; }
   .tab-btn{ font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; background: none; border: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
-  .tab-btn.active{ color: var(--ink); border-bottom-color: var(--pitch); font-weight: 700; }
+  .tab-btn.active{ color: var(--ink); border-bottom-color: var(--pitch); }
   .tab-btn.disabled{ opacity: 0.4; cursor: not-allowed; }
   .tab-panel{ display:none; }
   .tab-panel.active{ display:block; }
@@ -191,6 +191,7 @@
   .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
   .status-chip.open{ background: var(--pitch); color: var(--pitch-on); border-color: var(--pitch); }
   .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
+  .status-chip.finished{ background: var(--pitch-pale); color: var(--pitch-deep); border-color: var(--pitch-pale); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
   /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
@@ -763,7 +764,7 @@
   .modal-hint{ font-size: 12px; color: var(--muted); margin: -8px 0 14px; }
 
   /* ---------- Configuración (Slice 4) ---------- */
-  .motor-intro{ font-size: 14px; color: var(--ink); margin: 4px 0 14px; line-height: 1.55; }
+  .motor-intro{ font-size: 14px; color: var(--ink); margin: 16px 0 14px; padding: 0 20px; line-height: 1.55; }
   .motor-block{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 18px 20px; margin-bottom: 16px; }
   .motor-block h3{ font-family: var(--font-display); font-size: 17px; font-weight: 600; margin: 0 0 4px; display:flex; align-items:center; gap:10px; }
   .motor-step{ display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:50%; background: var(--pitch); color: var(--pitch-on); font-family: var(--font-mono); font-size: 13px; font-weight:700; flex-shrink:0; }
@@ -5642,6 +5643,7 @@
   function statusChipClass(estado){
     if(estado === 'Inscripción abierta') return 'open';
     if(estado === 'Equipos generados') return 'teams-ready';
+    if(estado === 'Finalizado') return 'finished';
     return '';
   }
 
@@ -5729,7 +5731,7 @@
         </div>`;
     }
     return `
-      <div class="match-result" onclick="event.stopPropagation()">
+      <div class="match-result">
         ${equipoHtml(m.equipos.blanco, 'Equipo Blanco', 'blanco', totalBlanco)}
         ${equipoHtml(m.equipos.negro, 'Equipo Negro', 'negro', totalNegro)}
       </div>`;

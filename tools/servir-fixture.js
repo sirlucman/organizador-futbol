@@ -28,6 +28,7 @@ const arg = (n, def) => {
 };
 const ROL = arg('rol', 'admin');
 const PUERTO = Number(arg('puerto', 8123));
+const HOST = arg('host', '127.0.0.1');
 
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.jpeg': 'image/jpeg', '.jpg': 'image/jpeg', '.js': 'text/javascript', '.css': 'text/css' };
 
@@ -52,9 +53,9 @@ const server = http.createServer((req, res) => {
   fs.createReadStream(abs).pipe(res);
 });
 
-server.listen(PUERTO, '127.0.0.1', () => {
+server.listen(PUERTO, HOST, () => {
   console.log(`\n  Aplicación con datos de fixture, rol "${ROL}":\n`);
-  console.log(`      http://127.0.0.1:${PUERTO}/index.html\n`);
+  console.log(`      http://${HOST}:${PUERTO}/index.html\n`);
   console.log('  El login está falseado: entra directo, con cualquier usuario y contraseña.');
   console.log('  No hay red ni escritura: staging y producción no se tocan.\n');
   console.log('  Las tres pantallas que cambiaron:');
