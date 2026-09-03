@@ -708,6 +708,29 @@ test('E4: las duplas se reparten con las mismas reglas que la Estrategia 3', () 
   });
 });
 
+/* Bug real (partido del 2026-09-04): bloquear al arquero titular de un equipo (Nicolás
+   Vallejos, Blanco) y regenerar traía a Nilo (defensor con Arquero de secundaria) TAMBIÉN a
+   Blanco, dejando a Negro sin arquero. `resolverArqueros` devuelve el slot en null tanto
+   cuando el equipo ya tiene arquero cubierto por un bloqueado como cuando genuinamente le
+   falta uno, y el fallback por secundaria no distinguía los dos casos — así que reevaluaba
+   "¿le falta arquero a Blanco?" incluso estando ya cubierto, y le sumaba un segundo. Afecta
+   a las cuatro estrategias por igual, porque las Estrategias 2/3/4 comparten
+   `asignarArquerosPorNiveles` y la 1 tiene su propia copia de la misma lógica. */
+test('un arquero bloqueado no le hace ganar un segundo arquero a su equipo (regresión 2026-09-04)', () => {
+  [1, 2, 3, 4].forEach(estrategia => {
+    const previo = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia });
+    const prevTeamOf = {};
+    previo.res.blanco.forEach(id => { prevTeamOf[id] = 'blanco'; });
+    previo.res.negro.forEach(id => { prevTeamOf[id] = 'negro'; });
+    const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, {
+      estrategia, bloqueados: [previo.porJugador['vallejos']], prevTeamOf,
+      prevPosicionAsignada: previo.res.posicionAsignada,
+    });
+    ok(a.equipoDe('vallejos') !== a.equipoDe('nilo'),
+      `estrategia ${estrategia}: Vallejos y Nilo terminaron en el mismo equipo (${a.equipoDe('vallejos')})`);
+  });
+});
+
 test('E4: un titular bloqueado nunca cambia de equipo', () => {
   const previo = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 4 });
   const prevTeamOf = {};
