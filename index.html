@@ -6085,6 +6085,20 @@
     m.convocados = m.convocados.filter(id => id !== playerId);
     // Si integraba una dupla, el vínculo se deshace solo (User Story 2, escenario 5).
     m.duplas = (m.duplas || []).filter(par => !par.includes(playerId));
+    // Si ya se generaron equipos, hay que sacarlo también de ahí (mismo ajuste de suma que usa
+    // `moverUnJugadorDeEquipo`): sino queda "fantasma" sumando sus puntos en el total del equipo
+    // y en Diferencia por línea aunque ya no esté convocado al partido.
+    if(m.equipos){
+      const equipoActual = m.equipos.blanco.includes(playerId) ? 'blanco' : (m.equipos.negro.includes(playerId) ? 'negro' : null);
+      if(equipoActual){
+        const p = players.find(pl => pl.id === playerId);
+        const posUsada = (p && m.equipos.posicionAsignada) ? (m.equipos.posicionAsignada[playerId] || p.principal) : null;
+        const valor = p ? (posUsada ? puntajeEnPosicion(p, posUsada) : (computeAvg(p.scores) || 0)) : 0;
+        m.equipos[equipoActual] = m.equipos[equipoActual].filter(id => id !== playerId);
+        if(equipoActual === 'blanco') m.equipos.sumaBlanco -= valor; else m.equipos.sumaNegro -= valor;
+        if(m.equipos.posicionAsignada) delete m.equipos.posicionAsignada[playerId];
+      }
+    }
     saveMatches();
     renderMatchDetail();
   };
