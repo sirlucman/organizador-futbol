@@ -543,15 +543,20 @@
   }
 
   /* ---------- Partido en dos columnas (NAVEGACION_PARTIDOS_SPEC.md) ----------
-     `.wrap` está topeado en max-width:760px (ver más arriba) para el resto de la app. Esta vista
-     necesita más — la columna de convocados (352px) más un panel de equipos usable no entran en
-     760px — así que sólo mientras `#matchDetailView` está abierto se ensancha `.wrap` con la
-     clase `.match-wide` (agregada/quitada por `renderMatchDetail`/`renderMatchList`, y también al
-     cambiar de pestaña superior — ver `TD-06` del Implementation Plan). 1100px de breakpoint es
-     un valor de trabajo (`OPEN-Q-01`/`A-01`): sin la columna de convocados, dos paneles de equipo
-     ya necesitan ~760px (comentario de arriba); sumando 352px + 16px de gap da ~1128px. */
+     `.wrap` está topeado en max-width:760px (ver más arriba) para el resto de la app, pero esta
+     vista necesita más — la columna de convocados (352px) más un panel de equipos usable no
+     entran en 760px. `TD-06` del Implementation Plan había resuelto esto con una clase
+     `.match-wide` que ensanchaba `.wrap` sólo mientras se veía el detalle de un partido, pero eso
+     hacía que el ancho de TODA la página (encabezado y pestañas incluidos) saltara al pasar de
+     "Partidos" a otra pestaña y volver — a pedido del usuario (2026-09-03) se reemplaza por un
+     ancho fijo de 1160px para `.wrap` a partir del breakpoint, sin excepción por pestaña: un
+     primer intento sólo ensanchaba el encabezado y dejaba el contenido de Jugadores/Configuración
+     centrado en 760px, y el usuario prefirió que las tres pestañas midieran lo mismo de punta a
+     punta antes que ese encabezado ancho con contenido angosto debajo. 1100px de breakpoint sigue
+     siendo el valor de trabajo (`OPEN-Q-01`/`A-01`): sin la columna de convocados, dos paneles de
+     equipo ya necesitan ~760px (comentario de arriba); sumando 352px + 16px de gap da ~1128px. */
   @media (min-width: 1100px){
-    .wrap.match-wide{ max-width: 1160px; }
+    .wrap{ max-width: 1160px; }
   }
 
   .match-mobile-switch{ display:flex; gap:4px; padding:4px; margin: 0 0 16px; border-radius: var(--radius-pill); background: var(--chalk); border: 1px solid var(--paper-line); }
@@ -1891,13 +1896,6 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       const panelId = tab === 'jugadores' ? 'panelJugadores' : (tab === 'motor' ? 'panelMotor' : 'panelPartidos');
       el(panelId).classList.add('active');
-      // TD-06: `.match-wide` sólo debe aplicar mientras se ve un partido — si se navega a otra
-      // pestaña sin pasar por "Volver a partidos" (renderMatchList), igual hay que sacarla. Y si
-      // se vuelve a "partidos" con un partido abierto (`currentMatchId`), hay que volver a
-      // agregarla: quitarla al salir sin nunca reponerla al volver dejaba el detalle angosto,
-      // como si `.match-wide` no existiera (bug reportado por el usuario, 2026-09-03).
-      if(tab !== 'partidos') el('appRoot').classList.remove('match-wide');
-      else if(currentMatchId) el('appRoot').classList.add('match-wide');
     });
   });
 
@@ -5662,7 +5660,6 @@
   function renderMatchList(){
     el('matchesListView').style.display = '';
     el('matchDetailView').style.display = 'none';
-    el('appRoot').classList.remove('match-wide'); // TD-06
     const container = el('matchList');
     if(matches.length === 0){
       container.innerHTML = `
@@ -5801,7 +5798,6 @@
     if(!m){ currentMatchId = null; renderMatchList(); return; }
     el('matchesListView').style.display = 'none';
     el('matchDetailView').style.display = '';
-    el('appRoot').classList.add('match-wide'); // TD-06
 
     // FR-010/FR-011: con la inscripción cerrada (o el partido finalizado) el switch mobile
     // arranca en la pestaña de equipos/resultado; si no, en convocados. Sólo se decide una vez
