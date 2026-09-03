@@ -492,8 +492,9 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **FR-054** — Mientras un jugador tenga goles en contra y ningún gol propio,
   el sistema antepondrá su nombre a la línea de `FR-053` (mismo criterio que
   `matchResultSummaryHtml`, `TC-010`).
-- **FR-055** — Mientras un equipo no tenga ningún goleador, el sistema
-  mostrará en su lugar el texto "Sin goleadores".
+- ~~**FR-055** — Mientras un equipo no tenga ningún goleador, el sistema
+  mostrará en su lugar el texto "Sin goleadores".~~ Derogada — ver Change log
+  2026-09-03: sin goleadores, el sistema no mostrará nada en su lugar.
 - **FR-056** — El sistema ordenará los goleadores de cada equipo de mayor a
   menor cantidad de goles propios, igual que `matchResultSummaryHtml`.
 - **FR-057** — El sistema insertará escapado todo nombre de jugador que
@@ -662,8 +663,8 @@ cada panel.)*
 
 **Variants:**
 
-- `S-05a [boundary]` — un equipo sin ningún goleador: se muestra "Sin
-  goleadores" (`FR-055`)
+- `S-05a [boundary]` — un equipo sin ningún goleador: no se muestra nada en
+  lugar de las filas de detalle (ex `FR-055`, derogada)
 - `S-05b [boundary]` — un jugador con gol en contra y también con gol propio:
   su nombre aparece una sola vez, en la línea de goles propios, y no se
   repite en la de en contra (`FR-054`)
@@ -923,6 +924,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-03 | Lucas Manoukian | Enmienda pedida por el propietario: se deroga `FR-055` — un equipo sin goleadores ya no muestra el texto "Sin goleadores" debajo de su campo, no muestra nada en su lugar. Mismo criterio que se aplicó el mismo día a `FR-043` de `CARGA_POR_TOQUE_SPEC.md` (rebanada 6) para el estado análogo "sin eventos cargados". Se ajusta la variante `S-05a`. Ningún otro requisito cambia. Self-critique: no corresponde (derogación acotada, sin requisitos nuevos que auditar). |
 | 2026-09-02 | Lucas Manoukian | Actualización pendiente desde una corrección ya implementada y mergeada (avisado en su momento, quedó para una pasada aparte). Dos cambios, a pedido del usuario. **(1)** El nombre/puntaje de la fila de resultado se muda al encabezado de cada panel de equipo: `FR-041` queda invertido (la fila ya no muestra nombre ni puntaje de armado, en ningún ancho — sólo el marcador de `FR-040`, con cada número ahora centrado bajo la mitad de la zona de su equipo); `FR-042` queda sin efecto, absorbido por el `FR-041` nuevo; `FR-042b` se invierte en sentido contrario al que tenía (antes prohibía repetir el puntaje en el encabezado del panel porque la fila de resultado ya lo mostraba; ahora que la fila dejó de mostrarlo, el encabezado lo muestra él solo — reemplaza al nombre en una columna, se agrega a su derecha en dos). Se reescriben `S-04` y `AC-05` en consecuencia. **(2)** La línea de estrategia del encabezado (`FR-003`, `FR-005`, `FR-005b`, `FR-005c`) pasa de mostrar el campo `resumen` (la explicación larga de qué hace la estrategia) al `label` (su nombre corto): la explicación resultó más ruido que información en esta pantalla, mismo diagnóstico que ya había sacado el subtítulo completo el 2026-09-01 en `PANEL_ARMADO_SPEC.md`. Se ajustan `S-01`, `S-01a`, `S-10`, `S-10a` y `AC-07`. Self-critique: no corresponde (corrección puntual a pedido explícito, verificada con la suite de tests, incluida la actualización tardía del punto 1 que debí haber hecho el mismo día que el código). |
 | 2026-09-01 | Lucas Manoukian | Anotación recíproca desde la rebanada 5 (`MODELO_EVENTOS_SPEC.md`, `T-1.23` de su Plan): `TC-010` queda generalizado para admitir `m.resultado.eventos` como fuente de verdad además de `statsPorJugador`, siempre a través de una única función de despacho. Resuelve la `OPEN-Q-01` de la Spec de la **rebanada 5** (no la de ésta, que sigue pendiente y sin relación con este cambio — ver la fila de arriba). Sin cambios de comportamiento observable. Self-critique: no corresponde (anotación recíproca puntual). |
 | 2026-09-01 | Lucas Manoukian | Corrección encontrada al empezar el Implementation Plan: `FR-009` decía que el botón de copiar formación "sigue existiendo... en la botonera al pie", pero eso es falso — la rebanada 3 ya lo sacó del pie por completo (`FR-063` de esa Spec) y sólo vive en el encabezado. El handoff (5a/6b) dibuja el encabezado del partido finalizado sólo con el lápiz, sin ícono de copiar, pero nada en el Concept Note declara sacar esa función para este estado; consultado el usuario, se confirmó mantenerla. `FR-009` se reescribe para agregar el botón de copiar al encabezado junto al lápiz, y `FR-009b` (nuevo) aísla la exclusión de Regenerar, que sí seguía siendo correcta. Se ajusta `S-01` en consecuencia. El error fue tratar una omisión del mockup puntual como si fuera una decisión de producto, en vez de contrastarla contra lo que la rebanada 3 ya construyó (mismo tipo de falla que `TC-034` existe para atrapar, aunque esta la atrapó recién el Plan y no la propia Spec). |

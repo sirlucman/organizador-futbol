@@ -15,6 +15,17 @@
 > [`AGENTS.md`](../../AGENTS.md) y sigue el mismo patrón que los cinco Implementation
 > Plans ya mergeados de "Equipos en el campo" (ver `TD-01` abajo).
 
+> **Corrección post-implementación (2026-09-02).** Este Plan asumía un archivo nuevo
+> `tests/partido.test.js` para la cobertura de `partido/S-*`. Al implementar se confirmó que
+> ninguno de los cambios de esta feature introduce lógica pura nueva (todo es DOM: grid,
+> empty state, switch, botón "+" ya existente) — el proyecto reserva los `.test.js` por
+> rebanada para lógica pura (`tests/README.md`) y deja lo que sólo se puede afirmar sobre el
+> DOM real en `tests/layout.test.js` (Playwright). Toda la cobertura de `partido/S-*`
+> terminó ahí, extendiendo los escenarios `partido-abierto`, `partido-cerrado`,
+> `partido-finalizado`, `partido-sin-equipos` (+ variante jugador) y `carga-por-toque`, en vez
+> de en un archivo nuevo. Las menciones a `tests/partido.test.js` más abajo quedan como
+> registro de la intención original; no reflejan el archivo final.
+
 ## 1. Summary
 
 Este Plan reestructura la pantalla de partido (`#matchDetailView`,
@@ -80,6 +91,7 @@ mismo backend que usan las seis rebanadas anteriores.
 | TD-03 | El componente visual `EmptyState` del design system **no se importa como librería** — se recrea como `<div class="empty-state-ds">` con el mismo padding/fondo/tipografía que `_ds_bundle.js:536-577`, igual que ya hace el resto de la aplicación con el resto de los componentes (`D-02` de `EQUIPOS_EN_EL_CAMPO_CONCEPT.md`: "el diseño se recrea en el stack del repo, no se importa el runtime del prototipo") | `TC-001` | La app es un `index.html` sin build ni framework (Principio II); no hay manera de `import` un componente React. |
 | TD-04 | El switch mobile (`FR-009`) alterna visibilidad con una clase CSS (`.match-columns[data-mob-tab="equipos"]` / `"convocados"` / `"resultado"`) sobre el mismo contenedor `#matchColumns`, sin desmontar ni re-renderizar ninguna columna | `FR-009`-`FR-012` | Evita duplicar el render de `renderConvocadosList`/`renderTeamsSectionImpl` para mobile; el mismo DOM que arma desktop se oculta/muestra con `display:none` por breakpoint + atributo. |
 | TD-05 | El valor de trabajo del breakpoint (`A-01`) se fija en **1100px** al implementar, con una tarea explícita de validación en un dispositivo real antes de cerrar la rama (`T-1.13`) | `OPEN-Q-01` | Interpola entre los 900px que hoy alcanzan para el grid interno blanco/negro solo ([index.html:518-521](../../index.html#L518-L521)) y los 1280px del mockup, descontando los ~368px que resta la columna nueva. Es un punto de partida, no un valor validado. |
+| TD-06 | `.wrap` (`#appRoot`) está topeado en `max-width:760px` para toda la app — descubierto recién al implementar, no estaba en la Spec. El grid de dos columnas necesita más (352px + un panel de equipos usable no entran en 760px), así que se agrega una clase `.match-wide` que ensancha `.wrap` a 1160px sólo mientras `#matchDetailView` está abierto ≥1100px. Se agrega/quita en `renderMatchDetail`/`renderMatchList`, y también al cambiar de pestaña superior (ese tercer punto lo pedía evitar una fuga: cambiar a "Jugadores" sin pasar por "Volver a partidos" dejaba `.wrap` ancho en toda la app) | `FR-001` | Sin esto, `FR-001` es literalmente irrealizable con el ancho de columna que fija `D-01` — no es una preferencia visual, es una restricción de layout preexistente que ninguno de los tres documentos había citado |
 
 ## 4. Module map
 
@@ -128,8 +140,8 @@ Restatadas de [`AGENTS.md`](../../AGENTS.md).
 - [ ] Cada riesgo `R-*` de §14 registra una vía de mitigación (`T-1.D17`)
 - [ ] Auto-consistencia: todo ID referenciado dentro de este Plan resuelve dentro de este Plan (`T-1.D18`)
 - [ ] Consistencia cruzada: todo ID de la Spec citado acá existe en la Spec, y todo `D-*` existe en el Concept Note (`T-1.D19`)
-- [ ] `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js`, `node tests/finalizado.test.js`, `node tests/eventos.test.js`, `node tests/toque.test.js` y `node tests/partido.test.js` pasan
-- [ ] `LAYOUT_STRICT=1 node tests/layout.test.js` pasa
+- [ ] `node tests/motor.test.js`, `node tests/cancha.test.js`, `node tests/panel.test.js`, `node tests/finalizado.test.js`, `node tests/eventos.test.js` y `node tests/toque.test.js` pasan
+- [ ] `LAYOUT_STRICT=1 node tests/layout.test.js` pasa — ahí vive toda la cobertura nueva de `partido/S-*` (ver corrección post-implementación al inicio del documento)
 - [ ] Linter: no aplica (§5), declarado
 - [ ] Type-checker: no aplica (§5), declarado
 - [ ] No quedan `TODO`/`FIXME`/`HACK` en el código commiteado
@@ -292,7 +304,7 @@ Implementation tasks (grouped into atomic commits):
 
 DoD verification (§6):
 
-- [ ] T-1.D1 Todos los tests nuevos pasan — `node tests/partido.test.js`
+- [ ] T-1.D1 Todos los tests nuevos pasan — `LAYOUT_STRICT=1 node tests/layout.test.js` (ver corrección post-implementación)
 - [ ] T-1.D2 Todos los tests existentes pasan — `node tests/motor.test.js && node tests/cancha.test.js && node tests/panel.test.js && node tests/finalizado.test.js && node tests/eventos.test.js && node tests/toque.test.js`
 - [ ] T-1.D3 Linter: no aplica (§5), declarado
 - [ ] T-1.D4 Type-checker: no aplica (§5), declarado

@@ -158,6 +158,20 @@
   .empty-state svg{ width: 40px; height:40px; opacity:0.35; margin-bottom: 10px; }
   .empty-state p{ font-size: 14px; margin: 4px 0 16px; }
 
+  /* EmptyState (design system, components/feedback) recreado en CSS vanilla — no se importa
+     el componente React, TD-03 de NAVEGACION_PARTIDOS_IMPLEMENTATION_PLAN.md. Mismo fondo
+     que --paper (surface-card-sage == color-canvas-soft en el design system). */
+  .empty-state-ds{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:12px; text-align:center; padding: 40px 24px; border-radius: var(--radius-card); background: var(--paper); }
+  .empty-state-ds h4{ font-family: var(--font-display); font-size: 16px; font-weight:700; margin:0; color: var(--ink); }
+  .empty-state-ds p{ font-family: var(--font-body); font-size:14px; line-height:1.4; color: var(--slate); max-width:44ch; margin:0; }
+
+  /* "Con qué va a armar" — lista debajo del empty state de equipos sin generar (FR-006). */
+  .armado-preview{ display:flex; flex-direction:column; gap:8px; padding-top:14px; margin-top:14px; border-top:1px solid var(--paper-line); }
+  .armado-preview-title{ font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  .armado-preview ul{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:6px; }
+  .armado-preview li{ display:flex; gap:8px; font-size:13.5px; color: var(--slate); }
+  .armado-preview li::before{ content:''; flex:none; width:5px; height:5px; margin-top:6px; border-radius:50%; background: var(--pitch); }
+
   /* BallLoader (design system, components/feedback) — pelota 3D que gira en el lugar. */
   .ball-loader{ display:flex; flex-direction:column; align-items:center; gap:8px; padding: 50px 20px; }
   .ball-loader canvas{ display:block; }
@@ -231,7 +245,7 @@
   /* Dupla de rotación agrupada en un mismo renglón: un integrante arriba, el otro abajo, dentro
      de un único recuadro — se ve como una sola unidad, no como dos filas sueltas. */
   .conv-row-dupla{ align-items: stretch; }
-  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--paper-line); border-radius: var(--radius-control); padding:8px 10px; background: var(--paper); }
+  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--paper-line); border-radius: var(--radius-control); padding:8px 10px; background: #E4F0C4; }
   .conv-dupla-member{ display:flex; align-items:center; gap:10px; }
   .conv-dupla-member .conv-pos-badge{ width:22px; height:22px; }
   .conv-dupla-member .conv-name{ font-size: 14px; }
@@ -515,16 +529,44 @@
   .camiseta[draggable="true"]{ cursor: grab; }
   .camiseta[draggable="true"]:active{ cursor: grabbing; }
 
-  /* 900px: con dos columnas, cada panel queda con 328px útiles hasta bien entrada la franja de
-     desktop chico — el mismo ancho que una columna a 360px de viewport. O sea que la fila de
-     carga de resultado envolvía a 701 y 768px igual que en un teléfono. Pasando a una columna
-     antes, la fila entra en una sola línea y el wrap no cuesta alto en tablet. */
-  @media (max-width: 900px){
+  /* Antes: @media (max-width: 900px) caía a una columna dentro de `.teams-wrap` porque a partir
+     de ahí cada panel quedaba con 328px útiles. NAVEGACION_PARTIDOS_SPEC.md TC-007 reemplaza esa
+     regla — a partir de esta feature, por debajo del breakpoint del switch mobile (ver
+     `.match-columns` más abajo) SIEMPRE se ve un solo panel (blanco o negro) a la vez, así que la
+     condición pasa a ser el mismo breakpoint que controla el switch, no uno propio. */
+  @media (max-width: 1099px){
     .teams-wrap{ grid-template-columns: minmax(0,1fr); }
     /* En una columna la pestaña activa ya dice qué equipo es (FR-033/S-04a): repetir el nombre
        arriba de la cancha es redundante, así que sólo el total (goles/puntaje) queda en el
        encabezado del panel. */
     .team-panel h4 .team-name{ display: none; }
+  }
+
+  /* ---------- Partido en dos columnas (NAVEGACION_PARTIDOS_SPEC.md) ----------
+     `.wrap` está topeado en max-width:760px (ver más arriba) para el resto de la app. Esta vista
+     necesita más — la columna de convocados (352px) más un panel de equipos usable no entran en
+     760px — así que sólo mientras `#matchDetailView` está abierto se ensancha `.wrap` con la
+     clase `.match-wide` (agregada/quitada por `renderMatchDetail`/`renderMatchList`, y también al
+     cambiar de pestaña superior — ver `TD-06` del Implementation Plan). 1100px de breakpoint es
+     un valor de trabajo (`OPEN-Q-01`/`A-01`): sin la columna de convocados, dos paneles de equipo
+     ya necesitan ~760px (comentario de arriba); sumando 352px + 16px de gap da ~1128px. */
+  @media (min-width: 1100px){
+    .wrap.match-wide{ max-width: 1160px; }
+  }
+
+  .match-mobile-switch{ display:flex; gap:4px; padding:4px; margin: 0 0 16px; border-radius: var(--radius-pill); background: var(--chalk); border: 1px solid var(--paper-line); }
+  .match-mobile-switch .match-mobile-tab{ flex:1; padding:9px 0; border:none; border-radius: var(--radius-pill); background:none; font-family: var(--font-body); font-weight:600; font-size:13.5px; color: var(--ink); cursor:pointer; }
+  .match-mobile-switch .match-mobile-tab.active{ background: var(--pitch); color: var(--pitch-on); }
+
+  .match-columns .match-col-convocados, .match-columns .match-col-equipos{ display:block; }
+  @media (max-width: 1099px){
+    /* Un panel a la vez (turno 13a, FR-009): el switch de arriba manda vía `data-mob-tab`. */
+    .match-columns[data-mob-tab="convocados"] .match-col-equipos{ display:none; }
+    .match-columns[data-mob-tab="equipos"] .match-col-convocados{ display:none; }
+  }
+  @media (min-width: 1100px){
+    .match-mobile-switch{ display:none; }
+    .match-columns{ display:grid; grid-template-columns: 352px minmax(0,1fr); gap:16px; align-items:start; }
   }
 
   /* ------------------------------------------------------------------ EL PANEL DE ARMADO
@@ -964,21 +1006,35 @@
         </div>
       </div>
 
-      <div class="autocomplete-wrap" id="convBuscadorWrap">
-        <div class="search">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          <input type="text" id="matchSearchInput" placeholder="Buscar jugador para convocar...">
+      <!-- Switch de pestañas para viewports angostos (turno 13a, FR-009 a FR-012 de
+           NAVEGACION_PARTIDOS_SPEC.md). Se oculta por CSS a partir del breakpoint (TD-05). -->
+      <div class="match-mobile-switch" id="matchMobileSwitch">
+        <button type="button" class="match-mobile-tab" data-tab="convocados" onclick="window.__setMobTab('convocados')">Convocados</button>
+        <button type="button" class="match-mobile-tab" data-tab="equipos" id="mobTabEquiposBtn" onclick="window.__setMobTab('equipos')">Equipos</button>
+      </div>
+
+      <!-- Grid de dos columnas en desktop (turno 12a/12b/12c, FR-001 a FR-008); el mismo HTML,
+           una columna a la vez, resuelve el switch de arriba en mobile (TD-02). -->
+      <div class="match-columns" id="matchColumns">
+        <div class="match-col-convocados" id="matchColConvocados">
+          <div class="autocomplete-wrap" id="convBuscadorWrap">
+            <div class="search">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" id="matchSearchInput" placeholder="Buscar jugador para convocar...">
+            </div>
+            <div class="autocomplete-list" id="autocompleteList" style="display:none;"></div>
+          </div>
+          <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
+            <button class="btn-ghost admin-only" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
+          </div>
+
+          <div class="convocados-list" id="convocadosList"></div>
+          <div class="conv-summary" id="convSummary"></div>
         </div>
-        <div class="autocomplete-list" id="autocompleteList" style="display:none;"></div>
+        <div class="match-col-equipos" id="matchColEquipos">
+          <div class="teams-section" id="teamsSection"></div>
+        </div>
       </div>
-      <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
-        <button class="btn-ghost admin-only" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
-      </div>
-
-      <div class="convocados-list" id="convocadosList"></div>
-      <div class="conv-summary" id="convSummary"></div>
-
-      <div class="teams-section" id="teamsSection"></div>
     </div>
   </div>
 
@@ -1369,6 +1425,10 @@
   let matchSearchTerm = '';
   let resultadoDraft = null; // { matchId, eventos: [{jugadorId, tipo}] } — borrador en memoria hasta "Finalizar partido" (rebanada 6, FR-005)
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
+  // Switch mobile del layout de dos columnas (NAVEGACION_PARTIDOS_SPEC.md FR-009 a FR-012).
+  // Se reinicia sólo al abrir un partido distinto, para no perder la pestaña elegida entre
+  // re-renders del mismo partido (ej. al cargar un evento).
+  let mobTabState = { matchId: null, tab: 'convocados' };
   let tipoEventoActivo = 'gol'; // tipo del selector de carga por toque; sólo de interfaz, no se persiste (rebanada 6, TD-07)
   let temporizadorPresionSostenida = null; // id de setTimeout de la mantención sostenida (carga por toque, FR-054)
   let ultimoToqueFuePresionSostenida = false; // suprime el click que sigue a una mantención ya resuelta (FR-054)
@@ -1831,6 +1891,13 @@
       document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
       const panelId = tab === 'jugadores' ? 'panelJugadores' : (tab === 'motor' ? 'panelMotor' : 'panelPartidos');
       el(panelId).classList.add('active');
+      // TD-06: `.match-wide` sólo debe aplicar mientras se ve un partido — si se navega a otra
+      // pestaña sin pasar por "Volver a partidos" (renderMatchList), igual hay que sacarla. Y si
+      // se vuelve a "partidos" con un partido abierto (`currentMatchId`), hay que volver a
+      // agregarla: quitarla al salir sin nunca reponerla al volver dejaba el detalle angosto,
+      // como si `.match-wide` no existiera (bug reportado por el usuario, 2026-09-03).
+      if(tab !== 'partidos') el('appRoot').classList.remove('match-wide');
+      else if(currentMatchId) el('appRoot').classList.add('match-wide');
     });
   });
 
@@ -4514,7 +4581,9 @@
      duplicado entre el CSS y este archivo porque no hay forma de compartirlo; lo que impide que
      se desincronicen son los escenarios S-04a (900px) y S-04b (901px) de layout.test.js, que
      fallan si discrepan (TC-015). */
-  const ANCHO_UNA_COLUMNA = 900;
+  // TC-007 de NAVEGACION_PARTIDOS_SPEC.md: antes 900, ahora el mismo breakpoint que el switch
+  // mobile del layout de dos columnas (TD-05), para que ambos mecanismos cambien juntos.
+  const ANCHO_UNA_COLUMNA = 1099;
   function enUnaColumna(){
     return window.matchMedia('(max-width: ' + ANCHO_UNA_COLUMNA + 'px)').matches;
   }
@@ -5212,16 +5281,37 @@
     // Elegir/ver la estrategia de armado es exclusivo de "admin" (FR-005, FR-008).
     const selectorEstrategia = renderComboEstrategia(m);
 
+    // Empty states restyleados con el componente EmptyState del design system (D-04 del Concept
+    // Note, FR-005/FR-006 de NAVEGACION_PARTIDOS_SPEC.md) — conservan las dos condiciones de
+    // validación que ya existían (sin titulares vs. titulares-sin-generar): el prototipo del
+    // handoff no modela la primera porque siempre parte de una convocatoria completa.
     if(titularIds.length === 0){
-      section.innerHTML = `<h3>Alineaciones</h3>${selectorEstrategia}<div class="empty-state"><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
+      section.innerHTML = `<h3>Alineaciones</h3>${selectorEstrategia}<div class="empty-state-ds"><h4>Sin titulares</h4><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
       if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
 
     if(!m.equipos){
-      section.innerHTML = isAdmin()
-        ? `<h3>Alineaciones</h3>${selectorEstrategia}<button class="btn-primary" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>`
-        : `<h3>Alineaciones</h3><div class="empty-state"><p>Todavía no se generaron los equipos de este partido.</p></div>`;
+      // "Con qué va a armar" (FR-006): un adelanto de la convocatoria actual, visible para los
+      // dos roles — no es información sensible, ya se ve en la columna de convocados de al lado.
+      const { titulares: titCount, suplentes: supCount } = contarTitularesSuplentes(m);
+      const reqEquipos = titularesRequeridos(m);
+      const previewArmado = `<div class="armado-preview"><div class="armado-preview-title">Con qué va a armar</div><ul>`
+        + `<li>${titCount} de ${reqEquipos} titulares convocados</li>`
+        + `<li>${supCount} suplente${supCount === 1 ? '' : 's'} en la cola</li>`
+        + `</ul></div>`;
+      section.innerHTML = `
+        <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+          <h3>Alineaciones</h3>
+          ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>` : ''}
+        </div>
+        ${selectorEstrategia}
+        <div class="empty-state-ds">
+          <h4>Todavía no generaste los equipos</h4>
+          <p>Cuando los generes, los dos equipos aparecen acá sobre el campo. Podés seguir moviendo la cola de convocados mientras tanto.</p>
+        </div>
+        ${previewArmado}
+      `;
       if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
@@ -5252,14 +5342,21 @@
          queda alineado a la derecha del mismo `h4` junto al nombre, que ahí sí hace falta porque
          no hay pestaña que lo diga. */
       const puntajeTexto = (pts) => Math.round(pts * 10) / 10 + ' pts';
+      // Sin goleadores, `renderFilasDetalle` devuelve '' — no envolver en `.detalle-equipo` (evita
+      // un margen superior sin contenido debajo de la cancha, mismo criterio que
+      // `detalleCargaHtml` en el modo de carga).
+      const detalleEquipoHtml = (ids) => {
+        const filasHtml = renderFilasDetalle(ids, stats);
+        return filasHtml ? `<div class="detalle-equipo">${filasHtml}</div>` : '';
+      };
       section.innerHTML = `
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
         ${renderZonaEquipos(m, {
           blanco: { header: `<span class="team-name">Equipo Blanco</span> <span class="team-total">${puntajeTexto(m.equipos.sumaBlanco)}</span>`,
-            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + `<div class="detalle-equipo">${renderFilasDetalle(eq.blanco, stats)}</div>` },
+            contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleEquipoHtml(eq.blanco) },
           negro: { header: `<span class="team-name">Equipo Negro</span> <span class="team-total">${puntajeTexto(m.equipos.sumaNegro)}</span>`,
-            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + `<div class="detalle-equipo">${renderFilasDetalle(eq.negro, stats)}</div>` }
+            contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleEquipoHtml(eq.negro) }
         })}
       `;
       return;
@@ -5386,12 +5483,13 @@
   }
 
   /* Las filas de detalle debajo de un campo: una por goleador, con el desglose de penal y de en
-     contra en líneas separadas, y "Sin goleadores" si no hay ninguno (FR-050 a FR-057). El nombre
-     se antepone en la línea de en contra sólo cuando el jugador no tiene línea de goles propios
-     (FR-054), y todo nombre se inserta escapado (FR-057, TC-041). */
+     contra en líneas separadas, sin nada si el equipo no hizo goles (ex FR-050 a FR-057, ver
+     Change log 2026-09-03 de PARTIDO_FINALIZADO_SPEC.md). El nombre se antepone en la línea de en
+     contra sólo cuando el jugador no tiene línea de goles propios (FR-054), y todo nombre se
+     inserta escapado (FR-057, TC-041). */
   function renderFilasDetalle(ids, statsPorJugador){
     const goleadores = goleadoresDeEquipo(ids, statsPorJugador);
-    if(!goleadores.length) return '<div class="detalle-vacio">Sin goleadores</div>';
+    if(!goleadores.length) return '';
     return goleadores.map(x => {
       const lineas = [];
       if(x.goles > 0){
@@ -5470,12 +5568,13 @@
 
   // Las filas de detalle debajo de la cancha en modo de carga: una por jugador y por familia con
   // al menos un evento (FR-042), con los botones "+"/"−" sólo cuando `editable` (FR-050, FR-051;
-  // nunca para el rol jugador, FR-003). "Sin eventos cargados para este equipo" si no hay ninguna
-  // (FR-043), pero sólo para `admin`: es quien está tocando la cancha y a quien le sirve saber que
-  // todavía no cargó nada; el rol jugador, que no puede tocar nada, ve la cancha sin ningún aviso.
+  // nunca para el rol jugador, FR-003). Sin ningún evento no hay nada que mostrar (ni para admin
+  // ni para jugador): el aviso "Sin eventos cargados para este equipo" (ex FR-043) se sacó porque
+  // aparecía apenas se cerraba la inscripción, antes de que el admin tuviera chance de tocar la
+  // cancha, y se leía como un error (feedback del usuario, 2026-09-03).
   function renderFilasDetalleCarga(m, ids, eventos, editable){
     const filas = detalleCargaDeEquipo(ids, eventos);
-    if(!filas.length) return editable ? '<div class="detalle-vacio">Sin eventos cargados para este equipo</div>' : '';
+    if(!filas.length) return '';
     const iconoDe = { goles: GOAL_ICON, contra: RED_GOAL_ICON, asist: BOOT_ICON };
     return filas.map(f => {
       const btn = editable
@@ -5548,9 +5647,22 @@
     return '';
   }
 
+  // Aplica la pestaña activa del switch mobile al DOM: atributo de `.match-columns` (lo que
+  // decide el CSS, FR-009) y el estado visual de los dos botones.
+  function aplicarMobTab(tab){
+    el('matchColumns').setAttribute('data-mob-tab', tab);
+    document.querySelectorAll('.match-mobile-tab').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  }
+
+  window.__setMobTab = function(tab){
+    mobTabState.tab = tab;
+    aplicarMobTab(tab);
+  };
+
   function renderMatchList(){
     el('matchesListView').style.display = '';
     el('matchDetailView').style.display = 'none';
+    el('appRoot').classList.remove('match-wide'); // TD-06
     const container = el('matchList');
     if(matches.length === 0){
       container.innerHTML = `
@@ -5689,6 +5801,16 @@
     if(!m){ currentMatchId = null; renderMatchList(); return; }
     el('matchesListView').style.display = 'none';
     el('matchDetailView').style.display = '';
+    el('appRoot').classList.add('match-wide'); // TD-06
+
+    // FR-010/FR-011: con la inscripción cerrada (o el partido finalizado) el switch mobile
+    // arranca en la pestaña de equipos/resultado; si no, en convocados. Sólo se decide una vez
+    // por partido — re-renders del mismo partido no pisan la pestaña que el admin ya eligió.
+    if(mobTabState.matchId !== m.id){
+      mobTabState = { matchId: m.id, tab: (m.inscripcionCerrada || m.estado === 'Finalizado') ? 'equipos' : 'convocados' };
+    }
+    el('mobTabEquiposBtn').textContent = (enModoCarga(m) || m.estado === 'Finalizado') ? 'Resultado' : 'Equipos';
+    aplicarMobTab(mobTabState.tab);
 
     el('detailFecha').textContent = formatFecha(m.fecha);
     el('detailEstado').textContent = m.estado;
