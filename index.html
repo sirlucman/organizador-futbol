@@ -31,7 +31,8 @@
     --brick-light: #ef4444; /* negative-500 / color-negative — píldora de diferencia excedida */
     --mustard-light: #facc15;/* warning-400 / color-warning — filete del aviso de desactualizado */
     --mustard-deep: #713f12; /* warning-900 / color-warning-content — texto de la pastilla "2º" */
-    --slate: #374151;       /* gray-700 / color-body — texto del receipt */
+    --slate: #374151;       /* gray-700 / color-body — texto del receipt y fondo de la pastilla "Finalizado" */
+    --positive-deep: #166534;/* positive-800 / color-positive-deep — texto de la pastilla "Inscripción abierta" */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     /* Alias histórico: NO es una monoespaciada. Toda la app la usa como "Inter en tratamiento
@@ -97,8 +98,15 @@
   .btn-primary{ font-family: var(--font-body); font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: var(--radius-card); border: none; background: var(--pitch); color: var(--pitch-on); cursor: pointer; white-space: nowrap; transition: background .15s ease, transform .1s ease; }
   .btn-primary:hover{ background: var(--pitch-light); }
   .btn-primary:active{ transform: translateY(1px); }
-  .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: var(--radius-control); border: 1px solid var(--paper-line); background: transparent; color: var(--muted); cursor: pointer; }
-  .btn-ghost:hover{ border-color: var(--ink); color: var(--ink); }
+  /* El botón contorneado del design system (variante `tertiary`): fondo blanco, borde y texto en
+     tinta, radio de botón — el mismo que ya usa `.btn-primary`. Es como lo dibuja `12a` en
+     "Reabrir inscripción", y desde ahí se aplica a los diez botones de esta clase (D-05: el diseño
+     gana, decidido con el propietario el 2026-09-04).
+     Antes era un fantasma real —borde `--paper-line` y texto `--muted`—: sobre la tarjeta blanca
+     casi no se veía, y el texto gris daba 4.41:1, por debajo del mínimo para su tamaño. El hover
+     ya no mueve el borde ni el texto (no queda a dónde moverlos): cambia el fondo, como el DS. */
+  .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: var(--radius-card); border: 1px solid var(--ink); background: var(--chalk); color: var(--ink); cursor: pointer; transition: background .15s ease; }
+  .btn-ghost:hover{ background: var(--paper); }
 
   /* ---------- Ficha de jugador (compartida: alta normal y alta rápida) ---------- */
   .card-pin-wrap{ display: none; margin: 10px 0 20px; }
@@ -194,9 +202,19 @@
   .match-date{ font-family: var(--font-display); font-size: 17px; text-transform: capitalize; }
   .match-meta{ font-family: var(--font-body); font-size: 14px; line-height: 20px; color: var(--muted); margin-top: 3px; }
   .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
-  .status-chip.open{ background: var(--pitch); color: var(--pitch-on); border-color: var(--pitch); }
+  /* Los tonos de la pastilla de estado. "Inscripción abierta" toma el Badge `positive` del diseño
+     (12b). "Finalizado" va en gris oscuro por decisión del propietario, para que el verde no quede
+     repartido entre dos estados distintos — la pregunta que `DELTA.md`/`github.md` tenían abierta.
+     El borde repite el fondo en esas dos: la pastilla del diseño no lleva filete y el de
+     `.status-chip` sólo existe para el tono base (estado desconocido).
+     "Equipos generados" se deja tal cual estaba, en naranja, por decisión del propietario
+     (2026-09-04). Anotado para que no se relea como olvido: con texto blanco ese naranja da 2.26:1
+     de contraste — menos de la mitad del mínimo AA para su tamaño de letra — y es la etiqueta más
+     frecuente. Los otros dos tonos dan 5.96:1 y 10.31:1. */
+  .status-chip.open{ background: var(--pitch-pale); color: var(--positive-deep); border-color: var(--pitch-pale); }
+  .status-chip.closed{ background: var(--paper); color: var(--ink); border-color: var(--paper); }
   .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
-  .status-chip.finished{ background: var(--pitch-pale); color: var(--pitch-deep); border-color: var(--pitch-pale); }
+  .status-chip.finished{ background: var(--slate); color: var(--chalk); border-color: var(--slate); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
   /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
@@ -244,8 +262,9 @@
   .ac-pos-dot{ width: 8px; height:8px; border-radius:50%; flex-shrink:0; }
   .ac-empty{ padding: 12px; font-size: 13px; color: var(--muted); }
 
-  /* La tira que reemplaza al buscador con la inscripción cerrada (12c: "Inscripción cerrada";
-     14a: "… — la cola quedó firme"), con el candado a la izquierda sobre el fondo papel. */
+  /* La tira del partido finalizado (12c: "Inscripción cerrada"), con el candado a la izquierda
+     sobre el fondo papel. Ya no aparece con la inscripción simplemente cerrada — ahí lo dice la
+     pastilla del encabezado (ver `statusChip`). */
   .conv-cerrada{ display:flex; align-items:center; gap:8px; padding:12px 16px; margin-bottom:16px; border-radius: var(--radius-control); background: var(--paper); color: var(--muted); font-size: 13px; }
   .conv-cerrada svg{ flex-shrink:0; }
 
@@ -520,7 +539,11 @@
   /* Deshacer y Guardar, al pie de las dos canchas (diseño 8e del handoff) — no en la toolbar de
      arriba ni en la botonera del pie de toda la tarjeta. */
   .carga-acciones{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; }
-  .evento-tabs{ position: relative; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: var(--radius-pill); background: var(--chalk); }
+  /* El carril va en papel, no en blanco: el diseño lo dibuja así en los dos turnos que lo
+     muestran (`7a`/`7b` del handoff y `14a`), con `--color-canvas-soft`. Sobre la tarjeta blanca
+     el carril blanco no se distinguía del fondo y el selector se leía como cuatro botones sueltos
+     en vez de un switch. Es el mismo carril que ya usan `.equipo-tabs` (Blanco/Negro). */
+  .evento-tabs{ position: relative; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: var(--radius-pill); background: var(--paper); }
   .evento-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 4); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .evento-tabs[data-activo="1"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4); }
   .evento-tabs[data-activo="2"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4 * 2); }
@@ -537,17 +560,24 @@
   /* NFR-002: el mismo piso táctil de 44×44 que `.panel-icono` ya tenía (TC-020), reutilizado sin
      un tamaño nuevo. */
   .panel-icono:disabled{ opacity: 0.35; cursor: not-allowed; }
-  /* Los botones "+"/"−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos ≥390px, 38×38
-     debajo (NFR-002, handoff/README.md:675-676). Sin ícono nuevo: los glyphs "+"/"−" reutilizan
-     tipografía, no agregan un asset (TC-031). Sólo el primero (el "−") lleva `margin-left:auto`
-     — empuja al par entero al borde derecho de la fila; si los dos lo llevaran, el auto-margin se
-     repartiría entre ambos y los separaría en vez de dejarlos pegados. */
-  .detalle-quitar-btn, .detalle-agregar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: none; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  /* Los botones "+"/"−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos >390px, 38×38
+     en el compacto (NFR-002, handoff/README.md:675-676). El corte va en 390px inclusive, que es
+     el ancho del artboard compacto del diseño (`14a`) y el viewport de los teléfonos más comunes:
+     con `max-width:389px` esos 390px caían del lado grande y se quedaban con el target chico,
+     justo al revés de lo que pide el handoff ("en el compacto los targets suben").
+     Sin ícono nuevo: los glyphs "+"/"−" reutilizan tipografía, no agregan un asset (TC-031).
+     El filete de 1px es el contorno con el que `14a` los dibuja: sin fondo, el botón no se leía
+     como botón — es lo único que lo delimita. `box-sizing:border-box` (ya global) lo mete dentro
+     de los 26/38px, así que el target táctil no cambia.
+     Sólo el primero (el "−") lleva `margin-left:auto` — empuja al par entero al borde derecho de
+     la fila; si los dos lo llevaran, el auto-margin se repartiría entre ambos y los separaría en
+     vez de dejarlos pegados. */
+  .detalle-quitar-btn, .detalle-agregar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: 1px solid rgb(17 24 39 / 0.18); border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
   /* `.detalle-fila` ya pone `gap:6px` entre todos sus hijos (TC-031): alcanza para separar este
      par sin un margen propio. */
   .detalle-quitar-btn{ margin-left: auto; }
   .detalle-quitar-btn:hover, .detalle-agregar-btn:hover{ color: var(--ink); }
-  @media (max-width: 389px){
+  @media (max-width: 390px){
     .detalle-quitar-btn, .detalle-agregar-btn{ width: 38px; height: 38px; font-size: 18px; }
   }
 
@@ -1090,7 +1120,7 @@
                deshabilitado con el copy adentro del placeholder. -->
           <div class="conv-cerrada" id="convCerrada" style="display:none;">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="11" width="17" height="10" rx="2.5"/><path d="M8 11V7.2a4 4 0 0 1 8 0V11"/></svg>
-            <span id="convCerradaTexto">Inscripción cerrada</span>
+            <span>Inscripción cerrada</span>
           </div>
           <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn-ghost admin-only" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
@@ -5753,11 +5783,21 @@
   // Clase de color del chip de estado del partido: verde para inscripción abierta, terracota
   // para equipos ya generados (aún no finalizado), y el gris neutro por defecto para el resto
   // (incluido "Finalizado", que ya se distingue por texto).
-  function statusChipClass(estado){
-    if(estado === 'Inscripción abierta') return 'open';
-    if(estado === 'Equipos generados') return 'teams-ready';
-    if(estado === 'Finalizado') return 'finished';
-    return '';
+  /* La pastilla de estado no muestra `m.estado` a secas. Con la inscripción cerrada dice
+     "Inscripción cerrada", que es lo que el diseño pone en ese lugar (Badge `neutral` de 12a, 13a
+     y 14a) y — desde que se retiró la tira de la columna de convocados — lo único que avisa que la
+     cola quedó firme. Decidido con el propietario el 2026-09-04.
+     El orden importa: la inscripción cerrada tapa a "Equipos generados", así que el naranja queda
+     para el caso que el diseño no dibuja (equipos armados con la inscripción todavía abierta).
+     Se mira `inscripcionCerrada`, que es un sí/no, y del texto del estado sólo se compara
+     "Finalizado": un partido viejo guardado con otro nombre de estado (el `Pendiente` que todavía
+     nombra `007-permisos-por-usuario/data-model.md`) entra igual por la última rama, en vez de
+     caer al tono base sin color. */
+  function statusChip(m){
+    if(m.estado === 'Finalizado') return { texto: 'Finalizado', clase: 'finished' };
+    if(m.inscripcionCerrada) return { texto: 'Inscripción cerrada', clase: 'closed' };
+    if(m.estado === 'Equipos generados') return { texto: 'Equipos generados', clase: 'teams-ready' };
+    return { texto: 'Inscripción abierta', clase: 'open' };
   }
 
   // Aplica la pestaña activa del switch mobile al DOM: atributo de `.match-columns` (lo que
@@ -5793,10 +5833,10 @@
           <div class="match-card-top">
             <div>
               <div class="match-date">${formatFecha(m.fecha)}</div>
-              <div class="match-meta">${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
+              <div class="match-meta">${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span class="status-chip ${statusChipClass(m.estado)}">${m.estado}</span>
+              <span class="status-chip ${statusChip(m).clase}">${statusChip(m).texto}</span>
               ${isAdmin() ? `<button class="icon-btn admin-only" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>` : ''}
@@ -5926,8 +5966,9 @@
     aplicarMobTab(mobTabState.tab);
 
     el('detailFecha').textContent = formatFecha(m.fecha);
-    el('detailEstado').textContent = m.estado;
-    el('detailEstado').className = `status-chip ${statusChipClass(m.estado)}`;
+    const chip = statusChip(m);
+    el('detailEstado').textContent = chip.texto;
+    el('detailEstado').className = `status-chip ${chip.clase}`;
     const { vacantes } = contarTitularesSuplentes(m);
     el('detailMeta').textContent = canchaLabel(m);
 
@@ -5943,10 +5984,11 @@
     }
     el('matchSearchInput').disabled = locked;
     el('convBuscadorWrap').style.display = locked ? 'none' : '';
-    el('convCerrada').style.display = locked ? '' : 'none';
-    // 12c dice "Inscripción cerrada" a secas; 14a, con la carga en curso, agrega por qué importa.
-    el('convCerradaTexto').textContent = m.estado === 'Finalizado'
-      ? 'Inscripción cerrada' : 'Inscripción cerrada — la cola quedó firme';
+    /* La tira sólo sobrevive en el partido finalizado, que es donde el diseño la dibuja (12c).
+       Con la inscripción cerrada sin finalizar, 12a y 13a no la tienen: lo dice la pastilla del
+       encabezado, que en ese caso pasó a decir "Inscripción cerrada" (ver `statusChip`). Con eso
+       se retiró también el texto "— la cola quedó firme" de 14a, que era el que se repetía. */
+    el('convCerrada').style.display = (m.estado === 'Finalizado') ? '' : 'none';
     const btnPrueba = el('btnCompletarPrueba');
     btnPrueba.style.display = (!locked && vacantes > 0) ? '' : 'none';
     if(locked){ el('autocompleteList').style.display = 'none'; el('autocompleteList').innerHTML = ''; }
