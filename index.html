@@ -238,10 +238,16 @@
   .conv-num{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 22px; text-align:right; flex-shrink:0; }
   /* El corte entre titulares y suplentes se muestra una sola vez, como encabezado de
      sección, en vez de repetirse como badge en cada renglón (ver renderConvocadosList). */
-  .conv-section{ font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 9px 16px 5px; background: var(--paper); border-bottom: 1px solid var(--paper-line); }
+  .conv-section{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 9px 16px 5px; background: var(--paper); border-bottom: 1px solid var(--paper-line); }
+  /* El conteo de cada sección (§ Screens/Views del handoff: `convTitLabel`/`convSupLabel`) va al
+     lado de su propia etiqueta, sin mayúsculas ni tracking — no es parte del eyebrow. */
+  .conv-section-count{ font-family: var(--font-body); font-size: 11px; letter-spacing: normal; text-transform: none; font-variant-numeric: tabular-nums; }
   .conv-pos-badge{ width: 26px; height: 26px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--chalk); flex-shrink:0; }
   .conv-name{ flex: 1 1 auto; font-size: 14.5px; font-weight: 600; }
-  .conv-summary{ display:flex; gap:10px; margin-top: 14px; flex-wrap: wrap; }
+  /* `convFaltan`/`convFaltanLabel` del handoff: una fila más al pie de la lista, no una caja
+     aparte con el resto de los resúmenes (retirados, D-23 los prohíbe dentro de la cancha; acá
+     el pedido del usuario fue retirar la caja también de la convocatoria). */
+  .conv-nota-vacantes{ padding: 10px 16px; font-size: 12.5px; line-height: 1.4; color: var(--slate); }
 
   /* Dupla de rotación agrupada en un mismo renglón: un integrante arriba, el otro abajo, dentro
      de un único recuadro — se ve como una sola unidad, no como dos filas sueltas. */
@@ -447,13 +453,13 @@
      El selector aparece sólo en una columna, donde se ve un equipo por vez. Su geometría sale
      literal del handoff (§ Selector segmentado) y los realces de la tabla de drag-over de
      § Arrastre, en su variante compacta `6a` (TC-033). */
-  /* El handoff pinta la pista del selector con `canvas-soft` porque allí el control vive sobre
-     una tarjeta BLANCA. Acá vive sobre el fondo de página, que ES `canvas-soft` (`--paper`), así
-     que copiar el valor literal dejaba la pista invisible y el control no se leía como uno de dos
-     posiciones. Se conserva la RELACIÓN que el handoff busca —pista apenas distinta del fondo—
-     invirtiendo el token, que es el mismo criterio con el que el resto de la aplicación pinta
-     sus campos: blanco sobre papel (TC-031). Lo detectó mirar la pantalla, no un test. */
-  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--chalk); }
+  /* El handoff pinta la pista del selector con `canvas-soft` porque el control vive sobre una
+     tarjeta BLANCA. Desde que las columnas de `#matchDetailView` son su propia Card
+     (`.match-col-equipos`, TC-001 de NAVEGACION_PARTIDOS_SPEC.md), ese vuelve a ser el caso acá
+     también, así que se usa el token literal (`--paper` = canvas-soft) — antes, cuando el panel
+     vivía directo sobre el fondo de página, estaba invertido a `--chalk` a propósito para
+     conservar la relación de contraste (TC-031); esa inversión ya no aplica. */
+  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--paper); }
   .equipo-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .equipo-tabs[data-visible="negro"] .equipo-tabs-thumb{ left: 50%; }
   /* `min-height` es una desviación deliberada del handoff, no un descuido: su `padding: 10px 0`
@@ -564,7 +570,15 @@
   .match-mobile-switch .match-mobile-tab{ flex:1; padding:9px 0; border:none; border-radius: var(--radius-pill); background:none; font-family: var(--font-body); font-weight:600; font-size:13.5px; color: var(--ink); cursor:pointer; }
   .match-mobile-switch .match-mobile-tab.active{ background: var(--pitch); color: var(--pitch-on); }
 
-  .match-columns .match-col-convocados, .match-columns .match-col-equipos{ display:block; }
+  /* Cada columna es su propia Card del design system (§ Componentes del handoff, TC-001 de
+     NAVEGACION_PARTIDOS_SPEC.md): fondo blanco, borde y radio de tarjeta — igual que
+     `.match-card`/`.convocados-list` ya hacen en el resto de la app — con el eyebrow + `h3` que
+     las doce vistas de "Equipos en el campo" ya pedían y que ninguna pantalla llegó a mostrar
+     (§ Screens / Views del handoff de la rebanada 3, columna "Eyebrow de la tarjeta"). */
+  .match-columns .match-col-convocados, .match-columns .match-col-equipos{ display:block; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 20px; }
+  .match-col-eyebrow{ display:block; font-family: var(--font-mono); font-size: 11px; font-weight:600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+  .match-col-title{ margin: 0 0 16px; font-family: var(--font-display); font-size: 24px; font-weight:600; letter-spacing: -0.48px; color: var(--ink); }
+  .panel-header h3, .panel-header-titulo h3{ font-size: 24px; font-weight:600; letter-spacing: -0.48px; }
   @media (max-width: 1099px){
     /* Un panel a la vez (turno 13a, FR-009): el switch de arriba manda vía `data-mob-tab`. */
     .match-columns[data-mob-tab="convocados"] .match-col-equipos{ display:none; }
@@ -1031,6 +1045,8 @@
            una columna a la vez, resuelve el switch de arriba en mobile (TD-02). -->
       <div class="match-columns" id="matchColumns">
         <div class="match-col-convocados" id="matchColConvocados">
+          <span class="match-col-eyebrow">Convocatoria</span>
+          <h3 class="match-col-title">Convocados</h3>
           <div class="autocomplete-wrap" id="convBuscadorWrap">
             <div class="search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1043,9 +1059,9 @@
           </div>
 
           <div class="convocados-list" id="convocadosList"></div>
-          <div class="conv-summary" id="convSummary"></div>
         </div>
         <div class="match-col-equipos" id="matchColEquipos">
+          <span class="match-col-eyebrow" id="equiposEyebrow">Equipos generados</span>
           <div class="teams-section" id="teamsSection"></div>
         </div>
       </div>
@@ -5320,6 +5336,14 @@
   function renderTeamsSectionImpl(m){
     const section = el('teamsSection');
     const titularIds = getTitularIds(m);
+    // Eyebrow de la Card (§ Screens/Views del handoff, columna "Eyebrow de la tarjeta"): vive
+    // fuera de `section` porque es el único dato de este bloque que no cambia con ninguna de las
+    // ramas de abajo, sólo con el estado del partido. Carga de resultados (7a/8e/14a/14b) manda
+    // por encima de Partido finalizado: `enModoCarga` es cierto también mientras se edita el
+    // resultado de un finalizado (rebanada 6), y ahí la tarjeta muestra el selector de evento,
+    // no el resumen de lectura.
+    el('equiposEyebrow').textContent = enModoCarga(m) ? 'Carga de resultados'
+      : (m.estado === 'Finalizado') ? 'Partido finalizado' : 'Equipos generados';
 
     // Elegir/ver la estrategia de armado es exclusivo de "admin" (FR-005, FR-008).
     const selectorEstrategia = renderComboEstrategia(m);
@@ -5859,7 +5883,7 @@
     el('detailEstado').textContent = m.estado;
     el('detailEstado').className = `status-chip ${statusChipClass(m.estado)}`;
     const req = titularesRequeridos(m);
-    const { titulares: titularesCount, suplentes: suplentesCount, slotsOcupados, vacantes } = contarTitularesSuplentes(m);
+    const { suplentes: suplentesCount, slotsOcupados, vacantes } = contarTitularesSuplentes(m);
     el('detailMeta').textContent = `${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentesCount} suplente${suplentesCount===1?'':'s'}`;
 
     el('matchSearchInput').value = matchSearchTerm;
@@ -5883,13 +5907,10 @@
     if(locked){ el('autocompleteList').style.display = 'none'; el('autocompleteList').innerHTML = ''; }
     else renderAutocomplete(m);
 
+    // El resumen de titulares/suplentes ya no vive en una caja aparte debajo de la lista (a
+    // pedido del usuario): `renderConvocadosList` lo muestra al lado de cada etiqueta de
+    // sección, como pide el handoff (`convTitLabel`/`convSupLabel`).
     renderConvocadosList(m);
-
-    el('convSummary').innerHTML = `
-      <div class="stat">Titulares: <b>${slotsOcupados}/${req}</b>${titularesCount !== slotsOcupados ? ` (${titularesCount} jugadores, con duplas)` : ''}</div>
-      <div class="stat">Suplentes: <b>${suplentesCount}</b></div>
-      ${vacantes > 0 ? `<div class="stat">Podés armar el partido igual aunque falten ${vacantes} titular${vacantes===1?'':'es'}.</div>` : ''}
-    `;
 
     renderTeamsSection(m);
   }
@@ -5912,19 +5933,24 @@
     // integrantes agrupados adentro, en vez de dos filas separadas con una referencia cruzada.
     const req = titularesRequeridos(m);
     const unidades = getUnidadesConvocatoria(m);
+    // §Screens/Views del handoff (12a/13a/14a: "TITULARES {{ convTitLabel }}" / "SUPLENTES
+    // {{ convSupLabel }}"): el conteo de cada grupo va al lado de su propia etiqueta, no en una
+    // caja aparte debajo de toda la lista (retirada por pedido del usuario, ver `#convSummary`).
+    const { titulares: titularesCount, suplentes: suplentesCount, slotsOcupados, vacantes } = contarTitularesSuplentes(m);
+    const labelTitulares = `${slotsOcupados}/${req}${titularesCount !== slotsOcupados ? ` (${titularesCount} jugadores, con duplas)` : ''}`;
     /* Titular o suplente se deriva del orden de convocatoria (FR-005), así que el corte
        entre los dos grupos es un único punto de la lista: `idx === req`. Antes se repetía
        como un badge en cada renglón, que además de redundante con la numeración y con el
        contador de arriba se comía ~69px de ancho en una pantalla de 360px. */
-    const encabezado = (texto) => `<div class="conv-section">${texto}</div>`;
+    const encabezado = (texto, cuenta) => `<div class="conv-section"><span>${texto}</span><span class="conv-section-count">${cuenta}</span></div>`;
     // FR-070/TC-042 — el drag and drop de la convocatoria depende solo de `isAdmin()`, a
     // propósito NO de `locked`: a diferencia de agregar/quitar/vincular (bloqueados una vez
     // cerrada la inscripción o finalizado el partido), reordenar la cola queda disponible en
     // cualquier estado del partido. No "arreglar" esto para que respete `locked` también.
     const puedeArrastrar = isAdmin();
-    listEl.innerHTML = unidades.map((unidad, idx) => {
-      const seccion = idx === 0 ? encabezado('Titulares')
-                    : idx === req ? encabezado('Suplentes')
+    const filas = unidades.map((unidad, idx) => {
+      const seccion = idx === 0 ? encabezado('Titulares', labelTitulares)
+                    : idx === req ? encabezado('Suplentes', suplentesCount)
                     : '';
       const leadId = unidad.ids[0];
       const dragAttrs = puedeArrastrar
@@ -5975,6 +6001,11 @@
           ${deshacerBtn}
         </div>`;
     }).join('');
+    // `convFaltan`/`convFaltanLabel` del handoff: la nota de vacantes sin candidato es una fila
+    // más al pie de la lista, no una caja aparte (retirada, ver `#convSummary`).
+    const notaVacantes = vacantes > 0
+      ? `<div class="conv-nota-vacantes">Podés armar el partido igual aunque falten ${vacantes} titular${vacantes===1?'':'es'}.</div>` : '';
+    listEl.innerHTML = filas + notaVacantes;
   }
 
   // TD-08 — mueve la unidad completa (jugador o dupla) que empieza en `draggedLeadId` a la
@@ -6399,7 +6430,7 @@
     currentMatchId = null;
     resultadoDraft = null;
     editandoResultadoFinalizado = null;
-    ['stats','roster','matchList','convocadosList','convSummary','teamsSection',
+    ['stats','roster','matchList','convocadosList','teamsSection',
      'estrategiaCards','rulesList','rulesHint'].forEach(id => {
       const node = el(id);
       if(node) node.innerHTML = '';
