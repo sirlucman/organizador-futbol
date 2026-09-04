@@ -33,7 +33,6 @@ const DECLARACIONES = [
   'totalGolesEquipo',
   'statsPorJugadorDesdeEventos',
   'statsPorJugadorDelPartido',
-  'lineaEstrategiaPartidoFinalizado',
   'statsAgregadasDeUnidad',
   'GOAL_ICON',
   'RED_GOAL_ICON',
@@ -41,17 +40,27 @@ const DECLARACIONES = [
   'renderChipsEstadistica',
   'goleadoresDeEquipo',
   'renderFilasDetalle',
+  'ANCHO_UNA_COLUMNA',
+  'enUnaColumna',
+  'golesEquipoActual',
   'renderFilaResultado',
 ];
 
 function cargarFinalizado() {
   const cuerpo = DECLARACIONES.map(n => extraer(src, n)).join('\n\n');
+  /* `golesEquipoActual` lee el borrador de carga y `enUnaColumna` consulta el ancho: sin
+     navegador, el borrador arranca vacío y la media query se responde con el ancho que fije el
+     test (por defecto dos columnas, que es donde la fila de resultado muestra los costados). */
   const prelude = `
     let players = [];
     function __setPlayers(p){ players = p; }
+    let resultadoDraft = null;
+    let __unaColumna = false;
+    function __setUnaColumna(v){ __unaColumna = v; }
+    const window = { matchMedia: () => ({ matches: __unaColumna }) };
   `;
   try {
-    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, ${DECLARACIONES.join(', ')} };`)();
+    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setUnaColumna, ${DECLARACIONES.join(', ')} };`)();
   } catch (e) {
     throw new Error(`El código extraído de index.html no evaluó: ${e.message}`);
   }
@@ -142,7 +151,7 @@ prueba('"finalizado/S-03d" la suma de los chips coincide con la suma de stats de
 console.log('\n\x1b[1mLA FILA DE RESULTADO\x1b[0m — nombre, puntaje de armado y marcador (FR-040 a FR-042)\n');
 
 prueba('"finalizado/S-04" la fila de resultado muestra nombre, puntaje de armado y marcador', () => {
-  const m = { equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 52.5, sumaNegro: 51.5 },
+  const m = { id: 'm1', estado: 'Finalizado', equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 52.5, sumaNegro: 51.5 },
     resultado: { statsPorJugador: { b1: { goles: 4 }, n1: { goles: 3 } } } };
   const html = P.renderFilaResultado(m);
   ok(html.includes('Blanco') && html.includes('Negro'), 'los dos nombres de equipo aparecen');
@@ -150,8 +159,19 @@ prueba('"finalizado/S-04" la fila de resultado muestra nombre, puntaje de armado
   ok(html.includes('>4<') && html.includes('>3<'), 'el marcador real (4 - 3) aparece');
 });
 
+prueba('"finalizado/S-04" en una columna la fila queda con el marcador solo (12c es de dos columnas)', () => {
+  const m = { id: 'm1', estado: 'Finalizado', equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 52.5, sumaNegro: 51.5 },
+    resultado: { statsPorJugador: { b1: { goles: 4 }, n1: { goles: 3 } } } };
+  P.__setUnaColumna(true);
+  const html = P.renderFilaResultado(m);
+  P.__setUnaColumna(false);
+  ok(!html.includes('resultado-equipo'), 'no se emiten los costados');
+  ok(!html.includes('52.5') && !html.includes('51.5'), 'el puntaje de armado no se repite: vive arriba del campo');
+  ok(html.includes('>4<') && html.includes('>3<'), 'el marcador real sigue');
+});
+
 prueba('"finalizado/S-04a" el resultado 0 a 0 se muestra, no se omite', () => {
-  const m = { equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 0, sumaNegro: 0 },
+  const m = { id: 'm1', estado: 'Finalizado', equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 0, sumaNegro: 0 },
     resultado: { statsPorJugador: { b1: { goles: 0 }, n1: { goles: 0 } } } };
   const html = P.renderFilaResultado(m);
   const marcador = html.match(/<div class="resultado-marcador">.*?<\/div>/)[0];

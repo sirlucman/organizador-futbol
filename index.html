@@ -6,7 +6,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>The Football App</title>
 <style>
-  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;900&display=swap");
+  /* Mismo `@import` que `_ds/.../tokens/fonts.css`: el rango variable entero. Antes se pedían
+     sólo 400, 600 y 900, y los pesos 500 (`.camiseta-nombre`) y 700 (`.conv-pos-badge`) no
+     tenían cara propia — el navegador los resolvía con la de 900. */
+  @import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
   :root{
     /* Football App design system — mapped onto the legacy variable names used
        throughout this file so every selector below picks up the new brand
@@ -28,12 +31,20 @@
     --brick-light: #ef4444; /* negative-500 / color-negative — píldora de diferencia excedida */
     --mustard-light: #facc15;/* warning-400 / color-warning — filete del aviso de desactualizado */
     --mustard-deep: #713f12; /* warning-900 / color-warning-content — texto de la pastilla "2º" */
-    --slate: #374151;       /* gray-700 / color-body — texto del receipt */
+    --slate: #374151;       /* gray-700 / color-body — texto del receipt y fondo de la pastilla "Finalizado" */
+    --positive-deep: #166534;/* positive-800 / color-positive-deep — texto de la pastilla "Inscripción abierta" */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+    /* Alias histórico: NO es una monoespaciada. Toda la app la usa como "Inter en tratamiento
+       de etiqueta" (mayúsculas, tracking abierto) en jugadores, configuración, ficha, pestañas y
+       chips de estado — 25 selectores. El design system sí define una mono real, pero ninguna de
+       las vistas de los turnos 12/13/14 la usa, así que cambiar el alias acá sólo repintaría el
+       resto de la app sin acercar nada al diseño. Se deja como está; renombrarlo es una limpieza
+       aparte. */
     --font-mono: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --radius-card: 24px;
     --radius-control: 12px;
+    --radius-sm: 8px;
     --radius-field: 16px;   /* radius-lg — la cancha */
     --radius-pill: 9999px;
   }
@@ -87,8 +98,15 @@
   .btn-primary{ font-family: var(--font-body); font-weight: 600; font-size: 13.5px; padding: 10px 16px; border-radius: var(--radius-card); border: none; background: var(--pitch); color: var(--pitch-on); cursor: pointer; white-space: nowrap; transition: background .15s ease, transform .1s ease; }
   .btn-primary:hover{ background: var(--pitch-light); }
   .btn-primary:active{ transform: translateY(1px); }
-  .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: var(--radius-control); border: 1px solid var(--paper-line); background: transparent; color: var(--muted); cursor: pointer; }
-  .btn-ghost:hover{ border-color: var(--ink); color: var(--ink); }
+  /* El botón contorneado del design system (variante `tertiary`): fondo blanco, borde y texto en
+     tinta, radio de botón — el mismo que ya usa `.btn-primary`. Es como lo dibuja `12a` en
+     "Reabrir inscripción", y desde ahí se aplica a los diez botones de esta clase (D-05: el diseño
+     gana, decidido con el propietario el 2026-09-04).
+     Antes era un fantasma real —borde `--paper-line` y texto `--muted`—: sobre la tarjeta blanca
+     casi no se veía, y el texto gris daba 4.41:1, por debajo del mínimo para su tamaño. El hover
+     ya no mueve el borde ni el texto (no queda a dónde moverlos): cambia el fondo, como el DS. */
+  .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: var(--radius-card); border: 1px solid var(--ink); background: var(--chalk); color: var(--ink); cursor: pointer; transition: background .15s ease; }
+  .btn-ghost:hover{ background: var(--paper); }
 
   /* ---------- Ficha de jugador (compartida: alta normal y alta rápida) ---------- */
   .card-pin-wrap{ display: none; margin: 10px 0 20px; }
@@ -148,11 +166,6 @@
   .icon-btn svg{ width:16px; height:16px; }
   /* Ícono de dupla (dos camisetas): más ancho que alto, a diferencia del resto de los icon-btn
      (16x16) — se mantiene su proporción real en vez de forzarlo a un cuadrado (quedaría ilegible). */
-  img.icon-dupla{ width:26px; height:20px; object-fit:contain; vertical-align:middle; flex-shrink:0; }
-  .icon-btn-dupla img.icon-dupla{ width:30px; height:23px; }
-  /* Mismo mecanismo que ya usa `.icon-boot`: sobre el panel oscuro de Equipo Negro, el ícono
-     (líneas oscuras sobre transparente) se invierte a blanco para seguir siendo visible. */
-  .team-panel.negro img.icon-dupla{ filter: brightness(0) invert(1); }
 
   .empty-state{ text-align:center; padding: 50px 20px; color: var(--muted); }
   .empty-state svg{ width: 40px; height:40px; opacity:0.35; margin-bottom: 10px; }
@@ -187,11 +200,21 @@
      scroll horizontal a 360px. Con wrap, el grupo baja de línea en vez de desbordar (Principio V). */
   .match-card-top{ display:flex; justify-content:space-between; align-items:center; gap: 10px; flex-wrap: wrap; }
   .match-date{ font-family: var(--font-display); font-size: 17px; text-transform: capitalize; }
-  .match-meta{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .match-meta{ font-family: var(--font-body); font-size: 14px; line-height: 20px; color: var(--muted); margin-top: 3px; }
   .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
-  .status-chip.open{ background: var(--pitch); color: var(--pitch-on); border-color: var(--pitch); }
+  /* Los tonos de la pastilla de estado. "Inscripción abierta" toma el Badge `positive` del diseño
+     (12b). "Finalizado" va en gris oscuro por decisión del propietario, para que el verde no quede
+     repartido entre dos estados distintos — la pregunta que `DELTA.md`/`github.md` tenían abierta.
+     El borde repite el fondo en esas dos: la pastilla del diseño no lleva filete y el de
+     `.status-chip` sólo existe para el tono base (estado desconocido).
+     "Equipos generados" se deja tal cual estaba, en naranja, por decisión del propietario
+     (2026-09-04). Anotado para que no se relea como olvido: con texto blanco ese naranja da 2.26:1
+     de contraste — menos de la mitad del mínimo AA para su tamaño de letra — y es la etiqueta más
+     frecuente. Los otros dos tonos dan 5.96:1 y 10.31:1. */
+  .status-chip.open{ background: var(--pitch-pale); color: var(--positive-deep); border-color: var(--pitch-pale); }
+  .status-chip.closed{ background: var(--paper); color: var(--ink); border-color: var(--paper); }
   .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
-  .status-chip.finished{ background: var(--pitch-pale); color: var(--pitch-deep); border-color: var(--pitch-pale); }
+  .status-chip.finished{ background: var(--slate); color: var(--chalk); border-color: var(--slate); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
   /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
@@ -209,18 +232,27 @@
   .match-result-scorers .scorer-empty{ opacity: 0.55; }
   @media (max-width: 480px){ .match-result{ grid-template-columns: 1fr; } }
 
-  .back-link{ font-family: var(--font-mono); font-size: 12px; color: var(--muted); cursor: pointer; display:inline-flex; gap:6px; align-items:center; margin: 18px 0 14px; background:none; border:none; padding:0; }
+  .back-link{ font-family: var(--font-body); font-weight: 600; font-size: 14px; line-height: 20px; color: var(--pitch-deep); cursor: pointer; display:inline-flex; gap:6px; align-items:center; margin: 18px 0 14px; background:none; border:none; padding:0; }
+  .back-link svg{ display:block; }
   .back-link:hover{ color: var(--ink); }
   .detail-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-  .detail-header h2{ font-family: var(--font-display); font-size: 26px; text-transform: capitalize; margin: 0; }
-  /* El chip de estado va agrupado con el título (alineado a la izquierda, pegado a la fecha) en
-     vez de repartido por el flex del header entero — con justify-content:space-between sobre 4
-     hijos (título, chip, toggle, eliminar) el chip quedaba flotando a mitad de camino. Separando
-     "título + chip + meta" de "acciones" en dos grupos, el space-between solo actúa entre esos
-     dos grupos. */
-  .detail-header-main{ display:flex; align-items:center; flex-wrap: wrap; gap: 4px 10px; }
-  .detail-header-main .match-meta{ flex-basis: 100%; margin-top: 0; }
+  /* La fecha en caja de oración, como la escriben las cinco vistas ("Sábado, 5 de septiembre"):
+     `capitalize` la devolvía como "Jueves, 3 De Septiembre". El título de 12a es display-sm
+     (32px); el compacto de 13a/14a, display-xs (24px). */
+  .detail-header h2{ font-family: var(--font-display); font-weight: 600; margin: 0; font-size: 32px; line-height: 38.4px; letter-spacing: -0.96px; }
+  .detail-header h2::first-letter{ text-transform: uppercase; }
+  /* Fecha y pastilla de estado en la misma fila, y el tamaño de cancha debajo de las dos
+     (12a y 13a lo dibujan igual). El agrupado también resuelve lo de siempre: con
+     justify-content:space-between sobre cuatro hijos sueltos (título, chip, toggle, eliminar)
+     el chip quedaba flotando a mitad de camino; separando "título + chip + meta" de "acciones",
+     el space-between actúa sólo entre esos dos grupos. */
+  .detail-header-main{ display:flex; flex-direction: column; gap: 6px; min-width: 0; }
+  .detail-header-titulo{ display:flex; align-items:center; flex-wrap: wrap; gap: 4px 10px; }
+  .detail-header-main .match-meta{ margin-top: 0; }
   .detail-header-actions{ display:flex; align-items:center; gap: 10px; flex-shrink:0; }
+  @media (max-width: 1099px){
+    .detail-header h2{ font-size: 24px; line-height: 31.2px; letter-spacing: -0.48px; }
+  }
 
   .autocomplete-wrap{ position: relative; margin-bottom: 16px; }
   .autocomplete-list{ position:absolute; top: calc(100% + 4px); left:0; right:0; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-control); box-shadow: 0 8px 16px rgba(0,0,0,0.14); max-height: 260px; overflow-y: auto; z-index: 10; }
@@ -230,36 +262,71 @@
   .ac-pos-dot{ width: 8px; height:8px; border-radius:50%; flex-shrink:0; }
   .ac-empty{ padding: 12px; font-size: 13px; color: var(--muted); }
 
-  .convocados-list{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: hidden; }
-  .conv-row{ display:flex; align-items:center; gap:12px; padding: 11px 16px; border-bottom: 1px solid var(--paper-line); }
+  /* La tira del partido finalizado (12c: "Inscripción cerrada"), con el candado a la izquierda
+     sobre el fondo papel. Ya no aparece con la inscripción simplemente cerrada — ahí lo dice la
+     pastilla del encabezado (ver `statusChip`). */
+  .conv-cerrada{ display:flex; align-items:center; gap:8px; padding:12px 16px; margin-bottom:16px; border-radius: var(--radius-control); background: var(--paper); color: var(--muted); font-size: 13px; }
+  .conv-cerrada svg{ flex-shrink:0; }
+
+  .convocados-list{ display:flex; flex-direction:column; gap: 2px; }
+  .conv-row{ display:flex; align-items:center; gap:8px; padding: 5px 8px; border-radius: var(--radius-control); }
   .conv-row[draggable="true"]{ cursor: grab; }
+  .conv-row[draggable="true"]:hover{ background: var(--paper); }
   .conv-row[draggable="true"]:active{ cursor: grabbing; }
-  .conv-row:last-child{ border-bottom:none; }
-  .conv-num{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); width: 22px; text-align:right; flex-shrink:0; }
+  .conv-num{ font-family: var(--font-body); font-size: 12px; line-height: 16px; color: var(--muted); width: 16px; text-align:right; flex-shrink:0; font-variant-numeric: tabular-nums; }
   /* El corte entre titulares y suplentes se muestra una sola vez, como encabezado de
      sección, en vez de repetirse como badge en cada renglón (ver renderConvocadosList). */
-  .conv-section{ font-family: var(--font-mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 9px 16px 5px; background: var(--paper); border-bottom: 1px solid var(--paper-line); }
-  .conv-pos-badge{ width: 26px; height: 26px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); font-size: 9px; font-weight: 700; color: var(--chalk); flex-shrink:0; }
-  .conv-name{ flex: 1 1 auto; font-size: 14.5px; font-weight: 600; }
-  .conv-summary{ display:flex; gap:10px; margin-top: 14px; flex-wrap: wrap; }
+  .conv-section{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; font-family: var(--font-body); font-size: 12px; font-weight: 600; line-height: 16px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 12px 8px 4px; border-bottom: 1px solid var(--paper); }
+  .convocados-list > .conv-section:first-child{ padding-top: 0; }
+  /* El conteo de cada sección (§ Screens/Views del handoff: `convTitLabel`/`convSupLabel`) va al
+     lado de su propia etiqueta, sin mayúsculas ni tracking — no es parte del eyebrow. */
+  .conv-section-count{ font-family: var(--font-body); font-size: 12px; font-weight: 400; line-height: 16px; letter-spacing: normal; text-transform: none; font-variant-numeric: tabular-nums; }
+  .conv-pos-badge{ width: 26px; height: 26px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-family: var(--font-display); font-size: 9.5px; line-height: 1; font-weight: 900; color: var(--chalk); flex-shrink:0; }
+  .conv-name{ flex: 1 1 auto; min-width: 0; font-size: 14px; line-height: 20px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* Un solo botón al final de cada jugador, en vez de un ícono por acción. La columna de
+     convocados mide 352px en TODA la banda de dos columnas (12a) y menos en el compacto (13a):
+     con un botón por acción, el nombre se recortaba a media palabra en los dos. El renglón que
+     dibujan las tres vistas es número · pastilla · nombre · una acción al final, y acá esa
+     acción abre el menú con las que correspondan. */
+  .conv-menu-btn{ flex: none; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; padding: 0; border: none; border-radius: var(--radius-pill); background: none; color: var(--muted); cursor: pointer; transition: color .14s ease, background .14s ease; }
+  .conv-menu-btn:hover, .conv-menu-btn[aria-expanded="true"]{ color: var(--ink); background: var(--paper); }
+  .conv-menu-btn:active{ transform: scale(0.97); }
+  .conv-menu-btn svg{ display: block; }
+
+  /* El menú flotante. El design system eleva por contraste de superficie, no por sombra: de ahí
+     la tarjeta blanca con filete de 1px sobre el fondo salvia. La sombra es `--shadow-floating`
+     del sistema (`tokens/elevation.css`), el único valor que declara para una superficie que
+     flota. */
+  .conv-menu{ position: fixed; z-index: 60; min-width: 188px; padding: 6px; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-control); box-shadow: 0 12px 32px -8px rgb(17 24 39 / 0.18); display: flex; flex-direction: column; gap: 2px; }
+  .conv-menu[hidden]{ display: none; }
+  .conv-menu-item{ display: flex; align-items: center; width: 100%; min-height: 36px; padding: 8px 12px; border: none; border-radius: var(--radius-sm); background: none; font-family: var(--font-body); font-size: 14px; line-height: 20px; font-weight: 400; color: var(--ink); text-align: left; cursor: pointer; }
+  .conv-menu-item:hover, .conv-menu-item:focus-visible{ background: var(--paper); outline: none; }
+  .conv-menu-item.negativo{ color: var(--brick); }
+  /* `convFaltan`/`convFaltanLabel` del handoff: una fila más al pie de la lista, no una caja
+     aparte con el resto de los resúmenes (retirados, D-23 los prohíbe dentro de la cancha; acá
+     el pedido del usuario fue retirar la caja también de la convocatoria). */
+  .conv-nota-vacantes{ padding: 10px 16px; font-size: 12.5px; line-height: 1.4; color: var(--slate); }
 
   /* Dupla de rotación agrupada en un mismo renglón: un integrante arriba, el otro abajo, dentro
      de un único recuadro — se ve como una sola unidad, no como dos filas sueltas. */
-  .conv-row-dupla{ align-items: stretch; }
-  .conv-dupla-members{ flex: 1 1 auto; display:flex; flex-direction:column; gap:8px; border:1px solid var(--paper-line); border-radius: var(--radius-control); padding:8px 10px; background: #E4F0C4; }
-  .conv-dupla-member{ display:flex; align-items:center; gap:10px; }
-  .conv-dupla-member .conv-pos-badge{ width:22px; height:22px; }
+  .conv-row-dupla{ align-items: center; }
+  .conv-dupla-members{ flex: 1 1 auto; min-width: 0; display:flex; flex-direction:column; align-items:flex-start; gap:1px; border-radius: var(--radius-control); padding:4px 10px; background: var(--pitch-pale); }
+  .conv-dupla-member{ align-self: stretch; display:flex; align-items:center; gap:10px; }
   .conv-dupla-member .conv-name{ font-size: 14px; }
+  .icon-rotacion{ display:block; color: var(--pitch-deep); }
 
   /* ---------- Equipos (Slice 3) ---------- */
-  .teams-section{ margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--paper-line); }
+  /* La sección es lo primero que hay adentro de la Card de la columna derecha: el filete y el
+     aire que la separaban de la convocatoria cuando las dos se apilaban ya no separan nada, y
+     dejaban una franja vacía arriba del título. */
+  .teams-section{ margin-top: 0; padding-top: 0; border-top: none; }
   .teams-section h3{ font-family: var(--font-display); font-size: 18px; font-weight: 600; margin: 0 0 4px; }
   /* minmax(0,1fr) y no 1fr: una pista `1fr` es `minmax(auto,1fr)`, cuyo mínimo es el min-content
      de lo que contiene. Con los inputs de goles/penal/asistencias visibles (carga de resultado),
      ese min-content son ~426px por panel, así que la pista se negaba a achicarse y estiraba toda
      la página — 206px de scroll horizontal a 600px de ancho. Con minmax(0,...) la pista sí puede
      bajar del min-content y el contenido se acomoda dentro (Principio V). */
-  .teams-wrap{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; margin: 8px 0 16px; }
+  .teams-wrap{ display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 24px; margin: 8px 0 16px; }
   /* container-type: el layout de la fila depende del ancho del PANEL, no del
      viewport. Medido sobre un plantel real, las filas envuelven según el panel y no
      según la pantalla:
@@ -273,23 +340,17 @@
      que el mismo panel angosto aparece en un teléfono de 360px y en un monitor de
      1400px: expresarlo con rangos de viewport pedía dos bloques disjuntos con
      números mágicos, y con el ancho del panel es una sola condición. */
-  .team-panel{ border-radius: var(--radius-card); padding: 14px 16px; container-type: inline-size; }
+  .team-panel{ padding: 0; container-type: inline-size; }
 
-  /* Card "content" (blanco) y Card "dark" (negro) del design system: el blanco no lleva borde
-     — el contraste contra el fondo salvia de la página ya funciona como elevación — y en el
-     negro el título va en el verde de marca sobre tinta, como pide la variante "dark". */
-  .team-panel.blanco{ background: var(--chalk); }
-  .team-panel.negro{ background: var(--ink); color: var(--chalk); }
-  .team-panel.negro h4{ color: var(--pitch); }
-  .team-panel h4{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; margin: 0 0 10px; display:flex; justify-content:space-between; align-items:baseline; }
-  /* `margin-left:auto` en vez de depender sólo de `justify-content:space-between` del `h4`: en
-     una columna el nombre se oculta (ver 900px) y el total queda como único hijo del flex, que
-     `space-between` alinearía al principio — con el margen automático se mantiene pegado a la
-     derecha con o sin el nombre al lado. */
-  .team-total{ font-family: var(--font-mono); font-size: 12.5px; opacity: 0.75; margin-left: auto; }
-  .team-panel{ transition: background-color .15s ease; }
+  /* Nombre y puntaje arriba del campo, los dos en tinta: el nombre con el peso de
+     `--type-body-md-strong` y el total en display 900/16 con el "pts" en caption. */
+  .team-panel h4{ font-family: var(--font-display); font-weight: 600; font-size: 16px; line-height: 24px; color: var(--ink); margin: 0 0 12px; display:flex; justify-content:space-between; align-items:baseline; }
+  /* `margin-left:auto` en vez de depender sólo de `justify-content:space-between` del `h4`: por
+     debajo del corte de columnas el nombre se oculta y el total queda como único hijo del flex,
+     que `space-between` alinearía al principio — con el margen automático se mantiene pegado a
+     la derecha con o sin el nombre al lado. */
+  .team-total{ font-family: var(--font-display); font-weight: 900; font-size: 16px; line-height: 24px; color: var(--ink); font-variant-numeric: tabular-nums; margin-left: auto; }
   .icon-boot{ vertical-align: -2px; margin-left: 4px; display: inline-block; }
-  .team-panel.negro .icon-boot{ filter: brightness(0) invert(1); }
   /* La pelota tiene detalle (blanco y negro) que la clase .icon-boot aplana mal: no lleva su
      invert de fondo oscuro (ya se distingue igual sobre el panel negro) y va un poco más grande
      y opaca, porque a 13px y atenuada como el resto de las etiquetas se perdía el dibujo. */
@@ -361,10 +422,10 @@
      negrita sobre el césped pesaban demasiado y competían con las camisetas. Es una desviación
      deliberada de TC-033, que pide tomar las medidas del handoff literales, y queda anotada como
      tal. El text-shadow es lo que sostiene la legibilidad sobre el verde, no el peso. */
-  .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 500; font-size: var(--chip-name); line-height: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
+  .camiseta-nombre{ color: #ffffff; font-family: var(--font-display); font-weight: 700; font-size: var(--chip-name); line-height: 17px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; text-shadow: 0 1px 3px rgb(17 24 39 / 0.6); }
   /* Puntaje: sólo para admin (FR-024). Sin puntaje calculable no se dibuja la píldora y el
      `title` de la camiseta lo dice — "sin puntaje" no entra en una píldora de 26px (FR-025). */
-  .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: var(--pill-min); padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: var(--pill-fs); line-height: calc(var(--pill-fs) + 6px); text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
+  .camiseta-puntaje{ position: absolute; top: -3px; right: -4px; min-width: var(--pill-min); padding: 0 5px; border-radius: var(--radius-pill); background: var(--pitch-light); color: var(--ink); font-family: var(--font-display); font-weight: 900; font-size: var(--pill-fs); line-height: calc(var(--pill-fs) + 8px); text-align: center; box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.75), 0 2px 6px rgb(17 24 39 / 0.4); }
   /* Pastilla "2º" de posición secundaria: geometría y color tomados literales del diseño de
      Claude Design (proyecto "Diseño de equipos en cancha", turnos 10d — partido finalizado — y
      11c — armado). Antes de la cancha (rebanada 1) esto vivía en un tag de texto al lado del
@@ -447,13 +508,13 @@
      El selector aparece sólo en una columna, donde se ve un equipo por vez. Su geometría sale
      literal del handoff (§ Selector segmentado) y los realces de la tabla de drag-over de
      § Arrastre, en su variante compacta `6a` (TC-033). */
-  /* El handoff pinta la pista del selector con `canvas-soft` porque allí el control vive sobre
-     una tarjeta BLANCA. Acá vive sobre el fondo de página, que ES `canvas-soft` (`--paper`), así
-     que copiar el valor literal dejaba la pista invisible y el control no se leía como uno de dos
-     posiciones. Se conserva la RELACIÓN que el handoff busca —pista apenas distinta del fondo—
-     invirtiendo el token, que es el mismo criterio con el que el resto de la aplicación pinta
-     sus campos: blanco sobre papel (TC-031). Lo detectó mirar la pantalla, no un test. */
-  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--chalk); }
+  /* El handoff pinta la pista del selector con `canvas-soft` porque el control vive sobre una
+     tarjeta BLANCA. Desde que las columnas de `#matchDetailView` son su propia Card
+     (`.match-col-equipos`, TC-001 de NAVEGACION_PARTIDOS_SPEC.md), ese vuelve a ser el caso acá
+     también, así que se usa el token literal (`--paper` = canvas-soft) — antes, cuando el panel
+     vivía directo sobre el fondo de página, estaba invertido a `--chalk` a propósito para
+     conservar la relación de contraste (TC-031); esa inversión ya no aplica. */
+  .equipo-tabs{ position: relative; display: grid; grid-template-columns: 1fr 1fr; padding: 4px; margin: 0 0 10px; border-radius: var(--radius-pill); background: var(--paper); }
   .equipo-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc(50% - 4px); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .equipo-tabs[data-visible="negro"] .equipo-tabs-thumb{ left: 50%; }
   /* `min-height` es una desviación deliberada del handoff, no un descuido: su `padding: 10px 0`
@@ -461,7 +522,7 @@
      columna la pestaña es el destino de TODO movimiento — su tamaño es funcional, no estético.
      El propio handoff declara `--touch-target-min: 48px`, así que su padding se contradice con
      su token. Se conserva el padding literal y se agrega el piso (TC-031). */
-  .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; min-height: 44px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 13px; cursor: pointer; border-radius: var(--radius-pill); }
+  .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; min-height: 44px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; cursor: pointer; border-radius: var(--radius-pill); }
   .equipo-tab:hover{ opacity: 0.7; }
   .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
 
@@ -478,7 +539,11 @@
   /* Deshacer y Guardar, al pie de las dos canchas (diseño 8e del handoff) — no en la toolbar de
      arriba ni en la botonera del pie de toda la tarjeta. */
   .carga-acciones{ display: flex; align-items: center; justify-content: flex-end; gap: 10px; margin-top: 14px; }
-  .evento-tabs{ position: relative; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: var(--radius-pill); background: var(--chalk); }
+  /* El carril va en papel, no en blanco: el diseño lo dibuja así en los dos turnos que lo
+     muestran (`7a`/`7b` del handoff y `14a`), con `--color-canvas-soft`. Sobre la tarjeta blanca
+     el carril blanco no se distinguía del fondo y el selector se leía como cuatro botones sueltos
+     en vez de un switch. Es el mismo carril que ya usan `.equipo-tabs` (Blanco/Negro). */
+  .evento-tabs{ position: relative; display: grid; grid-template-columns: repeat(4, 1fr); padding: 4px; border-radius: var(--radius-pill); background: var(--paper); }
   .evento-tabs-thumb{ position: absolute; top: 4px; bottom: 4px; left: 4px; width: calc((100% - 8px) / 4); border-radius: var(--radius-pill); background: var(--pitch); transition: left .15s ease; pointer-events: none; }
   .evento-tabs[data-activo="1"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4); }
   .evento-tabs[data-activo="2"] .evento-tabs-thumb{ left: calc(4px + (100% - 8px) / 4 * 2); }
@@ -487,7 +552,7 @@
      columna, y la opción de leer bien pesa más que forzar una sola línea (D-13). El ícono va
      arriba de la etiqueta (no al lado): con la etiqueta en dos líneas, al lado quedaría
      descentrado respecto del ícono (diseño 8e del handoff). */
-  .evento-tab{ position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; min-height: 40px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 11.5px; line-height: 1.15; cursor: pointer; border-radius: var(--radius-pill); }
+  .evento-tab{ position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; padding: 8px 2px; min-height: 40px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 12px; line-height: 16px; cursor: pointer; border-radius: var(--radius-pill); }
   .evento-tab:hover{ opacity: 0.7; }
   .evento-tab:active{ opacity: 0.7; transform: scale(0.97); }
   .evento-tab-icon{ display: block; flex: none; }
@@ -495,18 +560,24 @@
   /* NFR-002: el mismo piso táctil de 44×44 que `.panel-icono` ya tenía (TC-020), reutilizado sin
      un tamaño nuevo. */
   .panel-icono:disabled{ opacity: 0.35; cursor: not-allowed; }
-  /* Los botones "+"/"−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos ≥390px, 38×38
-     debajo (NFR-002, handoff/README.md:675-676). Sin ícono nuevo: los glyphs "+"/"−" reutilizan
-     tipografía, no agregan un asset (TC-031). Sólo el primero (el "−") lleva `margin-left:auto`
-     — empuja al par entero al borde derecho de la fila; si los dos lo llevaran, el auto-margin se
-     repartiría entre ambos y los separaría en vez de dejarlos pegados. */
-  .detalle-quitar-btn, .detalle-agregar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: none; border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
+  /* Los botones "+"/"−" de cada fila de detalle (FR-050, FR-051): 26×26 en anchos >390px, 38×38
+     en el compacto (NFR-002, handoff/README.md:675-676). El corte va en 390px inclusive, que es
+     el ancho del artboard compacto del diseño (`14a`) y el viewport de los teléfonos más comunes:
+     con `max-width:389px` esos 390px caían del lado grande y se quedaban con el target chico,
+     justo al revés de lo que pide el handoff ("en el compacto los targets suben").
+     Sin ícono nuevo: los glyphs "+"/"−" reutilizan tipografía, no agregan un asset (TC-031).
+     El filete de 1px es el contorno con el que `14a` los dibuja: sin fondo, el botón no se leía
+     como botón — es lo único que lo delimita. `box-sizing:border-box` (ya global) lo mete dentro
+     de los 26/38px, así que el target táctil no cambia.
+     Sólo el primero (el "−") lleva `margin-left:auto` — empuja al par entero al borde derecho de
+     la fila; si los dos lo llevaran, el auto-margin se repartiría entre ambos y los separaría en
+     vez de dejarlos pegados. */
+  .detalle-quitar-btn, .detalle-agregar-btn{ display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; padding: 0; border: 1px solid rgb(17 24 39 / 0.18); border-radius: var(--radius-pill); background: none; color: var(--muted); font-size: 15px; line-height: 1; cursor: pointer; flex-shrink: 0; }
   /* `.detalle-fila` ya pone `gap:6px` entre todos sus hijos (TC-031): alcanza para separar este
      par sin un margen propio. */
   .detalle-quitar-btn{ margin-left: auto; }
   .detalle-quitar-btn:hover, .detalle-agregar-btn:hover{ color: var(--ink); }
-  .team-panel.negro .detalle-quitar-btn, .team-panel.negro .detalle-agregar-btn{ color: rgba(255,255,255,0.65); }
-  @media (max-width: 389px){
+  @media (max-width: 390px){
     .detalle-quitar-btn, .detalle-agregar-btn{ width: 38px; height: 38px; font-size: 18px; }
   }
 
@@ -561,10 +632,19 @@
   }
 
   .match-mobile-switch{ display:flex; gap:4px; padding:4px; margin: 0 0 16px; border-radius: var(--radius-pill); background: var(--chalk); border: 1px solid var(--paper-line); }
-  .match-mobile-switch .match-mobile-tab{ flex:1; padding:9px 0; border:none; border-radius: var(--radius-pill); background:none; font-family: var(--font-body); font-weight:600; font-size:13.5px; color: var(--ink); cursor:pointer; }
+  .match-mobile-switch .match-mobile-tab{ flex:1; display:flex; align-items:center; justify-content:center; gap:6px; padding:9px 0; border:none; border-radius: var(--radius-pill); background:none; font-family: var(--font-body); font-weight:600; font-size:14px; line-height:20px; color: var(--ink); cursor:pointer; }
+  /* `convCount` de 13a/14a: el total de convocados al lado de la etiqueta, en caption. */
+  .match-mobile-tab-count{ font-weight:400; font-size:12px; line-height:16px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .match-mobile-tab.active .match-mobile-tab-count{ color: var(--pitch-on); }
   .match-mobile-switch .match-mobile-tab.active{ background: var(--pitch); color: var(--pitch-on); }
 
-  .match-columns .match-col-convocados, .match-columns .match-col-equipos{ display:block; }
+  /* Cada columna es su propia Card del design system (§ Componentes del handoff, TC-001 de
+     NAVEGACION_PARTIDOS_SPEC.md): fondo blanco, borde y radio de tarjeta. El eyebrow que llevaba
+     la Card en 4a ("Equipos generados") no sobrevive al turno 12: 12a, 12b, 12c, 13a y 14a
+     arrancan en el `h3` — "Convocados" a la izquierda, "Alineaciones"/"Resultado" a la derecha. */
+  .match-columns .match-col-convocados, .match-columns .match-col-equipos{ display:block; background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 20px; }
+  .match-col-title{ margin: 0 0 16px; font-family: var(--font-display); font-size: 24px; line-height: 31.2px; font-weight:600; letter-spacing: -0.48px; color: var(--ink); }
+  .panel-header h3, .panel-header-titulo h3{ font-size: 24px; line-height: 31.2px; font-weight:600; letter-spacing: -0.48px; }
   @media (max-width: 1099px){
     /* Un panel a la vez (turno 13a, FR-009): el switch de arriba manda vía `data-mob-tab`. */
     .match-columns[data-mob-tab="convocados"] .match-col-equipos{ display:none; }
@@ -622,21 +702,19 @@
   .panel-pildora-fila{ display: flex; align-items: center; justify-content: flex-end; margin: 0 0 8px; }
 
   /* --- Combo de estrategia --- */
-  /* Chip compacto: vive en la fila del título ("Alineaciones"), del ancho de su contenido, en
-     vez de una fila propia de ancho completo — mismo <select> nativo por debajo, solo cambia
-     dónde vive y cuánto ancho ocupa. */
-  .chip-estrategia{ display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-control); background: var(--chalk); }
-  .chip-estrategia-label{ flex: none; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+  /* Fila propia debajo del encabezado, como la dibujan 12a, 12b y 13a: la etiqueta "ESTRATEGIA"
+     en eyebrow y el <select> al lado, con su borde de tinta y el chevron adentro. */
+  .chip-estrategia{ display: flex; align-items: center; gap: 8px; margin: 0 0 12px; }
+  .chip-estrategia-label{ flex: none; font-family: var(--font-body); font-size: 12px; line-height: 16px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+  /* En dos columnas el select mide lo que su contenido (12a); en el compacto ocupa el ancho de
+     la tarjeta (13a), donde no compite con nada más en la fila. */
   .chip-estrategia-campo{ position: relative; display: inline-flex; align-items: center; }
-  .chip-estrategia-campo select{ appearance: none; border: none; background: none; padding: 0 20px 0 0; font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+  .chip-estrategia-campo select{ appearance: none; min-height: 40px; padding: 0 38px 0 14px; border: 1px solid var(--ink); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; color: var(--ink); cursor: pointer; }
   .chip-estrategia-campo select:disabled{ cursor: default; opacity: 0.6; }
-  .chip-estrategia-chevron{ position: absolute; right: 0; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); fill: none; stroke: var(--muted); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
-  /* Sin espacio para la etiqueta "Estrategia" + el nombre más largo del catálogo ("Por posición
-     y puntaje") al lado de los dos íconos del encabezado: el nombre elegido se ve completo en el
-     propio combo nativo al abrirlo, así que acá alcanza con recortarlo (Principio V, piso 360px). */
-  @media (max-width: 480px){
-    .chip-estrategia-label{ display: none; }
-    .chip-estrategia-campo select{ max-width: 108px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip-estrategia-chevron{ position: absolute; right: 13px; top: 50%; width: 16px; height: 16px; transform: translateY(-50%); fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+  @media (max-width: 1099px){
+    .chip-estrategia-campo{ flex: 1; min-width: 0; display: flex; }
+    .chip-estrategia-campo select{ width: 100%; min-height: 44px; font-size: 13px; line-height: 18px; }
   }
 
   /* --- Aviso de equipos desactualizados --- */
@@ -727,20 +805,15 @@
   .camiseta-fig > .stat-goles{ position: absolute; bottom: -3px; right: var(--stat-edge); }
   .stat-pill{ display: flex; align-items: center; gap: 1px; height: var(--stat-h); padding: 0 3px; border-radius: var(--radius-pill); background-color: var(--stat-bg); box-shadow: 0 2px 5px rgb(17 24 39 / 0.45); font-family: var(--font-display); font-weight: 900; font-size: var(--stat-fs); line-height: 1; color: var(--ink); }
   .stat-pill img{ width: var(--stat-icon); height: var(--stat-icon); display: block; }
-  /* `.team-panel.negro .icon-boot` invierte la pelota a blanco para leerse sobre el panel oscuro
-     (rebanada 3). El chip es un pill CLARO también en el equipo Negro, así que ahí la pelota
-     invertida casi no se ve: se restituye el mismo ícono que ya usa el equipo Blanco. */
-  .team-panel.negro .stat-pill .icon-boot{ filter: none; }
-
   /* --- Fila de resultado --- */
   .fila-resultado{ display: flex; align-items: center; justify-content: center; gap: 24px; padding: 12px 0; margin-bottom: 12px; border-top: 1px solid var(--paper-line); border-bottom: 1px solid var(--paper-line); }
-  /* El nombre y el puntaje de armado se mudaron al encabezado de cada panel de equipo (arriba de
-     la cancha, con o sin pestaña según el ancho): esta fila ya no muestra ninguno de los dos, así
-     que el bloque que los contenía no aporta nada y se saca del flujo. */
-  .resultado-equipo{ display: none; }
-  .resultado-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 14.5px; }
+  /* Los dos costados de la fila (12c). Sólo se emiten en dos columnas: en una, la pestaña
+     activa ya nombra al equipo y el puntaje vive arriba del campo (13a). */
+  .resultado-equipo{ flex: 1; display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+  .resultado-equipo.der{ justify-content: flex-end; }
+  .resultado-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 16px; line-height: 24px; }
   .resultado-puntaje{ font-family: var(--font-display); font-weight: 900; font-size: 16px; line-height: 24px; font-variant-numeric: tabular-nums; }
-  .resultado-pts{ font-size: 12px; color: var(--muted); margin-left: 3px; }
+  .resultado-pts{ font-size: 12px; line-height: 16px; color: var(--muted); margin-left: 4px; }
   /* Cada gol se centra bajo la mitad de la zona de SU equipo — la pestaña en una columna
      (`.equipo-tabs`), el panel en dos (`.teams-wrap`, misma grilla acá para que los centros
      coincidan) — en vez de agruparse los dos en el medio de toda la fila. El guion se posiciona
@@ -752,18 +825,19 @@
     .resultado-marcador{ grid-template-columns: 1fr 1fr; gap: 0; font-size: 30px; line-height: 34px; }
     .resultado-guion{ font-size: 17px; }
   }
+  @media (min-width: 1100px){
+    .resultado-marcador{ flex: none; display: flex; align-items: baseline; gap: 12px; }
+    .resultado-guion{ position: static; transform: none; }
+  }
 
   /* --- Filas de detalle (debajo de cada campo) --- */
   .detalle-equipo{ margin-top: 10px; }
   .detalle-fila{ display: flex; align-items: center; gap: 6px; margin-top: 6px; }
-  .detalle-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 13.5px; color: var(--ink); }
-  .detalle-cifra{ display: flex; align-items: center; gap: 3px; font-family: var(--font-display); font-weight: 900; font-size: 12px; }
+  .detalle-nombre{ font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; color: var(--ink); }
+  .detalle-cifra{ display: flex; align-items: center; gap: 3px; font-family: var(--font-display); font-weight: 900; font-size: 12px; line-height: 1; }
   .detalle-cifra img{ width: 14px; height: 14px; }
-  .detalle-nota{ font-size: 11px; color: var(--muted); }
+  .detalle-nota{ font-size: 12px; line-height: 16px; color: var(--muted); }
   .detalle-vacio{ margin-top: 6px; font-size: 13px; color: var(--muted); opacity: 0.75; }
-  .team-panel.negro .detalle-nombre{ color: var(--chalk); }
-  .team-panel.negro .detalle-nota{ color: rgba(255,255,255,0.65); }
-  .team-panel.negro .detalle-vacio{ color: rgba(255,255,255,0.65); }
 
   .modal-overlay{ position: fixed; inset: 0; background: rgba(32,29,26,0.45); display:none; align-items:center; justify-content:center; z-index: 50; padding: 20px; }
   .modal-overlay.open{ display:flex; }
@@ -1005,11 +1079,13 @@
     </div>
 
     <div id="matchDetailView" style="display:none;">
-      <button class="back-link" id="btnVolverPartidos">← Volver a partidos</button>
+      <button class="back-link" id="btnVolverPartidos"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 5 7.5 12l7 7"/></svg>Volver a partidos</button>
       <div class="detail-header">
         <div class="detail-header-main">
-          <h2 id="detailFecha"></h2>
-          <span class="status-chip" id="detailEstado"></span>
+          <div class="detail-header-titulo">
+            <h2 id="detailFecha"></h2>
+            <span class="status-chip" id="detailEstado"></span>
+          </div>
           <div class="match-meta" id="detailMeta"></div>
         </div>
         <div class="detail-header-actions">
@@ -1023,7 +1099,7 @@
       <!-- Switch de pestañas para viewports angostos (turno 13a, FR-009 a FR-012 de
            NAVEGACION_PARTIDOS_SPEC.md). Se oculta por CSS a partir del breakpoint (TD-05). -->
       <div class="match-mobile-switch" id="matchMobileSwitch">
-        <button type="button" class="match-mobile-tab" data-tab="convocados" onclick="window.__setMobTab('convocados')">Convocados</button>
+        <button type="button" class="match-mobile-tab" data-tab="convocados" onclick="window.__setMobTab('convocados')">Convocados<span class="match-mobile-tab-count" id="mobTabConvocadosCount"></span></button>
         <button type="button" class="match-mobile-tab" data-tab="equipos" id="mobTabEquiposBtn" onclick="window.__setMobTab('equipos')">Equipos</button>
       </div>
 
@@ -1031,6 +1107,7 @@
            una columna a la vez, resuelve el switch de arriba en mobile (TD-02). -->
       <div class="match-columns" id="matchColumns">
         <div class="match-col-convocados" id="matchColConvocados">
+          <h3 class="match-col-title">Convocados</h3>
           <div class="autocomplete-wrap" id="convBuscadorWrap">
             <div class="search">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
@@ -1038,12 +1115,18 @@
             </div>
             <div class="autocomplete-list" id="autocompleteList" style="display:none;"></div>
           </div>
+          <!-- Con la inscripción cerrada la columna izquierda pasa a lectura y el buscador se
+               reemplaza por esta tira con el candado (12c y 14a), en vez de quedar como un input
+               deshabilitado con el copy adentro del placeholder. -->
+          <div class="conv-cerrada" id="convCerrada" style="display:none;">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="11" width="17" height="10" rx="2.5"/><path d="M8 11V7.2a4 4 0 0 1 8 0V11"/></svg>
+            <span>Inscripción cerrada</span>
+          </div>
           <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn-ghost admin-only" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
           </div>
 
           <div class="convocados-list" id="convocadosList"></div>
-          <div class="conv-summary" id="convSummary"></div>
         </div>
         <div class="match-col-equipos" id="matchColEquipos">
           <div class="teams-section" id="teamsSection"></div>
@@ -1569,12 +1652,18 @@
   // Mismo ícono de gol, con los gajos recoloreados a rojo (--brick) — usado para goles en contra.
   const RED_GOAL_ICON = '<img class="icon-goal icon-goal-red" src="assets/goal-icon-red.png" alt="Gol en contra" width="16" height="16">';
 
-  // Íconos de dupla: imágenes provistas (dos camisetas con flecha de intercambio / tachadas),
-  // con el fondo ya recortado a transparente. En el panel "Equipo Negro" (fondo oscuro) se
-  // invierten a blanco vía CSS (`.team-panel.negro img.icon-dupla`), mismo mecanismo que ya usa
-  // `.icon-boot` en ese panel — ver CSS `.team-panel.negro .icon-boot`.
-  const ICON_DUPLA_CREAR = '<img class="icon-dupla" src="assets/dupla-crear.png" alt="Crear dupla de rotación">';
-  const ICON_DUPLA_ELIMINAR = '<img class="icon-dupla" src="assets/dupla-eliminar.png" alt="Deshacer dupla de rotación">';
+  // El glifo de rotación que 12a/13a/14a dibujan ENTRE los dos nombres de una dupla, adentro del
+  // recuadro pálido. Es decorativo (`aria-hidden`): deshacer el vínculo es el botón de al lado.
+  const ICON_ROTACION_COLA = '<svg class="icon-rotacion" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M6.27 7.98A7 7 0 0 1 17.73 7.98"></path><path d="M19.8 10.93L19.61 6.66 15.85 9.3Z" fill="currentColor" stroke="none"></path>'
+    + '<path d="M17.73 16.02A7 7 0 0 1 6.27 16.02"></path><path d="M4.2 13.07L4.39 17.34 8.15 14.7Z" fill="currentColor" stroke="none"></path></svg>';
+
+  // Las tres bolitas al final de cada convocado. No hay un ícono por acción: las acciones viven
+  // en el menú que este botón abre, así que el renglón no tiene que explicar de antemano qué se
+  // puede hacer con cada jugador.
+  const ICON_MAS_ACCIONES = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">'
+    + '<circle cx="5" cy="12" r="1.9"></circle><circle cx="12" cy="12" r="1.9"></circle>'
+    + '<circle cx="19" cy="12" r="1.9"></circle></svg>';
   function computeAvg(scores){
     const vals = POSITIONS.map(p => scores[p]).filter(v => v !== null && v !== undefined && v !== '');
     if(vals.length === 0) return null;
@@ -4657,14 +4746,25 @@
      En una columna se dibuja UNA sola cancha, no las dos con una escondida: un elemento con
      `display:none` devuelve rectángulos de cero, y el invariante de layout compara rectángulos,
      así que dos canchas escondidas le harían reportar solapamientos que no existen. */
+  /* El encabezado que va arriba de cada campo. En el armado (12a, 13a) lleva el nombre y el
+     puntaje; en cuanto aparece la franja de resultado —carga o partido finalizado— y hay dos
+     columnas, el nombre y el puntaje ya están ahí, así que el encabezado se retira entero: 12c
+     no dibuja nada arriba del campo. En una columna se mantiene, porque la franja no lleva
+     costados y la pestaña activa es la única que nombra al equipo. */
+  function encabezadoCampoEquipos(m, nombre, totalHtml){
+    if(enModoCarga(m) && !enUnaColumna()) return '';
+    return '<span class="team-name">' + nombre + '</span>' + (totalHtml ? ' ' + totalHtml : '');
+  }
+
   function renderZonaEquipos(m, paneles){
     if(partidoDelEquipoVisible !== m.id){
       equipoVisibleCancha = 'blanco';
       partidoDelEquipoVisible = m.id;
     }
     const unaColumna = enUnaColumna();
-    const panel = equipo => '<div class="team-panel ' + equipo + '"><h4>' + paneles[equipo].header
-      + '</h4>' + paneles[equipo].contenido + '</div>';
+    const panel = equipo => '<div class="team-panel ' + equipo + '">'
+      + (paneles[equipo].header ? '<h4>' + paneles[equipo].header + '</h4>' : '')
+      + paneles[equipo].contenido + '</div>';
     const visibles = unaColumna ? [equipoVisibleCancha] : ['blanco', 'negro'];
     return (unaColumna ? renderSelectorEquipo(m) : '')
       + '<div class="teams-wrap">' + visibles.map(panel).join('') + '</div>';
@@ -5175,6 +5275,15 @@
       + escaparHtml(resumen.texto) + '</span>';
   }
 
+  /* El título de la tarjeta de la derecha. Mientras se arma dice "Alineaciones" (12a, 12b,
+     13a); cuando la tarjeta pasó a ser la planilla de carga o el resultado del partido
+     finalizado dice "Resultado" (12c). El diseño de 14a —la planilla en 390px— no dibuja
+     ningún título ahí porque el switch de arriba ya dice "Resultado"; acá se conserva para no
+     dejar la columna derecha sin encabezado al lado de "Convocados". */
+  function tituloTarjetaEquipos(m){
+    return (enModoCarga(m) || m.estado === 'Finalizado') ? 'Resultado' : 'Alineaciones';
+  }
+
   /* Encabezado: título a la izquierda; a la derecha la píldora —sólo en dos columnas— y los dos
      botones de ícono, Copiar primero (FR-001 a FR-009). */
   function renderEncabezadoTarjeta(m, resumen){
@@ -5197,10 +5306,10 @@
       }
     }
     const pildora = (admin && resumen && !enUnaColumna()) ? renderPildoraDiferencia(resumen) : '';
-    const combo = renderComboEstrategia(m);
-    const derecha = (combo || pildora || botones.length)
-      ? '<div class="panel-header-acciones">' + combo + pildora + botones.join('') + '</div>' : '';
-    return '<div class="panel-header"><h3>Alineaciones</h3>' + derecha + '</div>';
+    const derecha = (pildora || botones.length)
+      ? '<div class="panel-header-acciones">' + pildora + botones.join('') + '</div>' : '';
+    return '<div class="panel-header"><h3>' + tituloTarjetaEquipos(m) + '</h3>' + derecha + '</div>'
+      + renderComboEstrategia(m);
   }
 
   /* El combo, sin ningún texto de explicación debajo (FR-011 de PANEL_ARMADO_SPEC.md quedó
@@ -5329,7 +5438,7 @@
     // validación que ya existían (sin titulares vs. titulares-sin-generar): el prototipo del
     // handoff no modela la primera porque siempre parte de una convocatoria completa.
     if(titularIds.length === 0){
-      section.innerHTML = `<div class="panel-header"><h3>Alineaciones</h3>${selectorEstrategia ? `<div class="panel-header-acciones">${selectorEstrategia}</div>` : ''}</div><div class="empty-state-ds"><h4>Sin titulares</h4><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
+      section.innerHTML = `<div class="panel-header"><h3>${tituloTarjetaEquipos(m)}</h3></div>${selectorEstrategia}<div class="empty-state-ds"><h4>Sin titulares</h4><p>Convocá al menos un titular para poder generar equipos.</p></div>`;
       if(isAdmin()) bindSelectorEstrategia(m);
       return;
     }
@@ -5345,12 +5454,12 @@
         + `</ul></div>`;
       section.innerHTML = `
         <div class="panel-header">
-          <h3>Alineaciones</h3>
-          ${(selectorEstrategia || isAdmin()) ? `<div class="panel-header-acciones">
-            ${selectorEstrategia}
-            ${isAdmin() ? `<button class="btn-primary admin-only" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>` : ''}
+          <h3>${tituloTarjetaEquipos(m)}</h3>
+          ${isAdmin() ? `<div class="panel-header-acciones">
+            <button class="btn-primary admin-only" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>
           </div>` : ''}
         </div>
+        ${selectorEstrategia}
         <div class="empty-state-ds">
           <h4>Todavía no generaste los equipos</h4>
           <p>Cuando los generes, los dos equipos aparecen acá sobre el campo. Podés seguir moviendo la cola de convocados mientras tanto.</p>
@@ -5382,11 +5491,15 @@
        dos ramas de abajo y retorna temprano: no se toca ninguna de sus líneas (R-04). */
     if(m.estado === 'Finalizado' && m.resultado && editandoResultadoFinalizado !== m.id){
       const stats = statsPorJugadorDelPartido(m); // rebanada 5, TC-012
-      /* El puntaje de armado que antes vivía en la fila de resultado (lado izq/der) se muda acá:
-         en una columna reemplaza al nombre (que ya repite la pestaña activa), y en dos columnas
-         queda alineado a la derecha del mismo `h4` junto al nombre, que ahí sí hace falta porque
-         no hay pestaña que lo diga. */
       const puntajeTexto = (pts) => Math.round(pts * 10) / 10 + ' pts';
+      /* En dos columnas el nombre y el puntaje van a los costados de la fila de resultado (12c),
+         así que arriba del campo no va nada: repetirlos sería decirlos dos veces a diez
+         centímetros de distancia. En una columna la fila queda con el marcador solo —no tiene
+         costados— y el puntaje sube acá; el nombre no, porque la pestaña activa ya lo dice y el
+         CSS lo oculta en esa banda. */
+      const encabezadoCampo = (nombre, pts) => enUnaColumna()
+        ? `<span class="team-name">${nombre}</span> <span class="team-total">${puntajeTexto(pts)}</span>`
+        : '';
       // Sin goleadores, `renderFilasDetalle` devuelve '' — no envolver en `.detalle-equipo` (evita
       // un margen superior sin contenido debajo de la cancha, mismo criterio que
       // `detalleCargaHtml` en el modo de carga).
@@ -5398,9 +5511,9 @@
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
         ${renderZonaEquipos(m, {
-          blanco: { header: `<span class="team-name">Equipo Blanco</span> <span class="team-total">${puntajeTexto(m.equipos.sumaBlanco)}</span>`,
+          blanco: { header: encabezadoCampo('Equipo Blanco', m.equipos.sumaBlanco),
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleEquipoHtml(eq.blanco) },
-          negro: { header: `<span class="team-name">Equipo Negro</span> <span class="team-total">${puntajeTexto(m.equipos.sumaNegro)}</span>`,
+          negro: { header: encabezadoCampo('Equipo Negro', m.equipos.sumaNegro),
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleEquipoHtml(eq.negro) }
         })}
       `;
@@ -5419,10 +5532,10 @@
         ${enModoCarga(m) ? renderFilaResultado(m) : ''}
         ${renderZonaEquipos(m, {
           blanco: {
-            header: `<span class="team-name">Equipo Blanco</span>`,
+            header: encabezadoCampoEquipos(m, 'Equipo Blanco', ''),
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
           negro: {
-            header: `<span class="team-name">Equipo Negro</span>`,
+            header: encabezadoCampoEquipos(m, 'Equipo Negro', ''),
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
         })}
         ${(m.estado === 'Finalizado') ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados.</div>` : ''}
@@ -5447,10 +5560,10 @@
       ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {
         blanco: {
-          header: `<span class="team-name">Equipo Blanco</span> <span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.sumaBlanco)}</span>`,
+          header: encabezadoCampoEquipos(m, 'Equipo Blanco', `<span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.sumaBlanco)}</span>`),
           contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
         negro: {
-          header: `<span class="team-name">Equipo Negro</span> <span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.sumaNegro)}</span>`,
+          header: encabezadoCampoEquipos(m, 'Equipo Negro', `<span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.sumaNegro)}</span>`),
           contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
       })}
       ${renderAccionesDeCarga(m)}
@@ -5470,18 +5583,6 @@
      Todo lo que decide un número o un texto va acá, puro y sin DOM (mismo criterio que `TD-01`
      de la rebanada 3): `renderCamiseta` y `renderTeamsSection` sólo componen cadenas con estos
      resultados. */
-
-  /* Línea de estrategia del encabezado, según las cuatro combinaciones de columnas × tamaño de
-     cancha (FR-003, FR-005, FR-005b, FR-005c). */
-  function lineaEstrategiaPartidoFinalizado(m, unaColumna){
-    const esNueve = m.cancha === 'futbol9';
-    const nombre = ESTRATEGIAS[m.equipos.estrategiaKey].label;
-    const partes = [];
-    if(unaColumna) partes.push(canchaLabel(m));
-    if(esNueve) partes.push('Formación ' + formacionTexto(m));
-    partes.push('Estrategia: ' + nombre);
-    return partes.join(' · ');
-  }
 
   /* Estadísticas de una unidad de armado (jugador suelto o dupla): sobre una dupla SUMA los
      cuatro campos de los dos integrantes, con el mismo criterio que `valorDePuntaje` usa para el
@@ -5642,12 +5743,14 @@
   function renderFilaResultado(m){
     const golesBlanco = golesEquipoActual(m.equipos.blanco, m) || 0;
     const golesNegro = golesEquipoActual(m.equipos.negro, m) || 0;
-    const lado = (nombre, puntaje, alineacion) =>
-      '<div class="resultado-equipo ' + alineacion + '"><span class="resultado-nombre">' + nombre + '</span>'
-      + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>';
+    const conNombres = !enUnaColumna();
+    const lado = (nombre, puntaje, alineacion) => conNombres
+      ? '<div class="resultado-equipo ' + alineacion + '"><span class="resultado-nombre">Equipo ' + nombre + '</span>'
+        + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>'
+      : '';
     return '<div class="fila-resultado">'
       + lado('Blanco', m.equipos.sumaBlanco, 'izq')
-      + '<div class="resultado-marcador"><span class="resultado-gol">' + golesBlanco + '</span><span class="resultado-guion">-</span><span class="resultado-gol">' + golesNegro + '</span></div>'
+      + '<div class="resultado-marcador"><span class="resultado-gol">' + golesBlanco + '</span><span class="resultado-guion">&ndash;</span><span class="resultado-gol">' + golesNegro + '</span></div>'
       + lado('Negro', m.equipos.sumaNegro, 'der')
       + '</div>';
   }
@@ -5656,9 +5759,6 @@
      estrategia como texto fijo, y los íconos de Copiar (siempre) y Editar resultado (sólo
      `admin` — FR-060, FR-061, la única diferencia entre los dos roles de `TD-01`). */
   function renderEncabezadoPartidoFinalizado(m){
-    const unaColumna = enUnaColumna();
-    const titulo = formatFecha(m.fecha) + (unaColumna ? '' : ' - ' + canchaLabel(m));
-    const estrategia = lineaEstrategiaPartidoFinalizado(m, unaColumna);
     const copiado = copiadoDelPartido === m.id;
     const accionCopiar = copiado ? 'Equipos copiados' : 'Copiar equipos';
     const botones = ['<button type="button" class="panel-icono panel-icono-copiar' + (copiado ? ' copiado' : '') + '"'
@@ -5669,9 +5769,7 @@
         + ' aria-label="Editar resultado" title="Editar resultado"'
         + ' onclick="window.__editarResultadoFinalizado(\'' + m.id + '\')">' + ICON_LAPIZ + '</button>');
     }
-    return '<div class="panel-header">'
-      + '<div class="panel-header-titulo"><h3>' + escaparHtml(titulo) + '</h3>'
-      + '<p class="panel-header-estrategia">' + escaparHtml(estrategia) + '</p></div>'
+    return '<div class="panel-header"><h3>Resultado</h3>'
       + '<div class="panel-header-acciones">' + botones.join('') + '</div>'
       + '</div>';
   }
@@ -5685,11 +5783,21 @@
   // Clase de color del chip de estado del partido: verde para inscripción abierta, terracota
   // para equipos ya generados (aún no finalizado), y el gris neutro por defecto para el resto
   // (incluido "Finalizado", que ya se distingue por texto).
-  function statusChipClass(estado){
-    if(estado === 'Inscripción abierta') return 'open';
-    if(estado === 'Equipos generados') return 'teams-ready';
-    if(estado === 'Finalizado') return 'finished';
-    return '';
+  /* La pastilla de estado no muestra `m.estado` a secas. Con la inscripción cerrada dice
+     "Inscripción cerrada", que es lo que el diseño pone en ese lugar (Badge `neutral` de 12a, 13a
+     y 14a) y — desde que se retiró la tira de la columna de convocados — lo único que avisa que la
+     cola quedó firme. Decidido con el propietario el 2026-09-04.
+     El orden importa: la inscripción cerrada tapa a "Equipos generados", así que el naranja queda
+     para el caso que el diseño no dibuja (equipos armados con la inscripción todavía abierta).
+     Se mira `inscripcionCerrada`, que es un sí/no, y del texto del estado sólo se compara
+     "Finalizado": un partido viejo guardado con otro nombre de estado (el `Pendiente` que todavía
+     nombra `007-permisos-por-usuario/data-model.md`) entra igual por la última rama, en vez de
+     caer al tono base sin color. */
+  function statusChip(m){
+    if(m.estado === 'Finalizado') return { texto: 'Finalizado', clase: 'finished' };
+    if(m.inscripcionCerrada) return { texto: 'Inscripción cerrada', clase: 'closed' };
+    if(m.estado === 'Equipos generados') return { texto: 'Equipos generados', clase: 'teams-ready' };
+    return { texto: 'Inscripción abierta', clase: 'open' };
   }
 
   // Aplica la pestaña activa del switch mobile al DOM: atributo de `.match-columns` (lo que
@@ -5725,10 +5833,10 @@
           <div class="match-card-top">
             <div>
               <div class="match-date">${formatFecha(m.fecha)}</div>
-              <div class="match-meta">${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}${(m.inscripcionCerrada && m.estado !== 'Finalizado') ? ' · Inscripción cerrada' : ''}</div>
+              <div class="match-meta">${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
-              <span class="status-chip ${statusChipClass(m.estado)}">${m.estado}</span>
+              <span class="status-chip ${statusChip(m).clase}">${statusChip(m).texto}</span>
               ${isAdmin() ? `<button class="icon-btn admin-only" title="Eliminar partido" onclick="event.stopPropagation(); window.__deleteMatch('${m.id}')">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
               </button>` : ''}
@@ -5853,14 +5961,16 @@
       mobTabState = { matchId: m.id, tab: (m.inscripcionCerrada || m.estado === 'Finalizado') ? 'equipos' : 'convocados' };
     }
     el('mobTabEquiposBtn').textContent = (enModoCarga(m) || m.estado === 'Finalizado') ? 'Resultado' : 'Equipos';
+    // 13a/14a dibujan el total de convocados al lado de la etiqueta de la pestaña (`convCount`).
+    el('mobTabConvocadosCount').textContent = m.convocados.length;
     aplicarMobTab(mobTabState.tab);
 
     el('detailFecha').textContent = formatFecha(m.fecha);
-    el('detailEstado').textContent = m.estado;
-    el('detailEstado').className = `status-chip ${statusChipClass(m.estado)}`;
-    const req = titularesRequeridos(m);
-    const { titulares: titularesCount, suplentes: suplentesCount, slotsOcupados, vacantes } = contarTitularesSuplentes(m);
-    el('detailMeta').textContent = `${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentesCount} suplente${suplentesCount===1?'':'s'}`;
+    const chip = statusChip(m);
+    el('detailEstado').textContent = chip.texto;
+    el('detailEstado').className = `status-chip ${chip.clase}`;
+    const { vacantes } = contarTitularesSuplentes(m);
+    el('detailMeta').textContent = canchaLabel(m);
 
     el('matchSearchInput').value = matchSearchTerm;
 
@@ -5873,37 +5983,178 @@
       toggleBtn.textContent = m.inscripcionCerrada ? 'Reabrir inscripción' : 'Cerrar inscripción';
     }
     el('matchSearchInput').disabled = locked;
-    el('matchSearchInput').placeholder = locked ? 'Inscripción cerrada' : 'Buscar jugador para convocar...';
-    // Partido finalizado: la convocatoria ya quedó fija, así que ni el buscador con el copy
-    // "Inscripción cerrada" aporta algo — se saca entero (a pedido del usuario). Con la
-    // inscripción sólo cerrada (sin finalizar, todavía reversible) sigue mostrándose.
-    el('convBuscadorWrap').style.display = m.estado === 'Finalizado' ? 'none' : '';
+    el('convBuscadorWrap').style.display = locked ? 'none' : '';
+    /* La tira sólo sobrevive en el partido finalizado, que es donde el diseño la dibuja (12c).
+       Con la inscripción cerrada sin finalizar, 12a y 13a no la tienen: lo dice la pastilla del
+       encabezado, que en ese caso pasó a decir "Inscripción cerrada" (ver `statusChip`). Con eso
+       se retiró también el texto "— la cola quedó firme" de 14a, que era el que se repetía. */
+    el('convCerrada').style.display = (m.estado === 'Finalizado') ? '' : 'none';
     const btnPrueba = el('btnCompletarPrueba');
     btnPrueba.style.display = (!locked && vacantes > 0) ? '' : 'none';
     if(locked){ el('autocompleteList').style.display = 'none'; el('autocompleteList').innerHTML = ''; }
     else renderAutocomplete(m);
 
+    // El resumen de titulares/suplentes ya no vive en una caja aparte debajo de la lista (a
+    // pedido del usuario): `renderConvocadosList` lo muestra al lado de cada etiqueta de
+    // sección, como pide el handoff (`convTitLabel`/`convSupLabel`).
     renderConvocadosList(m);
-
-    el('convSummary').innerHTML = `
-      <div class="stat">Titulares: <b>${slotsOcupados}/${req}</b>${titularesCount !== slotsOcupados ? ` (${titularesCount} jugadores, con duplas)` : ''}</div>
-      <div class="stat">Suplentes: <b>${suplentesCount}</b></div>
-      ${vacantes > 0 ? `<div class="stat">Podés armar el partido igual aunque falten ${vacantes} titular${vacantes===1?'':'es'}.</div>` : ''}
-    `;
 
     renderTeamsSection(m);
   }
 
-  function botonQuitar(m, p, locked){
-    return (!locked && (isAdmin() || p.id === window.session.jugadorId)) ? `
-      <button class="icon-btn" title="Quitar del partido" onclick="window.__removeFromMatch('${m.id}','${p.id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>` : '';
+  /* Qué se puede hacer con un convocado, en el orden en que el menú las lista. Función pura:
+     decide los permisos, no dibuja nada. Los tres permisos son los que ya regían cuando cada
+     acción tenía su propio botón en la fila — no cambian al mudarse al menú:
+       · agregar rotación   — cualquier rol, igual que anotar a otro jugador (FR-001b)
+       · deshacer rotación  — admin siempre; "jugador", sólo si integra el vínculo (FR-006/FR-006b)
+       · eliminar           — admin siempre; "jugador", sólo a sí mismo
+     Con la inscripción cerrada o el partido finalizado no queda ninguna, y entonces la fila no
+     dibuja el botón: un menú que se abre vacío es peor que no tener menú. */
+  function accionesDeConvocado(m, playerId){
+    if(m.inscripcionCerrada || m.estado === 'Finalizado') return [];
+    const yo = window.session.jugadorId;
+    const acciones = [];
+    const pareja = getDuplaPartner(m, playerId);
+    if(pareja){
+      if(isAdmin() || playerId === yo || pareja === yo){
+        acciones.push({ etiqueta: 'Deshacer rotación', onclick: `window.__deshacerDupla('${m.id}','${playerId}')` });
+      }
+    }else{
+      acciones.push({ etiqueta: 'Agregar rotación', onclick: `window.__openDuplaModal('${m.id}','${playerId}')` });
+    }
+    if(isAdmin() || playerId === yo){
+      acciones.push({ etiqueta: 'Eliminar', tono: 'negativo', onclick: `window.__removeFromMatch('${m.id}','${playerId}')` });
+    }
+    return acciones;
   }
+
+  function botonMenuConvocado(m, playerId){
+    if(!accionesDeConvocado(m, playerId).length) return '';
+    return `<button type="button" class="conv-menu-btn" aria-haspopup="menu" aria-expanded="false"
+      title="Más acciones" aria-label="Más acciones"
+      onclick="window.__abrirMenuConvocado(event,'${m.id}','${playerId}')">${ICON_MAS_ACCIONES}</button>`;
+  }
+
+  /* ---------- El menú de acciones de un convocado ----------
+     Un único elemento flotante, creado a demanda y colgado del `body`: la lista se repinta
+     entera con innerHTML en cada cambio, así que un menú que viviera adentro de una fila se
+     destruiría con ella (y con él, el foco). Va `position:fixed` y anclado al botón que lo
+     abrió, para que ningún `overflow` de la columna lo recorte. */
+  let menuConvocadoAbierto = null;
+
+  function elementoMenuConvocado(){
+    let menu = el('convMenu');
+    if(!menu){
+      menu = document.createElement('div');
+      menu.id = 'convMenu';
+      menu.className = 'conv-menu';
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      document.body.appendChild(menu);
+    }
+    return menu;
+  }
+
+  function cerrarMenuConvocado(devolverFoco){
+    if(!menuConvocadoAbierto) return;
+    const { boton } = menuConvocadoAbierto;
+    const menu = elementoMenuConvocado();
+    menu.hidden = true;
+    menu.innerHTML = '';
+    boton.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('mousedown', alClickFueraDelMenu, true);
+    document.removeEventListener('keydown', alTeclaEnMenu, true);
+    window.removeEventListener('resize', cerrarMenuConvocado);
+    window.removeEventListener('scroll', cerrarMenuConvocado, true);
+    menuConvocadoAbierto = null;
+    // Sólo se devuelve el foco cuando el menú se cerró sin ejecutar nada (Escape, click afuera):
+    // si se eligió una acción, la lista se repinta y ese botón ya no existe.
+    if(devolverFoco === true && document.body.contains(boton)) boton.focus();
+  }
+
+  function alClickFueraDelMenu(ev){
+    if(!menuConvocadoAbierto) return;
+    const { boton } = menuConvocadoAbierto;
+    if(elementoMenuConvocado().contains(ev.target) || boton.contains(ev.target)) return;
+    cerrarMenuConvocado();
+  }
+
+  function alTeclaEnMenu(ev){
+    if(!menuConvocadoAbierto) return;
+    const items = [...elementoMenuConvocado().querySelectorAll('.conv-menu-item')];
+    if(ev.key === 'Escape'){ ev.preventDefault(); cerrarMenuConvocado(true); return; }
+    if(ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+    ev.preventDefault();
+    const actual = items.indexOf(document.activeElement);
+    const paso = ev.key === 'ArrowDown' ? 1 : -1;
+    const siguiente = (actual + paso + items.length) % (items.length || 1);
+    if(items[siguiente]) items[siguiente].focus();
+  }
+
+  window.__abrirMenuConvocado = function(ev, matchId, playerId){
+    ev.preventDefault();
+    ev.stopPropagation();
+    const boton = ev.currentTarget;
+    // Tocar el mismo botón con el menú abierto lo cierra, que es lo que espera un toggle.
+    const yaAbierto = menuConvocadoAbierto && menuConvocadoAbierto.boton === boton;
+    cerrarMenuConvocado();
+    if(yaAbierto) return;
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m) return;
+    const acciones = accionesDeConvocado(m, playerId);
+    if(!acciones.length) return;
+
+    const menu = elementoMenuConvocado();
+    menu.innerHTML = acciones.map(a =>
+      `<button type="button" role="menuitem" class="conv-menu-item${a.tono === 'negativo' ? ' negativo' : ''}"`
+      + ` onclick="window.__accionMenuConvocado(event, function(){ ${a.onclick} })">${escaparHtml(a.etiqueta)}</button>`
+    ).join('');
+    menu.hidden = false;
+    boton.setAttribute('aria-expanded', 'true');
+    menuConvocadoAbierto = { boton };
+
+    /* Se mide con el menú ya visible (si no, no tiene alto) y se ancla al borde derecho del
+       botón, que es donde el ojo lo espera al final de la fila. Si no entra abajo, sube. */
+    const r = boton.getBoundingClientRect();
+    const ancho = menu.offsetWidth, alto = menu.offsetHeight;
+    const margen = 8;
+    let izq = r.right - ancho;
+    izq = Math.max(margen, Math.min(izq, window.innerWidth - ancho - margen));
+    let arriba = r.bottom + 6;
+    if(arriba + alto > window.innerHeight - margen) arriba = Math.max(margen, r.top - alto - 6);
+    menu.style.left = izq + 'px';
+    menu.style.top = arriba + 'px';
+
+    // `preventScroll`: el menú ya está en pantalla (va `fixed`), y sin esto el foco pide llevar
+    // el ítem a la vista, la página se mueve un poco y el propio listener de scroll de abajo
+    // cerraba el menú apenas se abría.
+    const primero = menu.querySelector('.conv-menu-item');
+    if(primero) primero.focus({ preventScroll: true });
+    document.addEventListener('mousedown', alClickFueraDelMenu, true);
+    document.addEventListener('keydown', alTeclaEnMenu, true);
+    /* Scroll y resize se escuchan recién en el frame siguiente: llegar hasta el botón puede
+       haber requerido scrollear (el navegador lo hace solo al enfocar o al tocar algo que está
+       abajo de todo), y ese scroll es del gesto que ABRE el menú, no de uno posterior que deba
+       cerrarlo. */
+    requestAnimationFrame(() => {
+      if(!menuConvocadoAbierto || menuConvocadoAbierto.boton !== boton) return;
+      window.addEventListener('resize', cerrarMenuConvocado);
+      window.addEventListener('scroll', cerrarMenuConvocado, true);
+    });
+  };
+
+  /* El menú se cierra ANTES de ejecutar la acción: casi todas repintan la lista, y con el menú
+     todavía abierto quedaría flotando al lado de una fila que ya no es la misma. */
+  window.__accionMenuConvocado = function(ev, accion){
+    ev.stopPropagation();
+    cerrarMenuConvocado();
+    accion();
+  };
 
   function renderConvocadosList(m){
     const listEl = el('convocadosList');
-    const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
+    // El estado del partido ya no se consulta acá: quién puede hacer qué sobre cada convocado
+    // —y si queda alguna acción— lo decide `accionesDeConvocado`.
     if(m.convocados.length === 0){
       listEl.innerHTML = `<div class="empty-state"><p>Todavía no convocaste jugadores para este partido.</p></div>`;
       return;
@@ -5912,19 +6163,25 @@
     // integrantes agrupados adentro, en vez de dos filas separadas con una referencia cruzada.
     const req = titularesRequeridos(m);
     const unidades = getUnidadesConvocatoria(m);
+    // §Screens/Views del handoff (12a/13a/14a: "TITULARES {{ convTitLabel }}" / "SUPLENTES
+    // {{ convSupLabel }}"): el conteo de cada grupo va al lado de su propia etiqueta, no en una
+    // caja aparte debajo de toda la lista (retirada por pedido del usuario, ver `#convSummary`).
+    const { titulares: titularesCount, suplentes: suplentesCount, slotsOcupados, vacantes } = contarTitularesSuplentes(m);
+    const labelTitulares = `${slotsOcupados}/${req}`;
+    const tituloTitulares = titularesCount !== slotsOcupados ? `${titularesCount} jugadores en ${slotsOcupados} lugares: las duplas de rotación ocupan uno solo` : '';
     /* Titular o suplente se deriva del orden de convocatoria (FR-005), así que el corte
        entre los dos grupos es un único punto de la lista: `idx === req`. Antes se repetía
        como un badge en cada renglón, que además de redundante con la numeración y con el
        contador de arriba se comía ~69px de ancho en una pantalla de 360px. */
-    const encabezado = (texto) => `<div class="conv-section">${texto}</div>`;
+    const encabezado = (texto, cuenta, titulo) => `<div class="conv-section"><span>${texto}</span><span class="conv-section-count"${titulo ? ` title="${escaparHtml(titulo)}"` : ''}>${cuenta}</span></div>`;
     // FR-070/TC-042 — el drag and drop de la convocatoria depende solo de `isAdmin()`, a
     // propósito NO de `locked`: a diferencia de agregar/quitar/vincular (bloqueados una vez
     // cerrada la inscripción o finalizado el partido), reordenar la cola queda disponible en
     // cualquier estado del partido. No "arreglar" esto para que respete `locked` también.
     const puedeArrastrar = isAdmin();
-    listEl.innerHTML = unidades.map((unidad, idx) => {
-      const seccion = idx === 0 ? encabezado('Titulares')
-                    : idx === req ? encabezado('Suplentes')
+    const filas = unidades.map((unidad, idx) => {
+      const seccion = idx === 0 ? encabezado('Titulares', labelTitulares, tituloTitulares)
+                    : idx === req ? encabezado('Suplentes', suplentesCount, '')
                     : '';
       const leadId = unidad.ids[0];
       const dragAttrs = puedeArrastrar
@@ -5935,46 +6192,42 @@
         const p = players.find(pl => pl.id === unidad.ids[0]);
         if(!p) return '';
         // Crear un vínculo no tiene restricción de rol, igual que anotar a otro jugador (FR-001b).
-        const agregarBtn = !locked ? `<button class="btn-ghost" style="padding:4px 8px; font-size:12px; display:flex; align-items:center; gap:6px;" title="Agregar rotación" onclick="window.__openDuplaModal('${m.id}','${p.id}')">${ICON_DUPLA_CREAR} Rotación</button>` : '';
         return `
           ${seccion}
           <div class="conv-row" ${dragAttrs}>
             <span class="conv-num">${idx+1}</span>
             <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
             <div class="conv-name">${fullName(p)}</div>
-            ${agregarBtn}
-            ${botonQuitar(m, p, locked)}
+            ${botonMenuConvocado(m, p.id)}
           </div>`;
       }
 
       const [idA, idB] = unidad.ids;
       const pA = players.find(pl => pl.id === idA), pB = players.find(pl => pl.id === idB);
       if(!pA || !pB) return '';
-      // Deshacer una dupla: admin siempre puede; "jugador" solo si integra ese vínculo (FR-006/FR-006b).
-      const puedeGestionarDupla = isAdmin() || window.session.jugadorId === idA || window.session.jugadorId === idB;
-      const deshacerBtn = (!locked && puedeGestionarDupla) ? `
-        <button class="icon-btn icon-btn-dupla" title="Deshacer rotación" onclick="window.__deshacerDupla('${m.id}','${idA}')">
-          ${ICON_DUPLA_ELIMINAR}
-        </button>` : '';
       return `
         ${seccion}
         <div class="conv-row conv-row-dupla" ${dragAttrs}>
           <span class="conv-num">${idx+1}</span>
+          <div class="conv-pos-badge" style="${posBadgeStyle(pA.principal)}" title="${escaparHtml(pA.principal)}">${pA.principal.slice(0,3).toUpperCase()}</div>
           <div class="conv-dupla-members">
             <div class="conv-dupla-member">
-              <div class="conv-pos-badge" style="${posBadgeStyle(pA.principal)}">${pA.principal.slice(0,3).toUpperCase()}</div>
               <div class="conv-name">${fullName(pA)}</div>
-              ${botonQuitar(m, pA, locked)}
+              ${botonMenuConvocado(m, idA)}
             </div>
+            ${ICON_ROTACION_COLA}
             <div class="conv-dupla-member">
-              <div class="conv-pos-badge" style="${posBadgeStyle(pB.principal)}">${pB.principal.slice(0,3).toUpperCase()}</div>
               <div class="conv-name">${fullName(pB)}</div>
-              ${botonQuitar(m, pB, locked)}
+              ${botonMenuConvocado(m, idB)}
             </div>
           </div>
-          ${deshacerBtn}
         </div>`;
     }).join('');
+    // `convFaltan`/`convFaltanLabel` del handoff: la nota de vacantes sin candidato es una fila
+    // más al pie de la lista, no una caja aparte (retirada, ver `#convSummary`).
+    const notaVacantes = vacantes > 0
+      ? `<div class="conv-nota-vacantes">Podés armar el partido igual aunque falten ${vacantes} titular${vacantes===1?'':'es'}.</div>` : '';
+    listEl.innerHTML = filas + notaVacantes;
   }
 
   // TD-08 — mueve la unidad completa (jugador o dupla) que empieza en `draggedLeadId` a la
@@ -6399,7 +6652,7 @@
     currentMatchId = null;
     resultadoDraft = null;
     editandoResultadoFinalizado = null;
-    ['stats','roster','matchList','convocadosList','convSummary','teamsSection',
+    ['stats','roster','matchList','convocadosList','teamsSection',
      'estrategiaCards','rulesList','rulesHint'].forEach(id => {
       const node = el(id);
       if(node) node.innerHTML = '';
