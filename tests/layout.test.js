@@ -468,11 +468,12 @@ const ESCENARIOS = [
        que esos tres tags dejan de describir esta pantalla y se reemplazan por los de la Spec de
        esta rebanada.
 
-       NOTA (2026-09-02): a pedido del usuario, el puntaje de armado se mudó de la fila de
-       resultado al encabezado de cada panel de equipo (reemplaza al nombre en una columna, va a
-       su derecha en dos) — el comportamiento que describían `finalizado/S-04`, `S-04b` y
-       `FR-042b` cambió y este archivo ya lo verifica; falta reflejarlo en
-       PARTIDO_FINALIZADO_SPEC.md. */
+       NOTA (2026-09-04): al implementar el turno 12 del documento de diseño, la tarjeta pasa a
+       titularse "Resultado" —sin la fecha ni la línea con la estrategia aplicada, que `12c` no
+       dibuja y que el encabezado de la pantalla ya dice— y el nombre + puntaje de armado vuelven
+       a los costados de la fila de resultado en dos columnas, con el encabezado de cada campo
+       retirado en ese ancho. En una columna nada de eso cambia: la fila queda con el marcador y
+       el puntaje sigue arriba del campo. `PARTIDO_FINALIZADO_SPEC.md` §18 lo registra. */
     spec: ['finalizado/S-01', 'finalizado/S-01a', 'finalizado/S-02', 'finalizado/S-02a', 'finalizado/S-03', 'finalizado/S-04', 'finalizado/S-04b', 'finalizado/S-05', 'partido/S-01', 'partido/S-05'],
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_PANEL, INVARIANTE_CHIPS_ESTADISTICA, INVARIANTE_SIN_ARRASTRE_FUERA_DE_LA_CANCHA, INVARIANTE_PARTIDO_DOS_COLUMNAS],
     async preparar(page) { await abrirPartido(page, '2026-08-20'); },
@@ -496,41 +497,42 @@ const ESCENARIOS = [
         if (!total || total.getBoundingClientRect().width === 0 || !/\d/.test(total.textContent)) {
           problemas.push('a 360px no se ve el puntaje de armado en el encabezado de la cancha');
         }
-        const titulo = (document.querySelector('.panel-header-titulo h3') || {}).textContent || '';
-        if (titulo.includes(' - ')) problemas.push(`a 360px el título incluyó el tamaño de cancha (finalizado/S-01a): "${titulo}"`);
+        const titulo = (document.querySelector('.panel-header h3') || {}).textContent || '';
+        if (titulo.trim() !== 'Resultado') problemas.push(`a 360px la tarjeta no se titula "Resultado" (finalizado/S-01a): "${titulo}"`);
         const nombresResultado = [...document.querySelectorAll('.resultado-nombre')];
-        if (nombresResultado.some(n => n.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el nombre del equipo en la fila de resultado, ahora vive en el encabezado de la cancha');
+        if (nombresResultado.some(n => n.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el nombre del equipo en la fila de resultado, lo dice la pestaña activa (finalizado/S-04b)');
         const puntajes = [...document.querySelectorAll('.resultado-puntaje')];
-        if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado, ahora vive en el encabezado de la cancha');
+        if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado, vive arriba del campo (finalizado/S-04b)');
         const iconos = document.querySelectorAll('.panel-header-acciones .panel-icono');
         if (iconos.length !== 2) problemas.push(`el encabezado nuevo tiene ${iconos.length} ícono(s) de acción en vez de 2 (finalizado/S-01)`);
-        // TC-006 de NAVEGACION_PARTIDOS_SPEC.md (D-06 del Concept Note): el subtítulo de
-        // estrategia aplicada NO se reintroduce en el layout de dos columnas — FR-084/D-25 de
-        // PANEL_ARMADO_SPEC.md se mantienen vigentes.
-        const encabezado = document.querySelector('.detail-header, .panel-header') || document.body;
-        if (/Estrategia:/i.test(encabezado.textContent)) problemas.push('reapareció el subtítulo de estrategia aplicada en el finalizado (partido/S-05, TC-006)');
+        // TC-006 de NAVEGACION_PARTIDOS_SPEC.md (D-06 del Concept Note): la estrategia aplicada
+        // no se nombra en ninguna parte de la pantalla — FR-084/D-25 de PANEL_ARMADO_SPEC.md se
+        // mantienen vigentes, y desde 2026-09-04 el encabezado del finalizado tampoco la nombra
+        // (FR-003/FR-005 de PARTIDO_FINALIZADO_SPEC.md, sin efecto).
+        if (/Estrategia:/i.test(document.getElementById('matchDetailView').textContent)) {
+          problemas.push('reapareció la estrategia aplicada como texto fijo en el finalizado (partido/S-05, TC-006, finalizado/S-01)');
+        }
         return problemas;
       });
-      /* A 1200px (dos columnas): el título suma el tamaño de cancha; la fila de resultado ya no
-         muestra ni el nombre ni el puntaje de armado (los dos viven ahora en el encabezado de
-         cada panel de equipo, nombre a la izquierda y puntaje a la derecha). */
+      /* A 1200px (dos columnas, el ancho de `12c`): la tarjeta sigue titulándose "Resultado", la
+         fila de resultado lleva el nombre y el puntaje de armado a cada costado del marcador, y
+         arriba de los campos no queda ningún encabezado que los repita. */
       await page.setViewportSize({ width: 1200, height: 900 });
       await page.waitForTimeout(200);
       const dosColumnas = await page.evaluate(() => {
         const problemas = [];
-        const titulo = (document.querySelector('.panel-header-titulo h3') || {}).textContent || '';
-        if (!titulo.includes(' - ')) problemas.push(`a 1200px el título no incluyó el tamaño de cancha (finalizado/S-01): "${titulo}"`);
+        const titulo = (document.querySelector('.panel-header h3') || {}).textContent || '';
+        if (titulo.trim() !== 'Resultado') problemas.push(`a 1200px la tarjeta no se titula "Resultado" (finalizado/S-01): "${titulo}"`);
         const nombresResultado = [...document.querySelectorAll('.resultado-nombre')];
-        if (nombresResultado.some(n => n.getBoundingClientRect().width > 0)) problemas.push('a 1200px se ve el nombre del equipo en la fila de resultado, repite el encabezado de la cancha');
-        const puntajesResultado = [...document.querySelectorAll('.resultado-puntaje')];
-        if (puntajesResultado.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 1200px se ve el puntaje de armado en la fila de resultado, ahora vive en el encabezado de la cancha');
-        const nombres = [...document.querySelectorAll('.team-panel h4 .team-name')];
-        if (!nombres.length || nombres.some(n => n.getBoundingClientRect().width === 0)) {
-          problemas.push('a 1200px no se ve el nombre del equipo en el encabezado de la cancha');
+        if (nombresResultado.length !== 2 || nombresResultado.some(n => n.getBoundingClientRect().width === 0)) {
+          problemas.push('a 1200px la fila de resultado no muestra los dos nombres de equipo (finalizado/S-04)');
         }
-        const totales = [...document.querySelectorAll('.team-panel h4 .team-total')];
-        if (!totales.length || totales.some(t => t.getBoundingClientRect().width === 0 || !/\d/.test(t.textContent))) {
-          problemas.push('a 1200px no se ve el puntaje de armado en el encabezado de la cancha');
+        const puntajesResultado = [...document.querySelectorAll('.resultado-puntaje')];
+        if (puntajesResultado.length !== 2 || puntajesResultado.some(p => p.getBoundingClientRect().width === 0 || !/\d/.test(p.textContent))) {
+          problemas.push('a 1200px la fila de resultado no muestra los dos puntajes de armado (finalizado/S-04)');
+        }
+        if (document.querySelector('.team-panel h4')) {
+          problemas.push('a 1200px quedó un encabezado arriba del campo: repite lo que la fila de resultado ya dice (finalizado/S-04, FR-042b)');
         }
         return problemas;
       });
@@ -1255,17 +1257,24 @@ const ESCENARIOS = [
     spec: ['finalizado/S-01b', 'finalizado/S-10', 'finalizado/S-10a'],
     invariantes: [INVARIANTE_CHIPS_ESTADISTICA],
     async preparar(page) { await abrirPartido(page, '2026-09-24'); },
+    /* Desde 2026-09-04 (`PARTIDO_FINALIZADO_SPEC.md` §18) fútbol 9 no cambia nada del
+       encabezado: la línea con la formación y la estrategia se retiró, y la tarjeta se titula
+       "Resultado" en los dos anchos. Lo que queda por verificar del tamaño de cancha es que la
+       cancha dibuje la fila de cuatro volantes, y de eso ya se ocupa `INVARIANTE_CANCHA` sobre
+       este mismo escenario. */
     async comprobar(page) {
-      const unaColumna = await page.evaluate(() => (document.querySelector('.panel-header-estrategia') || {}).textContent || '');
+      const leer = () => page.evaluate(() => ({
+        titulo: ((document.querySelector('.panel-header h3') || {}).textContent || '').trim(),
+        estrategia: /Estrategia:/i.test(document.getElementById('matchDetailView').textContent),
+      }));
+      const unaColumna = await leer();
       await page.setViewportSize({ width: 1200, height: 900 });
       await page.waitForTimeout(200);
-      const dosColumnas = await page.evaluate(() => (document.querySelector('.panel-header-estrategia') || {}).textContent || '');
+      const dosColumnas = await leer();
       const problemas = [];
-      if (!/^Fútbol 9 · Formación 3-4-1 · Estrategia:/.test(unaColumna)) {
-        problemas.push(`a 360px la línea de estrategia de fútbol 9 no coincide (finalizado/S-10a): "${unaColumna}"`);
-      }
-      if (!/^Formación 3-4-1 · Estrategia:/.test(dosColumnas)) {
-        problemas.push(`a 1200px la línea de estrategia de fútbol 9 no coincide (finalizado/S-01b, finalizado/S-10): "${dosColumnas}"`);
+      for (const [ancho, v] of [['360px', unaColumna], ['1200px', dosColumnas]]) {
+        if (v.titulo !== 'Resultado') problemas.push(`a ${ancho} la tarjeta de fútbol 9 no se titula "Resultado" (finalizado/S-10): "${v.titulo}"`);
+        if (v.estrategia) problemas.push(`a ${ancho} reapareció la estrategia aplicada en fútbol 9 (finalizado/S-01b, S-10a)`);
       }
       return problemas;
     } },
@@ -1628,14 +1637,58 @@ const ESCENARIOS = [
          reporta como `!`. Con page.$ + salteo, una carrera de timing bajaba la cobertura
          sin que nada lo dijera — que es justo lo que un test no puede hacer.
 
-         `.btn-ghost` y no `img.icon-dupla`: DOS botones distintos de la fila llevan ese
-         ícono, "Agregar rotación" (abre el modal) y "Deshacer rotación" (rompe el vínculo).
-         El selector por ícono tomaba el primero del DOM, así que cuando el fixture pasó a
-         tener una dupla en la primera fila empezó a clickear Deshacer: el modal nunca se
-         abría y el escenario moría por timeout. */
-      await page.waitForSelector('.conv-row .btn-ghost', { timeout: 5000 });
-      await page.click('.conv-row .btn-ghost');
+         Desde que las acciones viven en un menú, llegar al modal son dos pasos. Y el renglón
+         se elige con `:not(.conv-row-dupla)` a propósito: el menú de un jugador que YA está en
+         una rotación ofrece "Deshacer", no "Agregar", y el fixture tiene una dupla en la
+         primera fila — tomar el primer menú del DOM abría el equivocado y el escenario moría
+         por timeout. */
+      await page.waitForSelector('.conv-row:not(.conv-row-dupla) .conv-menu-btn', { timeout: 5000 });
+      await page.click('.conv-row:not(.conv-row-dupla) .conv-menu-btn');
+      await page.click('.conv-menu-item:has-text("Agregar rotación")');
       await page.waitForSelector('#duplaModal.open');
+    } },
+
+  /* El menú de acciones de un convocado. Es la única superficie flotante de esta pantalla y se
+     ancla al botón que lo abrió, así que lo que hay que ver es que no se salga del viewport por
+     ningún lado. Se abre el de la ÚLTIMA fila, que es el caso que obliga al menú a subir en vez
+     de bajar.
+
+     La medición se toma DENTRO de `preparar`, apenas se abre, y se guarda en `window`: el menú
+     se cierra solo ante cualquier scroll o resize —tiene que hacerlo, está anclado con
+     `position:fixed` a un botón que se va de pantalla— y para cuando corre `comprobar` ya no
+     está. Medir en el momento es la única forma de mirarlo sin desactivar ese comportamiento. */
+  { clave: 'menu-convocado', rol: 'admin', nombre: 'menú de acciones de un convocado, abierto',
+    async preparar(page) {
+      await abrirPartido(page, '2026-09-03');
+      // Con la inscripción abierta el switch ya arranca en "Convocados" (FR-011), pero se fija
+      // explícito para no depender de eso en los anchos donde el switch manda.
+      await page.evaluate(() => window.__setMobTab && window.__setMobTab('convocados'));
+      await page.waitForTimeout(150);
+      const botones = page.locator('.conv-row:not(.conv-row-dupla) .conv-menu-btn');
+      await botones.last().waitFor({ timeout: 5000 });
+      await botones.last().click();
+      await page.waitForSelector('#convMenu:not([hidden])', { timeout: 5000 });
+      await page.evaluate(() => {
+        const problemas = [];
+        const menu = document.getElementById('convMenu');
+        const r = menu.getBoundingClientRect();
+        const w = document.documentElement.clientWidth, h = document.documentElement.clientHeight;
+        if (r.left < 0 || r.right > w) problemas.push(`el menú se sale del viewport en horizontal a ${w}px (${Math.round(r.left)}–${Math.round(r.right)})`);
+        if (r.top < 0 || r.bottom > h) problemas.push(`el menú se sale del viewport en vertical a ${w}px (${Math.round(r.top)}–${Math.round(r.bottom)} de ${h})`);
+        const items = [...menu.querySelectorAll('.conv-menu-item')];
+        if (items.length !== 2) problemas.push(`el menú del último convocado tiene ${items.length} opción(es) en vez de 2`);
+        for (const it of items) {
+          const b = it.getBoundingClientRect();
+          if (b.height < 24 - 0.5) problemas.push(`una opción mide ${Math.round(b.height)}px de alto, por debajo del piso táctil de 24px`);
+          if (!it.textContent.trim()) problemas.push('una opción del menú quedó sin texto');
+        }
+        window.__medicionMenu = problemas;
+      });
+    },
+    /* Corre en los trece anchos vía `preparar`; `comprobar` sólo devuelve lo que aquél midió,
+       en el primero. */
+    async comprobar(page) {
+      return page.evaluate(() => window.__medicionMenu || ['no se llegó a medir el menú']);
     } },
 
   { clave: 'toast', rol: 'admin', nombre: 'toast de aviso',

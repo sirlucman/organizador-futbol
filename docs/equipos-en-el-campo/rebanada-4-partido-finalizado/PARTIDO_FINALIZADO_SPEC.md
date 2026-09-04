@@ -363,32 +363,25 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **FR-001** — Mientras el partido esté finalizado y no se esté editando su
   resultado, el sistema reemplazará el título "Alineaciones" del encabezado de
   la tarjeta por la fecha del partido, con el formato que produce
-  `formatFecha` (`TC-014`, `TC-034`).
-- **FR-002** — Mientras la tarjeta esté en dos columnas, el sistema agregará
-  al título el tamaño de cancha, con un guion: "{fecha} - {etiqueta de
-  cancha}".
-- **FR-003** — Mientras la tarjeta esté en dos columnas, el sistema mostrará
-  debajo del título una línea de texto fija con la etiqueta "Estrategia:"
-  seguida del `label` (nombre corto) de la estrategia aplicada
-  (`ESTRATEGIAS[m.equipos.estrategiaKey].label`). *(Cambiado de `resumen` a
-  `label` el 2026-09-02, ver §18: el resumen —la explicación larga de qué hace
-  la estrategia— se sacó de esta línea; sólo queda el nombre.)*
-- **FR-004** — Mientras la tarjeta esté en una sola columna, el sistema
-  mostrará en el título sólo la fecha del partido, sin el tamaño de cancha.
-- **FR-005** — Mientras la tarjeta esté en una sola columna, el sistema
-  mostrará debajo del título una línea de texto fija con la etiqueta de
-  cancha, la palabra "Estrategia:" y el `label` de la estrategia aplicada,
-  separados por " · " (resuelve la inconsistencia de `TC-034`; ver
-  `OPEN-Q-02`). *(Cambiado de `resumen` a `label` el 2026-09-02, ver §18.)*
-- **FR-005b** — Donde el tamaño de cancha sea Fútbol 9 y la tarjeta esté en
-  dos columnas, el sistema mostrará la línea de `FR-003` como "Formación
-  {formación} · Estrategia: {label}", sin la etiqueta de cancha (que ya está
-  en el título por `FR-002`).
-- **FR-005c** — Donde el tamaño de cancha sea Fútbol 9 y la tarjeta esté en
-  una sola columna, el sistema mostrará la línea de `FR-005` como
-  "{etiqueta de cancha} · Formación {formación} · Estrategia: {label}",
-  agregando la formación entre la cancha y la estrategia sin quitar ninguna de
-  las dos.
+  `formatFecha` (`TC-014`, `TC-034`). *(Enmendado 2026-09-04, ver §18: el turno 12 del documento de diseño titula esta tarjeta "Resultado" a secas.)*
+  *La fecha, la pastilla "Finalizado" y el tamaño de cancha viven en el
+  encabezado de la pantalla, arriba de las dos columnas; repetirlos adentro de
+  la tarjeta era decir dos veces lo mismo a diez centímetros de distancia.*
+- **FR-002** — *(Sin efecto desde 2026-09-04, ver §18: el título dejó de ser
+  la fecha, así que no hay a qué agregarle el tamaño de cancha. Éste vive en el
+  encabezado de la pantalla, debajo de la fecha, junto con `FR-001`.)*
+- **FR-003** — *(Sin efecto desde 2026-09-04, ver §18: la línea con la
+  estrategia aplicada se retira. `12c` no la dibuja, y el 2026-09-02 ya se
+  había retirado el resumen equivalente del panel de armado — la estrategia
+  aplicada deja de nombrarse en toda la pantalla.)*
+- **FR-004** — *(Sin efecto desde 2026-09-04, ver §18: mismo motivo que
+  `FR-002`.)*
+- **FR-005** — *(Sin efecto desde 2026-09-04, ver §18: mismo motivo que
+  `FR-003`.)*
+- **FR-005b** — *(Sin efecto desde 2026-09-04, ver §18: mismo motivo que
+  `FR-003`.)*
+- **FR-005c** — *(Sin efecto desde 2026-09-04, ver §18: mismo motivo que
+  `FR-003`.)*
 - **FR-006** — El sistema mostrará en el encabezado un botón de sólo ícono
   para editar el resultado, con el rol `admin`.
 - **FR-007** — El sistema dará al botón de editar resultado un nombre
@@ -454,24 +447,26 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   número queda centrado en la mitad de la fila que corresponde a su equipo —la
   pestaña del equipo en una columna, el panel del equipo en dos— en vez de los
   dos agrupados en el centro de toda la fila.)*
-- **FR-041** — El sistema no mostrará en la fila de resultado ningún nombre de
-  equipo ni puntaje de armado, en ningún ancho: sólo el marcador de `FR-040`.
-  *(Invertido 2026-09-02, ver §18: mostraba el nombre del equipo y su puntaje
-  de armado a cada costado en dos columnas — los dos se mudaron al encabezado
-  de cada panel, `FR-042b`.)*
+- **FR-041** — Mientras la tarjeta esté en dos columnas, el sistema mostrará
+  en la fila de resultado, a cada costado del marcador de `FR-040`, el nombre
+  del equipo y su puntaje de armado ("Equipo Blanco 51.8 pts" a la izquierda,
+  "Equipo Negro 51.3 pts" a la derecha). Mientras esté en una sola columna, la
+  fila mostrará sólo el marcador. *(Vuelto a invertir 2026-09-04, ver §18: es
+  lo que dibuja `12c`, y el encabezado de cada panel deja de mostrarlos en ese
+  ancho — `FR-042b`.)*
 - **FR-042** — *(Sin efecto desde 2026-09-02, ver §18: decía que en una sola
   columna la fila mostraba sólo el nombre, sin el puntaje; `FR-041`, enmendado
   el mismo día, ya no muestra ninguno de los dos en ningún ancho, así que la
   distinción entre columnas que este requisito hacía dejó de existir.)*
-- **FR-042b** — El sistema mostrará en el encabezado de cada panel de equipo
-  (`renderZonaEquipos`) el puntaje de armado (`m.equipos.sumaBlanco` /
-  `sumaNegro`, redondeado a un decimal, con el sufijo "pts"): en una sola
-  columna reemplaza al nombre del equipo, que ya repite la pestaña activa; en
-  dos columnas se agrega a la derecha del nombre, que ahí sí se sigue
-  mostrando porque no hay ninguna pestaña que lo diga. *(Invertido 2026-09-02,
-  ver §18: antes este encabezado mostraba únicamente el nombre, para no
-  repetir el puntaje que la fila de resultado ya mostraba entonces — ahora que
-  `FR-041` lo sacó de esa fila, mostrarlo acá dejó de repetir nada.)*
+- **FR-042b** — Mientras la tarjeta esté en una sola columna, el sistema
+  mostrará en el encabezado de cada panel de equipo (`renderZonaEquipos`) el
+  puntaje de armado (`m.equipos.sumaBlanco` / `sumaNegro`, redondeado a un
+  decimal, con el sufijo "pts"), sin el nombre del equipo, que ya repite la
+  pestaña activa. Mientras esté en dos columnas, el sistema no mostrará ningún
+  encabezado arriba del campo. *(Acotado a una columna el 2026-09-04, ver §18:
+  con `FR-041` mostrando otra vez el nombre y el puntaje en la fila de
+  resultado, repetirlos arriba del campo los decía dos veces; `12c` no dibuja
+  nada ahí.)*
 - **FR-043** — El sistema no mostrará ninguna otra comparación de puntaje
   (píldora de diferencia, diferencia por línea) en este estado (declaración de
   reemplazo, arriba).
@@ -550,27 +545,31 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 
 ### 9.1 Happy path scenarios
 
-#### Scenario S-01 — El encabezado del partido finalizado (covers FR-001, FR-002, FR-003, FR-006, FR-007, FR-009, FR-009b)
+#### Scenario S-01 — El encabezado del partido finalizado (covers FR-001, FR-006, FR-007, FR-009, FR-009b)
+
+*(Reescrito 2026-09-04, ver §18: el título deja de ser la fecha y la línea con
+la estrategia aplicada se retira — `12c` titula la tarjeta "Resultado" y no
+dibuja ninguna de las dos cosas.)*
 
 - **Given** un partido de fútbol 8 finalizado, con resultado cargado y sin
   edición en curso
 - **And** una sesión con rol `admin` en un viewport de 1200 px
 - **When** se abre el detalle del partido
-- **Then** el título del encabezado es la fecha del partido seguida de
-  " - Fútbol 8"
-- **And** debajo del título se muestra "Estrategia: {nombre de la estrategia
-  aplicada}" *(era el resumen largo; cambiado el 2026-09-02, ver §18)*
+- **Then** el título del encabezado de la tarjeta es "Resultado"
+- **And** no hay debajo del título ninguna línea con la estrategia aplicada
+- **And** la fecha, la pastilla "Finalizado" y el tamaño de cancha se leen en
+  el encabezado de la pantalla, arriba de las dos columnas
 - **And** el encabezado contiene dos botones de ícono, copiar y editar
   resultado, en ese orden, cada uno con un nombre accesible no vacío
 - **And** el encabezado no contiene el botón de regenerar
 
 **Variants:**
 
-- `S-01a [boundary]` — en un viewport de 360 px, el título muestra sólo la
-  fecha y la línea de abajo dice "Fútbol 8 · Estrategia: {nombre}" (`FR-004`,
-  `FR-005`)
-- `S-01b [boundary]` — el partido es de fútbol 9: la línea de estrategia
-  agrega "Formación 3-4-1 · " antes de "Estrategia:" (`FR-005b`)
+- `S-01a [boundary]` — en un viewport de 360 px, el título de la tarjeta sigue
+  siendo "Resultado" y sigue sin haber línea de estrategia (`FR-004`,
+  `FR-005`, los dos sin efecto)
+- `S-01b [boundary]` — el partido es de fútbol 9: no cambia nada del
+  encabezado (`FR-005b`, sin efecto)
 - `S-01c [failure]` — la sesión es de rol `jugador`: el botón de editar
   resultado no está en el DOM (`FR-061`)
 - `S-01d [failure]` — se está editando el resultado de este partido: el
@@ -624,31 +623,28 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   sobre cada integrante de la unidad, de
   `stats[jugador].goles + stats[jugador].golesEnContra + stats[jugador].asistencias`
 
-#### Scenario S-04 — La fila de resultado muestra sólo el marcador, centrado por equipo (covers FR-040, FR-041, FR-042b)
+#### Scenario S-04 — La fila de resultado, con el nombre y el puntaje a los costados (covers FR-040, FR-041, FR-042b)
 
-*(Reescrito 2026-09-02, ver §18: describía "Blanco"/"52.5 pts" a los costados
-del marcador, que la fila ya no muestra; el puntaje se mudó al encabezado de
-cada panel.)*
+*(Reescrito 2026-09-04, ver §18: vuelve al reparto que dibuja `12c` — nombre y
+puntaje a los costados del marcador en dos columnas, y nada arriba del campo.)*
 
 - **Given** un partido finalizado con 4 goles del Blanco (52.5 pts de armado) y
   3 del Negro (51.5 pts)
 - **When** se muestra la tarjeta en un viewport de 1200 px
-- **Then** la fila de resultado muestra "4", centrado bajo la mitad del panel
-  del Equipo Blanco, un guion al medio, y "3", centrado bajo la mitad del
-  panel del Equipo Negro — sin ningún nombre ni puntaje de armado en esa fila
-- **And** el encabezado del panel del Equipo Blanco muestra "Equipo Blanco" a
-  la izquierda y "52.5 pts" a la derecha; el del Equipo Negro, "Equipo Negro"
-  y "51.5 pts" (`FR-042b`)
+- **Then** la fila de resultado muestra "Equipo Blanco 52.5 pts" a la
+  izquierda, "4 – 3" al centro y "Equipo Negro 51.5 pts" a la derecha
+- **And** no hay ningún encabezado arriba de ninguno de los dos campos
+  (`FR-042b`)
 
 **Variants:**
 
-- `S-04a [boundary]` — el resultado es 0 a 0: la fila muestra "0 - 0", no la
+- `S-04a [boundary]` — el resultado es 0 a 0: la fila muestra "0 – 0", no la
   omite
 - `S-04b [boundary]` — en un viewport de 360 px, la fila de resultado muestra
-  el mismo marcador, cada número centrado bajo la mitad de la pestaña de su
-  equipo; el encabezado del panel visible (el de la pestaña activa) muestra el
-  puntaje de armado en el lugar donde iría el nombre, que no se repite porque
-  la pestaña ya lo dice (`FR-042b`)
+  sólo el marcador, cada número centrado bajo la mitad de la pestaña de su
+  equipo; el encabezado del campo visible (el de la pestaña activa) muestra el
+  puntaje de armado, sin el nombre, que no se repite porque la pestaña ya lo
+  dice (`FR-041`, `FR-042b`)
 
 #### Scenario S-05 — Las filas de detalle cuentan quién metió qué (covers FR-050 a FR-057)
 
@@ -673,17 +669,21 @@ cada panel.)*
 
 ### 9.2 Edge cases
 
-#### Scenario S-10 — Un partido de fútbol 9 finalizado (covers FR-005b, FR-005c, TC-035)
+#### Scenario S-10 — Un partido de fútbol 9 finalizado (covers TC-035)
+
+*(Reescrito 2026-09-04, ver §18: describía la línea de estrategia, que ya no
+existe. Lo que queda por verificar del tamaño de cancha es la formación de la
+cancha misma, que `TC-035` sigue cubriendo.)*
 
 - **Given** un partido de fútbol 9 finalizado, con formación 3-4-1
-- **When** se muestra el encabezado en dos columnas
-- **Then** la línea de estrategia dice "Formación 3-4-1 · Estrategia:
-  {nombre}", sin la etiqueta de cancha
+- **When** se muestra la tarjeta en dos columnas
+- **Then** cada campo dibuja la fila de cuatro volantes de la formación 3-4-1
+- **And** el encabezado de la tarjeta dice "Resultado", igual que en fútbol 8
 
 **Variants:**
 
-- `S-10a [boundary]` — en una sola columna (360 px): la línea dice "Fútbol 9 ·
-  Formación 3-4-1 · Estrategia: {nombre}", con las tres partes (`FR-005c`)
+- `S-10a [boundary]` — en una sola columna (360 px): mismo resultado, con un
+  campo a la vez
 
 ### 9.3 Failure / unwanted-behaviour scenarios
 
@@ -924,6 +924,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-04 | Lucas Manoukian | Enmienda para implementar el turno 12 del documento de diseño (`12c`, "Partido finalizado — el mismo layout, de lectura"), pedido explícito del propietario. **(1)** El encabezado de la tarjeta pasa a titularse "Resultado": `FR-001` se enmienda y `FR-002`, `FR-004` quedan sin efecto (la fecha y el tamaño de cancha ya viven en el encabezado de la pantalla, arriba de las dos columnas). **(2)** La línea con la estrategia aplicada se retira: `FR-003`, `FR-005`, `FR-005b` y `FR-005c` quedan sin efecto. Cierra la inconsistencia que `DELTA.md` §B ya declaraba desde el 2026-09-02 ("la estrategia aplicada ya no se nombra en ninguna parte") y que esta pantalla contradecía. Se retira `lineaEstrategiaPartidoFinalizado` y su entrada en `DECLARACIONES` de `finalizado.test.js`. **(3)** El nombre y el puntaje de armado vuelven a la fila de resultado en dos columnas (`FR-041`) y desaparecen del encabezado de cada campo en ese ancho (`FR-042b`, ahora acotado a una columna): es el reparto que dibuja `12c`. Se reescribe `S-04` y se agrega su variante de una columna. Self-critique: no corresponde (enmienda para alinear con un diseño ya aprobado, verificada con la suite de tests). |
 | 2026-09-03 | Lucas Manoukian | Enmienda pedida por el propietario: se deroga `FR-055` — un equipo sin goleadores ya no muestra el texto "Sin goleadores" debajo de su campo, no muestra nada en su lugar. Mismo criterio que se aplicó el mismo día a `FR-043` de `CARGA_POR_TOQUE_SPEC.md` (rebanada 6) para el estado análogo "sin eventos cargados". Se ajusta la variante `S-05a`. Ningún otro requisito cambia. Self-critique: no corresponde (derogación acotada, sin requisitos nuevos que auditar). |
 | 2026-09-02 | Lucas Manoukian | Actualización pendiente desde una corrección ya implementada y mergeada (avisado en su momento, quedó para una pasada aparte). Dos cambios, a pedido del usuario. **(1)** El nombre/puntaje de la fila de resultado se muda al encabezado de cada panel de equipo: `FR-041` queda invertido (la fila ya no muestra nombre ni puntaje de armado, en ningún ancho — sólo el marcador de `FR-040`, con cada número ahora centrado bajo la mitad de la zona de su equipo); `FR-042` queda sin efecto, absorbido por el `FR-041` nuevo; `FR-042b` se invierte en sentido contrario al que tenía (antes prohibía repetir el puntaje en el encabezado del panel porque la fila de resultado ya lo mostraba; ahora que la fila dejó de mostrarlo, el encabezado lo muestra él solo — reemplaza al nombre en una columna, se agrega a su derecha en dos). Se reescriben `S-04` y `AC-05` en consecuencia. **(2)** La línea de estrategia del encabezado (`FR-003`, `FR-005`, `FR-005b`, `FR-005c`) pasa de mostrar el campo `resumen` (la explicación larga de qué hace la estrategia) al `label` (su nombre corto): la explicación resultó más ruido que información en esta pantalla, mismo diagnóstico que ya había sacado el subtítulo completo el 2026-09-01 en `PANEL_ARMADO_SPEC.md`. Se ajustan `S-01`, `S-01a`, `S-10`, `S-10a` y `AC-07`. Self-critique: no corresponde (corrección puntual a pedido explícito, verificada con la suite de tests, incluida la actualización tardía del punto 1 que debí haber hecho el mismo día que el código). |
 | 2026-09-01 | Lucas Manoukian | Anotación recíproca desde la rebanada 5 (`MODELO_EVENTOS_SPEC.md`, `T-1.23` de su Plan): `TC-010` queda generalizado para admitir `m.resultado.eventos` como fuente de verdad además de `statsPorJugador`, siempre a través de una única función de despacho. Resuelve la `OPEN-Q-01` de la Spec de la **rebanada 5** (no la de ésta, que sigue pendiente y sin relación con este cambio — ver la fila de arriba). Sin cambios de comportamiento observable. Self-critique: no corresponde (anotación recíproca puntual). |
