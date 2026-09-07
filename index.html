@@ -66,7 +66,17 @@
   .clip{ display: none; }
 
   header{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); padding: 26px 24px 16px; box-shadow: 0 6px 0 rgba(0,0,0,0.06); position: relative; }
-  .header-top{ display:flex; justify-content:space-between; align-items:flex-start; gap: 12px; flex-wrap: wrap; }
+  /* El renglón de arriba es el título, con la versión al lado y "Salir" al otro extremo.
+     Los tres estaban en tres alturas distintas —la versión debajo del título, en su propia línea— y
+     el 2026-09-07 pasaron a compartir el renglón, por decisión del propietario.
+
+     `align-items: baseline` y no `center`: lo que se pidió es que la versión y "Salir"
+     convivan en el renglón del título, o sea que se apoyen sobre su misma línea de escritura, como
+     lo haría una palabra más de la frase. (Es lo contrario de lo que quiere el tamaño de cancha en
+     la pantalla de partidos, que sí va centrado contra la fecha: ahí son dos datos del partido a la
+     par, acá son dos anotaciones al costado de un título.) */
+  .header-top{ display:flex; justify-content:space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .header-titulo{ display:flex; align-items: baseline; flex-wrap: wrap; gap: 0 10px; min-width: 0; }
   .eyebrow{ font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
   h1{ font-family: var(--font-display); font-size: 32px; letter-spacing: -0.96px; margin: 4px 0 2px; font-weight: 900; }
   .subtitle{ font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
@@ -108,6 +118,28 @@
      ya no mueve el borde ni el texto (no queda a dónde moverlos): cambia el fondo, como el DS. */
   .btn-ghost{ font-family: var(--font-body); font-size: 13.5px; padding: 9px 14px; border-radius: var(--radius-card); border: 1px solid var(--ink); background: var(--chalk); color: var(--ink); cursor: pointer; transition: background .15s ease; }
   .btn-ghost:hover{ background: var(--paper); }
+  /* Acción escrita como enlace y no como botón: sin recuadro, sin fondo y sin relleno. La usa
+     "Salir", que dejó de ser un botón el 2026-09-07 por decisión del propietario. Sigue
+     siendo un `<button>` por debajo: hace algo, no lleva a ninguna parte.
+
+     Dice "Salir" y no "Cerrar sesión" desde el 2026-09-07: cierra el par con el botón del login,
+     que dice "Ingresar", y al ser más corto entra en el renglón del título también a 360px.
+
+     Va en gris y no en el verde de `.back-link` —el otro enlace de texto de la aplicación— también
+     por decisión del propietario, el mismo día: cerrar sesión es una acción secundaria y el verde
+     la hacía pesar de más en el encabezado. El gris oscurece a tinta al pasar el mouse, que es lo
+     que la deja leer como cliqueable.
+
+     La tipografía es la misma de las solapas de abajo (`.tab-btn`: mono 11.5px, gris, con el mismo
+     espaciado entre letras), para que pese lo mismo que "Partidos" o "Jugadores" — pero sin pasar a
+     mayúsculas, que es lo único que se le sacó, por pedido del propietario. */
+  .btn-link{ font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em; line-height: 20px; color: var(--muted); cursor: pointer; background: none; border: none; padding: 0; }
+  .btn-link:hover{ color: var(--ink); }
+  /* `margin-left: auto` y no sólo el `space-between` del contenedor: a 360px el título y el enlace
+     no entran en el mismo renglón y el enlace baja al suyo, donde el `space-between` no lo empuja
+     a ningún lado y quedaba pegado a la izquierda, leyéndose como un subtítulo. Con el margen
+     automático se va a la derecha en los dos casos, entren o no en la misma línea. */
+  .header-top .btn-link{ margin-left: auto; }
 
   /* ---------- Ficha de jugador (compartida: alta normal y alta rápida) ---------- */
   .card-pin-wrap{ display: none; margin: 10px 0 20px; }
@@ -202,6 +234,25 @@
   .match-card-top{ display:flex; justify-content:space-between; align-items:center; gap: 10px; flex-wrap: wrap; }
   .match-date{ font-family: var(--font-display); font-size: 17px; text-transform: capitalize; }
   .match-meta{ font-family: var(--font-body); font-size: 14px; line-height: 20px; color: var(--muted); margin-top: 3px; }
+  /* Fecha y tamaño de cancha en el mismo renglón (2026-09-07, decisión del propietario): antes el
+     tamaño de cancha iba apilado debajo de la fecha. Los separa un espacio y nada más: se probó un
+     guión medio entre los dos y se sacó el mismo día, porque en las pantallas chicas la frase no
+     entra en un renglón y el guión quedaba mal — colgado al final de la línea de la fecha o
+     abriendo la de abajo.
+
+     `align-items: center` y no `baseline`: apoyados sobre la línea de base, los dos textos comparten
+     el pie de las letras, y como el tamaño de cancha es bastante más chico que la fecha eso lo deja
+     visualmente caído —3px por debajo del centro del título con el título de 24px, más con el de
+     32px, medido en el navegador el 2026-09-07— y desalineado con la pastilla de estado, que sí va
+     centrada. Centrados, los tres quedan a la misma altura.
+
+     `flex-wrap` deja que el tamaño de cancha baje de línea cuando no entra, en vez de desbordar
+     (Principio V): pasa sólo con las fechas más largas —"Miércoles, 24 de septiembre"— por debajo
+     de 390px en la tarjeta y de 430px en el detalle. */
+  .match-card-titulo, .detail-header-fecha{ display:flex; align-items: center; flex-wrap: wrap; min-width: 0; }
+  .match-card-titulo{ gap: 0 8px; }
+  .detail-header-fecha{ gap: 0 10px; }
+  .match-card-titulo .match-meta, .detail-header-fecha .match-meta{ margin-top: 0; }
   /* Sin `text-transform`: el texto va tal cual lo escribe `statusChip`, con mayúscula sólo en la
      primera letra (2026-09-07, decisión del propietario). Sin peso propio tampoco: se probaron
      400, 600 y 700 sobre las cuatro pastillas y quedó el 400 que hereda del cuerpo. El
@@ -251,14 +302,18 @@
      (32px); el compacto de 13a/14a, display-xs (24px). */
   .detail-header h2{ font-family: var(--font-display); font-weight: 600; margin: 0; font-size: 32px; line-height: 38.4px; letter-spacing: -0.96px; }
   .detail-header h2::first-letter{ text-transform: uppercase; }
-  /* Fecha y pastilla de estado en la misma fila, y el tamaño de cancha debajo de las dos
-     (12a y 13a lo dibujan igual). El agrupado también resuelve lo de siempre: con
-     justify-content:space-between sobre cuatro hijos sueltos (título, chip, toggle, eliminar)
-     el chip quedaba flotando a mitad de camino; separando "título + chip + meta" de "acciones",
-     el space-between actúa sólo entre esos dos grupos. */
+  /* Fecha, tamaño de cancha y pastilla de estado, los tres en la misma fila. El tamaño de cancha
+     estaba debajo de las otras dos y subió el 2026-09-07 por decisión del propietario, igual que
+     en la tarjeta de la lista (ver `.match-card-titulo`). El agrupado también resuelve lo de
+     siempre: con justify-content:space-between sobre cuatro hijos sueltos (título, chip, toggle,
+     eliminar) el chip quedaba flotando a mitad de camino; separando "título + cancha + chip" de
+     "acciones", el space-between actúa sólo entre esos dos grupos. */
   .detail-header-main{ display:flex; flex-direction: column; gap: 6px; min-width: 0; }
   .detail-header-titulo{ display:flex; align-items:center; flex-wrap: wrap; gap: 4px 10px; }
-  .detail-header-main .match-meta{ margin-top: 0; }
+  /* Fecha y tamaño de cancha van en su propio grupo, aparte de la pastilla, porque se alinean con
+     otro criterio: los dos son texto y se apoyan sobre la misma línea de base (la regla está arriba,
+     junto a la de la tarjeta de la lista, para que las dos pantallas no se separen); la pastilla, que
+     es una cápsula con relleno propio, se sigue centrando contra el título. */
   .detail-header-actions{ display:flex; align-items:center; gap: 10px; flex-shrink:0; }
   @media (max-width: 1099px){
     .detail-header h2{ font-size: 24px; line-height: 31.2px; letter-spacing: -0.48px; }
@@ -1010,11 +1065,11 @@
   <div class="clip"></div>
   <header>
     <div class="header-top">
-      <div>
+      <div class="header-titulo">
         <h1>The Football App</h1>
         <div id="appVersion" style="font-family:var(--font-mono);font-size:10.5px;color:var(--muted);opacity:0.7;">v2.0.6</div>
       </div>
-      <button class="btn-ghost" id="btnLogout">Cerrar sesión</button>
+      <button class="btn-link" id="btnLogout">Salir</button>
     </div>
     <div class="tabs">
       <button class="tab-btn active" data-tab="partidos">Partidos</button>
@@ -1101,10 +1156,12 @@
       <div class="detail-header">
         <div class="detail-header-main">
           <div class="detail-header-titulo">
-            <h2 id="detailFecha"></h2>
+            <div class="detail-header-fecha">
+              <h2 id="detailFecha"></h2>
+              <div class="match-meta" id="detailMeta"></div>
+            </div>
             <span class="status-chip" id="detailEstado"></span>
           </div>
-          <div class="match-meta" id="detailMeta"></div>
         </div>
         <div class="detail-header-actions">
           <button class="btn-ghost admin-only" id="btnToggleInscripcion" style="display:none;"></button>
@@ -5844,7 +5901,7 @@
       return `
         <div class="match-card" onclick="window.__openMatch('${m.id}')">
           <div class="match-card-top">
-            <div>
+            <div class="match-card-titulo">
               <div class="match-date">${formatFecha(m.fecha)}</div>
               <div class="match-meta">${canchaLabel(m)}</div>
             </div>
