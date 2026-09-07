@@ -29,9 +29,10 @@
     --pitch-grass: #417513; /* green-700 — el césped de la cancha */
     --pitch-pale: #e4f0c4;  /* green-100 / color-primary-pale — candado fijado */
     --brick-light: #ef4444; /* negative-500 / color-negative — píldora de diferencia excedida */
+    --brick-deep: #450a0a;  /* negative-950 / color-negative-bg — fondo de la pastilla "Inscripción cerrada" */
     --mustard-light: #facc15;/* warning-400 / color-warning — filete del aviso de desactualizado */
     --mustard-deep: #713f12; /* warning-900 / color-warning-content — texto de la pastilla "2º" */
-    --slate: #374151;       /* gray-700 / color-body — texto del receipt y fondo de la pastilla "Finalizado" */
+    --slate: #374151;       /* gray-700 / color-body — texto del receipt */
     --positive-deep: #166534;/* positive-800 / color-positive-deep — texto de la pastilla "Inscripción abierta" */
     --font-display: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
     --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -201,20 +202,29 @@
   .match-card-top{ display:flex; justify-content:space-between; align-items:center; gap: 10px; flex-wrap: wrap; }
   .match-date{ font-family: var(--font-display); font-size: 17px; text-transform: capitalize; }
   .match-meta{ font-family: var(--font-body); font-size: 14px; line-height: 20px; color: var(--muted); margin-top: 3px; }
-  .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; flex-shrink:0; }
+  /* Sin `text-transform`: el texto va tal cual lo escribe `statusChip`, con mayúscula sólo en la
+     primera letra (2026-09-07, decisión del propietario). Sin peso propio tampoco: se probaron
+     400, 600 y 700 sobre las cuatro pastillas y quedó el 400 que hereda del cuerpo. El
+     `letter-spacing` se queda: estaba puesto para el tratamiento en mayúsculas, pero a 10.5px
+     también le hace bien al texto normal. Geometría del repo (10.5px, padding 4px 9px), la que
+     `github.md` dejó asentada como la única pastilla de estado de la app. */
+  .status-chip{ font-family: var(--font-mono); font-size: 10.5px; padding: 4px 9px; border-radius: var(--radius-pill); background: var(--paper); border: 1px solid var(--paper-line); color: var(--muted); letter-spacing: 0.04em; flex-shrink:0; }
   /* Los tonos de la pastilla de estado. "Inscripción abierta" toma el Badge `positive` del diseño
      (12b). "Finalizado" va en gris oscuro por decisión del propietario, para que el verde no quede
      repartido entre dos estados distintos — la pregunta que `DELTA.md`/`github.md` tenían abierta.
-     El borde repite el fondo en esas dos: la pastilla del diseño no lleva filete y el de
+     "Equipos generados" pasó al tono `warning` del design system (2026-09-07): reemplaza al
+     naranja `--clay`, que con texto blanco daba 2.26:1 de contraste, menos de la mitad del mínimo
+     AA para su tamaño de letra, siendo la etiqueta más frecuente.
+     "Inscripción cerrada" dejó el gris papel del Badge `neutral` de 12a por el rojo oscuro del
+     tono `negative` (2026-09-07, decisión del propietario): sobre ese fondo el texto tuvo que
+     pasar a blanco, porque la tinta que tenía daba 1.10:1 y era ilegible.
+     El borde repite el fondo en las cuatro: la pastilla del diseño no lleva filete y el de
      `.status-chip` sólo existe para el tono base (estado desconocido).
-     "Equipos generados" se deja tal cual estaba, en naranja, por decisión del propietario
-     (2026-09-04). Anotado para que no se relea como olvido: con texto blanco ese naranja da 2.26:1
-     de contraste — menos de la mitad del mínimo AA para su tamaño de letra — y es la etiqueta más
-     frecuente. Los otros dos tonos dan 5.96:1 y 10.31:1. */
+     Contrastes: 5.96:1 (abierta), 16.14:1 (cerrada), 5.66:1 (generados), 4.83:1 (finalizado). */
   .status-chip.open{ background: var(--pitch-pale); color: var(--positive-deep); border-color: var(--pitch-pale); }
-  .status-chip.closed{ background: var(--paper); color: var(--ink); border-color: var(--paper); }
-  .status-chip.teams-ready{ background: var(--clay); color: var(--chalk); border-color: var(--clay); }
-  .status-chip.finished{ background: var(--slate); color: var(--chalk); border-color: var(--slate); }
+  .status-chip.closed{ background: var(--brick-deep); color: var(--chalk); border-color: var(--brick-deep); }
+  .status-chip.teams-ready{ background: var(--mustard-light); color: var(--mustard-deep); border-color: var(--mustard-light); }
+  .status-chip.finished{ background: var(--muted); color: var(--chalk); border-color: var(--muted); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
   /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
@@ -261,12 +271,6 @@
   .ac-item:hover{ background: var(--paper); }
   .ac-pos-dot{ width: 8px; height:8px; border-radius:50%; flex-shrink:0; }
   .ac-empty{ padding: 12px; font-size: 13px; color: var(--muted); }
-
-  /* La tira del partido finalizado (12c: "Inscripción cerrada"), con el candado a la izquierda
-     sobre el fondo papel. Ya no aparece con la inscripción simplemente cerrada — ahí lo dice la
-     pastilla del encabezado (ver `statusChip`). */
-  .conv-cerrada{ display:flex; align-items:center; gap:8px; padding:12px 16px; margin-bottom:16px; border-radius: var(--radius-control); background: var(--paper); color: var(--muted); font-size: 13px; }
-  .conv-cerrada svg{ flex-shrink:0; }
 
   .convocados-list{ display:flex; flex-direction:column; gap: 2px; }
   .conv-row{ display:flex; align-items:center; gap:8px; padding: 5px 8px; border-radius: var(--radius-control); }
@@ -817,17 +821,31 @@
   /* Cada gol se centra bajo la mitad de la zona de SU equipo — la pestaña en una columna
      (`.equipo-tabs`), el panel en dos (`.teams-wrap`, misma grilla acá para que los centros
      coincidan) — en vez de agruparse los dos en el medio de toda la fila. El guion se posiciona
-     encima por su cuenta para no correr el centro de ninguna de las dos columnas. */
+     encima por su cuenta para no correr el centro de ninguna de las dos columnas.
+     El guion se centra sobre la ALTURA DE LOS NÚMEROS, no sobre su propia caja de línea. La
+     diferencia no es un detalle: medido sobre Inter 900 con la fuente cargada, el centro de la
+     tinta de un dígito de 40px cae a 14.55px de la línea de base y el del guion de 22px a 6.37px,
+     así que alineado a la base o centrado por caja se ve hundido unos 8px. Los desplazamientos de
+     abajo salen de esa medición (`--guion-*`) y están en `em` del propio guion, que es lo que los
+     hace válidos en los dos tamaños: 22px y 17px. */
   .resultado-marcador{ position: relative; flex: 1; display: grid; align-items: baseline; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 14px; font-family: var(--font-display); font-weight: 900; font-size: 40px; line-height: 44px; font-variant-numeric: tabular-nums; }
   .resultado-gol{ text-align: center; }
-  .resultado-guion{ position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); font-size: 22px; color: var(--muted); }
+  /* Absoluto: `top:50%` de la caja del marcador ya cae justo en el centro de la tinta de los
+     dígitos (con line-height 1.1 las métricas de Inter dan exactamente 50% en los dos tamaños),
+     así que sólo falta subir el guion hasta que su tinta quede en esa línea — de ahí
+     `--guion-desde-arriba`, la distancia de su tinta al borde de arriba de su propia caja. */
+  .resultado-guion{ --guion-desde-arriba: 0.591em; --guion-desde-base: 0.372em; position: absolute; left: 50%; top: 50%; transform: translate(-50%, 0) translateY(calc(-1 * var(--guion-desde-arriba))); font-size: 22px; line-height: 1; color: var(--muted); }
   @media (max-width: 900px){
     .resultado-marcador{ grid-template-columns: 1fr 1fr; gap: 0; font-size: 30px; line-height: 34px; }
-    .resultado-guion{ font-size: 17px; }
+    /* Valor propio: acá el alto de línea es 1.133 veces la tipografía y no 1.1, así que `top:50%`
+       no cae exactamente en el mismo punto de la tinta del número que en el tamaño grande. */
+    .resultado-guion{ font-size: 17px; --guion-desde-arriba: 0.53em; }
   }
   @media (min-width: 1100px){
     .resultado-marcador{ flex: none; display: flex; align-items: baseline; gap: 12px; }
-    .resultado-guion{ position: static; transform: none; }
+    /* Acá el guion vuelve al flujo y comparte la línea de base con los números, así que el
+       desplazamiento se mide desde la base, no desde el borde de su caja. */
+    .resultado-guion{ position: static; transform: translateY(calc(-1 * var(--guion-desde-base))); }
   }
 
   /* --- Filas de detalle (debajo de cada campo) --- */
@@ -999,14 +1017,14 @@
       <button class="btn-ghost" id="btnLogout">Cerrar sesión</button>
     </div>
     <div class="tabs">
-      <button class="tab-btn active" data-tab="jugadores">Jugadores</button>
-      <button class="tab-btn" data-tab="partidos">Partidos</button>
+      <button class="tab-btn active" data-tab="partidos">Partidos</button>
+      <button class="tab-btn" data-tab="jugadores">Jugadores</button>
       <button class="tab-btn admin-only" data-tab="motor">Configuración</button>
     </div>
   </header>
 
   <!-- ================= TAB JUGADORES ================= -->
-  <div class="tab-panel active" id="panelJugadores">
+  <div class="tab-panel" id="panelJugadores">
     <div class="stats" id="stats"></div>
 
     <div class="controls">
@@ -1069,7 +1087,7 @@
   </div>
 
   <!-- ================= TAB PARTIDOS ================= -->
-  <div class="tab-panel" id="panelPartidos">
+  <div class="tab-panel active" id="panelPartidos">
     <div id="matchesListView">
       <div class="controls">
         <div style="flex:1"></div>
@@ -1114,13 +1132,6 @@
               <input type="text" id="matchSearchInput" placeholder="Buscar jugador para convocar...">
             </div>
             <div class="autocomplete-list" id="autocompleteList" style="display:none;"></div>
-          </div>
-          <!-- Con la inscripción cerrada la columna izquierda pasa a lectura y el buscador se
-               reemplaza por esta tira con el candado (12c y 14a), en vez de quedar como un input
-               deshabilitado con el copy adentro del placeholder. -->
-          <div class="conv-cerrada" id="convCerrada" style="display:none;">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="11" width="17" height="10" rx="2.5"/><path d="M8 11V7.2a4 4 0 0 1 8 0V11"/></svg>
-            <span>Inscripción cerrada</span>
           </div>
           <div style="margin: -6px 0 16px; display:flex; gap:8px; flex-wrap:wrap;">
             <button class="btn-ghost admin-only" id="btnCompletarPrueba" type="button" title="Solo para probar el prototipo, no es parte de la spec" style="display:none;">+ Completar titulares (prueba)</button>
@@ -5825,15 +5836,17 @@
       return;
     }
     const sorted = [...matches].sort((a,b) => b.fecha.localeCompare(a.fecha));
+    /* La tarjeta muestra sólo el tamaño de cancha: el recuento de titulares y suplentes se retiró
+       de la lista el 2026-09-07 por decisión del propietario — es un dato del detalle, no de la
+       tarjeta. Con eso se fueron las llamadas a `titularesRequeridos` y `contarTitularesSuplentes`
+       que vivían acá; las dos funciones siguen en uso en el detalle. */
     container.innerHTML = sorted.map(m => {
-      const req = titularesRequeridos(m);
-      const { suplentes, slotsOcupados } = contarTitularesSuplentes(m);
       return `
         <div class="match-card" onclick="window.__openMatch('${m.id}')">
           <div class="match-card-top">
             <div>
               <div class="match-date">${formatFecha(m.fecha)}</div>
-              <div class="match-meta">${canchaLabel(m)} · ${slotsOcupados}/${req} titulares · ${suplentes} suplente${suplentes===1?'':'s'}</div>
+              <div class="match-meta">${canchaLabel(m)}</div>
             </div>
             <div style="display:flex; align-items:center; gap:6px;">
               <span class="status-chip ${statusChip(m).clase}">${statusChip(m).texto}</span>
@@ -5984,11 +5997,9 @@
     }
     el('matchSearchInput').disabled = locked;
     el('convBuscadorWrap').style.display = locked ? 'none' : '';
-    /* La tira sólo sobrevive en el partido finalizado, que es donde el diseño la dibuja (12c).
-       Con la inscripción cerrada sin finalizar, 12a y 13a no la tienen: lo dice la pastilla del
-       encabezado, que en ese caso pasó a decir "Inscripción cerrada" (ver `statusChip`). Con eso
-       se retiró también el texto "— la cola quedó firme" de 14a, que era el que se repetía. */
-    el('convCerrada').style.display = (m.estado === 'Finalizado') ? '' : 'none';
+    /* Con la inscripción cerrada el buscador desaparece y no lo reemplaza nada: la tira con el
+       candado que el diseño dibuja en 12c se retiró de todos los estados, el finalizado incluido
+       (2026-09-07). El aviso lo lleva la pastilla del encabezado — ver `statusChip`. */
     const btnPrueba = el('btnCompletarPrueba');
     btnPrueba.style.display = (!locked && vacantes > 0) ? '' : 'none';
     if(locked){ el('autocompleteList').style.display = 'none'; el('autocompleteList').innerHTML = ''; }
@@ -6659,13 +6670,15 @@
     });
     closeForm();
     // La solapa activa tambien sobrevive al logout: si el admin quedo en Configuracion, una cuenta
-    // "jugador" entraria viendo ese panel aunque su boton este oculto (FR-012). Se vuelve a Jugadores.
+    // "jugador" entraria viendo ese panel aunque su boton este oculto (FR-012). Se vuelve a
+    // Partidos, que desde el 2026-09-07 es la pantalla con la que se entra (decision del
+    // propietario) y el primer boton de la barra.
     document.querySelectorAll('.tab-btn[data-tab]').forEach(b => b.classList.remove('active'));
-    const tabJugadores = document.querySelector('.tab-btn[data-tab="jugadores"]');
-    if(tabJugadores) tabJugadores.classList.add('active');
+    const tabPartidos = document.querySelector('.tab-btn[data-tab="partidos"]');
+    if(tabPartidos) tabPartidos.classList.add('active');
     document.querySelectorAll('.tab-panel').forEach(pn => pn.classList.remove('active'));
-    const panelJ = el('panelJugadores');
-    if(panelJ) panelJ.classList.add('active');
+    const panelP = el('panelPartidos');
+    if(panelP) panelP.classList.add('active');
   }
 
   /* ===== BallLoader (design system, components/feedback/BallLoader.jsx) =====
