@@ -1672,7 +1672,7 @@
   // Texto plano de la formaci\u00f3n para copiar al portapapeles (contracts/texto-copiado.md de 006-copiar-formacion)
   function formatearFormacionParaCopiar(m, allPlayers){
     /* Una dupla de rotación es UNA unidad: sus dos integrantes van en el mismo renglón separados
-       por " / " y comparten un único número, igual que ocupan una sola vacante de titular. El par
+       por "/" y comparten un único número, igual que ocupan una sola vacante de titular. El par
        se emite en la posición del primer integrante que aparece en el equipo, y sólo si los dos
        cayeron en el mismo equipo (si el armado los separó, cada uno va por su cuenta). */
     const duplas = duplasDeLaFormacion(m);
@@ -1697,7 +1697,7 @@
         const otro = otroId ? allPlayers.find(x => x.id === otroId) : null;
         if(otro){
           emitido.add(otroId);
-          renglones.push(`${fullName(p)} / ${fullName(otro)}`);
+          renglones.push(`${fullName(p)}/${fullName(otro)}`);
         }else{
           renglones.push(fullName(p));
         }
