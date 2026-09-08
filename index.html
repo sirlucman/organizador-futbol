@@ -82,9 +82,18 @@
   .subtitle{ font-size: 13.5px; color: var(--muted); margin-bottom: 8px; }
 
   .tabs{ display:flex; gap:4px; margin-top: 10px; border-top: 1px solid var(--paper-line); padding-top: 4px; flex-wrap: wrap; }
-  .tab-btn{ font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; background: none; border: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .tab-btn{ display:inline-flex; align-items:center; gap: 7px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; background: none; border: none; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
   .tab-btn.active{ color: var(--ink); border-bottom-color: var(--pitch); }
   .tab-btn.disabled{ opacity: 0.4; cursor: not-allowed; }
+  /* Íconos de las solapas (turno 17b del diseño). Van ANTES del texto con 7px de aire y heredan
+     el color de la solapa —gris `--muted` apagada, tinta `--ink` activa—, igual que el subrayado
+     verde, así que no se pintan aparte. Son glifos de Lucide en la caja de 24: `calendar` para
+     Partidos, `users` para Jugadores, y para Configuración el engranaje de ocho dientes dibujado
+     a medida (el `settings` del set son doce y a este tamaño se juntan hasta parecer un borde
+     festoneado). El diseño dice que la solapa no cambia de alto porque ahí mide 46px —renglón de
+     Inter de 24—; acá el renglón es mono de 11.5px, así que la solapa medía 36px y el ícono de 16
+     la lleva a 38. Lo que crece de verdad es el ancho: de ~316 a ~387px las tres juntas. */
+  .tab-btn svg{ flex: none; width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
   .tab-panel{ display:none; }
   .tab-panel.active{ display:block; }
 
@@ -1015,10 +1024,15 @@
      menú de "…"—, que suman 68px y entran en el renglón del nombre a 360px. El corte ya no hace
      falta. */
 
+  /* Con ícono cada solapa se ensancha unos 23px y las tres pasan de ~316 a ~385px: en el shell de
+     390px ya no entran en un renglón y se parten en dos. El turno 17b deja la decisión abierta
+     entre solapas sin texto y el sólo-texto de hoy; acá se toma lo segundo, que es lo que el
+     teléfono ya tenía. */
   @media (max-width: 480px){
     .scores-grid{ grid-template-columns: repeat(2, 1fr); }
     .row-tags{ display: none; }
     h1{ font-size: 26px; }
+    .tab-btn svg{ display: none; }
   }
 
   /* ---------- Login (Feature 005) ---------- */
@@ -1099,9 +1113,9 @@
       <button class="btn-link" id="btnLogout">Salir</button>
     </div>
     <div class="tabs">
-      <button class="tab-btn active" data-tab="partidos">Partidos</button>
-      <button class="tab-btn" data-tab="jugadores">Jugadores</button>
-      <button class="tab-btn admin-only" data-tab="motor">Configuración</button>
+      <button class="tab-btn active" data-tab="partidos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 2v4"/><path d="M16 2v4"/><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M3 10h18"/></svg>Partidos</button>
+      <button class="tab-btn" data-tab="jugadores"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Jugadores</button>
+      <button class="tab-btn admin-only" data-tab="motor"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21.1 10.4 21.1 13.6 18.9 13.2 17.7 16 19.5 17.3 17.3 19.5 16 17.7 13.2 18.9 13.6 21.1 10.4 21.1 10.8 18.9 8 17.7 6.7 19.5 4.5 17.3 6.3 16 5.1 13.2 2.9 13.6 2.9 10.4 5.1 10.8 6.3 8 4.5 6.7 6.7 4.5 8 6.3 10.8 5.1 10.4 2.9 13.6 2.9 13.2 5.1 16 6.3 17.3 4.5 19.5 6.7 17.7 8 18.9 10.8Z"/><circle cx="12" cy="12" r="3.4"/></svg>Configuración</button>
     </div>
   </header>
 
