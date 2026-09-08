@@ -1660,17 +1660,52 @@
     toastTimeoutId = setTimeout(() => toast.classList.remove('show'), 3000);
   };
 
+  /* Las duplas de rotación del armado que se está copiando. Se lee `duplasSnapshot` —lo que
+     EFECTIVAMENTE pasó cuando se generaron los equipos— y no `m.duplas`, que pudo cambiar
+     después; mismo criterio que el resumen del armado (013 FR-005). */
+  function duplasDeLaFormacion(m){
+    const eq = (m && m.equipos) || {};
+    try{ return JSON.parse(eq.duplasSnapshot || '[]'); }
+    catch(e){ return (m.duplas || []); }
+  }
+
   // Texto plano de la formaci\u00f3n para copiar al portapapeles (contracts/texto-copiado.md de 006-copiar-formacion)
   function formatearFormacionParaCopiar(m, allPlayers){
+    /* Una dupla de rotación es UNA unidad: sus dos integrantes van en el mismo renglón separados
+       por "/" y comparten un único número, igual que ocupan una sola vacante de titular. El par
+       se emite en la posición del primer integrante que aparece en el equipo, y sólo si los dos
+       cayeron en el mismo equipo (si el armado los separó, cada uno va por su cuenta). */
+    const duplas = duplasDeLaFormacion(m);
+    const parejaEn = (ids, id) => {
+      const par = duplas.find(par => par.includes(id));
+      if(!par) return null;
+      const otro = par[0] === id ? par[1] : par[0];
+      return ids.includes(otro) ? otro : null;
+    };
     const bloques = [
       { corto: 'Blanco', emoji: '\u2b1c\ufe0f', ids: m.equipos.blanco },
       { corto: 'Negro', emoji: '\u2b1b\ufe0f', ids: m.equipos.negro },
     ].map(({ corto, emoji, ids }) => {
-      const jugadores = ids.map(id => allPlayers.find(p => p.id === id)).filter(Boolean);
+      const emitido = new Set();
+      const renglones = [];
+      ids.forEach(id => {
+        if(emitido.has(id)) return;
+        const p = allPlayers.find(x => x.id === id);
+        if(!p) return;
+        emitido.add(id);
+        const otroId = parejaEn(ids, id);
+        const otro = otroId ? allPlayers.find(x => x.id === otroId) : null;
+        if(otro){
+          emitido.add(otroId);
+          renglones.push(`${fullName(p)}/${fullName(otro)}`);
+        }else{
+          renglones.push(fullName(p));
+        }
+      });
       const lineas = [`*${corto}* ${emoji}`];
-      if(jugadores.length > 0){
+      if(renglones.length > 0){
         lineas.push('');
-        jugadores.forEach((p, i) => lineas.push(`${i + 1}. ${fullName(p)}`));
+        renglones.forEach((r, i) => lineas.push(`${i + 1}. ${r}`));
       }
       return lineas.join('\n');
     });
@@ -5251,10 +5286,7 @@
      que un bloqueo pudo haber torcido (013 FR-005). Se usa `duplasSnapshot` y no `m.duplas`
      por el mismo motivo que la info de arqueros: el resumen sigue explicando el armado que
      se hizo aunque después se toque la convocatoria. */
-  const duplasDelArmado = (() => {
-    try{ return JSON.parse(eq.duplasSnapshot || '[]'); }
-    catch(e){ return (m.duplas || []); }
-  })();
+  const duplasDelArmado = duplasDeLaFormacion(m);
   if(duplasDelArmado.length > 0){
     const enBlanco = duplasDelArmado.filter(par => eq.blanco.includes(par[0])).length;
     const enNegro = duplasDelArmado.filter(par => eq.negro.includes(par[0])).length;
