@@ -34,13 +34,15 @@ const RAIZ = path.join(__dirname, '..');
 const ANCHO_MINIMO = 360;
 
 /* Los anchos NO son "los dispositivos populares" sino los bordes donde el layout
-   cambia de forma: el piso, cada breakpoint del CSS (480, 560, 700) medido de los
+   cambia de forma: el piso, cada breakpoint del CSS (480, 700, 760) medido de los
    dos lados, y la franja de tablet. Un dispositivo popular puede caer lejos de
    todo borde y no probar nada. */
 // 1099/1100: breakpoint del layout de dos columnas de la pantalla de partido
 // (NAVEGACION_PARTIDOS_SPEC.md TC-007, A-01) — medido de los dos lados, mismo criterio que el
 // resto de la lista.
-const ANCHOS = [360, 390, 430, 479, 481, 559, 561, 600, 699, 701, 768, 900, 1099, 1100, 1200];
+// 759/760: corte del listado de jugadores — de 760 para arriba el renglón es una grilla de
+// columnas con encabezado fijo (turno 16b); por debajo vuelve al apilado (16c).
+const ANCHOS = [360, 390, 430, 479, 481, 559, 561, 600, 699, 701, 759, 760, 768, 900, 1099, 1100, 1200];
 
 /* ------------------------------------------------------------------ servidor */
 
@@ -76,13 +78,18 @@ function servir() {
    viewport y en dos columnas a 1400px, porque `.wrap` está topeado en 760px.
    Asertando sobre el panel, el invariante cubre las dos bandas con una sola regla
    y no queda ningún ancho exento. */
-/* En el listado de jugadores, los controles de administración deben bajar a su
-   propio renglón por debajo de 560px, para que el nombre y las estadísticas tengan
-   el ancho completo. Sin eso `.row-main` quedaba con 76px a 360px y adentro se
-   apilaban el nombre en tres líneas y las estadísticas en cuatro, con filas de 94
-   a 130px. Nada de eso desborda, así que MEDIR no lo veía. */
+/* En el listado de jugadores, abajo del corte de 760px el renglón vuelve al apilado
+   (turno 16c): nombre, puestos y estadísticas uno debajo del otro dentro de
+   `.row-main`, y a la derecha los dos únicos controles que quedaron —el puntaje y
+   el menú de "…"— en el MISMO renglón.
+
+   Hasta el turno 16 los controles eran cuatro (puntaje, interruptor, editar,
+   eliminar): ~158px que no encogían, que dejaban a `.row-main` con 76px a 360px y
+   obligaban a bajarlos a un renglón propio. Con dos (68px) entran al lado del
+   nombre, y lo que hay que asegurar ahora es lo contrario que antes: que entren.
+   Nada de esto desborda, así que MEDIR no lo ve. */
 const INVARIANTE_FILA_DE_JUGADOR = () => {
-  if (document.documentElement.clientWidth > 560) return [];
+  if (document.documentElement.clientWidth >= 760) return [];
   const filas = [...document.querySelectorAll('.roster .row')];
   if (!filas.length) return ['no se encontró ninguna .roster .row: ¿cambió el markup del listado?'];
 
@@ -102,16 +109,16 @@ const INVARIANTE_FILA_DE_JUGADOR = () => {
     if (nombre.getBoundingClientRect().height > 22) problemas.push(`"${quien}": el nombre quedó partido en más de una línea`);
     const stats = fila.querySelector('.row-stats');
     if (stats && stats.getBoundingClientRect().height > 20) problemas.push(`"${quien}": las estadísticas quedaron en más de una línea`);
-    /* Lo que de verdad hay que asegurar: que TODOS los controles bajen, no sólo que
-       el nombre entre. Con `flex-wrap` sola el nombre también entra, pero cuántos
-       controles suben depende del largo de cada nombre — a 480px quedaban 3 o 4
-       arriba en unas filas y 0 en otras, con alturas de 66 a 104px. Es la misma
-       irregularidad que el fix vino a sacar, y la primera versión de este
-       invariante la dejaba pasar por mirar sólo el nombre. */
-    const arriba = [...fila.children]
-      .filter(k => k !== main && !k.classList.contains('badge'))
-      .filter(k => Math.abs(k.getBoundingClientRect().top - main.getBoundingClientRect().top) < 25);
-    if (arriba.length) problemas.push(`"${quien}": ${arriba.length} control(es) quedaron en el renglón del nombre en vez de bajar`);
+    /* Los controles visibles tienen que compartir renglón con `.row-main`: si alguno
+       cae debajo, la fila pasa a dos renglones y el listado se estira ~40%. Se filtra
+       por ancho porque las celdas de columna (`.row-col`) existen en el DOM pero están
+       en `display:none` en esta banda. */
+    const cajaMain = main.getBoundingClientRect();
+    const abajo = [...fila.children]
+      .filter(k => k !== main && k !== badge)
+      .filter(k => k.getBoundingClientRect().width > 0)
+      .filter(k => k.getBoundingClientRect().top > cajaMain.bottom - 2);
+    if (abajo.length) problemas.push(`"${quien}": ${abajo.length} control(es) bajaron a un renglón propio en vez de entrar al lado del nombre`);
   }
   return [...new Set(problemas)].slice(0, 4);
 };
@@ -400,7 +407,9 @@ const ESCENARIOS = [
   { clave: 'ficha', rol: 'admin', nombre: 'ficha de jugador (alta/edición)',
     async preparar(page) {
       await irAPestania(page, 'Jugadores');
-      await page.click('.roster .row .icon-btn[title="Editar"]');
+      // El lápiz suelto del renglón se fue al menú de "…" con el turno 16.
+      await page.click('.roster .row .conv-menu-btn');
+      await page.click('#convMenu .conv-menu-item:has-text("Editar")');
       await page.waitForSelector('.card-pin-wrap.open');
     } },
 

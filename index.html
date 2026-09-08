@@ -174,20 +174,65 @@
   .error-msg{ color: var(--brick); font-size: 12.5px; margin-top: 8px; font-weight: 600; min-height: 1px; }
   .card-actions{ display:flex; gap:10px; margin-top: 16px; justify-content: flex-end; }
 
-  .roster{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: hidden; }
+  /* ---------- Listado de jugadores (turno 16 del proyecto de diseño) ----------
+     Dos bandas, no un continuo: de 760px para arriba el renglón es una grilla de columnas con
+     encabezado fijo (`16b`); por debajo vuelve al apilado de nombre + puestos + estadísticas
+     (`16c`). El `overflow` es `clip` y no `hidden` porque `hidden` crea un contenedor de scroll
+     propio y anula el `position:sticky` del encabezado. */
+  .roster{ background: var(--chalk); border: 1px solid var(--paper-line); border-radius: var(--radius-card); overflow: clip; }
   .row{ display:flex; align-items:center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--paper-line); }
   .row[draggable="true"]{ cursor: grab; }
   .row[draggable="true"]:active{ cursor: grabbing; }
   .row:last-child{ border-bottom:none; }
-  .row.inactive{ opacity: 0.5; }
+  /* El atenuado del inactivo va POR CELDA y no sobre el renglón entero: sobre el renglón entero
+     también apagaba la pastilla "Inactivo", y una pastilla al 50% queda en 2.37:1. */
+  .row.inactive .badge,
+  .row.inactive .row-name,
+  .row.inactive .row-tags,
+  .row.inactive .row-stats,
+  .row.inactive .row-col,
+  .row.inactive .avg-chip{ opacity: 0.5; }
 
   .badge{ flex-shrink:0; width: 34px; height: 34px; border-radius: 50%; display:flex; align-items:center; justify-content:center; font-family: var(--font-mono); font-size: 11px; font-weight: 700; color: var(--chalk); }
   .row-main{ flex: 1 1 auto; min-width: 0; }
-  .row-name{ font-weight: 600; font-size: 15px; }
-  .row-tags{ display:flex; gap:5px; margin-top: 3px; flex-wrap: wrap; }
+  /* En angosto envuelve (nombre arriba, puestos y "Inactivo" abajo); en ancho es un solo renglón. */
+  .row-ident{ display:flex; flex-wrap: wrap; align-items:center; gap: 5px; min-width: 0; }
+  .row-name{ flex: 1 1 100%; min-width: 0; font-weight: 600; font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-tags{ display:flex; gap:5px; flex-wrap: wrap; }
+  .row-ident .tag, .row-ident .status-chip{ flex: none; }
   .tag{ font-family: var(--font-mono); font-size: 10px; padding: 1px 6px; border-radius: 8px; background: var(--paper); color: var(--muted); border: 1px solid var(--paper-line); }
-  .row-stats{ font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .row-stats{ display:flex; align-items:center; gap: 8px; font-family: var(--font-mono); font-size: 11.5px; color: var(--muted); margin-top: 3px; }
+  .row-stat{ display:inline-flex; align-items:center; gap: 2px; }
+  .row-stats img{ width: 12px; height: 12px; display:block; margin-left: 0; vertical-align: baseline; }
   .avg-chip{ font-family: var(--font-mono); font-size: 13px; font-weight: 700; min-width: 38px; text-align:center; padding: 4px 6px; border-radius: var(--radius-control); background: var(--paper); border: 1px solid var(--paper-line); flex-shrink:0; }
+  /* El encabezado y las celdas numéricas sólo existen en la banda ancha: abajo del corte el
+     mismo dato vive apilado en `.row-stats`. */
+  .roster-head{ display: none; }
+  .row-col{ display: none; }
+
+  @media (min-width: 760px){
+    .roster{ --roster-cols: 34px minmax(0,1fr) 58px 78px 52px 52px 72px 30px; }
+    /* Con rol "jugador" no hay puntaje ni acciones (FR-003), así que sobran las dos últimas. */
+    body.role-jugador .roster{ --roster-cols: 34px minmax(0,1fr) 58px 78px 52px 52px; }
+    .roster-head, .row{ display: grid; grid-template-columns: var(--roster-cols); gap: 12px; align-items: center; }
+    .roster-head{ position: sticky; top: 0; z-index: 2; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--paper-line); font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
+    .roster-head > div{ text-align: center; }
+    .roster-head .roster-head-name{ text-align: left; }
+    .roster-head .roster-head-gep{ word-spacing: 2px; }
+    .row-ident{ flex-wrap: nowrap; gap: 8px; }
+    .row-name{ flex: 0 1 auto; }
+    .row-main{ position: relative; }
+    /* La versión apilada no se esconde con `display:none`: se saca de la vista pero se deja en el
+       árbol de accesibilidad. En columnas el número queda solo —"25", "0"— y sin el rótulo al lado
+       no dice nada leído en voz alta; el encabezado lo explica en pantalla, no en la lectura. Así
+       quien usa lector sigue escuchando la misma frase de siempre ("25 PJ, 6G 3E 3P, 0 Goles,
+       0 Asistencias") y las celdas de la grilla van `aria-hidden` para no repetirla. */
+    .row-stats{ position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+    .row-col{ display: block; font-family: var(--font-mono); font-size: 13px; text-align: center; font-variant-numeric: tabular-nums; }
+    .row-col-gep{ color: var(--muted); word-spacing: 2px; }
+    .row-col-vacio{ color: var(--muted); font-variant-numeric: normal; }
+    .row .avg-chip{ justify-self: center; width: 46px; min-width: 0; }
+  }
 
   .switch{ width: 38px; height: 20px; border-radius: var(--radius-pill); background: var(--paper-line); position: relative; cursor: pointer; flex-shrink:0; transition: background .15s ease; border: none; padding: 0; }
   .switch.on{ background: var(--pitch); }
@@ -964,29 +1009,11 @@
   .rule-unit{ font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
   .rule-off-hint{ font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
 
-  /* En pantalla chica los inputs de carga de resultado van SIEMPRE en su propio
-     renglón y centrados, no sólo cuando no entran. Dejarlo al criterio del wrap
-     natural mezclaba filas de 39px con filas de 69px según el largo del nombre
-     (13 de 16 envolvían a 360px, 1 de 16 a 480px), y esa irregularidad se lee peor
-     que la línea extra. 560px es donde el envolvimiento natural llega a cero, así
-     que el corte no deja ninguna banda a medias.
-     `flex-basis:100%` es lo que fuerza el salto: el grupo ocupa el ancho completo
-     de la fila, que ya es `flex-wrap:wrap`. */
-  @media (max-width: 560px){
-    /* Listado de jugadores: los controles de administración (puntaje, activo/inactivo,
-       editar, eliminar) suman ~158px que no encogen, y con los gaps dejaban a
-       `.row-main` con 76px de ancho a 360px. Adentro de esos 76px se apilaban el
-       nombre en dos o tres líneas y las estadísticas en cuatro, con filas de 94 a
-       130px de alto. Bajando los controles a su propio renglón, `.row-main` recibe
-       el ancho completo menos el badge: nada se parte, las alturas quedan parejas
-       (102px) y el listado entero queda MÁS CORTO que antes (2164px contra 2299px).
-       El 46px es el badge (34) más el gap de la fila (12): es lo único que comparte
-       renglón con `.row-main`. */
-    .row{ flex-wrap: wrap; }
-    .row-main{ flex-basis: calc(100% - 46px); }
-    .row .avg-chip, .row .switch, .row .icon-btn{ margin-top: 2px; }
-
-  }
+  /* Acá vivía el corte de 560px que bajaba los controles del listado de jugadores a su propio
+     renglón: los cuatro (puntaje, interruptor, editar, eliminar) sumaban ~158px que no encogían
+     y dejaban a `.row-main` con 76px a 360px. El turno 16 dejó dos controles —el puntaje y el
+     menú de "…"—, que suman 68px y entran en el renglón del nombre a 360px. El corte ya no hace
+     falta. */
 
   @media (max-width: 480px){
     .scores-grid{ grid-template-columns: repeat(2, 1fr); }
@@ -2315,13 +2342,43 @@
     // mientras el modo de orden es Manual; en cualquier otro caso (no-admin, u otro modo) las
     // filas no son arrastrables.
     const puedeArrastrar = isAdmin() && effectiveSortMode() === 'manual';
-    roster.innerHTML = list.map(p => {
+    /* Encabezado de columnas del turno 16b. Va como primer hijo de `.roster` y pega arriba con
+       `position:sticky` mientras el listado pasa por debajo; abajo de 760px el CSS lo esconde y
+       el dato vuelve al renglón apilado (16c). Las dos últimas columnas —Pts y el menú— sólo
+       existen para admin, igual que su contenido. */
+    const encabezado = `
+      <div class="roster-head" aria-hidden="true">
+        <div></div>
+        <div class="roster-head-name">Jugador</div>
+        <div>PJ</div>
+        <div class="roster-head-gep">G E P</div>
+        <div>Goles</div>
+        <div>Asist.</div>
+        ${isAdmin() ? '<div>Pts</div><div></div>' : ''}
+      </div>`;
+
+    roster.innerHTML = encabezado + list.map(p => {
       const avg = computeAvg(p.scores);
-      const tags = p.secundarias.map(s => `<span class="tag">${s}</span>`).join('');
+      // El nombre y los puestos salen de datos cargados por un jugador: se escapan (AGENTS.md § Estilo).
+      const tags = p.secundarias.map(s => `<span class="tag">${escaparHtml(s)}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
-      const statsText = p.partidosJugados
-        ? `${p.partidosJugados} PJ · ${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P · ${p.golesTotales || 0}<span class="stat-goal-icon">${GOAL_ICON}</span> · ${p.asistenciasTotales || 0}${BOOT_ICON}`
+      const jugo = !!p.partidosJugados;
+      // Versión apilada (16c): la que se ve abajo del corte, con la etiqueta pegada a cada dato.
+      const statsText = jugo
+        ? `<span class="row-stat">${p.partidosJugados} PJ</span>`
+          + `<span class="row-stat">${p.partidosGanados || 0}G ${p.partidosEmpatados || 0}E ${p.partidosPerdidos || 0}P</span>`
+          + `<span class="row-stat">${p.golesTotales || 0}${GOAL_ICON}</span>`
+          + `<span class="row-stat">${p.asistenciasTotales || 0}${BOOT_ICON}</span>`
         : '—';
+      /* Versión en columnas (16b): el número queda solo, en cifras tabulares y centrado, porque
+         el rótulo ya lo dice el encabezado. El que nunca jugó lleva el guión en PJ y deja las
+         otras tres celdas vacías, en vez de repetirlo cuatro veces. */
+      const columnas = jugo
+        ? `<div class="row-col" aria-hidden="true">${p.partidosJugados}</div>`
+          + `<div class="row-col row-col-gep" aria-hidden="true">${p.partidosGanados || 0} ${p.partidosEmpatados || 0} ${p.partidosPerdidos || 0}</div>`
+          + `<div class="row-col" aria-hidden="true">${p.golesTotales || 0}</div>`
+          + `<div class="row-col" aria-hidden="true">${p.asistenciasTotales || 0}</div>`
+        : `<div class="row-col row-col-vacio" aria-hidden="true">—</div><div class="row-col" aria-hidden="true"></div><div class="row-col" aria-hidden="true"></div><div class="row-col" aria-hidden="true"></div>`;
       const dragAttrs = puedeArrastrar
         ? `draggable="true" ondragstart="window.__dragStartRosterRow(event,'${p.id}')" ondragover="event.preventDefault()" ondrop="window.__dropOnRosterRow(event,'${p.id}')"`
         : '';
@@ -2331,21 +2388,42 @@
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}" ${dragAttrs}>
           <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
           <div class="row-main">
-            <div class="row-name">${fullName(p)}</div>
-            <div class="row-tags">${tags}</div>
+            <div class="row-ident">
+              <span class="row-name">${escaparHtml(fullName(p))}</span>
+              ${tags ? `<span class="row-tags">${tags}</span>` : ''}
+              ${p.estado === 'Inactivo' ? '<span class="status-chip finished">Inactivo</span>' : ''}
+            </div>
             <div class="row-stats">${statsText}</div>
           </div>
+          ${columnas}
           ${isAdmin() ? `
           <div class="avg-chip admin-only">${avg !== null ? avg : '—'}</div>
-          <button class="switch admin-only ${p.estado === 'Activo' ? 'on' : ''}" title="${p.estado === 'Activo' ? 'Desactivar' : 'Activar'}" onclick="window.__toggleEstado('${p.id}')"></button>
-          <button class="icon-btn admin-only" title="Editar" onclick="window.__editPlayer('${p.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
-          </button>
-          <button class="icon-btn admin-only" title="Eliminar permanentemente" onclick="window.__deletePlayer('${p.id}')">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-          </button>` : ''}
+          ${botonMenuJugador(p.id)}` : ''}
         </div>`;
     }).join('');
+  }
+
+  /* Qué se puede hacer con un jugador del plantel, en el orden en que el menú las lista. Los
+     tres son los mismos controles que antes vivían sueltos en el renglón (interruptor, editar,
+     eliminar) y siguen siendo sólo de admin (FR-003): al pasar a columnas no había lugar para
+     tres botones, y el menú de "…" ya existía para la cola de convocados. Sin interruptor, el
+     estado inactivo lo dicen el atenuado por celda y la pastilla "Inactivo". */
+  function accionesDeJugador(playerId){
+    if(!isAdmin()) return [];
+    const p = players.find(pl => pl.id === playerId);
+    if(!p) return [];
+    return [
+      { etiqueta: p.estado === 'Activo' ? 'Inactivar jugador' : 'Activar jugador', onclick: `window.__toggleEstado('${playerId}')` },
+      { etiqueta: 'Editar', onclick: `window.__editPlayer('${playerId}')` },
+      { etiqueta: 'Eliminar', tono: 'negativo', onclick: `window.__deletePlayer('${playerId}')` }
+    ];
+  }
+
+  function botonMenuJugador(playerId){
+    if(!accionesDeJugador(playerId).length) return '';
+    return `<button type="button" class="conv-menu-btn admin-only" aria-haspopup="menu" aria-expanded="false"
+      title="Más acciones" aria-label="Más acciones"
+      onclick="window.__abrirMenuJugador(event,'${playerId}')">${ICON_MAS_ACCIONES}</button>`;
   }
 
   // FR-010/FR-011 — reusa el mismo patrón de drag and drop nativo ya usado para mover jugadores
@@ -6191,7 +6269,11 @@
     if(items[siguiente]) items[siguiente].focus();
   }
 
-  window.__abrirMenuConvocado = function(ev, matchId, playerId){
+  /* El motor del menú lo comparten la cola de convocados y el listado de jugadores (turno 16).
+     Las acciones llegan como callback y no como arreglo porque se calculan recién DESPUÉS de
+     cerrar el menú que hubiera abierto: el toggle manda, y calcularlas antes sería trabajo tirado
+     en el caso más común, que es volver a tocar el mismo botón para cerrar. */
+  function abrirMenuDeAcciones(ev, obtenerAcciones){
     ev.preventDefault();
     ev.stopPropagation();
     const boton = ev.currentTarget;
@@ -6199,9 +6281,7 @@
     const yaAbierto = menuConvocadoAbierto && menuConvocadoAbierto.boton === boton;
     cerrarMenuConvocado();
     if(yaAbierto) return;
-    const m = matches.find(mm => mm.id === matchId);
-    if(!m) return;
-    const acciones = accionesDeConvocado(m, playerId);
+    const acciones = obtenerAcciones();
     if(!acciones.length) return;
 
     const menu = elementoMenuConvocado();
@@ -6241,6 +6321,17 @@
       window.addEventListener('resize', cerrarMenuConvocado);
       window.addEventListener('scroll', cerrarMenuConvocado, true);
     });
+  }
+
+  window.__abrirMenuConvocado = function(ev, matchId, playerId){
+    abrirMenuDeAcciones(ev, () => {
+      const m = matches.find(mm => mm.id === matchId);
+      return m ? accionesDeConvocado(m, playerId) : [];
+    });
+  };
+
+  window.__abrirMenuJugador = function(ev, playerId){
+    abrirMenuDeAcciones(ev, () => accionesDeJugador(playerId));
   };
 
   /* El menú se cierra ANTES de ejecutar la acción: casi todas repintan la lista, y con el menú
