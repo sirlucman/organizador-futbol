@@ -459,12 +459,14 @@ const ESCENARIOS = [
   { clave: 'rol-sesion-loader', rol: 'admin', nombre: 'loader de sesión mientras se refresca el token',
     /* El escenario del ESTADO DE LAYOUT NUEVO que NFR-006 declara (corregido). Corre en todos los
        anchos: la pelota de 92 px con su epígrafe tiene que entrar desde el piso de 360 px.
-       `refrescoDemora` es lo que lo hace visible — el loader está detrás de una demora de 400 ms
-       (el design system prohíbe montarlo por menos), y con el refresco instantáneo del doble no
-       se montaría nunca. Son 2500 ms y no 900 porque el runner espera `networkidle` más 600 ms
-       antes de llamar a `preparar`: con 900 la ventana del loader ya había cerrado y el escenario
-       se caía esperando un selector que nunca volvía. */
-    doble: { claimAusente: true, refrescoTrae: 'admin', refrescoDemora: 2500 },
+       `refrescoRetenido` es lo que lo hace visible y medible — el loader está detrás de una demora
+       de 400 ms (el design system prohíbe montarlo por menos), y con el refresco instantáneo del
+       doble no se montaría nunca. Se retiene en vez de demorarlo un número fijo de milisegundos
+       porque con una demora hay que atrapar un estado transitorio dentro de una ventana, y el
+       runner tarda un rato variable en llegar acá (`networkidle` + 600 ms): con 2500 ms de demora
+       el escenario ya se cayó una vez a 559 px, bajo la carga de la suite completa. Retenido, el
+       loader se queda puesto hasta que `comprobar` lo suelta. */
+    doble: { claimAusente: true, refrescoTrae: 'admin', refrescoRetenido: true },
     spec: ['rol/S-01b', 'rol/S-11', 'rol/S-11a', 'rol/NFR-001b', 'rol/NFR-006'],
     async preparar(page) {
       /* Se mide CON el loader en pantalla: el refresco tarda 900 ms y el loader monta a los 400,
@@ -472,8 +474,10 @@ const ESCENARIOS = [
       await page.waitForSelector('#sessionLoader .ball-loader', { state: 'visible', timeout: 4000 });
     },
     async comprobar(page) {
-      /* Se espera a que el refresco termine para poder afirmar sobre el final: un refresco, la
-         barra con sus tres solapas, y el loader retirado sin dejar la tarjeta escondida. */
+      /* Recién acá se suelta el refresco, y se espera a que termine, para poder afirmar sobre el
+         final: un refresco, la barra con sus tres solapas, y el loader retirado sin dejar la
+         tarjeta de login escondida debajo. */
+      await page.evaluate(() => window.__soltarRefresco && window.__soltarRefresco());
       await page.waitForFunction(() => window.session && window.session.rol === 'admin', { timeout: 8000 });
       await page.waitForTimeout(300);
       const r = await page.evaluate(() => ({
