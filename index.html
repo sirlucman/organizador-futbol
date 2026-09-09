@@ -1397,22 +1397,50 @@
 
   // Rol de la cuenta logueada ("admin"/"jugador") y, si es "jugador", el Jugador vinculado
   // a esa cuenta (ver data-model.md → Sesión de usuario, feature 007-permisos-por-usuario).
-  // Vive en una colección aparte de `data` (con campos nativos, no un blob JSON) porque las
-  // Firestore Security Rules necesitan leerlo para decidir qué puede leer/escribir cada cuenta
-  // (ver research.md #1 de esa feature).
+  // Viaja en los *custom claims* del token de Firebase Auth, que es lo que leen tanto esta
+  // funcion como las Firestore Security Rules (feature rol-en-el-token, D-01/D-06). Antes vivia
+  // en la coleccion `userRoles`, y resolverlo costaba una lectura a Firestore que se pagaba en
+  // el arranque de CADA sesion (medido: ~499ms) mas un get() por cada regla solo-admin. El
+  // claim es gratis: viene firmado dentro de un token que el cliente ya tiene.
+  // `userRoles` sigue existiendo como registro legible desde la consola, y nadie lo lee (D-05).
+  const ROLES_VALIDOS = ['admin', 'jugador'];
   window.session = { rol: 'jugador', jugadorId: null };
-  async function resolveSession(uid){
-    if(!db){ window.session = { rol: 'jugador', jugadorId: null }; return; }
+  /* Acota el refresco forzado del token a UNO por carga de pagina (TC-046). Es una variable de
+     modulo y NO se persiste a proposito: muere con la pestania, que es exactamente el alcance
+     que pide el constraint, y guardarla en localStorage la volveria un dato bajo control del
+     usuario, que es lo que TC-040 prohibe. */
+  let refrescoIntentado = false;
+  /* Resuelve `window.session` desde los claims del token. Recibe el objeto `user` de Firebase
+     Auth y no el uid: el claim se lee del user.
+
+     El fail-closed no tiene rama propia (TC-043): `window.session` ya arranca en `jugador` y
+     solo se sobrescribe con `admin` cuando el claim es EXACTAMENTE la cadena 'admin'. Un claim
+     ausente, vacio, `Admin` o `administrador` no entra en ese `if` y no necesita tratamiento.
+
+     El refresco (FR-006) es lo que hace posible el corte sin obligar a nadie a cerrar sesion:
+     una sesion abierta desde antes del cambio tiene un token sin el claim, y Firebase no lo
+     renueva hasta que expira. Se pide el token nuevo una sola vez por carga, y solo cuando el
+     claim FALTA — con el claim presente no se toca la red.
+
+     "Falta" es literal: un claim con un valor que no reconocemos (`Admin`, `administrador`, la
+     cadena vacia) NO dispara refresco, porque el token ya trae una respuesta y refrescarlo
+     traeria la misma. Es lo que pide TC-046 ("solo cuando el claim falta") y lo que separa
+     S-11 —el corte— de S-10a/S-10b, que son datos mal cargados y resuelven a `jugador`. */
+  async function resolveSession(user){
+    if(!user || typeof user.getIdTokenResult !== 'function'){
+      window.session = { rol: 'jugador', jugadorId: null };
+      return;
+    }
     try{
-      const doc = await db.collection('userRoles').doc(uid).get();
-      if(doc.exists && doc.data().rol === 'admin'){
-        window.session = { rol: 'admin', jugadorId: null };
-      }else if(doc.exists){
-        window.session = { rol: 'jugador', jugadorId: doc.data().jugadorId || null };
-      }else{
-        // Sin documento de rol: fail-closed, nunca se asume "admin" por defecto.
-        window.session = { rol: 'jugador', jugadorId: null };
+      let claims = (await user.getIdTokenResult()).claims || {};
+      const falta = claims.rol === undefined || claims.rol === null;
+      if(falta && !refrescoIntentado){
+        refrescoIntentado = true;
+        claims = (await user.getIdTokenResult(true)).claims || {};
       }
+      window.session = ROLES_VALIDOS.includes(claims.rol)
+        ? { rol: claims.rol, jugadorId: claims.rol === 'jugador' ? (claims.jugadorId || null) : null }
+        : { rol: 'jugador', jugadorId: null };
     }catch(e){
       console.error('No se pudo resolver el rol de la cuenta:', e);
       window.session = { rol: 'jugador', jugadorId: null };
