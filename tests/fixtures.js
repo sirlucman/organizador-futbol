@@ -1,7 +1,7 @@
 /* Planteles de prueba para el motor.
  *
  * `PARTIDO_TESTIGO` son los datos reales del partido que motivó las features 009/010/011,
- * leídos de la base de staging (ver .specify/specs/011-encaje-optimo-formacion/spec.md →
+ * leídos de la base de staging (ver docs/011-encaje-optimo-formacion/spec.md →
  * "Caso testigo"). El motor actual sobre este plantel reproduce exactamente el armado que
  * se vio en la aplicación: Blanco 51.8 / Negro 51.3.
  *

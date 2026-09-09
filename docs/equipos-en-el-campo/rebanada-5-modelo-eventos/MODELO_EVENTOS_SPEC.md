@@ -14,9 +14,9 @@
 > **Implementation plan:** [MODELO_EVENTOS_IMPLEMENTATION_PLAN.md](./MODELO_EVENTOS_IMPLEMENTATION_PLAN.md)
 
 > **Nota de gobernanza.** Esta Spec sigue viviendo en `docs/<feature>/`, no en
-> `openspec/`, aunque [`openspec/config.yaml`](../../../openspec/config.yaml)
-> (vigente desde hoy, 2026-09-01) declara que OpenSpec reemplaza a esta
-> metodología "para trabajo nuevo". "Equipos en el campo" no es trabajo nuevo:
+> `openspec/`, aunque `openspec/config.yaml` (vigente desde hoy, 2026-09-01)
+> declara que OpenSpec reemplaza a esta metodología "para trabajo nuevo".
+> "Equipos en el campo" no es trabajo nuevo:
 > es una feature en curso, con cuatro rebanadas ya mergeadas bajo `D-08`/`D-11`
 > del propio Concept Note, que fijan explícitamente que las siete rebanadas se
 > especifican con este método. Cambiar de sistema a mitad de una feature en
@@ -25,6 +25,11 @@
 > simplicidad pide evitar. Se continúa con `docs/`, a pedido explícito del
 > usuario, y se deja constancia acá por si la rebanada 6 o 7 quiere revisar la
 > decisión.
+>
+> *Actualización 2026-09-09: la decisión quedó sin objeto. OpenSpec fue
+> retirado del proyecto y la metodología de los tres documentos en
+> `docs/<feature>/` volvió a ser la única; la gobernanza vive hoy en
+> [`AGENTS.md`](../../../AGENTS.md).*
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5
 > *Sources & Origins* del Concept Note, en las Specs de las rebanadas 1 a 4, y
@@ -39,7 +44,7 @@
 > merge de la rebanada 4 (`65f5701`).
 
 > **Declaración de reemplazo (Principio de gobernanza vigente en
-> [`openspec/config.yaml`](../../../openspec/config.yaml)).** Esta Spec
+> [`AGENTS.md`](../../../AGENTS.md)).** Esta Spec
 > enmienda, en su parte, `TC-010` de la Spec de la rebanada 4
 > ([`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md)):
 >
@@ -170,7 +175,7 @@ como límites propios de esta rebanada:
   el Implementation Plan la ejecuta.
 
 Además, esta Spec no reemplaza ni modifica ninguna de las reglas de
-[`openspec/specs/resultados-partido/spec.md`](../../../openspec/specs/resultados-partido/spec.md):
+[`docs/resultados-partido/spec.md`](../../resultados-partido/spec.md):
 "El gol de penal cuenta como gol", "Validación de penales contra goles del
 jugador" y "El gol en contra suma para el equipo rival, no para el propio"
 siguen vigentes sin cambios — `D-04` mueve **cómo se guarda** el dato, nunca
@@ -798,7 +803,7 @@ erDiagram
 | Date | Author | Change |
 |---|---|---|
 | 2026-09-01 | Lucas Manoukian | Corrección encontrada al escribir el Implementation Plan: `TC-030` declaraba "no aplica ningún valor visual" pero, al llevar un ID numerado, `AC-52` exigía que §11.3 le citara un `AC-*` — y ninguno lo hacía, porque una regla que no aplica no tiene evidencia de cumplimiento que ofrecer. Se retira el ID y se deja como ruling sin numerar en §4.4, mismo criterio que ya usan las categorías de CWE no aplicables de §4.5. No cambia ninguna obligación: sigue siendo cierto que esta rebanada no toca ningún valor visual. Self-critique: no corresponde (corrección puntual, verificada contra el propio §11.3). |
-| 2026-09-01 | Lucas Manoukian | Initial draft. Deriva la Spec del Concept Note (§8.2, D-04, D-06, D-08) y de la sección *State Management* del handoff, que fija la forma concreta del evento (`entryLog`, `ev: "gol"\|"penal"\|"contra"\|"asist"`) con más precisión que la prosa del Concept Note. Enumera los nueve puntos de lectura y los dos de escritura existentes de `m.resultado.statsPorJugador`, verificados por lectura directa de `index.html` en el estado posterior al merge de la rebanada 4. Declara la enmienda parcial de `TC-010` de la rebanada 4 y la nota de gobernanza sobre continuar con `docs/` en vez de OpenSpec para esta feature en curso. Self-critique: passed (1🔴 / 3🟡 / 1🔵), los cinco resueltos. El 🔴: `FR-014` sólo daba entrada en la derivación a jugadores con al menos un evento, lo que habría hecho que `recomputeAllPlayerStatsFromMatches` (que itera `Object.entries(stats)`) dejara de contar como jugado, para un jugador sin eventos, un partido en el que participó — una regresión real de estadísticas acumuladas descubierta al chequear el propio escenario `S-05` contra el código citado (se agregó `FR-014b`, la variante `S-02d` y su cita en `TC-010`). Los 🟡: `FR-002` no tenía sujeto EARS explícito ("El sistema…", corregido); esta Spec no declaraba en ningún lado que las reglas de `openspec/specs/resultados-partido/spec.md` (penal cuenta como gol, penal ≤ goles, en contra suma al rival) siguen vigentes sin cambios, pese a que el propio Concept Note lo señala en §6.5 (se agregó la cita explícita al final de §3.3); `AC-05` no citaba ningún `FR-*` (se agregó "cubre FR-010 a FR-016"). El 🔵: la etiqueta de la relación `PARTIDO ||--o{ EVENTO` en el diagrama ER llevaba paréntesis y un punto dentro de un string entre comillas, innecesario y con algo de riesgo de parseo Mermaid (simplificada a "tiene"). |
+| 2026-09-01 | Lucas Manoukian | Initial draft. Deriva la Spec del Concept Note (§8.2, D-04, D-06, D-08) y de la sección *State Management* del handoff, que fija la forma concreta del evento (`entryLog`, `ev: "gol"\|"penal"\|"contra"\|"asist"`) con más precisión que la prosa del Concept Note. Enumera los nueve puntos de lectura y los dos de escritura existentes de `m.resultado.statsPorJugador`, verificados por lectura directa de `index.html` en el estado posterior al merge de la rebanada 4. Declara la enmienda parcial de `TC-010` de la rebanada 4 y la nota de gobernanza sobre continuar con `docs/` en vez de OpenSpec para esta feature en curso. Self-critique: passed (1🔴 / 3🟡 / 1🔵), los cinco resueltos. El 🔴: `FR-014` sólo daba entrada en la derivación a jugadores con al menos un evento, lo que habría hecho que `recomputeAllPlayerStatsFromMatches` (que itera `Object.entries(stats)`) dejara de contar como jugado, para un jugador sin eventos, un partido en el que participó — una regresión real de estadísticas acumuladas descubierta al chequear el propio escenario `S-05` contra el código citado (se agregó `FR-014b`, la variante `S-02d` y su cita en `TC-010`). Los 🟡: `FR-002` no tenía sujeto EARS explícito ("El sistema…", corregido); esta Spec no declaraba en ningún lado que las reglas de `docs/resultados-partido/spec.md` (penal cuenta como gol, penal ≤ goles, en contra suma al rival) siguen vigentes sin cambios, pese a que el propio Concept Note lo señala en §6.5 (se agregó la cita explícita al final de §3.3); `AC-05` no citaba ningún `FR-*` (se agregó "cubre FR-010 a FR-016"). El 🔵: la etiqueta de la relación `PARTIDO ||--o{ EVENTO` en el diagrama ER llevaba paréntesis y un punto dentro de un string entre comillas, innecesario y con algo de riesgo de parseo Mermaid (simplificada a "tiene"). |
 
 ---
 

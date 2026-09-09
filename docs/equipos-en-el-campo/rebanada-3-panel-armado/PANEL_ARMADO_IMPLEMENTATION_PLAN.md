@@ -130,8 +130,8 @@ y sin navegador.
 | `tests/panel.test.js` | Archivo nuevo: las funciones puras del panel (`TD-08`) | new |
 | `tests/layout.test.js` | Gana los escenarios del panel y el invariante de los botones de ícono | modified |
 | `tests/fixtures-app.js` | Los armados ganan `balanceLineas` y `formacion` (`TD-11`) | modified |
-| `.specify/specs/003-motor-generacion-equipos/spec.md` | Recibe la anotación recíproca de reemplazo del `FR-009` | modified |
-| `.specify/specs/012-puntajes-coherentes-panel/spec.md` | Recibe la anotación recíproca de la superficie de lectura | modified |
+| `docs/003-motor-generacion-equipos/spec.md` | Recibe la anotación recíproca de reemplazo del `FR-009` | modified |
+| `docs/012-puntajes-coherentes-panel/spec.md` | Recibe la anotación recíproca de la superficie de lectura | modified |
 
 ## 5. Engineering rules / project conventions reference
 
@@ -321,8 +321,8 @@ index.html
 tests/layout.test.js
 tests/fixtures-app.js
 AGENTS.md
-.specify/specs/003-motor-generacion-equipos/spec.md
-.specify/specs/012-puntajes-coherentes-panel/spec.md
+docs/003-motor-generacion-equipos/spec.md
+docs/012-puntajes-coherentes-panel/spec.md
 ```
 
 No hay archivos borrados: los tres resúmenes se retiran de `index.html`, que ya
@@ -384,7 +384,7 @@ Implementation tasks (agrupadas en commits atómicos):
 - [ ] T-1.33 [P] Agregar el escenario `panel-jugador` (rol `jugador`): sin combo, sin aviso, sin botones de ícono, sin botonera, **sin píldora, sin grilla y sin receipt**, y con la cancha y los nombres. Conserva el modelo de permisos de `007-permisos-por-usuario`, que la aplicación ya implementaba (`S-01d`, `S-02c`, `S-04g`, `S-05e`, `S-20`, `FR-046`, `FR-081`)
 - [ ] T-1.C8 Commit — `test(layout): el panel rediseñado y el invariante de los botones de ícono (S-01, S-04)`
 
-- [ ] T-1.34 Agregar la anotación recíproca de reemplazo en las dos specs pisadas: `FR-009` de [`003-motor-generacion-equipos`](../../../.specify/specs/003-motor-generacion-equipos/spec.md) y la superficie de lectura de [`012-puntajes-coherentes-panel`](../../../.specify/specs/012-puntajes-coherentes-panel/spec.md) (`OPEN-Q-01`, Principio I)
+- [ ] T-1.34 Agregar la anotación recíproca de reemplazo en las dos specs pisadas: `FR-009` de [`003-motor-generacion-equipos`](../../003-motor-generacion-equipos/spec.md) y la superficie de lectura de [`012-puntajes-coherentes-panel`](../../012-puntajes-coherentes-panel/spec.md) (`OPEN-Q-01`, Principio I)
 - [ ] T-1.C9 Commit — `docs(specs): anotación recíproca del FR-009 y de 012 (OPEN-Q-01)`
 
 - [ ] T-1.35 Correr `node tools/servir-fixture.js`, mirar la pantalla a 360 px y a 1200 px con el emulador de dispositivo, y registrar en el PR si algún dato retirado se extraña y si el receipt y los números se leen como contradictorios (`R-02`, `R-04`, `OPEN-Q-04`, `T-1.D13`)

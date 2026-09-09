@@ -98,10 +98,10 @@ flowchart LR
 | `index.html` (IIFE, match-result section, ~lines 1028-4045) | Single-file app; owns the match-result data model, draft state, rendering, and persistence this feature extends | modified |
 | `assets/goal-icon.png` | Existing green goal icon | untouched |
 | `assets/goal-icon-red.png` | New red variant of the same icon, used for self-goal display and input label | new |
-| `openspec/specs/resultados-partido/spec.md` | Project's own committed spec for match-result goal tracking (separate from this methodology's docs) | modified |
+| `docs/resultados-partido/spec.md` | Project's own committed spec for match-result goal tracking (separate from this methodology's docs) | modified |
 | `tests/motor.test.js`, `tests/fixtures-app.js`, `tests/harness.js` | Existing automated test suites (team-generation engine) | untouched |
 | `tests/layout.test.js` | Responsive-layout regression suite (Principio V) | modified — see T-1.13 |
-| `openspec/changes/archive/2026-08-21-goles-por-penal/**` | Prior-art reference for this Plan's shape | untouched (read-only reference) |
+| `docs/resultados-partido/goles-por-penal/**` | Prior-art reference for this Plan's shape | untouched (read-only reference) |
 
 ## 5. Engineering rules / project conventions reference
 
@@ -239,7 +239,7 @@ docs/goles-en-contra/GOLES_EN_CONTRA_IMPLEMENTATION_PLAN.md
 **Modified files:**
 ```
 index.html
-openspec/specs/resultados-partido/spec.md
+docs/resultados-partido/spec.md
 tests/layout.test.js
 ```
 
@@ -319,7 +319,7 @@ Implementation tasks (grouped into atomic commits):
 
 - [ ] T-1.12 Add a new `### Requirement: Registro de goles en contra`
   section (mirroring the existing penal-requirement shape) to
-  `openspec/specs/resultados-partido/spec.md`, cross-referencing this
+  `docs/resultados-partido/spec.md`, cross-referencing this
   Plan's Spec
 - [ ] T-1.C7 Commit — `docs(spec): documenta el registro de goles en contra en resultados-partido`
 
@@ -358,7 +358,7 @@ tooling. Any fix made here becomes its own follow-up commit
   this repo)
 - [ ] T-1.D4 No type-checker configured — N/A
 - [ ] T-1.D5 No `TODO`/`FIXME`/`HACK` left in changed files —
-  `git grep -nE "TODO|FIXME|HACK" -- index.html assets/goal-icon-red.png openspec/specs/resultados-partido/spec.md` returns nothing
+  `git grep -nE "TODO|FIXME|HACK" -- index.html assets/goal-icon-red.png docs/resultados-partido/spec.md` returns nothing
 - [ ] T-1.D6 Implementation matches §5 conventions (re-read §5 before
   submitting)
 - [ ] T-1.D7 Every Spec FR/TC assigned to this branch is implemented —
@@ -496,7 +496,7 @@ NFR-005) and this feature introduces no quantified NFR to bind a signal to
 > affected*, not one row per closed-vocabulary scope regardless of
 > applicability, so an inapplicable scope is correctly left with no row
 > rather than stuffed with an unrelated task. (Updating
-> `openspec/specs/resultados-partido/spec.md`, `T-1.12`, is internal
+> `docs/resultados-partido/spec.md`, `T-1.12`, is internal
 > documentation upkeep, not a consequence with an affected external
 > party — it doesn't warrant its own `IMP-*` row.)
 

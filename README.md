@@ -32,19 +32,21 @@ No existe autenticación: cualquier persona con acceso a la aplicación actúa c
 
 ## Especificaciones por feature
 
-Esta versión está compuesta por tres features, cada una con su propio spec detallado bajo `.specify/specs/`:
+Esta versión está compuesta por tres features, cada una con su propio spec detallado bajo `docs/`:
 
-- [**Gestión de jugadores**](.specify/specs/002-gestion-jugadores/spec.md) — alta/edición/validaciones de jugadores, posiciones, puntajes, búsqueda/filtro, activación/desactivación, eliminación permanente.
-- [**Gestión de partidos**](.specify/specs/001-organizacion-partidos/spec.md) — creación de partidos, cancha, convocatoria, titulares/suplentes, cierre/reapertura de inscripción, carga de resultado, finalización, eliminación.
-- [**Motor de generación de equipos**](.specify/specs/003-motor-generacion-equipos/spec.md) — estrategias, reglas e invariantes de balance, configuración del motor, edición manual de equipos, regeneración, explicabilidad y resumen de la generación.
+- [**Gestión de jugadores**](docs/002-gestion-jugadores/spec.md) — alta/edición/validaciones de jugadores, posiciones, puntajes, búsqueda/filtro, activación/desactivación, eliminación permanente.
+- [**Gestión de partidos**](docs/001-organizacion-partidos/spec.md) — creación de partidos, cancha, convocatoria, titulares/suplentes, cierre/reapertura de inscripción, carga de resultado, finalización, eliminación.
+- [**Motor de generación de equipos**](docs/003-motor-generacion-equipos/spec.md) — estrategias, reglas e invariantes de balance, configuración del motor, edición manual de equipos, regeneración, explicabilidad y resumen de la generación.
 
-Restricciones técnicas transversales (persistencia en Firestore, requisitos de interfaz, principios de arquitectura, volumen esperado) están documentadas en [`openspec/config.yaml`](openspec/config.yaml).
+Restricciones técnicas transversales (persistencia en Firestore, requisitos de interfaz, principios de arquitectura, volumen esperado) están documentadas en [`AGENTS.md`](AGENTS.md).
 
 Ideas para versiones futuras (estadísticas, disponibilidad de jugadores, login, múltiples grupos, etc.) viven en [`Roadmap.md`](Roadmap.md), no en los specs de feature.
 
 ## Cómo se trabaja en este repo
 
-El spec de cada feature ya construida es la fuente de verdad sobre el comportamiento actual, esté en `.specify/specs/` o en `docs/<feature>/` (specs viejas, no migradas). Cuando una idea de `Roadmap.md` se decide encarar, o se necesita modificar una feature existente, se crea un change de OpenSpec (ver `openspec/config.yaml` para las reglas del proyecto) vía `/opsx:propose` → `/opsx:apply` → `/opsx:archive`; al archivar, la spec queda en `openspec/specs/`.
+El spec de cada feature ya construida es la fuente de verdad sobre el comportamiento actual, y todos viven bajo `docs/<feature>/`. Cuando una idea de `Roadmap.md` se decide encarar, o se necesita modificar una feature existente, se especifica con los tres documentos de engineering methodology —Concept Note, Spec e Implementation Plan— en su propia carpeta `docs/<feature>/`. Las reglas completas, y la obligación de confirmar la metodología antes de empezar, están en [`AGENTS.md`](AGENTS.md).
+
+Las specs de las features `001`–`015` vienen del flujo speckit y `docs/resultados-partido/` de OpenSpec; las dos herramientas se retiraron del proyecto el 2026-09-09 y esos documentos siguen vigentes tal como están, sin reescribirse al formato nuevo.
 
 ## Entorno de pruebas (staging)
 

@@ -332,7 +332,7 @@ aplicable acá.
 - **FR-022** — El sistema shall mostrar el marcador de ambos equipos,
   recalculado a partir del borrador completo, sin importar qué pestaña esté
   activa (regla de goles propios + en contra del rival heredada de
-  `openspec/specs/resultados-partido/spec.md:85-86`).
+  `docs/resultados-partido/spec.md:85-86`).
 
 ### 7.4 Carga por toque
 
@@ -359,7 +359,7 @@ aplicable acá.
   then el sistema shall no agregar el evento. Hereda la regla ya
   implementada en `index.html:3955-3960` ("Un equipo que no hizo goles no
   puede tener asistencias cargadas"), que
-  `openspec/specs/resultados-partido/spec.md:36` cita por analogía al
+  `docs/resultados-partido/spec.md:36` cita por analogía al
   definir la regla equivalente de penales.
 - **FR-033** — El sistema shall no deshabilitar ni bloquear la carga de un
   gol de penal en función de los goles previos del jugador: un evento
@@ -738,7 +738,7 @@ funciones que ya existen.
   [`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md)
   (rebanada 4); el selector segmentado y el patrón de pestañas de `D-21`
   (rebanada 2/3); la regla de goles en contra y de asistencia sin gol de
-  `openspec/specs/resultados-partido/spec.md`.
+  `docs/resultados-partido/spec.md`.
 - **Internal modules / teams:** ninguno más allá del propio `index.html`; no
   hay equipos externos involucrados.
 - **Feature flags / config:** ninguno; `D-12` descarta un camino alternativo
@@ -802,7 +802,7 @@ que registrar.
 | 2026-09-01 | Lucas Manoukian | Enmienda pedida por el propietario tras usar `feature/carga-por-toque`: mantener presionado el mismo destino de toque de `FR-030`/`FR-030b` (≥550ms) también saca un evento de la familia activa, sin bajar hasta la fila de detalle a tocar "−". Se agregan `FR-054`/`FR-054b` (§7.6b) y las variantes `S-04d`/`S-04e`. Reutiliza `quitarUltimoDeFamilia`/`__quitarUltimoDeFamiliaCarga`, ya existentes (`FR-051`): no hay ninguna regla de negocio nueva, sólo un segundo gatillo para la misma acción. Self-critique: no corresponde (adición acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al probar `feature/carga-por-toque` ya mergeada en un teléfono real: el nombre del jugador (`.camiseta-nombre`) resultó un blanco de toque demasiado chico en la práctica. Se ajusta `FR-030` para que, sobre una unidad INDIVIDUAL, el toque abarque toda la camiseta (silueta y nombre); sobre una dupla sigue acotado al nombre de cada integrante, sin cambios (`FR-030b` sigue vigente tal cual). Se agrega la variante `S-01f`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al empezar el Implementation Plan: la Spec no decía qué pasa al tocar una dupla de rotación (dos jugadores compartiendo una camiseta) — el toque tal como estaba redactado (`FR-030` original, "toca la camiseta") no podía distinguir a qué integrante atribuir el evento, mientras que la grilla numérica que esta rebanada reemplaza sí permitía cargar a cada integrante por separado (`renderTeamPlayerRowDupla`). Se agrega `FR-030b`, se ajusta `FR-030` para que el toque ocurra sobre el nombre del jugador (no toda la camiseta) —lo que hace posible distinguir integrantes sin agregar un control nuevo—, y se agrega la variante `S-01e`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, encontrada y resuelta antes de escribir el Plan). |
-| 2026-09-01 | Lucas Manoukian | Initial draft. Self-critique: passed (1🔴 / 4🟡 / 1🔵) — el 🔴 (cita sin verificar de la reutilización de `escaparHtml` en `TC-003`) y los cuatro 🟡 (`FR-003`/`FR-080` usaban el patrón EARS "Where" para una condición de rol en vez de "While"; `FR-005` era compuesta y se partió en `FR-005`/`FR-005b`; `FR-032` citaba sólo la analogía de `openspec/specs/resultados-partido/spec.md:36` en vez de la regla ya implementada en `index.html:3955-3960`; faltaba `D-18` en §3.3 como precedente heredado) resueltos; el 🔵 (fila vacía de `[OPEN-Q-N]` en §16) resuelto quitando la tabla y dejando la declaración en prosa. |
+| 2026-09-01 | Lucas Manoukian | Initial draft. Self-critique: passed (1🔴 / 4🟡 / 1🔵) — el 🔴 (cita sin verificar de la reutilización de `escaparHtml` en `TC-003`) y los cuatro 🟡 (`FR-003`/`FR-080` usaban el patrón EARS "Where" para una condición de rol en vez de "While"; `FR-005` era compuesta y se partió en `FR-005`/`FR-005b`; `FR-032` citaba sólo la analogía de `docs/resultados-partido/spec.md:36` en vez de la regla ya implementada en `index.html:3955-3960`; faltaba `D-18` en §3.3 como precedente heredado) resueltos; el 🔵 (fila vacía de `[OPEN-Q-N]` en §16) resuelto quitando la tabla y dejando la declaración en prosa. |
 
 ---
 
