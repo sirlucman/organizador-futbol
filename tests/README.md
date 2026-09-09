@@ -4,14 +4,15 @@
 node tests/motor.test.js        # el motor de generación de equipos
 node tests/cancha.test.js       # la cancha: agrupado en líneas, sub-filas, nombre y escapado
 node tests/layout.test.js       # el layout responsive (Principio V)
+node tests/sesion.test.js       # el rol desde el claim del token: fail-closed, refresco acotado
 node tests/rol-script.test.js   # el script de roles: rechazos, listado, escritura conjunta
 node tests/reglas.test.js       # el rol en el token contra staging (necesita credenciales)
 ```
 
 Todos devuelven código de salida 1 solo si se rompe el comportamiento actual.
 
-`motor.test.js`, `cancha.test.js` y `rol-script.test.js` no tienen dependencias: Node y nada
-más. `layout.test.js` necesita un navegador y `reglas.test.js` necesita credenciales de
+`motor.test.js`, `cancha.test.js`, `sesion.test.js` y `rol-script.test.js` no tienen
+dependencias: Node y nada más. `layout.test.js` necesita un navegador y `reglas.test.js` necesita credenciales de
 staging; los dos explican por qué más abajo, y los dos avisan y no fallan cuando no las
 tienen.
 
@@ -253,6 +254,29 @@ no tenerlo: ocupa el lugar de una garantía sin serlo.
 
 ## Los tests del rol en el token
 
+**[sesion.test.js](sesion.test.js)** — `resolveSession()`, que es la función que traduce el claim
+del token a `window.session`. Recorta las declaraciones de `index.html` por nombre con
+[harness.js](harness.js) y le inyecta un `user` de Firebase Auth falso cuyo
+`getIdTokenResult(forzado)` devuelve claims distintos según se pida o no un token nuevo: eso es
+lo que vuelve unitario el **corte** de la mudanza, que en la realidad depende de una sesión
+abierta desde antes del cambio. Dos grupos de casos merecen atención:
+
+- **El fail-closed no tiene rama propia.** `window.session` arranca en `jugador` y sólo se
+  sobrescribe cuando el claim es *exactamente* la cadena `admin`. Los casos recorren todas las
+  formas en que el claim puede venir mal —ausente, `null`, vacío, `Admin`, `administrador`, un
+  número, un array, un objeto con `toString`— y ninguna da `admin`. La comparación es por
+  igualdad exacta a propósito: con `==`, `['admin']` pasaría.
+- **El refresco está acotado a uno por carga de página**, y eso es una propiedad sobre el número
+  de llamadas, no sobre el resultado. El caso `rol/S-11c` corre 40 resoluciones al azar sobre el
+  *mismo* sandbox —que es lo que representa una sola carga— y cuenta los pedidos forzados.
+
+Los casos `rol/S-21a`, `rol/NFR-005`, `rol/FR-032`, `rol/TC-010` y `rol/TC-002` son aserciones
+**sobre la fuente** de `index.html`, con el mismo mecanismo que usa `panel.test.js`. Es la única
+forma de probar la *ausencia* de un camino de código: que no quede nada que lea una pista del rol
+de `localStorage`, que ninguna línea ejecutable nombre `userRoles`, y que la lectura del token
+viva sólo dentro de `resolveSession` y no se haya filtrado a la interfaz.
+
+
 La feature [rol-en-el-token](../docs/rol-en-el-token/) mueve el rol de cada cuenta
 (`admin`/`jugador`) de un documento de Firestore a un *custom claim* del token de Firebase
 Auth. Eso deja dos superficies nuevas que probar, y una de ellas no vive en el repositorio.
@@ -305,6 +329,32 @@ node tools/medir-motor.js perf                          # cuánto tarda una gene
 **¿CUÁNTO cuesta un problema?** Genera planteles al azar (con semilla, así que todo hallazgo se reproduce) y los compara contra el óptimo del espacio conjunto. La palanca es `--mezcla`, la proporción de titulares con posición secundaria cargada: es lo que controla cuántos escenarios de encaje empatan, o sea cuán duro es el caso. Sin esto, el gap del desempate de encaje (FR-028) parecía teórico; medido, resultó que en planteles con empate el motor se quedaba corto en cerca de la mitad de los casos, hasta por 4.5 puntos en una línea. Eso es lo que justificó el arreglo.
 
 **¿El motor de hace N commits se comportaba distinto?** `comparar` vuelca el `index.html` de un commit a un temporal, lo carga con el mismo harness y corre las dos versiones sobre los mismos planteles. Es lo que se usó para elegir los fixtures de regresión: un fixture donde el motor viejo ya acertaba no protege de nada. `PARTIDO_CANCHA9_EMPATE` salió de ahí — el motor previo al arreglo fallaba en el 41% de los planteles de cancha de 9, y ese es uno de los peores.
+
+### Medir el arranque
+
+[tools/medir-arranque.js](../tools/medir-arranque.js) responde las dos preguntas que el doble de
+Firebase no puede, porque no tiene red: **cuánto tarda** la barra de solapas en quedar pintada
+contra Firebase de verdad, y **cuántas lecturas** cuesta un arranque.
+
+```sh
+ROL_MEDIR_USER=admin ROL_MEDIR_PASS=... node tools/medir-arranque.js --caso=vigente
+ROL_MEDIR_USER=admin ROL_MEDIR_PASS=... node tools/medir-arranque.js --caso=vencido
+node tools/medir-arranque.js --caso=vigente --lecturas   # sólo el conteo por colección
+```
+
+Cuenta las lecturas envolviendo `firebase.firestore` **antes** de que arranque la aplicación, y
+es exacto porque la aplicación tiene exactamente tres puntos de acceso a Firestore y todos pasan
+por ahí. Lo que este conteo **no** ve son los `get()` que hacen las propias Security Rules: esos
+no los ejecuta el cliente, y para ésos la evidencia es el texto publicado más el panel de uso de
+la consola de Firebase.
+
+El caso `vencido` no espera una hora: vacía el claim `rol` del primer token que el SDK entrega,
+lo que fuerza el mismo intercambio de red contra el endpoint de tokens que el SDK hace cuando el
+token expira solo. Es el mismo mecanismo, no la misma corrida — y por eso el marcador
+`[UNVERIFIED]` de `NFR-001b` en la Spec sigue abierto en ese punto.
+
+Mide contra **staging**: sirve el `index.html` del repo en 127.0.0.1, y cualquier hostname que no
+sea el de GitHub Pages hace que la aplicación se conecte al proyecto de staging. Sólo lee.
 
 El ciclo completo es `comparar` → una semilla interesante → `volcar` → fixture nuevo. Los dos fixtures sintéticos de [fixtures.js](fixtures.js) llevan anotado el comando que los regenera exacto.
 
