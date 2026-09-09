@@ -6,7 +6,7 @@
 >
 > **Concept note:** [ROL_EN_EL_TOKEN_CONCEPT.md](./ROL_EN_EL_TOKEN_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md](./ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5
 > *Sources & Origins* de la Concept Note, que es el registro maestro. Donde un
@@ -676,6 +676,5 @@ erDiagram
 *Esta Spec define qué debe hacer el sistema, cómo debe comportarse y qué
 soluciones son admisibles. Las decisiones concretas de implementación
 —estructura de módulos, rutas, patrones, orden de ramas— viven en el
-Implementation Plan (`ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md`, todavía sin
-escribir). La motivación y el porqué viven en la
+Implementation Plan ([ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md](./ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md)). La motivación y el porqué viven en la
 [Concept Note](./ROL_EN_EL_TOKEN_CONCEPT.md).*

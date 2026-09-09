@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** [ROL_EN_EL_TOKEN_SPEC.md](./ROL_EN_EL_TOKEN_SPEC.md) · **Implementation plan:** *not yet written*
+> **Spec:** [ROL_EN_EL_TOKEN_SPEC.md](./ROL_EN_EL_TOKEN_SPEC.md) · **Implementation plan:** [ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md](./ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md)
 
 ## 1. TL;DR
 
