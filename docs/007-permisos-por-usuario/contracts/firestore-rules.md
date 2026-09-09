@@ -81,15 +81,16 @@ service cloud.firestore {
 > sumar su bloque acá — justamente lo que pide el comentario de arriba ("si en el futuro
 > se agrega otro flag de este tipo, agregar su propio match acá").
 >
-> **Lo que se midió** (sonda de solo lectura contra staging, 2026-09-09): una cuenta
-> `admin` **lee** ese documento; una cuenta `jugador` recibe `permission-denied`. O sea
-> que en staging **existe** una regla para él y su comportamiento observable es idéntico
-> al de los otros cinco flags de migración.
+> **Lo que se midió** (sondas de solo lectura, 2026-09-09). En **staging**: una cuenta
+> `admin` **lee** ese documento (valor `true`) y una cuenta `jugador` recibe
+> `permission-denied`. En **producción**: una cuenta `admin` también lo lee, con el mismo
+> valor. O sea que **existe una regla en los dos proyectos** y su comportamiento
+> observable es idéntico al de los otros cinco flags de migración.
 >
 > **Lo que sigue sin saberse:** el **texto exacto** de esa regla —no se puede leer desde
-> el cliente, sólo desde la consola— y si **producción** tiene la misma.
-> `[UNVERIFIED — el texto de la regla y el estado de producción requieren abrir la consola
-> de Firebase de cada proyecto]`
+> el cliente, sólo desde la consola— y el lado *deny* en producción, no probado por no
+> haber credenciales de una cuenta `jugador` de ese proyecto.
+> `[UNVERIFIED — el texto de la regla requiere abrir la consola de Firebase de cada proyecto]`
 >
 > Quien reescriba estas reglas debe copiar la regla viva de la consola de **los dos**
 > proyectos y no asumir que este archivo está completo.
