@@ -24,6 +24,12 @@
  *     default y de máximo; cuando no quedan más páginas, no devuelve `pageToken`.
  *     https://firebase.google.com/docs/reference/admin/node/firebase-admin.auth.listusersresult
  *
+ * Un detalle que la documentación NO deja ver y que hubo que comprobar sobre la versión instalada:
+ * en la 14 la API con espacio de nombres murió. El `admin.auth()` / `admin.firestore()` /
+ * `admin.credential.cert()` que aparece en casi todos los ejemplos de internet tira
+ * `Cannot read properties of undefined`, porque el require de la raíz ya sólo trae lo de `app`.
+ * Va la API modular: `firebase-admin/app`, `firebase-admin/auth`, `firebase-admin/firestore`.
+ *
  * Uso:
  *   node tools/rol.js asignar <email|uid> <admin|jugador> [jugadorId] --llave=<ruta>
  *   node tools/rol.js listar --llave=<ruta>
@@ -90,18 +96,25 @@ function cargarSdk(rutaLlave) {
       '(le faltan project_id, private_key o client_email).');
   }
 
-  let admin;
+  /* API MODULAR, no la vieja con espacio de nombres. En firebase-admin 14 el `admin.auth()` /
+     `admin.firestore()` / `admin.credential.cert()` de los ejemplos viejos ya no existe: el
+     require de la raíz sólo trae lo de `app` (initializeApp, cert), y auth y firestore salen de
+     sus propios subpaths. Comprobado sobre 14.3.0 instalado, no deducido de la documentación. */
+  let app, authMod, firestoreMod;
   try {
-    admin = require('firebase-admin');
+    app = require('firebase-admin/app');
+    authMod = require('firebase-admin/auth');
+    firestoreMod = require('firebase-admin/firestore');
   } catch (e) {
-    throw new Error('firebase-admin no está instalado. Es una dependencia externa al repositorio ' +
-      '(TC-003), igual que Playwright:\n    npm i firebase-admin');
+    throw new Error('firebase-admin no está instalado, o es una versión anterior a la 10 (sin API ' +
+      'modular). Es una dependencia externa al repositorio (TC-003), igual que Playwright:\n' +
+      '    npm i firebase-admin');
   }
-  admin.initializeApp({ credential: admin.credential.cert(credencial) });
+  const instancia = app.initializeApp({ credential: app.cert(credencial) }, 'rol-' + credencial.project_id);
   return {
     proyecto: credencial.project_id,
-    auth: admin.auth(),
-    firestore: admin.firestore(),
+    auth: authMod.getAuth(instancia),
+    firestore: firestoreMod.getFirestore(instancia),
   };
 }
 
