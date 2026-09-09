@@ -135,6 +135,22 @@ documentos según corresponda.
 - **Tareas:** si hay una tarea de verificación responsive, agregá el escenario
   a `tests/layout.test.js` como parte de la tarea y hacé que se vea fallar
   antes del fix, no solo pasar después.
+- **Reportes de crítica:** viven en la carpeta de la feature y su nombre DEBE
+  incluir **qué documento se critica**, además de la fecha y el modelo crítico:
+  `<FEATURE>_<CONCEPT|SPEC|PLAN>_CRITIQUE_<YYYY-MM-DD>_<modelo>.md`. El nombre
+  por defecto de la metodología omite el documento, así que dos críticas del
+  mismo día y del mismo modelo sobre documentos distintos de una misma feature
+  colisionan: pasó el 2026-09-09 en `rol-en-el-token`, donde la segunda
+  sobrescribió a la primera y sólo se detectó por el diff de git. Un reporte de
+  crítica **no se edita ni se sobrescribe nunca** — es un artefacto de auditoría
+  fechado y atribuido a un modelo. Para volver a criticar el mismo documento se
+  escribe un reporte nuevo; lo único que se corrige en uno viejo es una ruta que
+  quedó colgada, nunca el texto de un hallazgo.
+- **Modelo autor en el Change log:** cuando un documento lo redacta un modelo,
+  la fila del Change log nombra cuál, junto al autor humano
+  (`| fecha | Lucas Manoukian (claude-opus-5) | … |`). La crítica cross-model
+  necesita ese dato para verificar que el crítico es de otra familia, y sin él
+  hay que confiar en la memoria de la conversación, que no es un registro.
 
 ## Commits
 

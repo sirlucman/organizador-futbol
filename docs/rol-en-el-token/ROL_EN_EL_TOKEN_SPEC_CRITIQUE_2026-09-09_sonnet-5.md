@@ -9,7 +9,7 @@
 > **Date:** 2026-09-09
 > **Inputs:** `docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md` (documento bajo crítica) +
 > `docs/rol-en-el-token/ROL_EN_EL_TOKEN_CONCEPT.md` (sibling, para las dimensiones
-> cross-doc) + `docs/rol-en-el-token/ROL_EN_EL_TOKEN_CRITIQUE_2026-09-09_sonnet-5.md`
+> cross-doc) + `docs/rol-en-el-token/ROL_EN_EL_TOKEN_CONCEPT_CRITIQUE_2026-09-09_sonnet-5.md`
 > (crítica independiente previa, de la Concept Note, hecha en esta misma sesión — su
 > Hallazgo 1 resultó directamente relevante para esta Spec; ver Hallazgo 1 abajo).
 > **Independencia del modelo (Step 7.0):** familia distinta, mismo proveedor
@@ -194,7 +194,7 @@ que todavía no existe.
 #### 5. Un hallazgo ya señalado sobre la Concept Note sobrevivió sin resolverse hasta un constraint de seguridad concreto de la Spec
 
 - **Dimension:** No silent drift
-- **Where:** Origen: `docs/rol-en-el-token/ROL_EN_EL_TOKEN_CRITIQUE_2026-09-09_sonnet-5.md`
+- **Where:** Origen: `docs/rol-en-el-token/ROL_EN_EL_TOKEN_CONCEPT_CRITIQUE_2026-09-09_sonnet-5.md`
   Hallazgo 1 (crítica independiente previa de la Concept Note, mismo crítico, misma
   sesión). Destino: `docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md` `TC-041` (línea 180)
   y `AC-16`/`AC-18` (líneas 567, 569).
