@@ -6,6 +6,19 @@
 > las reglas pasan a leer `request.auth.token.rol`, sin ninguna lectura de
 > documento. La regla de lectura de `userRoles` desde el cliente pasa a denegar.
 >
+> **➡️ El texto de reglas vigente vive ahora en
+> [`docs/rol-en-el-token/contracts/firestore-rules.md`](../../rol-en-el-token/contracts/firestore-rules.md).**
+> Ese contrato trae el texto nuevo, la tabla de equivalencia documento por
+> documento y el procedimiento de publicación. El bloque de reglas de más abajo
+> queda como **registro histórico**: no publicar desde acá.
+>
+> **Este contrato tenía DOS bloques de menos, no uno.** Al medir las reglas vivas
+> de staging el 2026-09-09 se confirmó el que ya se sospechaba
+> (`data/ordenJugadoresMigrado`, ver la nota al pie del bloque) y apareció un
+> segundo: **`data/playersSortMode`**, que las dos cuentas leen y que este
+> archivo no menciona en ninguna parte. Lo agregó la feature `orden-jugadores`
+> (FR-051) sin sumar su bloque acá. Los documentos son **nueve**.
+>
 > **Lo que NO se reemplaza y sigue vigente acá:** la tabla de acceso por
 > documento. Qué operaciones concede cada rol sobre `data/players`,
 > `data/playerScores`, `data/partidos`, `data/partidosArmado`, `data/motorConfig`
