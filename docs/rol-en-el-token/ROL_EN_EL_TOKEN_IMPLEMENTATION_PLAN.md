@@ -496,12 +496,14 @@ S-11, S-11a, S-11b, S-11c, S-21a.
 
 #### 7.3.1 Design decisions specific to this branch
 
-> **La corrección de NFR-006 va primero (T-2.1)** — el loader de TD-03 es un
-> estado de layout nuevo, y NFR-006 hoy dice que la feature no introduce
-> ninguno. La Spec se corrige en el **primer commit** de la rama, antes del
-> código: si el orden se invierte, el repositorio queda con un spec vigente
-> contradiciendo su propia implementación, que es exactamente lo que
-> [`AGENTS.md`](../../AGENTS.md) prohíbe.
+> **Las correcciones de la Spec van primero (T-2.1, T-2.1b)** — `TD-02` y
+> `TD-03` dejan dos afirmaciones de la Spec desactualizadas: NFR-006 dice que la
+> feature no introduce ningún estado de layout nuevo (y el loader lo es), y
+> NFR-001b/AC-11 fijan su objetivo sobre un "hueco de la solapa" que `TD-02`
+> vuelve 0 ms por construcción. Las dos se corrigen en el **primer commit** de la
+> rama, antes del código: si el orden se invierte, el repositorio queda con un
+> spec vigente contradiciendo su propia implementación, que es exactamente lo que
+> [`AGENTS.md`](../../AGENTS.md) prohíbe. Detalle de las dos en §15.1.
 
 > **El fail-closed se conserva por construcción, no por rama de error (`TC-043`)** —
 > `window.session` arranca en `{ rol: 'jugador', jugadorId: null }`
@@ -622,7 +624,8 @@ docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md
 #### 7.3.7 Task checklist (agent-runnable)
 
 - [ ] T-2.1 Corregir NFR-006 en [`ROL_EN_EL_TOKEN_SPEC.md`](./ROL_EN_EL_TOKEN_SPEC.md): pasa de "no introduce ningún estado de layout nuevo" a declarar **un** estado nuevo —el loader de sesión— cubierto por su escenario propio en `layout.test.js` desde 360 px, y agregar la fila correspondiente al change log §18
-- [ ] T-2.C1 Commit — `docs(rol-en-el-token): NFR-006 admite el loader de sesión como estado nuevo`
+- [ ] T-2.1b Corregir **NFR-001b** y **AC-11** en la misma pasada y por la misma causa raíz: con `TD-02` el "hueco de la solapa" —tal como lo define el Glosario de la Spec— es **0 ms por construcción** en los dos casos, así que el objetivo de ≤ 400 ms medido sobre esa magnitud queda vacuo. La métrica pasa a ser **hueco + retención del loader de sesión**, que es lo que §12.8 de este Plan ya mide y lo que `AC-11` debe pedir. Es el mismo tipo de consecuencia que `T-2.1` corrige para NFR-006, con las mismas dos decisiones detrás (`TD-02`, `TD-03`) (Hallazgo 1 de la crítica independiente)
+- [ ] T-2.C1 Commit — `docs(rol-en-el-token): la Spec absorbe las consecuencias de TD-02 y TD-03`
 
 - [ ] T-2.2 Reescribir `resolveSession` en [`index.html:1404-1420`](../../index.html#L1404-L1420): parámetro `user`, lectura de `getIdTokenResult()`, refresco único guardado por `refrescoIntentado`, `ROLES_VALIDOS` y comparación exacta (FR-001, FR-004, FR-006, FR-007, `TC-042`, `TC-043`, `TC-046`)
 - [ ] T-2.3 Actualizar el comentario de bloque de arriba de `resolveSession` ([`index.html:1398-1402`](../../index.html#L1398-L1402)): hoy explica por qué el rol vive en una colección aparte de `data`, y eso deja de ser cierto
@@ -685,7 +688,7 @@ DoD (§6). Mismo criterio que la Rama 1 para los commits de seguimiento
 - [ ] T-2.D10 Mismo `comm` que `T-1.D10`: devuelve vacío
 - [ ] T-2.D10b Mismo `comm` que `T-1.D10b`: devuelve vacío
 - [ ] T-2.D11 Historial limpio — `git log --oneline main..HEAD`
-- [ ] T-2.D12 Descripción del PR redactada, con las medianas de `T-2.19` y la nota de que NFR-006 se corrigió en `T-2.1`
+- [ ] T-2.D12 Descripción del PR redactada, con las medianas de `T-2.19` y la nota de que NFR-006 se corrigió en `T-2.1` y NFR-001b/AC-11 en `T-2.1b`
 - [ ] T-2.D13 Verificación responsive: `node tests/layout.test.js` pasa en todos los anchos, y el escenario `rol-sesion-loader` **se vio fallar** en `T-2.15`. Se declara explícitamente en el PR cuál fue el fallo observado
 - [ ] T-2.D14 Abrir el PR contra `main`
 - [ ] T-2.D15 Mismo chequeo de §12.2 que `T-1.D15`
@@ -1175,7 +1178,7 @@ Los cuatro NFR cuantificados, cada uno con su medición (`AC-51`):
 | NFR | Objetivo | Medición |
 |---|---|---|
 | NFR-001 | Hueco de la solapa ≤ 50 ms con token vigente | `node tools/medir-arranque.js --caso=vigente`, tres corridas, contra staging (`OBS-03`, AC-10). Gate mecánico en CI: escenario `rol-admin-primer-pintado` de `layout.test.js` con etiqueta `rol/NFR-001`, que afirma que la composición de la barra no cambia después del primer pintado — el hueco de 0 ms por construcción |
-| NFR-001b | Hueco ≤ 400 ms con token vencido, mediana de tres | `node tools/medir-arranque.js --caso=vencido`, tres corridas (`OBS-03`, AC-11). **La medición suma hueco + retención del loader**, no sólo el hueco: con TD-02 el hueco es 0 en los dos casos y el costo del refresco se paga *antes* de que la app aparezca. Medir sólo el hueco volvería el presupuesto de 400 ms vacuo. Es una lectura más estricta que la de la Spec, nunca más laxa. Gate mecánico: escenario `rol-sesion-loader` con etiqueta `rol/NFR-001b`, con el refresco del doble simulado en 250 ms |
+| NFR-001b | Hueco ≤ 400 ms con token vencido, mediana de tres | `node tools/medir-arranque.js --caso=vencido`, tres corridas (`OBS-03`, AC-11). **La medición suma hueco + retención del loader**, no sólo el hueco: con TD-02 el hueco es 0 en los dos casos y el costo del refresco se paga *antes* de que la app aparezca. Medir sólo el hueco volvería el presupuesto de 400 ms vacuo. Es una lectura más estricta que la de la Spec, nunca más laxa — **y `T-2.1b` la lleva a la Spec**, para que `NFR-001b` y `AC-11` pidan la magnitud que acá se mide y no una que `TD-02` volvió vacua (Hallazgo 1 de la crítica; ver §15.1). Gate mecánico: escenario `rol-sesion-loader` con etiqueta `rol/NFR-001b`, con el refresco del doble simulado en 250 ms |
 | NFR-002 | 0 lecturas de `userRoles/{uid}` por arranque de admin | `node tools/medir-arranque.js --caso=vigente --lecturas` cuenta los `get` por colección envolviendo `firebase.firestore` antes del arranque (`OBS-03`, AC-12). Es exacto porque la aplicación tiene tres puntos de acceso a Firestore y ninguno más — verificado con `grep -n "\.collection("` sobre `index.html`. Gate mecánico: escenario `rol-admin-primer-pintado` con etiqueta `rol/NFR-002`, que afirma `window.__lecturas.userRoles === 0` |
 | NFR-004 | El consumo de Firestore no sube; único costo nuevo admisible, 1 escritura por asignación | La misma sonda para el lado aplicación, más el panel de uso de los dos proyectos antes y después (`OBS-02`, `OBS-03`, AC-12). Los `get()` que hacían las reglas no los ve el cliente: para ésos la evidencia es que el texto publicado no contiene `get(` (`"rol/TC-011"`), y el panel de uso lo corrobora en agregado |
 
@@ -1237,16 +1240,48 @@ de esta feature borra ni transforma un documento.
 | OPEN-Q-06 | ¿Un token **orgánicamente** vencido dispara el mismo camino que el refresco forzado que se midió? | Lucas Manoukian | Rama 3 (`T-3.9`) | Es el único marcador `[UNVERIFIED]` que la Spec traspasa (NFR-001b). Lo medido fue `getIdToken(true)`, que ejecuta el mismo intercambio contra el endpoint de tokens que el SDK hace al expirar, pero no es la misma corrida. Se cierra dejando la aplicación cerrada más de una hora y midiendo con `--caso=vencido`. No bloquea nada: el objetivo de 400 ms se mide igual, y si el camino orgánico fuera más caro, aparecería en esa medición |
 | OPEN-Q-07 | ¿Deniega producción la lectura de `data/ordenJugadoresMigrado` a una cuenta `jugador`? | Lucas Manoukian | Rama 3 (§12.7) | Arrastrada del mismo residuo. En staging se verificó `permission-denied`; en producción no hay credenciales de una cuenta `jugador` para probarlo. El lado `admin` sí se verificó en los dos y es idéntico. Se cierra creando una cuenta `jugador` de prueba en producción, o se acepta con la evidencia de staging más la equivalencia observada del lado `admin` |
 
-**Corrección de la Spec que este Plan necesita, y que ejecuta `T-2.1`.** El
-loader de TD-03 —pedido por el propietario— es un estado de layout nuevo, y
-**NFR-006 hoy dice que la feature no introduce ninguno**. La corrección es de un
-renglón: NFR-006 pasa a declarar un único estado nuevo, el loader de sesión,
-cubierto por su escenario propio en `layout.test.js` desde 360 px. Va en el
-**primer commit** de la Rama 2, antes del código: al revés, el repositorio
-quedaría con un spec vigente contradiciendo su implementación, que es lo que
-[`AGENTS.md`](../../AGENTS.md) prohíbe. Hasta que `T-2.1` corra, la Spec y este
-Plan están en desacuerdo en ese punto, y queda dicho acá para que no se descubra
-en la revisión.
+**Las dos correcciones de la Spec que este Plan necesita, y que ejecutan `T-2.1`
+y `T-2.1b`.** Las dos salen de la misma causa raíz —`TD-02` (resolver el rol
+antes de revelar la aplicación) y `TD-03` (tapar la espera con el loader)— y las
+dos van en el **primer commit** de la Rama 2, antes del código: al revés, el
+repositorio queda con un spec vigente contradiciendo su implementación, que es lo
+que [`AGENTS.md`](../../AGENTS.md) prohíbe.
+
+1. **NFR-006** (`T-2.1`) — hoy dice que la feature no introduce ningún estado de
+   layout nuevo, y el loader lo es. Pasa a declarar un único estado nuevo, el
+   loader de sesión, cubierto por su escenario propio en `layout.test.js` desde
+   360 px.
+2. **NFR-001b y AC-11** (`T-2.1b`) — hoy fijan su objetivo sobre "el hueco de la
+   solapa", que el Glosario de la Spec define como el tiempo entre que la
+   aplicación se vuelve visible y que la solapa Configuración se vuelve visible.
+   Con `TD-02` esa magnitud es **0 ms por construcción**, así que el techo de
+   ≤ 400 ms deja de discriminar nada. La métrica pasa a ser **hueco + retención
+   del loader**, que es la que §12.8 mide y la que de hecho acota lo que la
+   persona espera. Es más estricta que la de la Spec, nunca más laxa — pero la
+   Spec tiene que decirlo, no el Plan solo.
+
+Hasta que `T-2.1` y `T-2.1b` corran, la Spec y este Plan están en desacuerdo en
+esos dos puntos, y queda dicho acá para que no se descubra en la revisión.
+
+**Hallazgos de la crítica independiente pendientes de aplicar.** La crítica
+cruzada de [`ROL_EN_EL_TOKEN_PLAN_CRITIQUE_2026-09-09_sonnet-5.md`](./ROL_EN_EL_TOKEN_PLAN_CRITIQUE_2026-09-09_sonnet-5.md)
+(crítico `claude-sonnet-5`, familia distinta del autor `claude-opus-5`; veredicto
+COMMENT, 0🔴 / 4🟡 / 2🔵) dejó, además del Hallazgo 1 ya gateado arriba como
+`T-2.1b`, cinco correcciones **de este documento** que el propietario decidió
+aplicar al arrancar el código y no antes. Ninguna bloquea ninguna rama; las cinco
+son de texto y no dependen de nada que haya que construir primero. Se aplican al
+abrir la rama que cada una toca:
+
+| Hallazgo | Qué corregir | Dónde | Al abrir |
+|---|---|---|---|
+| 2 🟡 | La línea *Spec coverage* de la Rama 1 omite `TC-042`, pese a que su propia tabla de tests (§7.2.4) lo declara cubierto en `tests/rol-script.test.js`. Agregarlo, o quitar la etiqueta de §7.2.4 si no hace falta probarlo dos veces | §7.2 | Rama 1 |
+| 3 🟡 | `AC-13` y `AC-18` dicen *Satisfied by: Rama 3* pero citan tests escritos en la Rama 2 (`"rol/S-21a"`, `"rol/TC-042"`, `"rol/TC-043"`). Pasan a `Rama 2 + Rama 3`, como ya hacen `AC-01`, `AC-15` y `AC-17` | §16 | Rama 2 |
+| 4 🟡 | §7.0 dice "no hay par productor/consumidor **entre servicios independientemente desplegables**" para descartar `five-branch-default`, y §9.2.1 dice "**hay** un par productor/consumidor nuevo" para justificar su diagrama. Son compatibles —el árbol de arcos pide servicios desplegables por separado, `MD-24` no— pero falta la frase que lo diga | §7.0 o §9.2.1 | Rama 1 |
+| 5 🔵 | `TD-09` llama "escenarios de rechazo" a los cinco casos unitarios del script, y `S-05a`/`S-05b` no rechazan nada: son variantes de borde del **listado**. Separar "tres de rechazo (`S-04b`, `S-04c`, `S-04d`) y dos de listado (`S-05a`, `S-05b`)" | §3.1 | Rama 1 |
+| 6 🔵 | §7.1 tiene 4 filas de rama para un arco declarado de 3. La fila 0 es la rama de documentos y está rotulada como tal, pero falta la frase que la excluya explícitamente del conteo que `MD-27` chequea | §7.0 | Rama 1 |
+
+Los cinco entran en el commit de documentación de su rama, no en uno propio: son
+de una línea cada uno.
 
 ### 15.2 Assumptions
 
@@ -1299,6 +1334,7 @@ decisiones de implementación.
 | Date | Author | Change |
 |---|---|---|
 | 2026-09-09 | Lucas Manoukian (claude-opus-5) | Initial draft. Deriva de la Spec (los 26 `FR-*`, 8 `NFR-*`, 19 `TC-*`, 26 `AC-*` y 34 escenarios de §9) y de la Concept Note (`D-01` a `D-12`, §6.5). **Resuelve las dos `OPEN-Q` que la Spec §17 le encargaba:** `OPEN-Q-01` en TD-07 (el doble intercepta el objeto `user`, no la colección) y `OPEN-Q-03` en TD-08 (sonda que envuelve `firebase.firestore` y cuenta `get` por colección, exacta porque la aplicación tiene tres puntos de acceso a Firestore y ninguno más). Arrastra tres `OPEN-Q` nuevas o heredadas del residuo de la `OPEN-Q-04` de la Spec: el texto exacto de la regla de `ordenJugadoresMigrado` (`OPEN-Q-05`, se cierra en `T-3.1`), el token orgánicamente vencido (`OPEN-Q-06`) y el lado *deny* en producción (`OPEN-Q-07`). Cuatro decisiones del propietario tomadas al redactar: tres ramas de código en vez de una (§7.0, con el desvío de `AGENTS.md` → Ramas declarado); esperar a resolver el rol **antes** de revelar la aplicación (TD-02, la única lectura que cumple FR-002 en todos los casos); tapar la espera del refresco con el loader de pelota que ya existe (TD-03); y subcomandos en el script (`asignar` / `listar`, §7.2.3). **Corrección de la Spec que el Plan necesita:** el loader es un estado de layout nuevo y NFR-006 dice que no hay ninguno — la corrige `T-2.1`, en el primer commit de la Rama 2, y queda declarada en §15.1. Dos supuestos llevan marcador `[UNVERIFIED]` con su tarea de cierre: los nombres del Admin SDK más allá de `setCustomUserClaims` (`A-07`, cierra `T-1.1`) y `getIdTokenResult` en compat 11.0.2 (`A-10`, cierra `T-2.2`). Self-critique: skipped (first-run baseline). |
+| 2026-09-09 | Lucas Manoukian (claude-opus-5) | **Incorpora la crítica independiente** de [`ROL_EN_EL_TOKEN_PLAN_CRITIQUE_2026-09-09_sonnet-5.md`](./ROL_EN_EL_TOKEN_PLAN_CRITIQUE_2026-09-09_sonnet-5.md) (crítico `claude-sonnet-5`, familia distinta del autor `claude-opus-5`, mismo proveedor; veredicto **COMMENT**, 0🔴 / 4🟡 / 2🔵). El Hallazgo 1 —el más importante— queda **gateado como tarea**: `TD-02` volvía vacuo el objetivo de `NFR-001b`/`AC-11`, porque el "hueco de la solapa" que la Spec define es 0 ms por construcción cuando el rol se resuelve antes de revelar la aplicación; §12.8 ya compensaba midiendo hueco + retención del loader, pero eso no se había empujado a la Spec como sí se había hecho con `NFR-006`. Ahora `T-2.1b` lo corrige en el mismo commit que `T-2.1`, con la misma causa raíz declarada, y §12.8 apunta a esa tarea para que las dos secciones no deriven. Los otros cinco hallazgos son correcciones de texto de este documento y el propietario decidió aplicarlas al arrancar el código: quedan anotadas en §15.1 con qué corregir, dónde y al abrir qué rama (`TC-042` ausente de la línea *Spec coverage* de la Rama 1; `AC-13`/`AC-18` atribuidas a una sola rama cuando su evidencia abarca dos; la tensión de redacción entre §7.0 y §9.2.1 sobre el par productor/consumidor; `TD-09` llamando "de rechazo" a dos escenarios de listado; y la fila 0 de §7.1 sin la frase que la excluya del conteo del arco). Lo que la crítica verificó limpio por ejecución y no hace falta revisar de nuevo: las cinco pasadas de consistencia cruzada, las 34 filas de §12.1, las 26 de §16 sin celda `Test` vacía, y dieciocho citas de línea a `index.html` y `tests/fixtures-app.js`. Self-critique: no corresponde (aplicación de hallazgos externos). |
 
 ---
 
