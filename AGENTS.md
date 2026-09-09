@@ -182,6 +182,9 @@ node tests/eventos.test.js                # el modelo de eventos: síntesis, der
 node tests/toque.test.js                  # la carga por toque: validación, borrador, detalle, deshacer
 node tests/layout.test.js                 # el layout responsive (Principio V)
 LAYOUT_STRICT=1 node tests/layout.test.js # en CI: la ausencia de Playwright falla
+node tests/rol-script.test.js             # el script de roles: rechazos, listado, escritura conjunta
+node tests/reglas.test.js                 # el rol en el token contra staging (necesita credenciales)
+REGLAS_STRICT=1 node tests/reglas.test.js # en CI: la ausencia de credenciales falla
 ```
 
 - Los tests viven en `tests/`, se corren con Node y devuelven 1 solo ante una

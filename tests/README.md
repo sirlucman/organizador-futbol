@@ -1,15 +1,19 @@
 # Tests
 
 ```sh
-node tests/motor.test.js     # el motor de generación de equipos
-node tests/cancha.test.js    # la cancha: agrupado en líneas, sub-filas, nombre y escapado
-node tests/layout.test.js    # el layout responsive (Principio V)
+node tests/motor.test.js        # el motor de generación de equipos
+node tests/cancha.test.js       # la cancha: agrupado en líneas, sub-filas, nombre y escapado
+node tests/layout.test.js       # el layout responsive (Principio V)
+node tests/rol-script.test.js   # el script de roles: rechazos, listado, escritura conjunta
+node tests/reglas.test.js       # el rol en el token contra staging (necesita credenciales)
 ```
 
-Los dos devuelven código de salida 1 solo si se rompe el comportamiento actual.
+Todos devuelven código de salida 1 solo si se rompe el comportamiento actual.
 
-`motor.test.js` y `cancha.test.js` no tienen dependencias: Node y nada más.
-`layout.test.js` necesita un navegador y explica por qué más abajo.
+`motor.test.js`, `cancha.test.js` y `rol-script.test.js` no tienen dependencias: Node y nada
+más. `layout.test.js` necesita un navegador y `reglas.test.js` necesita credenciales de
+staging; los dos explican por qué más abajo, y los dos avisan y no fallan cuando no las
+tienen.
 
 ## El test de la cancha
 
@@ -246,6 +250,45 @@ quedaron arriba.
 Esa validación es la que atrapó la primera versión floja del segundo invariante.
 Sin ella habría entrado al repo un invariante que no asegura nada, que es peor que
 no tenerlo: ocupa el lugar de una garantía sin serlo.
+
+## Los tests del rol en el token
+
+La feature [rol-en-el-token](../docs/rol-en-el-token/) mueve el rol de cada cuenta
+(`admin`/`jugador`) de un documento de Firestore a un *custom claim* del token de Firebase
+Auth. Eso deja dos superficies nuevas que probar, y una de ellas no vive en el repositorio.
+
+**[rol-script.test.js](rol-script.test.js)** — el script [tools/rol.js](../tools/rol.js), que
+es lo único que sabe escribir un claim. No necesita nada: el script recibe el Admin SDK **por
+parámetro**, así que el test le inyecta un doble que anota cada escritura en una lista. Esa
+lista es lo que vuelve verificable la afirmación importante de la Spec, que no es "el rechazo
+tira" sino "el rechazo **no escribió nada**" — un rol inválido, una cuenta inexistente o una
+llave ausente tienen que dejar la lista vacía. También fija el orden de las dos escrituras:
+primero el claim (la fuente de verdad) y después el registro legible `userRoles`, porque si
+falla la segunda lo que queda desactualizado es la consola y no los permisos. Al revés sería
+la inconsistencia peligrosa.
+
+**[reglas.test.js](reglas.test.js)** — el claim contra el proyecto Firebase de **staging**. Es
+el único test que toca un proyecto de verdad, y no se puede evitar: las Firestore Security
+Rules **no están versionadas**. Se publican a mano desde la consola de cada proyecto, así que
+la única forma de saber qué autorizan es preguntárselo al proyecto. Entra por la API REST de
+Identity Toolkit y de Firestore en vez de por el SDK de cliente, para no sumar una segunda
+dependencia instalable: el token de la cuenta viaja como Bearer y las reglas se aplican igual.
+
+Las credenciales salen del entorno, nunca del repositorio:
+
+```sh
+ROL_TEST_LLAVE=~/llaves/staging.json \
+ROL_TEST_ADMIN_USER=... ROL_TEST_ADMIN_PASS=... \
+ROL_TEST_JUGADOR_USER=... ROL_TEST_JUGADOR_PASS=... \
+  node tests/reglas.test.js
+```
+
+Sigue el patrón de salteo de `layout.test.js`, con una vuelta más: el salteo es **parcial**.
+La llave habilita los casos del script y las cuatro credenciales de cuenta habilitan los de
+las reglas, así que quien tiene una sola de las dos cosas corre su mitad y ve declarada la
+otra. Sin nada avisa y devuelve 0; con `REGLAS_STRICT=1` cualquier credencial que falte falla,
+que es lo que conviene en CI. Ojo con dónde se apunta: el test **escribe** claims, y se niega
+a correr si la llave no es la de staging.
 
 ## Medir, además de testear
 
