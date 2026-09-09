@@ -221,6 +221,13 @@ Hay que abrir el PNG, no conformarse con que el comando terminó bien. Cuando do
 flechas se cruzan, los rótulos se separan con `UpdateRelStyle(a, b, $offsetX=…,
 $offsetY=…)`.
 
+Y un modo de falla distinto, descubierto al validar el Implementation Plan de
+`rol-en-el-token`: **un `;` dentro del texto de un mensaje de `sequenceDiagram`
+rompe el parseo.** Para ese parser el punto y coma es separador de sentencias,
+así que corta la línea a la mitad y falla pidiendo una flecha que no está
+(`Expecting 'SOLID_ARROW'… got 'NEWLINE'`). Se usa un guión largo en su lugar.
+Los `<` y `>` en el texto de un mensaje también conviene evitarlos.
+
 ## Estilo
 
 - Toda la aplicación vive en `index.html`, dentro de un IIFE. No hay paso de
