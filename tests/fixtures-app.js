@@ -270,7 +270,7 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
    y los tres <script> del CDN de Firebase se bloquean con page.route. Tiene que
    ser una función serializable —nada de closures sobre el módulo— y recibir un
    único argumento, que es lo que admite addInitScript. */
-function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla }) {
+function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion }) {
   const docs = datos;
   /* Registro de escrituras. La cancha es presentación pura y no debe agregar ni un campo nuevo a
      lo que se persiste (Spec de la cancha, NFR-006): con esto un escenario puede abrir la
@@ -312,16 +312,23 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
        jugadorId     el Jugador vinculado que viaja en el claim (rol "jugador")
        claimAusente  el primer token NO trae claim `rol`, como una sesión abierta antes del corte
        refrescoTrae  qué rol trae el token refrescado ('admin' | 'jugador' | null = sigue sin claim)
-       refrescoFalla el refresco tira, para el camino de error de S-01c */
+       refrescoFalla el refresco tira, para el camino de error de S-01c
+       refrescoDemora cuántos ms tarda el refresco. Contra Firebase mide 250 ms de mediana; acá es
+                     0 por default, y un escenario lo sube para que el loader de sesión —que está
+                     detrás de una demora de 400 ms— alcance a montarse y se pueda medir
+       sinSesion     no hay nadie logueado: `onAuthStateChanged` entrega null y la aplicación
+                     queda en la pantalla de login. Es la única forma de llegar ahí, porque por
+                     default el doble entra siempre */
   const auth = () => ({
     setPersistence: async () => {},
     signInWithEmailAndPassword: async () => {},
     signOut: async () => {},
-    onAuthStateChanged: (cb) => cb({
+    onAuthStateChanged: (cb) => sinSesion ? cb(null) : cb({
       uid: 'u-test',
       getIdTokenResult: async (forzado) => {
         if (forzado) {
           window.__refrescos++;
+          if (refrescoDemora) await new Promise(r => setTimeout(r, refrescoDemora));
           if (refrescoFalla) throw new Error('no se pudo refrescar el token');
           return { claims: refrescoTrae ? { rol: refrescoTrae, jugadorId: jugadorId || null } : {} };
         }

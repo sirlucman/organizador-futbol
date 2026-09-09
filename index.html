@@ -1067,6 +1067,10 @@
      (BallLoader.prompt.md) y el epígrafe necesita un color claro — var(--muted) es gris de
      página y sobre ink no se lee. */
   .session-loader{ width: 100%; max-width: 320px; display: flex; justify-content: center; }
+  /* El `display:flex` de arriba es una regla de autor y le gana al `[hidden]{display:none}` de la
+     hoja del navegador, así que sin esta línea el contenedor ocupaba lugar SIEMPRE, oculto o no.
+     Lo encontró el escenario rol-login-fallido de tests/layout.test.js. */
+  .session-loader[hidden]{ display: none; }
   .session-loader .ball-loader-caption{ color: var(--chalk); }
   .login-card h2{ font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0 0 18px; text-align: center; }
   .login-card .field{ margin-bottom: 14px; }
