@@ -73,6 +73,27 @@ service cloud.firestore {
 }
 ```
 
+> **⚠️ Este bloque está incompleto: le falta `ordenJugadoresMigrado`** (detectado el
+> 2026-09-09 al preparar [`docs/rol-en-el-token/`](../../rol-en-el-token/)).
+> `DOCS_SOLO_ADMIN` en [`index.html:1855-1857`](../../../index.html#L1855-L1857) lista
+> **seis** documentos sólo-admin; este contrato tiene bloque `match` para cinco de ellos.
+> El sexto, `data/ordenJugadoresMigrado`, lo agregó la feature `orden-jugadores` sin
+> sumar su bloque acá — justamente lo que pide el comentario de arriba ("si en el futuro
+> se agrega otro flag de este tipo, agregar su propio match acá").
+>
+> **Lo que se midió** (sonda de solo lectura contra staging, 2026-09-09): una cuenta
+> `admin` **lee** ese documento; una cuenta `jugador` recibe `permission-denied`. O sea
+> que en staging **existe** una regla para él y su comportamiento observable es idéntico
+> al de los otros cinco flags de migración.
+>
+> **Lo que sigue sin saberse:** el **texto exacto** de esa regla —no se puede leer desde
+> el cliente, sólo desde la consola— y si **producción** tiene la misma.
+> `[UNVERIFIED — el texto de la regla y el estado de producción requieren abrir la consola
+> de Firebase de cada proyecto]`
+>
+> Quien reescriba estas reglas debe copiar la regla viva de la consola de **los dos**
+> proyectos y no asumir que este archivo está completo.
+
 Nota: a diferencia de `players`/`partidos`/`motorConfig` (un único documento blob con `value` en formato string JSON), `userRoles` es una colección con **un documento por cuenta** (`userRoles/{uid}`) y campos nativos — es lo que permite que la regla `read` filtre exactamente al propio `uid`, y que `rol()` pueda leer `data.rol` de un `get()` puntual. Ver `research.md` #1.
 
 ## Cómo se verifica
