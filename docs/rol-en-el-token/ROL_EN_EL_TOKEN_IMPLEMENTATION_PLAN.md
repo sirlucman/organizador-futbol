@@ -409,7 +409,7 @@ anterior:
 - [ ] T-1.D2 Pasan los existentes, sin regresiones — `for t in tests/motor tests/cancha tests/panel tests/finalizado tests/eventos tests/toque tests/layout; do node $t.test.js || break; done`
 - [ ] T-1.D3 Chequeo de sintaxis — `node --check tools/rol.js && node --check tests/rol-script.test.js && node --check tests/reglas.test.js`
 - [ ] T-1.D4 Sin type-checker: el proyecto no tiene ninguno (§5 *Typing*). `T-1.D3` es el gate mecánico disponible; se declara y no se saltea en silencio
-- [ ] T-1.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- tools/rol.js tests/rol-script.test.js tests/reglas.test.js` no devuelve nada
+- [ ] T-1.D5  Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "\\b(FIXME|HACK)\\b|TODO:" -- tools/rol.js tests/rol-script.test.js tests/reglas.test.js` no devuelve nada. **Corregido al implementar:** el patrón era `"TODO|FIXME|HACK"`, y en este repositorio devuelve decenas de falsos positivos porque los comentarios están en español y usan "TODO"/"TODOS" en mayúscula para enfatizar ("prueba TODOS los repartos posibles"). Pasa a `"\\b(FIXME|HACK)\\b|TODO:"`, que sigue atrapando el marcador de verdad (`TODO:`) y no la palabra.
 - [ ] T-1.D6 La implementación cumple §5 (releer §5 antes de mandar el PR), en particular el binding con prefijo `rol/` y el formato de commits
 - [ ] T-1.D7 Cada ref de la Spec asignada a la rama está implementada: recorrer uno por uno los `FR-*` / `TC-*` / `AC-*` del *Spec coverage* de §7.2 contra el código
 - [ ] T-1.D8 Cada escenario y variante de la rama tiene test. Binding `variant-a` con prefijo `rol/` (§5), así que:
@@ -669,8 +669,8 @@ DoD (§6). Mismo criterio que la Rama 1 para los commits de seguimiento
 - [ ] T-2.D2 Pasan los existentes, sin regresiones — la lista completa de `AGENTS.md` → Tests, `LAYOUT_STRICT=1 node tests/layout.test.js` incluido
 - [ ] T-2.D3 Chequeo de sintaxis — `node --check tests/sesion.test.js && node --check tests/fixtures-app.js && node --check tests/layout.test.js && node --check tools/medir-arranque.js`. Para `index.html`, el gate equivalente es que `tests/sesion.test.js` evalúe lo recortado: si el código no evalúa, `extraer` falla con mensaje claro
 - [ ] T-2.D4 Sin type-checker (§5 *Typing*); `T-2.D3` es el gate disponible
-- [ ] T-2.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- index.html tests/sesion.test.js tests/fixtures-app.js tests/layout.test.js tools/medir-arranque.js` no devuelve nada
-- [ ] T-2.D6 La implementación cumple §5, en particular que **ninguna** de las ~90 llamadas a `isAdmin()` cambió: `git diff main..HEAD -- index.html | grep -c '^[-+].*isAdmin()'` da 0 (`TC-010`, `D-11`)
+- [ ] T-2.D5  Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "\\b(FIXME|HACK)\\b|TODO:" -- index.html tests/sesion.test.js tests/fixtures-app.js tests/layout.test.js tools/medir-arranque.js` no devuelve nada. **Corregido al implementar:** el patrón era `"TODO|FIXME|HACK"`, y en este repositorio devuelve decenas de falsos positivos porque los comentarios están en español y usan "TODO"/"TODOS" en mayúscula para enfatizar ("prueba TODOS los repartos posibles"). Pasa a `"\\b(FIXME|HACK)\\b|TODO:"`, que sigue atrapando el marcador de verdad (`TODO:`) y no la palabra.
+- [ ] T-2.D6 La implementación cumple §5, en particular que **ninguna llamada de interfaz** a `isAdmin()` cambió: `git diff main..HEAD -- index.html | grep '^-.*isAdmin()'` no muestra ninguna línea fuera del arranque de `onAuthChange` (`TC-010`, `D-11`). **Corregido al implementar:** el gate pedía que el conteo de líneas del diff con `isAdmin()` fuera **0**, y eso es imposible por construcción — §7.3.3 de este mismo Plan reordena el arranque, y dos de sus seis pasos *son* llamadas a `isAdmin()` (el `classList.toggle` y el `iniciarLecturas(isAdmin())`). El conteo real es **3** y las tres están en el arranque. De paso: las llamadas no son ~90 sino **64** antes del cambio y 65 después — la de más es la que `iniciarLecturas` recibe ahora en vez de la pista
 - [ ] T-2.D7 Cada ref de la Spec de esta rama está implementada: recorrer uno por uno los `FR-*` / `NFR-*` / `TC-*` / `AC-*` del *Spec coverage* de §7.3
 - [ ] T-2.D8 Cada escenario y variante de la rama tiene test:
   ```bash
@@ -842,7 +842,7 @@ siguientes):
 - [ ] T-3.D2 Pasan los existentes, sin regresiones — la lista completa de `AGENTS.md` → Tests
 - [ ] T-3.D3 Chequeo de sintaxis — `node --check tests/reglas.test.js`
 - [ ] T-3.D4 Sin type-checker (§5 *Typing*); `T-3.D3` es el gate disponible. Las reglas de Firestore no tienen chequeo local: su validación es el `Publicar` de la consola, que rechaza sintaxis inválida, más `T-3.D1`
-- [ ] T-3.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- tests/reglas.test.js docs/rol-en-el-token/contracts/` no devuelve nada
+- [ ] T-3.D5  Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "\\b(FIXME|HACK)\\b|TODO:" -- tests/reglas.test.js docs/rol-en-el-token/contracts/` no devuelve nada. **Corregido al implementar:** el patrón era `"TODO|FIXME|HACK"`, y en este repositorio devuelve decenas de falsos positivos porque los comentarios están en español y usan "TODO"/"TODOS" en mayúscula para enfatizar ("prueba TODOS los repartos posibles"). Pasa a `"\\b(FIXME|HACK)\\b|TODO:"`, que sigue atrapando el marcador de verdad (`TODO:`) y no la palabra.
 - [ ] T-3.D6 La implementación cumple §5. En particular: el contrato nuevo no reintroduce ningún `get(` y la tabla de equivalencia no amplía ninguna operación
 - [ ] T-3.D7 Cada ref de la Spec de esta rama está implementada: recorrer los `FR-*` / `NFR-*` / `TC-*` / `AC-*` del *Spec coverage* de §7.4
 - [ ] T-3.D8 Cada escenario y variante de la rama tiene test:
