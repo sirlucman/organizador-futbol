@@ -60,8 +60,8 @@ rol con su `get()` — que es exactamente la línea de base que hay que preserva
 | `userRoles/<propio>` | ✅ | ✅ | ❌ |
 | `userRoles/<ajeno>` | ❌ | ❌ | ❌ |
 | `data/players` | ✅ | ✅ | ❌ |
-| `data/partidos` | ✅ | ✅ | *no probado* ¹ |
-| `data/playersSortMode` | ✅ | ✅ | *no probado* ¹ |
+| `data/partidos` | ✅ | ✅ | ✅ ² |
+| `data/playersSortMode` | ✅ | ✅ | **❌** ² |
 | `data/motorConfig` | ✅ | ❌ | ❌ |
 | `data/playerScores` | ✅ | ❌ | ❌ |
 | `data/partidosArmado` | ✅ | ❌ | ❌ |
@@ -71,10 +71,10 @@ rol con su `get()` — que es exactamente la línea de base que hay que preserva
 | `data/<documento que no existe>` | ❌ | ❌ | — |
 | `otraColeccion/x` | ❌ | ❌ | — |
 
-¹ No probado porque el lado *allow* de una escritura **escribe**: probarlo contra
-staging dejaría un campo de sonda en un documento real. Se deduce del código —
-la aplicación deja a las dos cuentas escribir esos dos documentos— y queda para
-verificar contra el texto vivo (§2.3).
+² Medido después, con el caso `rol/S-20c` de
+[`tests/reglas.test.js`](../../../tests/reglas.test.js), que escribe un campo de
+sonda y lo borra enseguida (staging se verificó limpio al terminar). Es lo que
+destapó el hallazgo C.
 
 ### 2.3 Los dos hallazgos de la medición
 
@@ -93,6 +93,20 @@ de `data/` se deniega para las dos cuentas, y una colección que no sea `data` n
 documento tiene su bloque `match` explícito, así que la tabla de equivalencia de
 §3 puede ser exhaustiva sin riesgo de que algo quede autorizado por una regla
 general que nadie miró.
+
+**Hallazgo C — una cuenta `jugador` NO puede escribir `data/playersSortMode`.**
+Sólo leerlo. Y la interfaz no restringe el selector de orden del listado de
+jugadores ([`index.html:2588-2592`](../../../index.html#L2588-L2592)): una cuenta
+`jugador` puede cambiar el orden, ve el listado reordenado, y el
+`window.storage.set` que persiste esa preferencia es rechazado por la regla. El
+error se traga en el `.catch` del llamador, así que no se ve nada — el orden
+simplemente no queda guardado para la próxima sesión.
+
+Es una **limitación preexistente**, no algo que esta feature introduzca, y por
+`FR-011` / `TC-041` se preserva tal cual: el texto nuevo de §4 le da a
+`playersSortMode` exactamente el mismo `write` que tiene hoy, sólo-admin. Cerrar
+o no esa limitación es una decisión de producto que no le corresponde a esta
+feature; queda anotada acá para que exista.
 
 **Lo que la medición NO da:** el texto literal. El comportamiento observable no
 distingue, por ejemplo, entre `allow read, write: if request.auth != null` y
@@ -136,7 +150,7 @@ Leyenda: **R** = read, **W** = write, **—** = denegado.
 | `userRoles/{uid}` | R (sólo el propio) | **—** | R (sólo el propio) | **—** | **Sí**, a propósito: `TC-012`, `FR-012`. Es el único cambio de permisos de la feature |
 | `data/players` | R W | R W | R | R | No |
 | `data/partidos` | R W | R W | R W | R W | No. Sigue vigente la limitación aceptada de [`research.md`](../../007-permisos-por-usuario/research.md) §3 |
-| `data/playersSortMode` | R W | R W | R W | R W | No. **Bloque nuevo en el contrato**, no en las reglas: ya existía vivo (§2.3, hallazgo A) |
+| `data/playersSortMode` | R W | R W | **R** | **R** | No. **Bloque nuevo en el contrato**, no en las reglas: ya existía vivo (§2.3, hallazgo A). El `jugador` lee pero **no escribe**, medido (§2.3, hallazgo C) — la interfaz lo deja cambiar el orden y la escritura falla en silencio. Limitación preexistente, preservada tal cual |
 | `data/motorConfig` | R W | R W | — | — | No |
 | `data/playerScores` | R W | R W | — | — | No |
 | `data/partidosArmado` | R W | R W | — | — | No |
@@ -167,9 +181,10 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // El rol sale del token, firmado por Firebase Auth. No hay ningún get():
-    // la función rol() de 007 desapareció (TC-011, D-06). Un token sin el claim
-    // hace fallar toda comparación de acá, que es FR-013 por construcción.
+    // El rol sale del token, firmado por Firebase Auth. Ninguna condición de acá lee
+    // un documento: la función rol() de 007, que resolvía el rol leyendo userRoles,
+    // desapareció (TC-011, D-06). Un token sin el claim hace fallar toda comparación
+    // de acá, que es FR-013 por construcción.
 
     match /userRoles/{uid} {
       // Registro legible desde la consola, sin ningún lector automático (D-05, TC-012).
@@ -190,11 +205,13 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.rol in ['admin', 'jugador'];
     }
 
-    // Orden del listado de jugadores (orden-jugadores, FR-051). Compartido por todas las
-    // cuentas: cualquiera puede cambiarlo desde el selector, igual que hoy.
+    // Orden del listado de jugadores (orden-jugadores, FR-051). Lo LEEN las dos cuentas y lo
+    // escribe sólo admin — medido contra staging, no deducido. La interfaz deja a una cuenta
+    // jugador cambiar el selector, y esa escritura se rechaza acá y falla en silencio: es una
+    // limitación preexistente que esta feature preserva sin tocar (contrato §2.3, hallazgo C).
     match /data/playersSortMode {
       allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.rol in ['admin', 'jugador'];
+      allow write: if request.auth != null && request.auth.token.rol == 'admin';
     }
 
     // ---- sólo admin: los seis de DOCS_SOLO_ADMIN (index.html) ----
@@ -230,8 +247,12 @@ service cloud.firestore {
 }
 ```
 
-**El texto no contiene la subcadena `get(`** — es lo que `TC-011` exige y lo que
-`rol/TC-011` comprueba sobre el texto de este archivo.
+**El bloque de reglas de arriba no contiene la subcadena `get` seguida de un
+paréntesis** — es lo que `TC-011` exige y lo que `rol/TC-011` comprueba,
+extrayendo el bloque de este archivo. Ni siquiera dentro de un comentario: un
+chequeo mecánico no distingue código de comentario, y un comentario que lo
+mencionara volvería el gate inútil. Por eso la prosa de este documento la
+escribe como «la función que resolvía el rol leyendo un documento».
 
 ## 5. Cómo se publica y cómo se verifica
 
