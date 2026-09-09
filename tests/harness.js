@@ -38,8 +38,12 @@ function finDeDeclaracion(src, i, esFuncion) {
   return src.length;
 }
 
+/* `async` va aparte del grupo que decide cómo cortar: una función asíncrona se delimita por
+   llaves igual que una sincrónica, así que lo único que cambia es que hay una palabra más antes
+   de `function`. Sin esto no se podía recortar `resolveSession` (feature rol-en-el-token), que es
+   `async function` desde que resuelve el rol leyendo el token. */
 function extraer(src, nombre) {
-  const re = new RegExp(`\\n[ \\t]*(function|const|let)[ \\t]+${nombre}\\b`);
+  const re = new RegExp(`\\n[ \\t]*(?:async[ \\t]+)?(function|const|let)[ \\t]+${nombre}\\b`);
   const m = re.exec(src);
   if (!m) throw new Error(`No se encontró la declaración de "${nombre}" en index.html. ` +
     `Si se renombró o se movió a otro archivo, hay que actualizar tests/harness.js.`);
