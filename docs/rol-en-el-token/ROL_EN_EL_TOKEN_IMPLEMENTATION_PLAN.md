@@ -345,7 +345,7 @@ falla. Lee `ROL_TEST_LLAVE`, `ROL_TEST_ADMIN_USER`, `ROL_TEST_ADMIN_PASS`,
 - [ ] `node tools/rol.js asignar <cuenta> Admin --llave=<ruta>` termina con código 1 y **sin ninguna escritura** (`TC-044`, AC-21)
 - [ ] `node tools/rol.js listar` sin `--llave` termina con código 1 y sin operar (`TC-045`)
 - [ ] `git status` no muestra la llave, ni `node_modules/`, ni `package.json` (`TC-032`, `TC-047`)
-- [ ] `git grep -n "BEGIN PRIVATE KEY\|private_key"` no devuelve nada (`TC-047`)
+- [ ] `git grep -nE -- "-----BEGIN [A-Z ]*PRIVATE KEY-----"` no devuelve nada (`TC-047`). **Corregido al implementar:** el gate decía `git grep -n "BEGIN PRIVATE KEY\|private_key"`, y así escrito es imposible de cumplir — `cargarSdk` tiene que *nombrar* el campo `private_key` para validar que la llave tenga la forma esperada, y el caso `rol/TC-047` de [`tests/rol-script.test.js`](../../tests/rol-script.test.js) tiene que nombrarlo para armar la llave rota con la que prueba que el error no la vuelca. Lo que `TC-047` prohíbe es **material de llave** versionado, no la cadena `private_key`, así que el gate rastrea el encabezado PEM completo. El nombre del campo se revisa a ojo: los tres usos que quedan son referencias al nombre, ninguno un valor
 - [ ] `index.html` no cambió: `git diff main..HEAD -- index.html` está vacío (`TC-003` — el Admin SDK no aparece en la aplicación)
 - [ ] Todos los tests existentes pasan (sin regresiones)
 
@@ -1162,7 +1162,7 @@ propietario (Lucas Manoukian).
 | `TC-002` | Comando: `git diff main..HEAD -- index.html \| grep -E '^\+.*<script src'` vacío — no se agregó ningún SDK; y `git ls-files` sin archivos de build ni configuración de bundler | `T-2.D6` |
 | `TC-003` | Comando: `git diff main..HEAD -- index.html` **vacío** en la Rama 1 (el Admin SDK no llega a la aplicación), y `git ls-files \| grep -E 'node_modules\|package'` vacío en las tres | `T-1.D7`, `T-1.D20` |
 | `TC-032` | Comando: la entrada de la llave está en `.gitignore` (`git check-ignore -v <ruta>` la reporta) y `git ls-files \| grep -i 'serviceaccount\|\.json$'` no lista ninguna llave | `T-1.2`, `T-1.D5` |
-| `TC-047` | Comando: `git grep -n "private_key\|BEGIN PRIVATE KEY"` vacío. Revisión: ningún mensaje de error de `cargarSdk` incluye el contenido de la llave, sólo su ruta | `T-1.4`, `T-1.D5` |
+| `TC-047` | Comando: `git grep -nE -- "-----BEGIN [A-Z ]*PRIVATE KEY-----"` vacío (ver la corrección del gate en §7.2.5). Test: `rol/TC-047` de [`tests/rol-script.test.js`](../../tests/rol-script.test.js) comprueba que el error de una llave ilegible no cite su contenido. Revisión: ningún mensaje de error de `cargarSdk` incluye el contenido de la llave, sólo su ruta | `T-1.4`, `T-1.D5` |
 | `TC-031` | Revisión contra checklist de tres puntos: el script vive en `tools/`, su encabezado documenta propósito y uso al estilo de `tools/medir-motor.js`, y es corrible a mano con Node sin paso previo | `T-1.3`, `T-1.D6` |
 | `TC-030` | Revisión de los tres nombres (`rol`, `admin`/`jugador`, `jugadorId`) contra el modelo de datos de `007`, más la evidencia ejecutable de `"rol/TC-042"` en los dos lados (app y script) | `T-1.3`, `T-2.2` |
 

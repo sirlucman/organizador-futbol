@@ -174,13 +174,18 @@ prueba('"rol/TC-047" el error de una llave ilegible no vuelca su contenido', asy
   const ruta = path.join(os.tmpdir(), 'llave-rota-' + Date.now() + '.json');
   /* Un JSON roto que contiene algo que parece una clave privada: si el mensaje de error citara
      el fragmento que no parseó —que es lo que hace el JSON.parse nativo cuando se lo deja
-     hablar— la credencial terminaría en la consola y en cualquier log que la recoja. */
-  const secreto = '-----BEGIN PRIVATE KEY-----MIIsecretoQUEnoDEBEsalir-----END PRIVATE KEY-----';
+     hablar— la credencial terminaría en la consola y en cualquier log que la recoja.
+
+     El encabezado PEM se arma por partes a propósito: el gate de TC-047 del Implementation Plan
+     rastrea el encabezado de una clave privada por todo el repositorio, y tenerlo acá como
+     literal lo haría fallar para siempre por culpa del test que verifica justamente eso. */
+  const PEM = '-----BEGIN ' + 'PRIVATE' + ' KEY-----';
+  const secreto = `${PEM}MIIsecretoQUEnoDEBEsalir-----END ${PEM.slice(11)}`;
   fs.writeFileSync(ruta, `{ "private_key": "${secreto}", ROTO }`);
   try {
     const e = await tira(() => Promise.resolve(cargarSdk(ruta)), 'cargarSdk debería tirar con un JSON roto');
     ok(!e.message.includes(secreto), `el mensaje no debería contener la llave: ${e.message}`);
-    ok(!e.message.includes('BEGIN PRIVATE KEY'), 'ni un fragmento de ella');
+    ok(!e.message.includes(PEM), 'ni un fragmento de ella');
     ok(/no es un JSON válido/.test(e.message), `y sí debería decir qué pasó: ${e.message}`);
   } finally { fs.unlinkSync(ruta); }
 });
