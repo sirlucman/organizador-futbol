@@ -400,7 +400,165 @@ const ESCENARIOS = [
     async preparar(page) { await irAPestania(page, 'Jugadores'); } },
 
   { clave: 'jugadores-jugador', rol: 'jugador', nombre: 'listado de jugadores (rol jugador)',
+    spec: ['rol/S-03'],
     async preparar(page) { await irAPestania(page, 'Jugadores'); } },
+
+  /* ---- rol en el token: el primer pintado y el loader de sesión ----
+     Los cinco escenarios de la feature rol-en-el-token. Los tres primeros no miran el ancho
+     —miran QUÉ se pintó y CUÁNDO— pero corren igual desde 360 px porque el loader de sesión es
+     un estado de layout nuevo (NFR-006 corregido) y tiene que entrar en el piso soportado. */
+
+  { clave: 'rol-admin-primer-pintado', rol: 'admin', nombre: 'la barra de solapas ya tiene Configuración en su primer pintado',
+    spec: ['rol/S-01', 'rol/S-01d', 'rol/S-02', 'rol/NFR-001', 'rol/NFR-002', 'rol/NFR-007'],
+    async preparar(page) { /* la pantalla por default: la barra de solapas */ },
+    async comprobar(page) {
+      const r = await page.evaluate(() => ({
+        pintados: window.__pintados, lecturas: window.__lecturas, refrescos: window.__refrescos,
+      }));
+      const problemas = [];
+      /* FR-002: en TODA muestra donde appRoot ya estaba visible, la barra tiene las tres solapas.
+         Antes de la feature esto fallaba: appRoot se revelaba primero y `role-jugador` se sacaba
+         después, así que había muestras con dos solapas. */
+      const visibles = r.pintados.filter(m => m.appVisible);
+      if (!visibles.length) problemas.push('appRoot nunca se reveló: el escenario no llegó a medir');
+      const incompletas = visibles.filter(m => m.solapas.length !== 3);
+      if (incompletas.length) {
+        problemas.push(`la barra se pintó con ${incompletas[0].solapas.join('+')} antes de tener sus tres solapas, ` +
+          `en ${incompletas.length} de ${visibles.length} muestras (rol/S-01, FR-002)`);
+      }
+      /* NFR-002: cero lecturas de userRoles en un arranque de admin. El contador es por
+         colección, así que la ausencia de la clave es la afirmación. */
+      if (r.lecturas.userRoles) problemas.push(`hubo ${r.lecturas.userRoles} lectura(s) de userRoles (rol/NFR-002)`);
+      /* FR-009 / S-01d: con el rol resuelto se pidieron los seis documentos sólo-admin junto con
+         los tres públicos, de una sola vez. */
+      if (r.lecturas.data !== 9) problemas.push(`un arranque de admin debería leer 9 documentos de data y leyó ${r.lecturas.data} (rol/S-01d)`);
+      /* NFR-001: con el claim presente no se toca la red para resolver el rol. */
+      if (r.refrescos !== 0) problemas.push(`con el claim presente no debería refrescarse el token, y se refrescó ${r.refrescos} vez/veces (rol/NFR-001)`);
+      return problemas;
+    } },
+
+  { clave: 'rol-jugador-primer-pintado', rol: 'jugador', nombre: 'con rol jugador, Configuración no aparece en ningún momento',
+    spec: ['rol/S-03', 'rol/S-03a', 'rol/NFR-002'],
+    doble: { jugadorId: 'p1' },
+    async preparar(page) { /* la barra de solapas */ },
+    async comprobar(page) {
+      const r = await page.evaluate(() => ({
+        pintados: window.__pintados, lecturas: window.__lecturas, sesion: window.session,
+      }));
+      const problemas = [];
+      /* La solapa de administración no se ve en NINGUNA muestra, ni siquiera un frame: la fuga
+         que importa es la transitoria, porque es la que una revisión a ojo no encuentra. */
+      const conMotor = r.pintados.filter(m => m.solapas.includes('motor'));
+      if (conMotor.length) problemas.push(`la solapa Configuración estuvo visible en ${conMotor.length} muestra(s) con rol jugador (rol/S-03)`);
+      if (r.lecturas.userRoles) problemas.push(`hubo ${r.lecturas.userRoles} lectura(s) de userRoles (rol/NFR-002)`);
+      if (r.lecturas.data !== 3) problemas.push(`una cuenta jugador debería leer sólo los 3 documentos públicos y leyó ${r.lecturas.data} (rol/S-03)`);
+      if (r.sesion.jugadorId !== 'p1') problemas.push(`el jugadorId del claim debería estar en window.session y quedó ${JSON.stringify(r.sesion.jugadorId)} (rol/S-03a)`);
+      return problemas;
+    } },
+
+  { clave: 'rol-sesion-loader', rol: 'admin', nombre: 'loader de sesión mientras se refresca el token',
+    /* El escenario del ESTADO DE LAYOUT NUEVO que NFR-006 declara (corregido). Corre en todos los
+       anchos: la pelota de 92 px con su epígrafe tiene que entrar desde el piso de 360 px.
+       `refrescoDemora` es lo que lo hace visible — el loader está detrás de una demora de 400 ms
+       (el design system prohíbe montarlo por menos), y con el refresco instantáneo del doble no
+       se montaría nunca. Son 2500 ms y no 900 porque el runner espera `networkidle` más 600 ms
+       antes de llamar a `preparar`: con 900 la ventana del loader ya había cerrado y el escenario
+       se caía esperando un selector que nunca volvía. */
+    doble: { claimAusente: true, refrescoTrae: 'admin', refrescoDemora: 2500 },
+    spec: ['rol/S-01b', 'rol/S-11', 'rol/S-11a', 'rol/NFR-001b', 'rol/NFR-006'],
+    async preparar(page) {
+      /* Se mide CON el loader en pantalla: el refresco tarda 900 ms y el loader monta a los 400,
+         así que a los 600 ms de carga la pelota está puesta y la tarjeta de login escondida. */
+      await page.waitForSelector('#sessionLoader .ball-loader', { state: 'visible', timeout: 4000 });
+    },
+    async comprobar(page) {
+      /* Se espera a que el refresco termine para poder afirmar sobre el final: un refresco, la
+         barra con sus tres solapas, y el loader retirado sin dejar la tarjeta escondida. */
+      await page.waitForFunction(() => window.session && window.session.rol === 'admin', { timeout: 8000 });
+      await page.waitForTimeout(300);
+      const r = await page.evaluate(() => ({
+        pintados: window.__pintados, refrescos: window.__refrescos,
+        loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
+        cardVisible: !!(document.getElementById('loginCard') || {}).offsetParent,
+        sesion: window.session,
+      }));
+      const problemas = [];
+      if (r.refrescos !== 1) problemas.push(`el refresco forzado debería ocurrir exactamente una vez y ocurrió ${r.refrescos} (rol/S-11a, TC-046)`);
+      if (r.sesion.rol !== 'admin') problemas.push(`el token refrescado traía admin y la sesión quedó en ${r.sesion.rol} (rol/S-11)`);
+      if (r.loaderVisible) problemas.push('el loader de sesión siguió visible después de resolver el rol (rol/S-11)');
+      if (r.cardVisible) problemas.push('la tarjeta de login quedó visible sobre la aplicación (rol/S-11)');
+      /* El loader existió: si no se montó nunca, este escenario no probó el estado de layout que
+         NFR-006 declara y estaría pasando en falso. */
+      if (!r.pintados.some(m => m.loaderVisible)) problemas.push('el loader de sesión no se montó en ningún momento: el escenario no midió el estado nuevo (rol/NFR-006)');
+      /* Y la barra sigue pintándose una sola vez, ya completa, también por este camino. */
+      const incompletas = r.pintados.filter(m => m.appVisible && m.solapas.length !== 3);
+      if (incompletas.length) problemas.push(`tras el refresco la barra se pintó incompleta en ${incompletas.length} muestra(s) (rol/S-01b, FR-002)`);
+      return problemas;
+    } },
+
+  { clave: 'rol-login-fallido', rol: 'admin', nombre: 'credenciales rechazadas: la pantalla de login se queda donde está',
+    anchos: [360, 1200], spec: ['rol/S-02a'],
+    /* `sinSesion` arranca la aplicación en la pantalla de login, que es la única forma de llegar
+       ahí: por default el doble entra siempre. Un primer intento la simulaba escondiendo appRoot
+       a mano después de haber entrado, y así `window.session` ya tenía el rol resuelto — el
+       escenario afirmaba sobre un estado que no era el que dice medir. */
+    doble: { sinSesion: true },
+    async preparar(page) {
+      /* El doble acepta cualquier contraseña, así que se lo hace rechazar acá. */
+      await page.evaluate(() => {
+        window.auth.login = async () => { throw new Error('auth/wrong-password'); };
+        document.getElementById('loginUsuario').value = 'admin';
+        document.getElementById('loginPassword').value = 'lo-que-no-es';
+        document.getElementById('btnLogin').click();
+      });
+      await page.waitForFunction(() => document.getElementById('loginError').textContent.length > 0, { timeout: 3000 });
+    },
+    async comprobar(page) {
+      const r = await page.evaluate(() => ({
+        error: document.getElementById('loginError').textContent,
+        loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
+        cardVisible: !!(document.getElementById('loginCard') || {}).offsetParent,
+        sesion: window.session,
+      }));
+      const problemas = [];
+      if (!r.error) problemas.push('un login rechazado debería mostrar el mensaje de error');
+      /* Lo que la feature podría haber roto: el loader de sesión no tiene nada que ver con un
+         login fallido, y si se montara acá taparía el formulario justo cuando hay que corregirlo. */
+      if (r.loaderVisible) problemas.push('el loader de sesión no debería aparecer en un login rechazado (rol/S-02a)');
+      if (!r.cardVisible) problemas.push('la tarjeta de login debería seguir en pantalla para poder corregir las credenciales (rol/S-02a)');
+      if (r.sesion.rol !== 'jugador') problemas.push(`un login rechazado no debería dejar rol ${r.sesion.rol} (rol/S-02a)`);
+      return problemas;
+    } },
+
+  { clave: 'rol-dos-pestanias', rol: 'admin', nombre: 'dos pestañas del mismo navegador refrescan cada una su token',
+    anchos: [1200],
+    /* La bandera que acota el refresco es de MÓDULO y muere con la pestaña (TD-04). El riesgo real
+       vive acá: si se hubiera persistido en localStorage, la segunda pestaña —que comparte el
+       almacenamiento con la primera— no refrescaría y una cuenta admin entraría como jugador.
+       Por eso la segunda página se abre en el MISMO contexto de Playwright; dos contextos
+       separados no probarían nada. */
+    doble: { claimAusente: true, refrescoTrae: 'admin' },
+    spec: ['rol/S-02b', 'rol/TC-040', 'rol/TC-046'],
+    async preparar(page) { /* la primera pestaña ya arrancó */ },
+    async comprobar(page) {
+      const primera = await page.evaluate(() => ({ refrescos: window.__refrescos, rol: window.session.rol }));
+      const segunda = await page.context().newPage();
+      /* El doble y el bloqueo del CDN se instalan por PÁGINA, no por contexto, así que la
+         pestaña nueva necesita los suyos. Se le da la misma configuración que a la primera: el
+         punto del escenario es que las dos arranquen igual y aun así cada una refresque. */
+      await segunda.route('**/firebasejs/**', r => r.abort());
+      await segunda.addInitScript(fakeFirebase, { datos: docsDesde(), rol: 'admin', claimAusente: true, refrescoTrae: 'admin' });
+      await segunda.goto(page.url(), { waitUntil: 'networkidle' });
+      await segunda.waitForSelector('#appRoot', { state: 'attached' });
+      await segunda.waitForTimeout(600);
+      const r2 = await segunda.evaluate(() => ({ refrescos: window.__refrescos, rol: window.session.rol }));
+      await segunda.close();
+      const problemas = [];
+      if (primera.refrescos !== 1 || primera.rol !== 'admin') problemas.push(`la primera pestaña debería refrescar una vez y quedar admin, y quedó ${JSON.stringify(primera)} (rol/S-02b)`);
+      if (r2.refrescos !== 1) problemas.push(`la segunda pestaña debería refrescar su propio token una vez y refrescó ${r2.refrescos}: la bandera se está compartiendo entre pestañas (rol/S-02b, TD-04)`);
+      if (r2.rol !== 'admin') problemas.push(`la segunda pestaña debería resolver admin igual que la primera y resolvió ${r2.rol} (rol/S-02b)`);
+      return problemas;
+    } },
 
   /* La ficha abierta trae .index-card, .field-row, .pos-badges y .scores-grid
      (4 columnas que colapsan a 2 en 480px), más el .info-icon. */
@@ -1824,7 +1982,32 @@ async function main() {
       /* Los tres <script> del CDN de Firebase no se descargan: el global lo
          provee el doble, y así el test no depende de la red. */
       await page.route('**/firebasejs/**', r => r.abort());
-      await page.addInitScript(fakeFirebase, { datos: docsDesde(), rol: caso.rol });
+      /* `doble` deja a un escenario configurar el resto del doble de Firebase además del rol:
+         es lo que permite escribir el corte de la feature rol-en-el-token (un token sin claim,
+         un refresco que demora o que falla) como escenarios y no como prosa. */
+      await page.addInitScript(fakeFirebase, Object.assign({ datos: docsDesde(), rol: caso.rol }, caso.doble || {}));
+      /* Registrador del PRIMER PINTADO. Se instala antes de que corra la aplicación y muestrea en
+         cada frame qué solapas están visibles y si `#appRoot` ya se reveló. Es la única forma de
+         verificar FR-002 —que la barra tenga su composición final en su primer pintado— porque
+         mirar el DOM al final del test no distingue "siempre estuvo bien" de "se corrigió sola
+         200 ms después", que es exactamente la regresión que la feature elimina. */
+      await page.addInitScript(() => {
+        window.__pintados = [];
+        const muestrear = () => {
+          const app = document.getElementById('appRoot');
+          if (app) {
+            window.__pintados.push({
+              t: Math.round(performance.now()),
+              appVisible: app.style.display !== 'none' && app.offsetParent !== null,
+              loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
+              solapas: [...document.querySelectorAll('.tabs .tab-btn')]
+                .filter(b => b.offsetParent !== null).map(b => b.dataset.tab),
+            });
+          }
+          if (window.__pintados.length < 600) requestAnimationFrame(muestrear);
+        };
+        requestAnimationFrame(muestrear);
+      });
       const errores = [];
       page.on('pageerror', e => errores.push(e.message));
       await page.goto(URL, { waitUntil: 'networkidle' });
