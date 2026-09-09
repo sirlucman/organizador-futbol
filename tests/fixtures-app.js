@@ -270,16 +270,23 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
    y los tres <script> del CDN de Firebase se bloquean con page.route. Tiene que
    ser una función serializable —nada de closures sobre el módulo— y recibir un
    único argumento, que es lo que admite addInitScript. */
-function fakeFirebase({ datos, rol }) {
+function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla }) {
   const docs = datos;
   /* Registro de escrituras. La cancha es presentación pura y no debe agregar ni un campo nuevo a
      lo que se persiste (Spec de la cancha, NFR-006): con esto un escenario puede abrir la
      pantalla, mirar `window.__escrituras` y comparar el conjunto de claves contra el esperado.
      Es una lista y no un contador porque también interesa el ORDEN cuando algo escribe de más. */
   window.__escrituras = [];
+  /* Lecturas por colección. Es lo que permite a un escenario afirmar CERO lecturas de `userRoles`
+     en un arranque de admin (rol-en-el-token, NFR-002/NFR-007): la ausencia de una lectura no se
+     puede ver desde el DOM, y sin contador habría que creerle al código. */
+  window.__lecturas = {};
+  /* Cuántas veces se pidió un token FORZADO. TC-046 acota el refresco a uno por carga de página,
+     y esa es una propiedad sobre el número de llamadas, no sobre el resultado (S-11c). */
+  window.__refrescos = 0;
   const doc = (col, key) => ({
     get: async () => {
-      if (col === 'userRoles') return { exists: true, data: () => ({ rol, jugadorId: null }) };
+      window.__lecturas[col] = (window.__lecturas[col] || 0) + 1;
       const value = docs[key];
       return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
     },
@@ -293,11 +300,38 @@ function fakeFirebase({ datos, rol }) {
       docs[key] = obj && obj.value;
     },
   });
+  /* El punto de intercepción del rol es el TOKEN, no la colección `userRoles` (rol-en-el-token,
+     TC-033/TD-07). Antes esta misma función servía un documento `userRoles` falso; ahora entrega
+     un `user` con `getIdTokenResult`, que es de donde la aplicación lee el claim. Es el mismo
+     mecanismo —un único global falseado, sin red— movido de Firestore a Auth.
+
+     `rol` se conserva con su nombre y su significado, así que los ~20 escenarios de layout que
+     ya lo pasaban siguen funcionando sin tocarse, y tools/servir-fixture.js tampoco cambia.
+     Los campos opcionales son lo que permite escribir el corte y el fail-closed como escenarios:
+
+       jugadorId     el Jugador vinculado que viaja en el claim (rol "jugador")
+       claimAusente  el primer token NO trae claim `rol`, como una sesión abierta antes del corte
+       refrescoTrae  qué rol trae el token refrescado ('admin' | 'jugador' | null = sigue sin claim)
+       refrescoFalla el refresco tira, para el camino de error de S-01c */
   const auth = () => ({
     setPersistence: async () => {},
     signInWithEmailAndPassword: async () => {},
     signOut: async () => {},
-    onAuthStateChanged: (cb) => cb({ uid: 'u-test' }),
+    onAuthStateChanged: (cb) => cb({
+      uid: 'u-test',
+      getIdTokenResult: async (forzado) => {
+        if (forzado) {
+          window.__refrescos++;
+          if (refrescoFalla) throw new Error('no se pudo refrescar el token');
+          return { claims: refrescoTrae ? { rol: refrescoTrae, jugadorId: jugadorId || null } : {} };
+        }
+        /* `claimAusente` gana sobre `rol` en el primer token a propósito: un escenario del corte
+           declara las dos cosas —qué rol tiene la cuenta del lado servidor y que su token viejo
+           todavía no lo trae. */
+        if (claimAusente) return { claims: {} };
+        return { claims: { rol, jugadorId: jugadorId || null } };
+      },
+    }),
   });
   auth.Auth = { Persistence: { LOCAL: 'local' } };
   window.firebase = {
