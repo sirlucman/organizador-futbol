@@ -180,8 +180,15 @@ resolución explícita.
 - **TC-041** — Toda regla de Firestore que hoy exige `rol() == 'admin'` deberá
   seguir exigiendo el rol equivalente leído del token, sin ampliar el conjunto de
   operaciones permitidas, **defiende `CWE-862` *Missing Authorization*** (puesto
-  4). La equivalencia deberá verificarse documento por documento contra el
-  contrato vigente.
+  4). La equivalencia deberá verificarse documento por documento contra las **reglas
+  vivas de los dos proyectos Firebase**, leídas de la consola, y **no** contra el
+  contrato committeado en
+  [`docs/007-permisos-por-usuario/contracts/firestore-rules.md`](../007-permisos-por-usuario/contracts/firestore-rules.md):
+  ese contrato está **probadamente incompleto**. Cubre 5 de los 6 documentos de
+  `DOCS_SOLO_ADMIN` ([`index.html:1855-1857`](../../index.html#L1855-L1857)) — no tiene
+  bloque `match` para `ordenJugadoresMigrado`, que la feature `orden-jugadores` agregó a
+  esa lista después ([`ORDEN_JUGADORES_IMPLEMENTATION_PLAN.md`](../orden-jugadores/ORDEN_JUGADORES_IMPLEMENTATION_PLAN.md)).
+  Ver `OPEN-Q-04`.
 - **TC-042** — La comparación del rol deberá ser por igualdad exacta contra la
   cadena esperada. No se admite coerción de tipos, comparación laxa ni
   interpretación de valores ausentes como verdaderos, **defiende `CWE-863`
@@ -332,6 +339,8 @@ resolución explícita.
 - **FR-027** — Si la llave de cuenta de servicio no está disponible en la ruta
   indicada, entonces el script deberá interrumpirse con un error y no deberá
   intentar ninguna operación (`TC-045`).
+- **FR-028** — Cuando el rol indicado coincide con el que la cuenta ya tiene, el script
+  deberá completar la operación sin alterar el resultado y sin fallar.
 
 ### 7.4 Mudanza
 
@@ -415,7 +424,7 @@ resolución explícita.
 
 **Variants:**
 
-- `S-04a [boundary]` — se asigna el mismo rol que la cuenta ya tenía: la operación es idempotente y no deja el registro inconsistente
+- `S-04a [boundary]` — se asigna el mismo rol que la cuenta ya tenía: la operación es idempotente y no deja el registro inconsistente (FR-028)
 - `S-04b [failure]` — el rol indicado no pertenece a `{admin, jugador}`: no se escribe ni el claim ni el registro (FR-023, TC-044)
 - `S-04c [failure]` — la cuenta indicada no existe: no se escribe nada (FR-024)
 - `S-04d [failure]` — la llave no está en la ruta indicada: el script se interrumpe sin operar (FR-027, TC-045)
@@ -530,6 +539,14 @@ erDiagram
   }
 ```
 
+> `[UNVERIFIED — el render de este diagrama no se pudo validar: la CLI de Mermaid no
+> logra arrancar Chrome en el entorno donde se escribió y se revisó esta Spec]`. La
+> sintaxis se revisó a mano contra la de `erDiagram` y el bloque tiene 3 entidades,
+> dentro del techo de 15 que fija `MD-24`, pero **no** se confirmó que dibuje. Se cierra
+> pegándolo en <https://mermaid.live>. Agregado tras la crítica independiente del
+> 2026-09-09, que señaló que la Concept Note sí declaraba esta misma limitación para su
+> diagrama y esta Spec la había omitido para el suyo.
+
 ### 10.2 External APIs / events the feature consumes
 
 | Source | Contract | Direction | Notes |
@@ -548,10 +565,11 @@ erDiagram
 
 ### 11.1 Functional acceptance
 
-- **AC-01** — Todos los escenarios de §9.1 y sus variantes pasan contra la aplicación real (cubre FR-001 a FR-005, FR-020 a FR-027; agrega S-01..S-05 con sus variantes).
+- **AC-01** — Todos los escenarios de §9.1 y sus variantes pasan contra la aplicación real (cubre FR-001 a FR-005, FR-020 a FR-028; agrega S-01..S-05 con sus variantes).
 - **AC-02** — Los escenarios de §9.2 y sus variantes pasan, incluida la resolución silenciosa como `jugador` (cubre FR-006, FR-007, FR-030; agrega S-10, S-11).
 - **AC-03** — Una cuenta `admin` completa un arranque sin que la interfaz cambie de composición después del primer pintado (cubre FR-002; agrega S-01, S-02).
-- **AC-04** — No queda en el repositorio ninguna referencia a la pista de rol en el almacenamiento del navegador (cubre FR-008, FR-032, NFR-005).
+- **AC-04** — No queda en el repositorio ninguna referencia a la pista de rol en el almacenamiento del navegador (cubre FR-008, NFR-005).
+- **AC-04b** — No queda en el código de la aplicación ninguna lectura de la colección `userRoles`: `grep -n "userRoles" index.html` no devuelve ninguna línea ejecutable, sólo comentarios históricos si los hubiera (cubre FR-032). Es un camino de código distinto del de AC-04 — la pista vive en el almacenamiento del navegador, esta lectura vive en Firestore — y por eso necesita su propia evidencia.
 - **AC-05** — El listado del script informa el rol de cada cuenta y señala las que no tienen ninguno (cubre FR-025, FR-026; agrega S-05).
 
 ### 11.2 Non-functional acceptance
@@ -582,7 +600,7 @@ erDiagram
 - **AC-50** — Cada escenario de §9 —y cada variante enumerada— tiene al menos un test ejecutable referenciado en la §12.1 *Scenario Traceability Matrix* del Implementation Plan, con el identificador embebido de forma estructural (nombre del caso o etiqueta del framework, nunca en un comentario). Cada encabezado de escenario de §9 va seguido de su bloque `Variants:` o de la declaración explícita `Variants: none`. Lo verifican mecánicamente `T-N.D8` y `T-N.D8b` del Plan.
 - **AC-51** — Cada NFR de §8 con objetivo cuantificado —NFR-001, NFR-001b, NFR-002, NFR-004— tiene un test de medición referenciado en la §12 del Plan, con el identificador embebido.
 - **AC-52** — Cada `TC-*` de §4 tiene su chequeo de cumplimiento en §11.3 y su entrada correspondiente en la §12 del Plan: test ejecutable donde el constraint es mecánico, o revisor/checklist nombrado donde no lo es. Lo verifican `T-N.D10` y `T-N.D10b`.
-- **AC-53** — El cambio tiene al menos una fila `IMP-*` en la §12.2 *Impact Traceability* del Plan por cada ámbito materialmente afectado. Los ámbitos que esta Spec ya identifica son: `code` (la resolución de sesión y el prefetch), `system` (las reglas publicadas en los dos proyectos Firebase y los tests de interfaz) y `external` (las cuentas con sesión abierta durante el corte). Lo verifica `T-N.D15`.
+- **AC-53** — El cambio tiene al menos una fila `IMP-*` en la §12.2 *Impact Traceability* del Plan por cada ámbito materialmente afectado. Los ámbitos que esta Spec identifica son tres: `code` (la resolución de sesión y el prefetch), `system` (las reglas publicadas en los dos proyectos Firebase y los tests de interfaz) y `business` (dos consecuencias distintas sobre las personas: las cuentas con sesión abierta durante el corte, y el cambio de flujo operativo del propietario, que pasa de crear un documento a mano en la consola a correr un script). El ámbito `external` **no aplica** y se declara vacío: la aplicación no tiene consumidores de terceros ni integraciones externas que dependan de ella. Lo verifica `T-N.D15`.
 - **AC-54** — Cada NFR cuantificado tiene al menos una fila `OBS-*` en la §11 *Observability* del Plan, con el identificador del NFR en su columna *Binds to*. NFR-007 existe precisamente para que NFR-002 y NFR-004 tengan señal observable y no dependan de inspección de código. Lo verifica `T-N.D16`.
 - **AC-55** — El repositorio no versiona ningún lockfile ([`AGENTS.md`](../../AGENTS.md) → Dependencias), por lo que el Plan declara `Supply-chain: none — el repositorio no versiona lockfile; la única dependencia nueva es del script, externa al repositorio (TC-003)` en su §5 y satisface esta obligación de forma vacua. Lo verifica `T-N.D20`.
 
@@ -623,6 +641,7 @@ erDiagram
 | El claim y el registro legible se desincronizan, y la consola miente | Low | Med | `TC-013` exige escritura conjunta; `S-04e` cubre el solapamiento de dos corridas; `AC-21` verifica que no queden escrituras parciales |
 | NFR-001b resulta inalcanzable porque el refresco del token domina el arranque | Med | Med | `OPEN-Q-02` lo mide **antes** de que el Plan comprometa el objetivo. Si el refresco domina, el objetivo se renegocia en una revisión de esta Spec, no en el Plan |
 | Los tests dejan de cubrir el comportamiento por rol al mover el punto de intercepción | Med | High | `TC-033` fija el punto nuevo; `AC-17` lo verifica; `OPEN-Q-01` deja la técnica concreta al Plan |
+| La reescritura de reglas omite `ordenJugadoresMigrado` porque la fuente de verificación committeada no lo incluye, y ese documento queda con la regla vieja (o sin ninguna) mientras los otros cinco migran | **High** | Med | `TC-041` ya no admite el contrato committeado como fuente: exige verificar contra las reglas vivas de los dos proyectos. `OPEN-Q-04` obliga a resolver el estado real antes de tocar `rol()`, y distingue los dos desenlaces posibles |
 | Una cuenta queda sin rol y nadie se entera, porque el fail-closed es silencioso | Low | Med | Decisión consciente (FR-007). La contrapartida es `FR-026`: el olvido se detecta desde el listado del propietario, no desde un cartel al usuario |
 
 ## 16. Open questions
@@ -632,13 +651,14 @@ erDiagram
 | OPEN-Q-01 | ¿Cómo interceptan los tests el token, ahora que el rol no viene de Firestore? | Lucas Manoukian | Implementation Plan | Heredada de `OPEN-Q-05` de la Concept Note. Hoy el doble intercepta la colección `userRoles` ([`tests/fixtures-app.js:282`](../../tests/fixtures-app.js#L282)); `TC-033` fija que debe pasar a interceptar el token, y el Plan elige la técnica |
 | OPEN-Q-02 | ¿Cuánto tarda el refresco del token cuando la sesión tiene más de una hora? | Lucas Manoukian | Implementation Plan | Respalda NFR-001b, que hoy se compromete sin número absoluto. Requiere medir con una sesión realmente vencida, no simulada. Cierra también el marcador `[UNVERIFIED]` de NFR-001b |
 | OPEN-Q-03 | ¿Cómo se observa el consumo de lecturas de Firestore de forma repetible? | Lucas Manoukian | Implementation Plan | NFR-007 exige que NFR-002 y NFR-004 se verifiquen sobre datos. La consola de Firebase muestra el consumo, pero hay que definir cómo se aísla el de un arranque |
+| OPEN-Q-04 | ¿Qué regla rige **hoy** el documento `data/ordenJugadoresMigrado` en cada proyecto Firebase? | Lucas Manoukian | Implementation Plan | Detectada por la crítica independiente del 2026-09-09. El contrato committeado de `007` no tiene bloque `match` para ese documento, aunque la app lo pide como sólo-admin desde `orden-jugadores`. Hay que leer la regla viva en la consola de **los dos** proyectos antes de reescribir `rol()`, porque es la única fuente real (`TC-041`). Dos desenlaces posibles y hay que distinguirlos: si existe una regla no documentada, se la reescribe como las otras cinco y se documenta; si **no existe ninguna**, Firestore deniega por defecto, y entonces la escritura del flag viene fallando en silencio —`pedirDoc()` traga el error y devuelve `null`— con lo que la migración de `orden-jugadores` podría estar re-corriendo en cada arranque de admin. Ese segundo caso es un bug preexistente, ajeno a esta feature, y se reporta aparte |
 
 ## 17. Handoff to the Implementation Plan
 
 - **Plan must respect (no relitigation):** todos los `FR-*` de §7, todos los `NFR-*` de §8, todos los `TC-*` de §4 —incluidos los siete de seguridad de §4.5—, todos los `AC-*` de §11 —incluidas las seis obligaciones de §11.5— y los doce constraints heredados de la Concept Note en §3.3.
 - **Plan has freedom over:** cómo se estructura el script y su interfaz de línea de comandos, la técnica concreta de intercepción en los tests, el orden y la cantidad de ramas, el reparto de tareas, la elección de las herramientas de medición, y cualquier decisión de patrón de diseño dentro de los límites de los `TC-*`.
-- **Plan must resolve:** `OPEN-Q-01`, `OPEN-Q-02`, `OPEN-Q-03`.
-- **Verificación pendiente heredada (`MD-26`):** esta Spec lleva **un** marcador `[UNVERIFIED]`, en **NFR-001b**: que la resolución de la sesión con token vencido incluya un refresco de red antes de poder leer los claims está deducido de dos hechos verificados (el token dura una hora; el SDK renueva al expirar) pero no comprobado ejecutándolo. `OPEN-Q-02` es la tarea que lo cierra, y hasta entonces el objetivo de NFR-001b se expresa como comparación contra la línea de base y no como número absoluto. La Concept Note aporta además su propio marcador, sobre el render de su diagrama Mermaid.
+- **Plan must resolve:** `OPEN-Q-01`, `OPEN-Q-02`, `OPEN-Q-03`, `OPEN-Q-04`. La `OPEN-Q-04` es **previa** a cualquier reescritura de reglas: sin ella, `TC-041` no puede verificarse.
+- **Verificación pendiente heredada (`MD-26`):** esta Spec lleva **dos** marcadores `[UNVERIFIED]`. El primero, en **§10.1.1**: el render del diagrama `erDiagram` no se pudo validar en el entorno donde se escribió (la CLI de Mermaid no arranca Chrome); se cierra pegándolo en <https://mermaid.live>. El segundo, en **NFR-001b**: que la resolución de la sesión con token vencido incluya un refresco de red antes de poder leer los claims está deducido de dos hechos verificados (el token dura una hora; el SDK renueva al expirar) pero no comprobado ejecutándolo. `OPEN-Q-02` es la tarea que lo cierra, y hasta entonces el objetivo de NFR-001b se expresa como comparación contra la línea de base y no como número absoluto. La Concept Note aporta además su propio marcador, sobre el render de su diagrama `C4Context`.
 - **Declaración de reemplazo pendiente de ejecución:** la Concept Note §6 declara cuatro reemplazos sobre `007-permisos-por-usuario` —`FR-016`, la decisión #1 de su `research.md`, la función `rol()` de su contrato de reglas y el papel de `userRoles` en su modelo de datos—. La anotación recíproca en esos archivos se ejecuta junto con esta Spec; el Plan debe verificar que está hecha antes de dar la feature por terminada.
 - **El Plan no debe introducir** ningún componente desplegado, ningún flag, ningún paso de build, ni ninguna dependencia instalada del repositorio: son no-objetivos de §3.2 y constraints de §4.1.
 
@@ -647,6 +667,7 @@ erDiagram
 | Date | Author | Change |
 |---|---|---|
 | 2026-09-09 | Lucas Manoukian | Initial draft. Deriva de la Concept Note (`D-01` a `D-12`, §6.5) y resuelve sus `OPEN-Q-02`, `OPEN-Q-03` y `OPEN-Q-04` con las decisiones del propietario: el script vive en `tools/` y sabe listar (`TC-031`, FR-025/FR-026), una cuenta sin rol entra como `jugador` en silencio (FR-007), y el claim se llama `rol` (`TC-030`). Las categorías de §4.5 se derivaron del CWE Top 25 de 2025 recuperado en vivo el 2026-09-09. Al redactar se dividió NFR-001 en NFR-001/NFR-001b: el objetivo de ≤ 50 ms sólo es alcanzable con el token vigente, porque con el token vencido Firebase necesita un refresco de red antes de entregar los claims — se agregó `OPEN-Q-02` para medirlo y un marcador `[UNVERIFIED]` mientras no esté medido. Se agregaron dos no-objetivos descubiertos al redactar (§3.2). Self-critique: passed (1🔴 / 4🟡 / 2🔵) — el 🔴 (FR-008 era compuesto: unía dejar de usar la pista con decidir el prefetch, contra EARS/`MD-03`) se resolvió partiéndolo en FR-008 y FR-009. Los 🟡: FR-003 repetía casi textual el mandato de `TC-010` (se quedó con la conducta y remite el mandato al TC); FR-005 y FR-032 se solapan legítimamente con NFR-001/NFR-002 y con `TC-011`/`TC-012` (se anotó el vínculo en cada uno para que un cambio futuro no los haga divergir en silencio); FR-030 decía "correctamente", que no es verificable (se reemplazó por la obligación concreta); y NFR-002 afirmaba una línea de base de siete lecturas que no está medida (pasa a medirse en AC-12, con el objetivo comprometido en cero). Los dos 🔵 se dejan: §11.2 no cubre visiblemente NFR-005 ni NFR-006 (los cubren AC-04 y la no-regresión de layout), y los `FR-*` usan sujetos de componente ("las reglas deberán", "el script deberá") en vez de "el sistema deberá", que EARS admite al nombrar el sistema de interés y acá es más claro. |
+| 2026-09-09 | Lucas Manoukian | Aplica los cinco hallazgos de la crítica independiente de [`ROL_EN_EL_TOKEN_SPEC_CRITIQUE_2026-09-09_sonnet-5.md`](./ROL_EN_EL_TOKEN_SPEC_CRITIQUE_2026-09-09_sonnet-5.md) (crítico `claude-sonnet-5`, familia distinta del autor `claude-opus-5`; veredicto CHANGES REQUESTED con 2🔴 / 3🟡). **Los dos 🔴:** (1) el `erDiagram` de §10.1.1 no llevaba marcador `[UNVERIFIED]` pese a que su render no se pudo validar y la Concept Note sí declaraba esa misma limitación para el suyo — agregado, y sumado como segunda deuda en §17; (2) `TC-041` mandaba verificar la equivalencia de permisos "contra el contrato vigente", y ese contrato está probadamente incompleto: no tiene bloque `match` para `ordenJugadoresMigrado`, uno de los seis documentos sólo-admin, que `orden-jugadores` agregó después. Se cambió la fuente de verificación a las reglas vivas de los dos proyectos, se agregó `OPEN-Q-04` como bloqueante previo a tocar `rol()`, y una fila de riesgo `High`. Ese hallazgo lo había señalado ya la crítica previa de la Concept Note y no se había resuelto: ahora sí. Al verificarlo se encontró una consecuencia que ninguna de las dos críticas había desarrollado — si la regla no existe, Firestore deniega por defecto, la escritura del flag falla en silencio y la migración de `orden-jugadores` podría estar re-corriendo en cada arranque; queda registrado en `OPEN-Q-04` como bug preexistente a reportar aparte. **Los tres 🟡:** `S-04a` asumía idempotencia sin `FR` que la respaldara (nuevo `FR-028`); `AC-04` decía cubrir `FR-032` pero su evidencia sólo alcanzaba la pista de `localStorage`, no las lecturas de Firestore (partido en `AC-04`/`AC-04b`); y `AC-53` clasificaba el impacto sobre los usuarios como `external` (reclasificado a `business`, sumando el cambio de flujo del propietario, y declarando `external` vacío explícitamente). Sin cambios en las decisiones heredadas ni en el alcance. Self-critique: no corresponde (aplicación de hallazgos externos, cada uno verificado contra el repositorio antes de aplicarlo). |
 
 ---
 
