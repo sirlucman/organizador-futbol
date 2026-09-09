@@ -123,17 +123,23 @@ C4Context
   System_Ext(fs, "Cloud Firestore", "datos del grupo; sus reglas leen el rol del token")
   Rel(admin, app, "entra y administra")
   Rel(jugador, app, "entra y se anota")
-  Rel(app, auth, "login; recibe el token con el rol")
-  Rel(app, fs, "lee y escribe")
-  Rel(script, auth, "estampa el rol en la cuenta")
-  Rel(script, fs, "escribe el registro legible de roles")
+  Rel(app, auth, "login; recibe el token")
+  Rel(app, fs, "lee y escribe datos")
+  Rel(script, auth, "estampa el rol")
+  Rel(script, fs, "escribe el registro")
+  UpdateRelStyle(app, auth, $offsetX="-70", $offsetY="-30")
+  UpdateRelStyle(app, fs, $offsetX="-10", $offsetY="40")
+  UpdateRelStyle(script, auth, $offsetX="-20", $offsetY="-30")
+  UpdateRelStyle(script, fs, $offsetX="50", $offsetY="40")
 ```
 
-> `[UNVERIFIED — el render del diagrama no se pudo validar en este entorno: la CLI de
-> Mermaid no logra arrancar Chrome]`. La sintaxis se revisó a mano contra la de `C4Context`
-> y el bloque tiene 6 elementos, dentro del techo de 15 que fija `MD-24`, pero **no** se
-> confirmó que renderice. Verificarlo pegándolo en <https://mermaid.live> antes de aprobar
-> el documento.
+> **Render verificado el 2026-09-09.** Se instaló el navegador que le faltaba a la CLI de
+> Mermaid y se renderizó el bloque a imagen: dibuja los 6 elementos y las 6 relaciones, sin
+> carteles de error. La primera versión renderizaba pero era **parcialmente ilegible** —los
+> rótulos de las dos flechas que se cruzan en el medio se superponían y se leían encimados—,
+> algo que sólo se detectó al mirar la imagen y no al comprobar que "no da error". Se acortaron
+> esos cuatro rótulos y se separaron con `UpdateRelStyle`; la versión de arriba es la
+> corregida y ya se lee entera.
 
 ### 5.2 Security posture (`MD-31`)
 
@@ -580,10 +586,11 @@ No hay entidades nuevas. Hay una que **cambia de lugar** y una que **cambia de p
   modelo de datos (§6). Y anotar recíprocamente esas partes como reemplazadas en el spec
   viejo — sin eso, quedan dos specs vigentes contradiciéndose
   ([`AGENTS.md`](../../AGENTS.md)).
-- **Verificación pendiente heredada (`MD-26`):** el bloque Mermaid de §5.1 lleva un
-  marcador `[UNVERIFIED]` — su render no se pudo validar al escribir este documento. Es la
-  única deuda de verificación que la Spec hereda; se cierra pegando el diagrama en
-  <https://mermaid.live> y confirmando que dibuja.
+- **Verificación pendiente heredada (`MD-26`): ninguna.** El bloque Mermaid de §5.1 llevaba
+  un marcador `[UNVERIFIED]` porque su render no se había podido validar; quedó **cerrado el
+  2026-09-09** renderizándolo a imagen, lo que además destapó que los rótulos se superponían
+  y forzó corregir el diagrama (ver la nota en §5.1). Esta Concept Note no traspasa deuda de
+  verificación a la Spec.
 - **La Spec debe atender en su §4.5** las dos categorías de seguridad que §5.2 pone en
   juego: control de acceso ausente o incorrecto, y protección insuficiente de credenciales
   (la llave de servicio de `D-04`). El CWE Top 25 vigente se consulta en vivo al escribirla.
@@ -616,6 +623,7 @@ No hay entidades nuevas. Hay una que **cambia de lugar** y una que **cambia de p
 | 2026-09-09 | Lucas Manoukian (claude-opus-5) | Initial draft. Deriva de la conversación de diagnóstico del 2026-09-09 y de las cuatro decisiones de producto que el propietario tomó ahí (`D-02`, `D-05`, `D-08`, `D-10`). Declara el reemplazo parcial de `FR-016`, la reversión de `research.md` #1, y el reemplazo de la función `rol()` del contrato de reglas y del papel de `userRoles` en el modelo de datos, todo de `007-permisos-por-usuario` (§6). Self-critique: passed (1🔴 / 3🟡 / 2🔵) — el 🔴 (ausencia de esta propia §18) y los tres 🟡 resueltos: §2 y §8.1 exageraban el beneficio de las reglas diciendo "cada lectura y cada escritura" cuando las lecturas de `data/players` y `data/partidos` no consultan el rol (corregido contra el contrato de reglas real); §12 afirmaba que el retraso "baja a cero" cuando lo que desaparece es la diferencia *entre* solapas; y el bloque Mermaid de §5.1 no tenía marcador de verificación pese a que su render no se pudo validar (agregado y citado en §16 per `MD-26`). Los dos 🔵 se dejan: §5 usa dos párrafos donde la rúbrica prefiere uno (la plantilla admite hasta tres), y §9.3/§9.4 se postulan las dos como plan B de `D-01`, redundancia inofensiva. |
 
 | 2026-09-09 | Lucas Manoukian (claude-opus-5) | Resuelve `OPEN-Q-01` con una medición real contra staging (Playwright sobre la app, tres corridas por caso): 821 ms de hueco con login explícito, 487 ms con sesión ya abierta. Actualiza §2 (que declaraba el retraso como no medido), §12 (que ahora tiene línea de base) y §16 (que ya no la lista como pendiente para la Spec). Se agrega la salvedad de que el número es un piso, medido con buena conexión, y que el caso habitual es el de sesión ya abierta porque la persistencia es `LOCAL`. Sin cambios de decisiones ni de alcance. Self-critique: no corresponde (incorporación de una medición, verificada por ejecución). |
+| 2026-09-09 | Lucas Manoukian (claude-opus-5) | **Cierra el marcador `[UNVERIFIED]` de §5.1 y corrige el diagrama.** Se instaló el `chrome-headless-shell` que le faltaba a la CLI de Mermaid y se renderizó el bloque a imagen. Renderizaba sin errores, pero al **mirar** la imagen apareció un defecto que la comprobación mecánica no ve: los rótulos de las dos flechas que se cruzan en el medio (`app→auth` con `app→fs`, y `script→auth` con `script→fs`) se superponían y quedaban ilegibles — se leía "login; recibe el token con el rol**lee y escribe**" encimado. Se acortaron esos cuatro rótulos y se separaron con `UpdateRelStyle`; la versión corregida se volvió a renderizar y los seis rótulos se leen enteros. §16 pasa a declarar que esta Concept Note **no** traspasa deuda de verificación a la Spec. El procedimiento de validación quedó documentado en [`AGENTS.md`](../../AGENTS.md) → Dependencias, incluida la advertencia de que renderizar sin error no equivale a ser legible. Sin cambios de decisiones, requisitos ni alcance. Self-critique: no corresponde (verificación y corrección de un diagrama, comprobada por render). |
 
 ---
 

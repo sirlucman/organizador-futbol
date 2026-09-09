@@ -199,6 +199,28 @@ dependencias instaladas: es un `index.html` que carga Firebase por CDN.
 Playwright es una dependencia opcional de desarrollo, externa al repositorio,
 que solo necesita `tests/layout.test.js`.
 
+### Validar los diagramas Mermaid
+
+Los documentos de feature llevan diagramas Mermaid obligatorios, y se validan
+**renderizándolos**, no leyéndolos:
+
+```sh
+npx -y @mermaid-js/mermaid-cli@latest -i diagrama.mmd -o diagrama.png -s 2 -b white
+```
+
+Esa CLI trae su propio Puppeteer y **falla si falta el `chrome-headless-shell` de
+la versión exacta que pide** — el mensaje de error dice cuál, y se instala con
+`npx -y puppeteer browsers install chrome-headless-shell@<versión>`. Es otra
+dependencia opcional de desarrollo, externa al repositorio. El Chromium de
+Playwright no le sirve: son cachés distintos.
+
+Y una advertencia que costó descubrir: **que un diagrama renderice sin error no
+significa que se lea.** El `C4Context` de `rol-en-el-token` renderizaba perfecto y
+tenía dos rótulos superpuestos e ilegibles, y eso sólo se vio mirando la imagen.
+Hay que abrir el PNG, no conformarse con que el comando terminó bien. Cuando dos
+flechas se cruzan, los rótulos se separan con `UpdateRelStyle(a, b, $offsetX=…,
+$offsetY=…)`.
+
 ## Estilo
 
 - Toda la aplicación vive en `index.html`, dentro de un IIFE. No hay paso de
