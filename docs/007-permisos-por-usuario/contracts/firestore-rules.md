@@ -1,5 +1,18 @@
 # Contrato: Firestore Security Rules (actualiza el contrato de `005-login-basico`)
 
+> **⚠️ Parcialmente reemplazado (2026-09-09).** La función **`rol()`** de este
+> contrato —que resuelve el rol con un `get()` a `userRoles/{uid}`— fue
+> reemplazada por [`docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md`](../../rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md):
+> las reglas pasan a leer `request.auth.token.rol`, sin ninguna lectura de
+> documento. La regla de lectura de `userRoles` desde el cliente pasa a denegar.
+>
+> **Lo que NO se reemplaza y sigue vigente acá:** la tabla de acceso por
+> documento. Qué operaciones concede cada rol sobre `data/players`,
+> `data/playerScores`, `data/partidos`, `data/partidosArmado`, `data/motorConfig`
+> y los flags de migración queda **idéntico** — aquella Spec lo exige
+> explícitamente en su `TC-041` y lo verifica documento por documento. Sigue
+> vigente también la limitación aceptada de `data/partidos` (ver `research.md` §3).
+
 Reemplaza la regla única de `005-login-basico` (`allow read, write: if request.auth != null` para todo `data/{docId}`) por reglas por documento, según el rol de la cuenta. Ver `research.md` y `data-model.md` de esta feature para el razonamiento.
 
 ## Contrato

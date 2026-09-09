@@ -6,6 +6,20 @@
 
 **Status**: Draft
 
+> **⚠️ Parcialmente reemplazada (2026-09-09).** El **mecanismo** por el que se
+> asigna y se resuelve el perfil de una cuenta fue reemplazado por
+> [`docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md`](../rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md):
+> el rol pasa a viajar adentro del token de Firebase Auth (*custom claims*) y a
+> asignarse con un script, en vez de resolverse leyendo la colección `userRoles`
+> y cargarse a mano en la consola. Alcance exacto del reemplazo: **`FR-016`**
+> (ver la nota sobre ese requisito más abajo).
+>
+> **Lo que NO se reemplaza y sigue vigente acá:** todo lo demás. Qué puede ver y
+> hacer cada perfil —`FR-001` a `FR-015`, incluidos `FR-012` (una cuenta
+> "jugador" no ve la solapa de Configuración) y `FR-014` (las restricciones se
+> aplican también en la persistencia)— queda idéntico. Aquella feature cambia
+> **dónde vive el dato del rol**, no los permisos que ese rol habilita.
+
 **Input**: El requerimiento ronda en crear un sistema de perfiles de usuarios. Existirán 2 perfiles: "admin" no tendrá restricción alguna en la plataforma y "jugador". Restricciones del perfil "jugador": en la solapa Jugadores no puede crear/editar/eliminar/inhabilitar jugadores ni ver puntajes propios ni ajenos; en la solapa Partidos no puede ver puntajes propios ni de los equipos armados, ni la estrategia de armado, ni diferencias de puntajes/jugadores sin puntaje/jugadores bloqueados, ni la explicación de por qué quedaron así los equipos, no puede generar/regenerar equipos, no puede cerrar/reabrir la inscripción ni finalizar un partido, no puede modificar estadísticas de un partido, y no puede eliminar a otros jugadores de la convocatoria (solo puede darse de baja a sí mismo); en la solapa Configuración no puede ver la configuración del motor de reglas. La plataforma aún no cuenta con registro de usuarios; los perfiles se asignarán manualmente desde la base de datos en Firebase."
 
 ## Clarifications
@@ -93,6 +107,14 @@ Un usuario con perfil "jugador" que está anotado en la convocatoria de un parti
 - **FR-014**: Todas las restricciones anteriores MUST aplicarse también del lado de la persistencia de datos, no únicamente ocultando opciones en la interfaz, de forma que una cuenta "jugador" no pueda sortearlas accediendo u operando directamente sobre los datos.
 - **FR-015**: El sistema MUST permitir que una cuenta con perfil "jugador" esté vinculada a un registro de jugador específico, de modo que pueda identificarse cuál es "el jugador que corresponde al usuario" a los efectos de la baja de convocatorias (FR-011).
 - **FR-016**: La asignación del perfil ("admin" o "jugador") de cada cuenta, y su vínculo con un jugador cuando corresponda, MUST realizarse manualmente en la base de datos de Firebase, dado que la plataforma aún no cuenta con una pantalla de registro o gestión de usuarios.
+
+  > **⚠️ Reemplazado en parte (2026-09-09)** por [`docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md`](../rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md).
+  > La asignación **ya no se hace en la base de datos**: se hace con un script que
+  > estampa el rol en la cuenta de Firebase Auth (`TC-031` de aquella Spec).
+  > **Lo que sigue vigente** es la intención de fondo de este requisito: la
+  > asignación sigue siendo **manual y deliberada** del propietario, y la
+  > plataforma sigue **sin** pantalla de registro ni de gestión de usuarios —
+  > aquella Spec lo declara no-objetivo permanente en su §3.2.
 
 *Fuera de alcance en esta versión: pantalla de registro o administración de usuarios/perfiles, perfiles adicionales más allá de "admin" y "jugador", y cambios en tiempo real de una sesión activa cuando se modifica el perfil de esa cuenta desde Firebase.*
 

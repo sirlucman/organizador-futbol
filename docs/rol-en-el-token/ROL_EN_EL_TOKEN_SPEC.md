@@ -1,0 +1,658 @@
+# Rol en el token — Spec
+
+> **Status:** Draft · **Date:** 2026-09-09 · **Owner:** Lucas Manoukian
+>
+> **Reviewers:** *pending*
+>
+> **Concept note:** [ROL_EN_EL_TOKEN_CONCEPT.md](./ROL_EN_EL_TOKEN_CONCEPT.md)
+>
+> **Implementation plan:** *not yet written*
+
+> **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5
+> *Sources & Origins* de la Concept Note, que es el registro maestro. Donde un
+> `FR-*` / `NFR-*` / `TC-*` de acá se apoya en una ubicación del código, una
+> cláusula de un estándar o una medición que §6.5 no cubre, la cita va **en
+> línea** en la sección donde se define. Las líneas de `index.html` citadas
+> corresponden al estado del archivo en el commit `19ddf38`.
+
+## 1. Purpose
+
+Esta Spec define qué debe hacer el sistema para que el rol de una cuenta
+(`admin` o `jugador`) viaje adentro del token de sesión de Firebase Auth en vez
+de resolverse con una lectura a Firestore posterior al login, y cómo debe
+comportarse en el arranque, en las reglas de seguridad, al asignar un rol y
+durante la mudanza. El *por qué* vive en la Concept Note; el *cómo* (módulos,
+rutas, orden de ramas) vive en el Implementation Plan y no acá.
+
+No cubre: qué puede hacer cada rol —eso ya lo fija
+[`docs/007-permisos-por-usuario/spec.md`](../007-permisos-por-usuario/spec.md) y
+no cambia—, ni ninguna pantalla de registro o administración de cuentas.
+
+## 2. Summary
+
+Hoy la aplicación se muestra antes de saber quién entró: asume el rol más
+restringido y completa la interfaz cuando vuelve una lectura a la base. Medido,
+eso deja a la solapa **Configuración** apareciendo entre **487 ms** y **821 ms**
+después de las otras dos para un administrador. Esta feature mueve el rol
+adentro del token que el login ya devuelve, con lo cual el dato está disponible
+en el momento en que la sesión resuelve y la interfaz se pinta correcta de una
+sola vez. Las reglas de seguridad de Firestore leen el mismo dato del token, así
+que dejan de consultar un documento para autorizar. Asignar un rol pasa a
+hacerse con un script que el propietario corre a mano, y la colección que hoy
+guarda los roles sobrevive como registro legible para consumo humano. La
+aplicación sigue siendo una página estática sin servidor propio: lo que cambia es
+de dónde saca su identidad, no su arquitectura.
+
+## 3. Scope
+
+### 3.1 In scope
+
+- Resolver el rol y el jugador vinculado a partir del token de Firebase Auth, sin
+  ninguna lectura a Firestore en el camino.
+- Reescribir las reglas de seguridad de Firestore para que autoricen leyendo el
+  token en vez de un documento.
+- Un script de asignación de roles, corrido a mano, que estampa el rol en la
+  cuenta y mantiene el registro legible.
+- El comportamiento del corte: qué pasa con una sesión que ya estaba abierta y
+  cuyo token todavía no trae el rol.
+- La eliminación de la maquinaria que existía sólo para adelantarse a la lectura
+  del rol (la pista en `localStorage` y el prefetch que dependía de ella).
+
+### 3.2 Out of scope / non-goals
+
+Los cinco primeros son los no-objetivos permanentes de la Concept Note §4,
+reformulados como límites verificables:
+
+- El sistema **no** ofrecerá ninguna pantalla de registro, alta o administración
+  de cuentas: la única forma de asignar un rol seguirá siendo el script.
+- El sistema **no** incorporará Cloud Functions ni ningún componente desplegado
+  del lado servidor.
+- El sistema **no** modificará qué puede ver o hacer cada rol: los permisos de
+  `007-permisos-por-usuario` quedan idénticos.
+- El sistema **no** migrará `data/partidos` a documentos nativos, y por lo tanto
+  **no** cierra la limitación aceptada en el `research.md` §3 de esa feature.
+- El sistema **no** perseguirá reducir el tiempo total de arranque: el objetivo
+  es el costo de identidad, no la carga de datos.
+- **Nuevo (descubierto al redactar):** el sistema **no** forzará el cierre de
+  sesión de una cuenta cuando su rol cambie (`D-10`); el cambio se aplica en el
+  próximo refresco del token.
+- **Nuevo (descubierto al redactar):** el sistema **no** validará que el
+  `jugadorId` de un claim corresponda a un jugador existente. Esa validación no
+  existe hoy ([`docs/007-permisos-por-usuario/data-model.md`](../007-permisos-por-usuario/data-model.md)
+  la declara responsabilidad de quien carga el dato) y esta feature no la agrega.
+
+### 3.3 Constraints inherited from the Concept Note
+
+Se heredan como constraints y no se relitigan:
+
+- **`D-01`** (el rol viaja como custom claim) — esta Spec asume que el token es
+  la fuente de verdad del rol, para la app y para las reglas.
+- **`D-02`** (el claim lleva `rol` y `jugadorId`) — ambos campos viajan juntos.
+- **`D-03`** (script local con Admin SDK, sin backend desplegado).
+- **`D-04`** (la llave de cuenta de servicio nunca se versiona).
+- **`D-05`** (`userRoles` sobrevive como registro legible; nadie lo lee para
+  decidir).
+- **`D-06`** (las reglas leen `request.auth.token.rol`; `rol()` se elimina).
+- **`D-07`** (*fail-closed*: sin claim `rol`, se trata como `jugador`).
+- **`D-08`** (la mudanza es un corte de una vez, con aviso).
+- **`D-09`** (si el token no trae el claim, se fuerza **un** refresco).
+- **`D-10`** (no se fuerza el cierre de sesión al cambiar un rol).
+- **`D-11`** (`window.session` conserva su forma `{ rol, jugadorId }`).
+- **`D-12`** (se elimina la pista de rol en `localStorage`).
+
+## 4. Technical & architectural constraints
+
+### 4.1 Platform / stack constraints
+
+- **TC-001** — El rol deberá transportarse mediante *custom claims* de Firebase
+  Auth. No se admite ningún otro mecanismo de transporte (cookie propia,
+  cabecera, parámetro de URL, almacenamiento del navegador) (`D-01`).
+- **TC-002** — El cliente deberá seguir usando el SDK de Firebase ya cargado por
+  CDN en su versión *compat* 11.0.2
+  ([`index.html:1317-1319`](../../index.html#L1317-L1319)). No se admite agregar
+  un SDK nuevo, un paso de build ni un bundler.
+- **TC-003** — El Admin SDK de Firebase deberá vivir **exclusivamente** en el
+  entorno del script. No se admite que aparezca en `index.html`, ni en la
+  aplicación publicada, ni como dependencia instalada del repositorio: sigue el
+  mismo tratamiento que Playwright, dependencia opcional de desarrollo externa al
+  repositorio ([`AGENTS.md`](../../AGENTS.md) → Dependencias) (`D-03`).
+
+### 4.2 Architectural / integration constraints
+
+- **TC-010** — El rol deberá seguir accediéndose a través de `window.session` y
+  `isAdmin()` ([`index.html:1403-1421`](../../index.html#L1403-L1421)). Ninguna
+  función de interfaz deberá leer el token, el claim ni Firebase Auth
+  directamente (`D-11`, principio de arquitectura desacoplada de
+  [`AGENTS.md`](../../AGENTS.md)).
+- **TC-011** — Las reglas de seguridad de Firestore deberán resolver el rol
+  leyendo `request.auth.token.rol`. La función `rol()` que hoy hace `get()` sobre
+  `userRoles/{uid}`
+  ([`docs/007-permisos-por-usuario/contracts/firestore-rules.md:19`](../007-permisos-por-usuario/contracts/firestore-rules.md#L19))
+  deberá eliminarse, no coexistir (`D-06`).
+- **TC-012** — La colección `userRoles` deberá quedar sin ningún lector
+  automático: ni la aplicación ni las reglas deberán consultarla para decidir
+  nada. Su regla de lectura desde el cliente deberá pasar a denegar (`D-05`).
+- **TC-013** — El script deberá escribir el claim y el registro en la misma
+  corrida, de forma que no exista un camino que actualice uno sin el otro
+  (`D-05`).
+
+### 4.3 Compliance / regulatory constraints
+
+`Compliance constraints: none` — la feature no introduce datos regulados nuevos,
+no cambia qué datos personales se guardan y no agrega superficie pública (Concept
+Note §5.2). La única credencial nueva es interna al entorno del propietario y se
+trata en §4.5.
+
+### 4.4 Conventions to follow
+
+- **TC-030** — El claim deberá llamarse `rol`, y su valor deberá ser exactamente
+  la cadena `admin` o `jugador`. El jugador vinculado deberá llamarse
+  `jugadorId`. Los tres nombres replican los del modelo de datos vigente
+  ([`docs/007-permisos-por-usuario/data-model.md`](../007-permisos-por-usuario/data-model.md))
+  y la convención en español del proyecto (resuelve `OPEN-Q-04` de la Concept
+  Note).
+- **TC-031** — El script deberá vivir en [`tools/`](../../tools/) y seguir el
+  estilo de las utilidades que ya están ahí: Node, ejecutable a mano, con su
+  propósito y su modo de uso documentados en el encabezado del archivo (resuelve
+  `OPEN-Q-02`).
+- **TC-032** — La llave de cuenta de servicio deberá referenciarse por ruta desde
+  fuera del repositorio, y el repositorio deberá ignorarla explícitamente. No se
+  admite que su contenido aparezca en ningún archivo versionado (`D-04`).
+- **TC-033** — Los tests que verifican comportamiento dependiente del rol deberán
+  interceptar el token, no la colección `userRoles`
+  ([`tests/fixtures-app.js:282`](../../tests/fixtures-app.js#L282)).
+
+### 4.5 Security constraints (`MD-31`)
+
+Categorías derivadas del **CWE Top 25 de 2025**, recuperado en vivo de
+<https://cwe.mitre.org/top25/archive/2025/2025_cwe_top25.html> el 2026-09-09
+(verificado, sin marcador `[UNVERIFIED]`). Se atienden las categorías que la
+postura de seguridad de la Concept Note §5.2 pone en juego; el resto lleva su
+resolución explícita.
+
+**Categorías aplicables, como constraints:**
+
+- **TC-040** — El rol deberá derivarse únicamente de un token verificado por
+  Firebase. Ningún dato bajo control del usuario —`localStorage`, parámetros de
+  URL, campos del DOM— deberá poder influir en el rol efectivo, **defiende
+  `CWE-639` *Authorization Bypass Through User-Controlled Key*** (puesto 24) y es
+  lo que descalifica a la alternativa C de la Concept Note §9.3.
+- **TC-041** — Toda regla de Firestore que hoy exige `rol() == 'admin'` deberá
+  seguir exigiendo el rol equivalente leído del token, sin ampliar el conjunto de
+  operaciones permitidas, **defiende `CWE-862` *Missing Authorization*** (puesto
+  4). La equivalencia deberá verificarse documento por documento contra el
+  contrato vigente.
+- **TC-042** — La comparación del rol deberá ser por igualdad exacta contra la
+  cadena esperada. No se admite coerción de tipos, comparación laxa ni
+  interpretación de valores ausentes como verdaderos, **defiende `CWE-863`
+  *Incorrect Authorization*** (puesto 17).
+- **TC-043** — Un token sin el claim `rol`, con el claim vacío, o con un valor
+  distinto de `admin`/`jugador`, deberá tratarse como `jugador`; nunca como
+  `admin`, **defiende `CWE-284` *Improper Access Control*** (puesto 19) y
+  materializa `D-07`.
+- **TC-044** — El script deberá validar el rol recibido contra el conjunto
+  cerrado `{admin, jugador}` y rechazar cualquier otro valor sin escribir nada —
+  ni claim ni registro—, **defiende `CWE-20` *Improper Input Validation***
+  (puesto 18).
+- **TC-045** — El script deberá exigir la llave de cuenta de servicio para
+  operar; no deberá tener ningún modo de funcionamiento sin credencial ni
+  degradado, **defiende `CWE-306` *Missing Authentication for Critical
+  Function*** (puesto 21).
+- **TC-046** — El refresco forzado del token deberá ejecutarse **como máximo una
+  vez por sesión de navegador** y sólo cuando el claim falta, **defiende
+  `CWE-770` *Allocation of Resources Without Limits or Throttling*** (puesto 25)
+  y acota `D-09`.
+- **TC-047** — La llave de cuenta de servicio deberá quedar fuera del repositorio
+  e ignorada explícitamente, y el script no deberá volcar su contenido en logs ni
+  en mensajes de error, **defiende `CWE-522` *Insufficiently Protected
+  Credentials***. *Inclusión fuera del Top 25 — motivo:* `CWE-522` no figura en
+  el Top 25 de 2025, pero es la categoría que describe exactamente el único
+  artefacto sensible nuevo que introduce esta feature (Concept Note §5.2), y
+  omitirla dejaría el riesgo de mayor severidad de §15 sin constraint que lo
+  ancle.
+
+**Categorías del Top 25 resueltas como no aplicables:**
+
+- **`CWE-79` *XSS***, **`CWE-352` *CSRF***, **`CWE-200` *Exposure of Sensitive
+  Information***, **`CWE-434` *Unrestricted Upload***, **`CWE-918` *SSRF*** — no
+  aplicables; la feature no agrega superficie de renderizado, ni formularios, ni
+  subida de archivos, ni pedidos salientes a URLs provistas por el usuario (§5.2
+  declara que no procesa entrada no confiable de terceros). Los valores que
+  viajan en el claim (`rol`, `jugadorId`) no son sensibles ni regulados.
+- **`CWE-89` *SQL Injection***, **`CWE-78` / `CWE-77` *Command Injection***,
+  **`CWE-94` *Code Injection***, **`CWE-502` *Deserialization*** — no aplicables;
+  no hay SQL, no se construyen comandos de sistema, no se evalúa código, y la
+  feature no agrega ninguna deserialización nueva (la de los blobs JSON de
+  Firestore es preexistente y queda sin cambios).
+- **`CWE-787` / `CWE-125` *Out-of-bounds***, **`CWE-416` *Use After Free***,
+  **`CWE-476` *NULL Pointer Dereference***, **`CWE-120` / `CWE-121` / `CWE-122`
+  *Buffer Overflow*** — no aplicables; el proyecto es JavaScript sobre navegador
+  y Node, sin manejo manual de memoria.
+- **`CWE-22` *Path Traversal*** — no aplicable a la aplicación. En el script, la
+  única ruta que se maneja es la de la llave, provista por el propio operador en
+  su máquina; no hay ruta de origen no confiable (§5.2 declara que la única
+  entrada humana es la del operador).
+
+## 5. Users & use cases
+
+### 5.1 Personas / actors
+
+| Actor | Description | Primary need |
+|---|---|---|
+| Administrador | Cuenta con rol `admin`. Organiza los partidos, arma equipos y configura el motor | Que la aplicación se muestre completa desde el primer pintado, sin que la solapa Configuración llegue tarde |
+| Jugador | Cuenta con rol `jugador`. Se anota y se da de baja de una convocatoria | Que la aplicación sepa qué jugador es sin pagar una lectura de red, y que nunca vea funciones que no le corresponden |
+| Propietario / operador | La persona que asigna los roles. Hoy y después, es Lucas Manoukian | Poder asignar un rol y ver, de un vistazo, quién tiene cuál y a quién le falta |
+
+### 5.2 User stories
+
+| ID | Story | Implements |
+|---|---|---|
+| US-01 | Como administrador, quiero que la solapa Configuración aparezca junto con las otras dos, para no ver la barra reacomodarse cuando ya daba la carga por terminada | FR-001, FR-002, FR-003 |
+| US-02 | Como jugador, quiero que la aplicación sepa qué jugador soy sin ir a buscarlo, para que mi arranque también sea inmediato | FR-004, FR-005 |
+| US-03 | Como propietario, quiero asignar un rol con un comando, para no tener que crear documentos a mano en la consola | FR-020, FR-021, FR-022 |
+| US-04 | Como propietario, quiero listar los roles asignados y las cuentas sin rol, para detectar un olvido antes de que alguien lo reporte | FR-025, FR-026 |
+| US-05 | Como cualquier usuario con la sesión ya abierta, quiero que el cambio de mecanismo no me obligue a cerrar sesión y volver a entrar | FR-030, FR-031 |
+
+## 6. Glossary
+
+| Term | Definition |
+|---|---|
+| Token de ID | Credencial firmada que Firebase Auth emite al resolver una sesión, válida una hora, que la aplicación ya posee sin pedirla por red |
+| Claim | Campo transportado adentro del token de ID. Los *custom claims* son los que este proyecto define: `rol` y `jugadorId` |
+| Rol | Perfil de la cuenta. Conjunto cerrado: exactamente `admin` o `jugador` |
+| Registro de roles | La colección `userRoles` en su papel nuevo: copia legible por humanos de qué rol tiene cada cuenta, que nadie lee para decidir nada (`D-05`) |
+| Refresco forzado | Pedido explícito de un token nuevo, que trae los claims vigentes sin esperar a que el actual expire (`D-09`) |
+| Fail-closed | Regla de resolución ante un dato ausente o inválido: se asume el rol más restringido, nunca el más permisivo (`D-07`) |
+| Hueco de la solapa | Tiempo transcurrido entre el instante en que la aplicación se vuelve visible y el instante en que la solapa Configuración se vuelve visible. Es la magnitud que esta feature reduce, medida en NFR-001 |
+
+## 7. Functional requirements
+
+### 7.1 Resolución del rol en el arranque
+
+- **FR-001** — Cuando una sesión se resuelve, el sistema deberá obtener el rol y
+  el jugador vinculado de los claims del token de ID, sin realizar ninguna
+  lectura a Firestore para ese fin.
+- **FR-002** — Cuando el rol resuelto es `admin`, el sistema deberá habilitar la
+  interfaz de administrador antes del primer pintado de la barra de solapas, de
+  forma que las tres solapas aparezcan en el mismo estado visual inicial.
+- **FR-003** — El sistema deberá exponer el rol y el jugador vinculado resueltos
+  a través del objeto de sesión, con la forma `{ rol, jugadorId }` (`D-11`). Que
+  ésa sea la **única** vía de acceso es un mandato sobre el espacio de soluciones
+  y vive en `TC-010`, no acá.
+- **FR-004** — Cuando el rol resuelto es `jugador`, el sistema deberá tomar el
+  jugador vinculado del claim `jugadorId` del mismo token.
+- **FR-005** — El sistema deberá completar la resolución del rol sin ninguna
+  petición de red, siempre que el token en poder del cliente esté vigente y
+  contenga el claim `rol`. Esto es la **conducta**; el presupuesto de tiempo que
+  la acompaña es NFR-001 y el de lecturas es NFR-002 — si se edita uno hay que
+  revisar los tres.
+- **FR-006** — Si el token vigente no contiene el claim `rol`, entonces el
+  sistema deberá solicitar un refresco del token una única vez y reintentar la
+  resolución con el token nuevo (`D-09`, `TC-046`).
+- **FR-007** — Si tras el refresco el token sigue sin contener un claim `rol`
+  válido, entonces el sistema deberá resolver la sesión como `jugador` sin
+  jugador vinculado, sin mostrar ningún aviso al usuario (`D-07`, `TC-043`;
+  resuelve `OPEN-Q-03` de la Concept Note manteniendo el comportamiento actual).
+- **FR-008** — El sistema no deberá leer ni escribir ninguna pista del rol en el
+  almacenamiento del navegador (`D-12`).
+- **FR-009** — Cuando el rol resuelto es `admin`, el sistema deberá pedir los
+  documentos de administrador a partir de ese rol, sin depender de ninguna pista
+  previa (`D-12`).
+
+### 7.2 Autorización en la persistencia
+
+- **FR-010** — Las reglas de seguridad deberán autorizar cada operación
+  comparando el claim `rol` del token contra el rol exigido por el documento
+  afectado (`D-06`, `TC-011`).
+- **FR-011** — Las reglas deberán conceder, para cada documento, exactamente el
+  mismo conjunto de operaciones por rol que concede el contrato vigente de
+  `007-permisos-por-usuario` (`TC-041`).
+- **FR-012** — Las reglas deberán denegar la lectura de la colección `userRoles`
+  desde el cliente (`D-05`, `TC-012`).
+- **FR-013** — Si el token no presenta un claim `rol` reconocido, entonces las
+  reglas deberán denegar toda operación que exija rol `admin` (`TC-043`).
+
+### 7.3 Asignación de roles
+
+- **FR-020** — El script deberá asignar a una cuenta indicada un rol del conjunto
+  `{admin, jugador}`, escribiéndolo como claim de esa cuenta.
+- **FR-021** — Cuando el rol asignado es `jugador`, el script deberá aceptar
+  además un jugador vinculado y escribirlo en el claim `jugadorId`.
+- **FR-022** — Cuando una asignación se completa, el script deberá dejar el
+  registro de roles reflejando el mismo valor que quedó en el claim (`TC-013`).
+- **FR-023** — Si el rol recibido no pertenece al conjunto `{admin, jugador}`,
+  entonces el script deberá rechazar la operación sin escribir el claim ni el
+  registro (`TC-044`).
+- **FR-024** — Si la cuenta indicada no existe, entonces el script deberá
+  rechazar la operación sin escribir nada.
+- **FR-025** — El script deberá poder listar, para todas las cuentas existentes,
+  el rol asignado a cada una.
+- **FR-026** — El listado deberá señalar explícitamente las cuentas que no tienen
+  ningún rol asignado.
+- **FR-027** — Si la llave de cuenta de servicio no está disponible en la ruta
+  indicada, entonces el script deberá interrumpirse con un error y no deberá
+  intentar ninguna operación (`TC-045`).
+
+### 7.4 Mudanza
+
+- **FR-030** — Durante la mudanza, el sistema deberá resolver, para una cuenta
+  cuya sesión ya estaba abierta antes del cambio, el mismo rol que está estampado
+  en su cuenta del lado servidor, sin requerir que la persona cierre sesión
+  (`D-08` mitigado por `D-09`, vía FR-006).
+- **FR-031** — El sistema deberá aplicar un cambio de rol a partir del siguiente
+  token que la cuenta obtenga, sin forzar el cierre de la sesión en curso
+  (`D-10`).
+- **FR-032** — El sistema no deberá conservar ningún camino de código que
+  resuelva el rol leyendo la colección `userRoles`. Es la contraparte, del lado
+  de la aplicación, de lo que `TC-011` exige en las reglas y `TC-012` en la
+  colección — si se edita uno hay que revisar los tres.
+
+## 8. Non-functional requirements
+
+| ID | Category | Requirement |
+|---|---|---|
+| NFR-001 | Performance | **Con el token vigente** (login recién hecho, o sesión abierta hace menos de una hora), el hueco de la solapa deberá ser **≤ 50 ms**: el rol sale de un token que el cliente ya tiene y su lectura no requiere red. Se mide con el mismo método que estableció la línea de base (Playwright sobre la aplicación real contra staging, promedio de tres corridas). Línea de base del 2026-09-09: **821 ms** con login explícito, **487 ms** con sesión ya abierta |
+| NFR-001b | Performance | **Con el token vencido** (la aplicación no se abrió en más de una hora, que es el caso más frecuente en uso real), el hueco deberá ser **estrictamente menor que la línea de base de 487 ms**, porque desaparece la lectura a Firestore aunque persista el refresco del token que Firebase necesita para entregar los claims. No se fija un número absoluto: el refresco es un viaje de red cuya duración no controlamos y todavía no está medida — ver `OPEN-Q-02`. `[UNVERIFIED — que la resolución de la sesión con token vencido incluya un refresco de red antes de poder leer los claims se deduce de que los tokens duran una hora y de que el SDK renueva al expirar (Concept Note §6.5), pero no se verificó ejecutándolo con una sesión de más de una hora]` |
+| NFR-002 | Performance | Un arranque completo de una cuenta `admin` deberá producir **0 lecturas** del documento `userRoles/{uid}`. La línea de base contra la que se compara **se mide en AC-12, no se asume**: por composición serían una lectura de la aplicación más una por cada documento sólo-admin que evalúa `rol()` (siete en total), pero Firestore documenta que algunas de esas consultas se cachean sin decir cuándo, así que el número real puede ser menor. El objetivo comprometido es el cero, que no depende de esa incógnita |
+| NFR-003 | Security | El rol efectivo deberá depender exclusivamente de datos firmados por Firebase. Un navegador con su almacenamiento local manipulado en cualquier forma no deberá poder obtener rol `admin` ni acceso a ningún documento sólo-admin (`TC-040`) |
+| NFR-004 | Cost | El cambio no deberá aumentar el consumo de Firestore. El único costo nuevo admisible es **1 escritura por asignación de rol**; el consumo por arranque y por operación deberá bajar |
+| NFR-005 | Maintainability | Tras el cambio no deberá quedar en el repositorio ningún código cuya única razón de existir fuera adelantarse a la lectura del rol (`D-12`, FR-008), verificable por ausencia de referencias a la pista de rol |
+| NFR-006 | Compatibility | La feature no deberá introducir ningún estado de layout nuevo: la barra con tres solapas ya existe hoy para un administrador y está cubierta por `tests/layout.test.js`. El piso de 360 px de [`AGENTS.md`](../../AGENTS.md) se cumple por no-regresión, no por escenario nuevo |
+| NFR-007 | Observability | El consumo de lecturas de Firestore deberá quedar observable antes y después del cambio, de forma que NFR-002 y NFR-004 puedan verificarse sobre datos y no por inspección de código |
+
+## 9. System behaviour & scenarios
+
+### 9.1 Happy path scenarios
+
+#### Scenario S-01 — Un administrador abre la aplicación con la sesión ya guardada (covers FR-001, FR-002, FR-003, NFR-001)
+
+- **Given** una cuenta con claim `rol` igual a `admin`
+- **And** la sesión ya persistida en el navegador
+- **When** la persona abre la aplicación
+- **Then** el sistema deberá resolver el rol a partir del token, sin leer `userRoles`
+- **And** la barra deberá pintarse con las tres solapas en su primer estado visible
+- **And** la barra no deberá cambiar de composición después de ese primer pintado
+
+**Variants:**
+
+- `S-01a [boundary]` — token emitido hace segundos: el claim ya está y no hace falta refresco
+- `S-01b [boundary]` — token vencido: se refresca y el rol resuelve igual, cumpliendo NFR-001b
+- `S-01c [failure]` — el refresco del token falla por falta de red: la sesión resuelve como `jugador` y la aplicación arranca sin romperse (FR-007)
+- `S-01d [property]` — para cualquier token con claim `rol` válido, el conjunto de solapas del primer pintado es el que corresponde a ese rol y no cambia después
+
+#### Scenario S-02 — Un administrador hace login explícito (covers FR-001, FR-002, NFR-001)
+
+- **Given** la pantalla de login
+- **When** la persona ingresa credenciales válidas de una cuenta con claim `rol` igual a `admin`
+- **Then** el sistema deberá resolver el rol del token que devuelve el login, sin ninguna lectura adicional
+- **And** la aplicación deberá aparecer con las tres solapas juntas
+
+**Variants:**
+
+- `S-02a [failure]` — credenciales incorrectas: no hay sesión y no se intenta resolver ningún rol
+- `S-02b [concurrency]` — dos pestañas de la misma cuenta abriendo a la vez: cada una resuelve su rol de su propio token, sin coordinarse ni interferir
+
+#### Scenario S-03 — Un jugador abre la aplicación (covers FR-004, FR-005, FR-012)
+
+- **Given** una cuenta con claim `rol` igual a `jugador` y claim `jugadorId` con el identificador de un jugador
+- **When** la persona abre la aplicación
+- **Then** el sistema deberá tomar el jugador vinculado del token, sin leer `userRoles`
+- **And** la solapa Configuración no deberá estar visible ni accesible en ningún momento
+
+**Variants:**
+
+- `S-03a [boundary]` — cuenta `jugador` cuyo claim `jugadorId` es nulo: la sesión resuelve sin jugador vinculado, como hoy
+- `S-03b [failure]` — la cuenta intenta leer `userRoles` directo contra Firestore: denegado (FR-012)
+
+#### Scenario S-04 — El propietario asigna un rol con el script (covers FR-020, FR-021, FR-022)
+
+- **Given** la llave de cuenta de servicio disponible en su ruta
+- **And** una cuenta existente sin rol asignado
+- **When** el propietario corre el script indicando esa cuenta y el rol `admin`
+- **Then** el script deberá escribir el claim `rol` en la cuenta
+- **And** deberá dejar el registro de roles reflejando el mismo valor
+- **And** la persona deberá ver el rol nuevo en su siguiente ingreso (FR-031)
+
+**Variants:**
+
+- `S-04a [boundary]` — se asigna el mismo rol que la cuenta ya tenía: la operación es idempotente y no deja el registro inconsistente
+- `S-04b [failure]` — el rol indicado no pertenece a `{admin, jugador}`: no se escribe ni el claim ni el registro (FR-023, TC-044)
+- `S-04c [failure]` — la cuenta indicada no existe: no se escribe nada (FR-024)
+- `S-04d [failure]` — la llave no está en la ruta indicada: el script se interrumpe sin operar (FR-027, TC-045)
+- `S-04e [concurrency]` — dos corridas del script sobre la misma cuenta se solapan: el estado final corresponde a una de las dos, y claim y registro quedan coherentes entre sí (TC-013)
+
+#### Scenario S-05 — El propietario lista los roles asignados (covers FR-025, FR-026)
+
+- **Given** varias cuentas, algunas con rol y otras sin ninguno
+- **When** el propietario corre el script en modo listado
+- **Then** el script deberá informar el rol de cada cuenta existente
+- **And** deberá señalar explícitamente las que no tienen ninguno
+
+**Variants:**
+
+- `S-05a [boundary]` — ninguna cuenta sin rol: el listado lo declara explícitamente en vez de omitir la sección
+- `S-05b [boundary]` — todas las cuentas sin rol, como quedaría un proyecto antes de la mudanza
+
+### 9.2 Edge cases
+
+#### Scenario S-10 — Una cuenta sin ningún rol asignado entra a la aplicación (covers FR-007, TC-043)
+
+- **Given** una cuenta autenticada cuyo token no trae claim `rol`
+- **And** ninguna asignación pendiente que un refresco pudiera traer
+- **When** la persona abre la aplicación
+- **Then** el sistema deberá resolver la sesión como `jugador` sin jugador vinculado
+- **And** no deberá mostrar ningún aviso ni pantalla nueva
+- **And** no deberá conceder en ningún momento acceso a funciones de administrador
+
+**Variants:**
+
+- `S-10a [boundary]` — el claim `rol` está presente pero es una cadena vacía
+- `S-10b [failure]` — el claim `rol` trae un valor desconocido, como `Admin` o `administrador`: se trata como `jugador` por comparación exacta (TC-042)
+
+#### Scenario S-11 — El corte: una sesión abierta antes del cambio (covers FR-006, FR-030, TC-046)
+
+- **Given** una cuenta `admin` ya estampada del lado servidor
+- **And** una sesión abierta en el navegador desde antes del cambio, cuyo token no trae el claim
+- **When** la persona abre la aplicación
+- **Then** el sistema deberá pedir un refresco del token una única vez
+- **And** deberá resolver el rol `admin` con el token nuevo
+- **And** no deberá requerir que la persona cierre sesión ni vuelva a ingresar credenciales
+
+**Variants:**
+
+- `S-11a [boundary]` — el refresco trae el claim en el primer intento, que es el caso esperado del corte
+- `S-11b [failure]` — el refresco no trae el claim porque la cuenta no fue estampada: resuelve como `jugador`, en silencio (FR-007)
+- `S-11c [property]` — para cualquier secuencia de navegación dentro de la misma pestaña, el refresco forzado ocurre a lo sumo una vez (TC-046)
+
+### 9.3 Failure / unwanted-behaviour scenarios
+
+#### Scenario S-20 — Un jugador intenta escribir un documento sólo-admin sin pasar por la interfaz (covers FR-011, FR-013, TC-041)
+
+- **Given** una cuenta con claim `rol` igual a `jugador`
+- **When** intenta escribir `data/motorConfig` directo contra Firestore
+- **Then** las reglas deberán denegar la operación
+- **And** no deberán producir ninguna lectura de `userRoles` al decidirlo (NFR-002)
+
+**Variants:**
+
+- `S-20a [failure]` — el mismo intento sobre `data/playerScores` y `data/partidosArmado`
+- `S-20b [failure]` — token sin claim `rol`: denegado igual (FR-013)
+- `S-20c [property]` — para cada documento del contrato de `007-permisos-por-usuario`, el conjunto de operaciones concedidas a cada rol es idéntico al que concedía el contrato anterior (TC-041)
+
+#### Scenario S-21 — Un navegador manipulado intenta hacerse pasar por administrador (covers NFR-003, TC-040)
+
+- **Given** una cuenta con claim `rol` igual a `jugador`
+- **When** se manipula el almacenamiento local del navegador para declarar rol `admin`
+- **Then** la interfaz no deberá conceder ninguna función de administrador
+- **And** Firestore deberá rechazar toda operación sólo-admin, porque autoriza contra el token firmado y no contra el navegador
+
+**Variants:**
+
+- `S-21a [failure]` — se inyecta una pista de rol `admin` en el almacenamiento local: no existe código que la lea (FR-008)
+- `S-21b [failure]` — se modifica el objeto de sesión en memoria desde la consola del navegador: la interfaz puede mostrarse alterada, pero Firestore rechaza toda operación y ningún dato sólo-admin llega al cliente (NFR-003)
+
+## 10. Data model & external contracts
+
+### 10.1 Domain entities (conceptual)
+
+No se introduce ninguna entidad de dominio nueva. Una entidad **cambia de
+lugar** y otra **cambia de papel**:
+
+| Entity | Purpose | Key attributes (conceptual) | Lifecycle |
+|---|---|---|---|
+| Cuenta de usuario | Identidad autenticada. Pasa a **portar** el rol y el jugador vinculado adentro de su token | `rol` (`admin`/`jugador`), `jugadorId` (o nulo) | La crea el propietario en Firebase Auth; el script le estampa los claims; los claims llegan al cliente en el siguiente token |
+| Registro de roles | Copia legible por humanos de qué rol tiene cada cuenta. **Ningún** proceso la lee para decidir (`D-05`) | `uid`, `rol`, `jugadorId` | La escribe el script en la misma corrida que el claim; nadie más la toca |
+| Jugador | Entidad de dominio existente, sin cambios | `id`, nombre, posiciones, … | Sin cambios respecto de `002-gestion-jugadores` |
+
+#### 10.1.1 Entity-relationship diagram
+
+Se incluye aunque no es obligatorio —no hay entidad nueva— porque la relación
+entre las tres, y sobre todo cuál es fuente de verdad, es lo que esta feature
+cambia.
+
+```mermaid
+erDiagram
+  CUENTA ||--o| JUGADOR : "vinculada a"
+  CUENTA ||--|| REGISTRO_DE_ROLES : "reflejada en"
+  CUENTA {
+    string uid PK
+    string rol "fuente de verdad, en el token"
+    string jugadorId "nulo si es admin"
+  }
+  REGISTRO_DE_ROLES {
+    string uid PK
+    string rol "copia legible, nadie la lee para decidir"
+    string jugadorId
+  }
+  JUGADOR {
+    string id PK
+    string nombre
+  }
+```
+
+### 10.2 External APIs / events the feature consumes
+
+| Source | Contract | Direction | Notes |
+|---|---|---|---|
+| Firebase Auth | Token de ID con los claims `rol` y `jugadorId` | inbound | Firmado por Firebase; válido una hora; el cliente lo obtiene sin pedido propio salvo que haya vencido |
+| Firestore Security Rules | `request.auth.token.rol` | inbound (dentro de la regla) | Provisto por la plataforma; no requiere lectura de documentos |
+
+### 10.3 External APIs / events the feature exposes
+
+| Endpoint / event | Inputs | Outputs | Notes |
+|---|---|---|---|
+| Script de asignación, modo asignar | cuenta a modificar, rol del conjunto `{admin, jugador}`, jugador vinculado cuando el rol es `jugador` | claim escrito en la cuenta + registro actualizado | Interfaz de línea de comandos, corrida a mano. Rechaza sin escribir ante rol inválido, cuenta inexistente o llave ausente |
+| Script de asignación, modo listado | ninguno | rol de cada cuenta existente, con las cuentas sin rol señaladas | Sólo lectura |
+
+## 11. Acceptance criteria
+
+### 11.1 Functional acceptance
+
+- **AC-01** — Todos los escenarios de §9.1 y sus variantes pasan contra la aplicación real (cubre FR-001 a FR-005, FR-020 a FR-027; agrega S-01..S-05 con sus variantes).
+- **AC-02** — Los escenarios de §9.2 y sus variantes pasan, incluida la resolución silenciosa como `jugador` (cubre FR-006, FR-007, FR-030; agrega S-10, S-11).
+- **AC-03** — Una cuenta `admin` completa un arranque sin que la interfaz cambie de composición después del primer pintado (cubre FR-002; agrega S-01, S-02).
+- **AC-04** — No queda en el repositorio ninguna referencia a la pista de rol en el almacenamiento del navegador (cubre FR-008, FR-032, NFR-005).
+- **AC-05** — El listado del script informa el rol de cada cuenta y señala las que no tienen ninguno (cubre FR-025, FR-026; agrega S-05).
+
+### 11.2 Non-functional acceptance
+
+- **AC-10** — NFR-001 verificado midiendo el hueco de la solapa con token vigente, con el mismo método que estableció la línea de base, y contrastando contra los 821 ms / 487 ms medidos.
+- **AC-11** — NFR-001b verificado midiendo el hueco con una sesión de más de una hora, y comprobando que es menor que la línea de base de 487 ms.
+- **AC-12** — NFR-002 y NFR-004 verificados observando el consumo de Firestore de un arranque de administrador antes y después del cambio (NFR-007 provee la observabilidad).
+- **AC-13** — NFR-003 verificado ejecutando S-21 y sus dos variantes: ni la interfaz ni Firestore conceden nada ante un navegador manipulado.
+
+### 11.3 Constraint compliance
+
+- **AC-15** — Plataforma y aislamiento del Admin SDK verificados por inspección de dependencias y del HTML publicado: TC-001, TC-002, TC-003.
+- **AC-16** — Desacople y contrato de la persistencia verificados por revisión del código y por las reglas publicadas: TC-010, TC-011, TC-012, TC-013.
+- **AC-17** — Convenciones verificadas por revisión: nombres del claim, ubicación y estilo del script, tratamiento de la llave y punto de intercepción de los tests: TC-030, TC-031, TC-032, TC-033.
+- **AC-18** — Constraints de autorización verificados por test ejecutable: TC-040, TC-041, TC-042, TC-043.
+- **AC-19** — Constraints del script verificados por test ejecutable: TC-044, TC-045, TC-046.
+- **AC-19b** — Protección de la credencial verificada por revisión del repositorio y de la salida del script: TC-047.
+
+### 11.4 Negative / safety acceptance
+
+- **AC-20** — El escenario S-20 y sus variantes no producen ninguna mutación de estado ni ninguna lectura de `userRoles`.
+- **AC-21** — El escenario S-04b, S-04c y S-04d no dejan ninguna escritura parcial: ni claim sin registro, ni registro sin claim.
+- **AC-22** — Ninguna ruta de resolución de sesión concede `admin` ante un claim ausente, vacío o desconocido (S-10, S-10a, S-10b).
+- **AC-23** — Tras el corte, ninguna cuenta ya estampada queda obligada a cerrar sesión para recuperar su rol (S-11, S-11a).
+
+### 11.5 Test & traceability obligations
+
+- **AC-50** — Cada escenario de §9 —y cada variante enumerada— tiene al menos un test ejecutable referenciado en la §12.1 *Scenario Traceability Matrix* del Implementation Plan, con el identificador embebido de forma estructural (nombre del caso o etiqueta del framework, nunca en un comentario). Cada encabezado de escenario de §9 va seguido de su bloque `Variants:` o de la declaración explícita `Variants: none`. Lo verifican mecánicamente `T-N.D8` y `T-N.D8b` del Plan.
+- **AC-51** — Cada NFR de §8 con objetivo cuantificado —NFR-001, NFR-001b, NFR-002, NFR-004— tiene un test de medición referenciado en la §12 del Plan, con el identificador embebido.
+- **AC-52** — Cada `TC-*` de §4 tiene su chequeo de cumplimiento en §11.3 y su entrada correspondiente en la §12 del Plan: test ejecutable donde el constraint es mecánico, o revisor/checklist nombrado donde no lo es. Lo verifican `T-N.D10` y `T-N.D10b`.
+- **AC-53** — El cambio tiene al menos una fila `IMP-*` en la §12.2 *Impact Traceability* del Plan por cada ámbito materialmente afectado. Los ámbitos que esta Spec ya identifica son: `code` (la resolución de sesión y el prefetch), `system` (las reglas publicadas en los dos proyectos Firebase y los tests de interfaz) y `external` (las cuentas con sesión abierta durante el corte). Lo verifica `T-N.D15`.
+- **AC-54** — Cada NFR cuantificado tiene al menos una fila `OBS-*` en la §11 *Observability* del Plan, con el identificador del NFR en su columna *Binds to*. NFR-007 existe precisamente para que NFR-002 y NFR-004 tengan señal observable y no dependan de inspección de código. Lo verifica `T-N.D16`.
+- **AC-55** — El repositorio no versiona ningún lockfile ([`AGENTS.md`](../../AGENTS.md) → Dependencias), por lo que el Plan declara `Supply-chain: none — el repositorio no versiona lockfile; la única dependencia nueva es del script, externa al repositorio (TC-003)` en su §5 y satisface esta obligación de forma vacua. Lo verifica `T-N.D20`.
+
+## 12. Success metrics
+
+| Metric | Target | Measurement |
+|---|---|---|
+| Hueco de la solapa, token vigente | ≤ 50 ms, desde 821 ms (login) y 487 ms (sesión abierta) | El mismo medidor que estableció la línea de base, corrido contra staging |
+| Hueco de la solapa, token vencido | < 487 ms | Igual, con una sesión de más de una hora |
+| Lecturas de `userRoles` por arranque de administrador | 0, desde ~7 | Consumo de Firestore en la consola de Firebase |
+| Olvidos de asignación detectados por el propietario y no por el usuario | 100% de los casos | El listado del script (FR-025, FR-026) |
+| Cuentas que necesitaron cerrar sesión a mano por el corte | 0 | Reportes del grupo durante la semana posterior |
+
+## 13. Dependencies
+
+- **Upstream services / specs:** Firebase Auth (custom claims y emisión del token) y Cloud Firestore (reglas leyendo `request.auth.token`). El spec de [`007-permisos-por-usuario`](../007-permisos-por-usuario/spec.md) como fuente de los permisos por rol que esta feature debe preservar sin cambios, y como spec parcialmente reemplazado (Concept Note §6).
+- **Internal modules / teams:** el wrapper de sesión de `index.html` y el doble de pruebas de [`tests/fixtures-app.js`](../../tests/fixtures-app.js). No hay otros equipos.
+- **Feature flags / config:** ninguno. El proyecto no tiene infraestructura de flags y el principio de simplicidad de [`AGENTS.md`](../../AGENTS.md) prohíbe anticiparla; la red de seguridad es la rama sin mergear.
+- **Third-party APIs:** el Admin SDK de Firebase, sólo en el entorno del script (`TC-003`).
+- **Credenciales:** una llave de cuenta de servicio por proyecto Firebase, emitida por el propietario y guardada fuera del repositorio (`TC-032`).
+
+## 14. Assumptions
+
+- **A-01** — Firestore expone los custom claims en `request.auth.token` sin configuración adicional (verificado contra la documentación oficial, Concept Note §6.5).
+- **A-02** — El payload `{rol, jugadorId}` queda holgadamente por debajo del límite de 1000 bytes que Firebase impone a los claims (verificado, Concept Note §6.5).
+- **A-03** — El propietario tiene acceso administrativo a los dos proyectos Firebase, para emitir la llave de servicio y publicar reglas.
+- **A-04** — Las cuentas existentes son pocas y conocidas, de modo que estamparlas todas en una sola pasada es viable (sostiene `D-08`).
+- **A-05** — Los roles cambian rara vez, lo que hace aceptable que un cambio tarde hasta una hora en aplicarse (sostiene `D-10`).
+- **A-06** — Existe un canal para avisarle al grupo antes del corte (sostiene `D-08`). Si no existiera, `D-08` debería revisarse a favor de las reglas de transición que descartó.
+
+## 15. Risks
+
+| Risk | Severity | Likelihood | Spec-level mitigation |
+|---|---|---|---|
+| La llave de cuenta de servicio se filtra al repositorio o a un log | High | Low | `TC-032` la mantiene fuera y explícitamente ignorada; `TC-047` prohíbe volcarla en salida; `AC-19b` lo verifica por revisión |
+| Las reglas nuevas no son equivalentes a las viejas documento por documento, y amplían o restringen permisos sin que nadie lo note | High | Med | `TC-041` exige equivalencia exacta; la variante `S-20c` la convierte en una propiedad verificable sobre **cada** documento del contrato; `AC-18` la ejecuta |
+| El refresco forzado se dispara repetidamente y agrega latencia a cada arranque | Med | Low | `TC-046` lo acota a una vez por sesión; `S-11c` lo verifica como propiedad sobre cualquier secuencia de navegación |
+| El claim y el registro legible se desincronizan, y la consola miente | Low | Med | `TC-013` exige escritura conjunta; `S-04e` cubre el solapamiento de dos corridas; `AC-21` verifica que no queden escrituras parciales |
+| NFR-001b resulta inalcanzable porque el refresco del token domina el arranque | Med | Med | `OPEN-Q-02` lo mide **antes** de que el Plan comprometa el objetivo. Si el refresco domina, el objetivo se renegocia en una revisión de esta Spec, no en el Plan |
+| Los tests dejan de cubrir el comportamiento por rol al mover el punto de intercepción | Med | High | `TC-033` fija el punto nuevo; `AC-17` lo verifica; `OPEN-Q-01` deja la técnica concreta al Plan |
+| Una cuenta queda sin rol y nadie se entera, porque el fail-closed es silencioso | Low | Med | Decisión consciente (FR-007). La contrapartida es `FR-026`: el olvido se detecta desde el listado del propietario, no desde un cartel al usuario |
+
+## 16. Open questions
+
+| ID | Question | Owner | Target stage | Notes |
+|---|---|---|---|---|
+| OPEN-Q-01 | ¿Cómo interceptan los tests el token, ahora que el rol no viene de Firestore? | Lucas Manoukian | Implementation Plan | Heredada de `OPEN-Q-05` de la Concept Note. Hoy el doble intercepta la colección `userRoles` ([`tests/fixtures-app.js:282`](../../tests/fixtures-app.js#L282)); `TC-033` fija que debe pasar a interceptar el token, y el Plan elige la técnica |
+| OPEN-Q-02 | ¿Cuánto tarda el refresco del token cuando la sesión tiene más de una hora? | Lucas Manoukian | Implementation Plan | Respalda NFR-001b, que hoy se compromete sin número absoluto. Requiere medir con una sesión realmente vencida, no simulada. Cierra también el marcador `[UNVERIFIED]` de NFR-001b |
+| OPEN-Q-03 | ¿Cómo se observa el consumo de lecturas de Firestore de forma repetible? | Lucas Manoukian | Implementation Plan | NFR-007 exige que NFR-002 y NFR-004 se verifiquen sobre datos. La consola de Firebase muestra el consumo, pero hay que definir cómo se aísla el de un arranque |
+
+## 17. Handoff to the Implementation Plan
+
+- **Plan must respect (no relitigation):** todos los `FR-*` de §7, todos los `NFR-*` de §8, todos los `TC-*` de §4 —incluidos los siete de seguridad de §4.5—, todos los `AC-*` de §11 —incluidas las seis obligaciones de §11.5— y los doce constraints heredados de la Concept Note en §3.3.
+- **Plan has freedom over:** cómo se estructura el script y su interfaz de línea de comandos, la técnica concreta de intercepción en los tests, el orden y la cantidad de ramas, el reparto de tareas, la elección de las herramientas de medición, y cualquier decisión de patrón de diseño dentro de los límites de los `TC-*`.
+- **Plan must resolve:** `OPEN-Q-01`, `OPEN-Q-02`, `OPEN-Q-03`.
+- **Verificación pendiente heredada (`MD-26`):** esta Spec lleva **un** marcador `[UNVERIFIED]`, en **NFR-001b**: que la resolución de la sesión con token vencido incluya un refresco de red antes de poder leer los claims está deducido de dos hechos verificados (el token dura una hora; el SDK renueva al expirar) pero no comprobado ejecutándolo. `OPEN-Q-02` es la tarea que lo cierra, y hasta entonces el objetivo de NFR-001b se expresa como comparación contra la línea de base y no como número absoluto. La Concept Note aporta además su propio marcador, sobre el render de su diagrama Mermaid.
+- **Declaración de reemplazo pendiente de ejecución:** la Concept Note §6 declara cuatro reemplazos sobre `007-permisos-por-usuario` —`FR-016`, la decisión #1 de su `research.md`, la función `rol()` de su contrato de reglas y el papel de `userRoles` en su modelo de datos—. La anotación recíproca en esos archivos se ejecuta junto con esta Spec; el Plan debe verificar que está hecha antes de dar la feature por terminada.
+- **El Plan no debe introducir** ningún componente desplegado, ningún flag, ningún paso de build, ni ninguna dependencia instalada del repositorio: son no-objetivos de §3.2 y constraints de §4.1.
+
+## 18. Change log
+
+| Date | Author | Change |
+|---|---|---|
+| 2026-09-09 | Lucas Manoukian | Initial draft. Deriva de la Concept Note (`D-01` a `D-12`, §6.5) y resuelve sus `OPEN-Q-02`, `OPEN-Q-03` y `OPEN-Q-04` con las decisiones del propietario: el script vive en `tools/` y sabe listar (`TC-031`, FR-025/FR-026), una cuenta sin rol entra como `jugador` en silencio (FR-007), y el claim se llama `rol` (`TC-030`). Las categorías de §4.5 se derivaron del CWE Top 25 de 2025 recuperado en vivo el 2026-09-09. Al redactar se dividió NFR-001 en NFR-001/NFR-001b: el objetivo de ≤ 50 ms sólo es alcanzable con el token vigente, porque con el token vencido Firebase necesita un refresco de red antes de entregar los claims — se agregó `OPEN-Q-02` para medirlo y un marcador `[UNVERIFIED]` mientras no esté medido. Se agregaron dos no-objetivos descubiertos al redactar (§3.2). Self-critique: passed (1🔴 / 4🟡 / 2🔵) — el 🔴 (FR-008 era compuesto: unía dejar de usar la pista con decidir el prefetch, contra EARS/`MD-03`) se resolvió partiéndolo en FR-008 y FR-009. Los 🟡: FR-003 repetía casi textual el mandato de `TC-010` (se quedó con la conducta y remite el mandato al TC); FR-005 y FR-032 se solapan legítimamente con NFR-001/NFR-002 y con `TC-011`/`TC-012` (se anotó el vínculo en cada uno para que un cambio futuro no los haga divergir en silencio); FR-030 decía "correctamente", que no es verificable (se reemplazó por la obligación concreta); y NFR-002 afirmaba una línea de base de siete lecturas que no está medida (pasa a medirse en AC-12, con el objetivo comprometido en cero). Los dos 🔵 se dejan: §11.2 no cubre visiblemente NFR-005 ni NFR-006 (los cubren AC-04 y la no-regresión de layout), y los `FR-*` usan sujetos de componente ("las reglas deberán", "el script deberá") en vez de "el sistema deberá", que EARS admite al nombrar el sistema de interés y acá es más claro. |
+
+---
+
+*Esta Spec define qué debe hacer el sistema, cómo debe comportarse y qué
+soluciones son admisibles. Las decisiones concretas de implementación
+—estructura de módulos, rutas, patrones, orden de ramas— viven en el
+Implementation Plan (`ROL_EN_EL_TOKEN_IMPLEMENTATION_PLAN.md`, todavía sin
+escribir). La motivación y el porqué viven en la
+[Concept Note](./ROL_EN_EL_TOKEN_CONCEPT.md).*

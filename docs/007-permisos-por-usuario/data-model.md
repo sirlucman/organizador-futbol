@@ -6,6 +6,14 @@ Ver `research.md` para el razonamiento detrás de cada decisión de este documen
 
 ### Cuenta de usuario (extensión — colección `userRoles`)
 
+> **⚠️ Cambió de papel (2026-09-09)** por [`docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md`](../rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md).
+> `userRoles` **dejó de ser fuente de verdad**: el rol y el `jugadorId` viven
+> ahora en los *custom claims* del token de la cuenta, y esta colección sobrevive
+> únicamente como **registro legible por humanos**, que el script mantiene y que
+> ningún proceso lee para decidir nada. Ante cualquier discrepancia, manda el
+> claim. Los campos y sus valores posibles no cambian; sí cambia que "se carga y
+> edita manualmente en la consola" pasó a "la escribe el script".
+
 Un documento por cuenta, `userRoles/{uid}` (`uid` = Firebase Auth UID), con campos nativos de Firestore (no el patrón blob `value` de `window.storage` — ver `research.md` #1 para el porqué):
 
 | Campo | Tipo | Descripción |

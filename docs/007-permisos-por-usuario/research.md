@@ -2,6 +2,19 @@
 
 ## 1. Dónde vive hoy el rol y el vínculo con un Jugador
 
+> **⚠️ Decisión revertida (2026-09-09).** Esta sección descartó los *custom
+> claims* de Firebase Auth "por infraestructura inexistente, no por preferencia"
+> (ver *Alternativas consideradas*, más abajo). [`docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md`](../rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md)
+> revierte esa decisión: los claims pasan a ser el transporte del rol. El motivo
+> es que la premisa —el Admin SDK es obligatorio— sigue siendo correcta, pero la
+> inferencia de que obliga a **desplegar** un backend no se sostiene: el Admin SDK
+> corre en una terminal local con una llave de servicio, y la asignación de roles
+> ya era un trámite manual y ocasional. Ver §9.1 de la Concept Note de aquella
+> feature para el razonamiento completo.
+>
+> **Lo que NO se revierte:** las secciones §2 y §3 de este documento siguen
+> vigentes sin cambios, incluida la limitación aceptada de `data/partidos`.
+
 **Decisión**: Nueva colección `userRoles`, un documento por cuenta (`userRoles/{uid}`), con campos **nativos** de Firestore (no un string JSON):
 
 ```
