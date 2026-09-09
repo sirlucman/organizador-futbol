@@ -1896,19 +1896,20 @@
                            'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado',
                            'ordenJugadoresMigrado'];
 
-  /* Arranca las lecturas SIN esperar a que se sepa el rol, para que viajen en paralelo con la
-     lectura de `userRoles` que hace resolveSession(). Antes eran dos fases en serie —– primero el
-     rol, despues los datos —– y eso era todo el hueco entre que aparece la app y aparecen los
-     jugadores (medido: ~1.4s, igual para admin que para jugador, porque el costo son los dos
-     round-trips, no la cantidad de documentos).
-     `players` y `partidos` son publicos para cualquier cuenta autenticada, asi que se piden siempre.
-     Los de admin se piden aca solo si la pista cacheada dice que esta cuenta es admin; es una
-     optimizacion, NO una decision de permisos: quien autoriza es Firestore, y quien habilita la
-     interfaz es siempre window.session (lo que devuelve resolveSession). Si la pista miente, el
-     pedido se rechaza y se descarta; si dice "jugador" y en realidad es admin, loadAll pide los
-     que falten por el camino lento. */
-  function iniciarLecturas(uid){
-    const claves = ['players','partidos','playersSortMode'].concat(leerRolHint(uid) === 'admin' ? DOCS_SOLO_ADMIN : []);
+  /* Dispara todas las lecturas del arranque juntas y devuelve las promesas, para que loadAll las
+     aplique cuando lleguen. Antes eran dos fases en serie —primero el rol, despues los datos— y
+     eso era todo el hueco entre que aparece la app y aparecen los jugadores (medido: ~1.4s).
+     `players` y `partidos` son publicos para cualquier cuenta autenticada, asi que se piden
+     siempre; los de admin, solo si la cuenta lo es.
+     Recibe el rol ya RESUELTO (rol-en-el-token, TD-05/FR-009). Antes recibia el `uid` y adivinaba
+     el rol con una pista guardada en localStorage, para poder pedir los documentos de admin sin
+     esperar la lectura de `userRoles`: era una optimizacion que compraba paralelismo contra una
+     lectura de identidad que ya no existe. Con el rol saliendo del claim —gratis, y antes de este
+     punto— pedir el conjunto correcto de una vez es mas simple Y mas rapido que adivinarlo.
+     Sigue sin ser una decision de permisos: quien autoriza es Firestore y quien habilita la
+     interfaz es window.session. */
+  function iniciarLecturas(esAdmin){
+    const claves = ['players','partidos','playersSortMode'].concat(esAdmin ? DOCS_SOLO_ADMIN : []);
     const pedidos = {};
     claves.forEach(clave => { pedidos[clave] = pedirDoc(clave); });
     return pedidos;
@@ -7212,23 +7213,29 @@
       loginError.textContent = '';
       el('loginUsuario').value = '';
       el('loginPassword').value = '';
-      // La app se muestra ya, sin esperar el rol: el shell vacio no filtra nada porque `body`
-      // arranca en `role-jugador` (fail-closed) y los contenedores estan vacios — en la carga
-      // inicial nunca se renderizaron, y en un cambio de cuenta los vacio clearRenderedState().
-      // Esperar aca a resolveSession() dejaba la pantalla de login congelada ~2s.
+      // El rol se resuelve ANTES de revelar appRoot (rol-en-el-token, TD-02/FR-002). Invierte
+      // deliberadamente el orden anterior, que mostraba la app primero y ajustaba `role-jugador`
+      // despues: eso era lo correcto cuando resolver el rol costaba una lectura a Firestore
+      // (~2s de pantalla de login congelada si se esperaba), pero dejaba a un administrador
+      // viendo la barra de solapas SIN Configuracion hasta que el rol llegaba. Con el rol
+      // saliendo del claim del token el costo es 0 ms, asi que esperarlo es gratis y la barra se
+      // pinta una sola vez, ya con su composicion final.
+      // La barra de solapas vive DENTRO de appRoot, asi que revelarlo es pintarla: no hay forma
+      // de cumplir FR-002 sin resolver el rol antes de esta linea.
+      mostrarLoaderSesion();
+      await resolveSession(user);
+      document.body.classList.toggle('role-jugador', !isAdmin());
+      ocultarLoaderSesion();
       loginScreen.style.display = 'none';
       appRoot.style.display = '';
       if(!appLoaded){
         appLoaded = true;
         showLoadingState();
-        // Las dos cosas viajan a la vez: el rol y los datos publicos.
-        const pedidos = iniciarLecturas(user.uid);
-        await resolveSession(user.uid);
-        document.body.classList.toggle('role-jugador', !isAdmin());
-        guardarRolHint(user.uid, window.session.rol);
-        await loadAll(pedidos);
+        // El rol ya esta resuelto, asi que se pide de una el conjunto correcto de documentos.
+        await loadAll(iniciarLecturas(isAdmin()));
       }
     }else{
+      ocultarLoaderSesion();
       appRoot.style.display = 'none';
       loginScreen.style.display = 'flex';
       appLoaded = false; // permite recalcular el rol si se loguea otra cuenta distinta después
