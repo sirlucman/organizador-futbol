@@ -1920,22 +1920,6 @@
       .catch(e => { console.error('No se pudo leer ' + clave + ':', e); return null; });
   }
 
-  /* Pista del rol de la ultima sesion de cada uid, para poder prefetchear los documentos de admin
-     sin esperar a resolveSession(). Deliberadamente NO se usa para habilitar nada en la interfaz:
-     un localStorage manipulado solo lograria disparar pedidos que Firestore rechaza. */
-  const ROL_HINT_KEY = 'organizador-futbol:rolHint';
-  function leerRolHint(uid){
-    try{ return (JSON.parse(localStorage.getItem(ROL_HINT_KEY) || '{}') || {})[uid] || null; }
-    catch(e){ return null; }
-  }
-  function guardarRolHint(uid, rol){
-    try{
-      const mapa = JSON.parse(localStorage.getItem(ROL_HINT_KEY) || '{}') || {};
-      mapa[uid] = rol;
-      localStorage.setItem(ROL_HINT_KEY, JSON.stringify(mapa));
-    }catch(e){ /* sin localStorage se pierde solo la optimizacion */ }
-  }
-
   async function loadAll(pedidos){
     /* Las lecturas van todas juntas: antes eran hasta 7 round-trips secuenciales a Firestore. El
        orden en que se APLICAN abajo no cambia, porque el merge de puntaje/armado depende de que
