@@ -54,7 +54,7 @@ that becomes able to represent one more kind of goal event.
 ### 3.2 Out of scope / non-goals
 
 - The system shall not add a dedicated per-player statistics screen showing
-  self-goals (mirrors the existing penalty-goal non-goal — `openspec/specs/resultados-partido/spec.md` §"Dato preparado para estadísticas futuras por jugador").
+  self-goals (mirrors the existing penalty-goal non-goal — `docs/resultados-partido/spec.md` §"Dato preparado para estadísticas futuras por jugador").
 - The system shall not model goals as a list of discrete events (who,
   minute, type); it continues to use the existing aggregated-counter model
   (`goles`, `golesPenal`, `asistencias`) per player per match.
@@ -203,12 +203,12 @@ CWE Top 25 retrieved live from `https://cwe.mitre.org/top25/archive/2024/2024_to
 
 **Codebase evidence:**
 
-- `openspec/specs/resultados-partido/spec.md` — the current committed spec
+- `docs/resultados-partido/spec.md` — the current committed spec
   for match-result goal tracking. Pinned: the existing data model
   (`statsPorJugador[playerId] = {goles, golesPenal, asistencias}`), the
   penalty-goal validation rule (penal ≤ goles), and the display format
   `Nombre N⚽ (M de penal)` this Spec's display format is modeled on.
-- `openspec/changes/archive/2026-08-21-goles-por-penal/{proposal,design,tasks}.md` —
+- `docs/resultados-partido/goles-por-penal/{proposal,design,tasks}.md` —
   the design record for the most recent, structurally analogous feature
   (penalty goals). Pinned: the decision to add a sibling counter field
   rather than an event list; the decision to validate/clamp at the input
@@ -354,7 +354,7 @@ generic peer-product research would be.
 
 - **FR-040** — The "jugadores" player-list screen shall continue to display
   only each player's accumulated `golesTotales`, with no self-goal
-  indication of any kind (mirrors `openspec/specs/resultados-partido/spec.md`'s
+  indication of any kind (mirrors `docs/resultados-partido/spec.md`'s
   existing non-goal for penalty goals).
 
 ## 8. Non-functional requirements
@@ -535,7 +535,7 @@ infrastructure (consistent with every other feature in this app).
 
 ## 13. Dependencies
 
-- **Upstream services / specs:** `openspec/specs/resultados-partido/spec.md`
+- **Upstream services / specs:** `docs/resultados-partido/spec.md`
   (existing committed spec this feature extends in practice, even though
   this Spec itself lives in the separate `docs/` engineering-methodology
   track — see §17).

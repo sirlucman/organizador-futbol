@@ -340,7 +340,7 @@ Implementation tasks (agrupadas en commits atómicos):
 - [ ] T-1.C9 Commit — `fix(cancha): escalón derivado para 360px, medido (FR-053, NFR-001)`
 
 - [ ] T-1.27 Actualizar [`tests/README.md`](../../../tests/README.md) con los escenarios e invariantes nuevos y con el archivo `tests/cancha.test.js`
-- [ ] T-1.28 [P] Marcar en [`.specify/specs/012-puntajes-coherentes-panel/spec.md`](../../../.specify/specs/012-puntajes-coherentes-panel/spec.md) y [`.specify/specs/008-duplas-rotacion/spec.md`](../../../.specify/specs/008-duplas-rotacion/spec.md) la parte de presentación reemplazada, con puntero a esta Spec (Principio I, `OPEN-Q-05`)
+- [ ] T-1.28 [P] Marcar en [`docs/012-puntajes-coherentes-panel/spec.md`](../../012-puntajes-coherentes-panel/spec.md) y [`docs/008-duplas-rotacion/spec.md`](../../008-duplas-rotacion/spec.md) la parte de presentación reemplazada, con puntero a esta Spec (Principio I, `OPEN-Q-05`)
 - [ ] T-1.C10 Commit — `docs: documenta los tests de la cancha y marca las specs reemplazadas (OPEN-Q-05)`
 
 DoD verification (§6). Todo cambio de código hecho durante esta fase va en su

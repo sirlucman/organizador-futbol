@@ -77,7 +77,7 @@ cómo se distribuye esa información en pantalla, no qué información existe.
 - **D-07** (los botones de header existentes no cambian de comportamiento) — inherited;
   ver §3.2.
 - Se hereda también, sin cambios, el modelo de permisos de
-  [`007-permisos-por-usuario`](../../.specify/specs/007-permisos-por-usuario/spec.md) y
+  [`007-permisos-por-usuario`](../../docs/007-permisos-por-usuario/spec.md) y
   las restricciones de rol `jugador` de
   [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md)
   `FR-046`/`FR-081`: el layout de dos columnas no cambia qué ve cada rol, solo cómo se

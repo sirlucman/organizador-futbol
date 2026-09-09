@@ -20,7 +20,7 @@
 > **Declaración de reemplazo (Principio I, enmienda 2.5.0).** Esta Spec
 > reemplaza, cada uno en su parte, tres documentos vigentes:
 >
-> - [`.specify/specs/003-motor-generacion-equipos/spec.md`](../../../.specify/specs/003-motor-generacion-equipos/spec.md),
+> - [`docs/003-motor-generacion-equipos/spec.md`](../../003-motor-generacion-equipos/spec.md),
 >   `FR-014` y el escenario 4 de su User Story 4 — queda reemplazado **de qué se
 >   arrastra y sobre qué se suelta**: mover un jugador deja de ser el arrastre de
 >   una fila de lista sobre el panel del otro equipo, y pasa a ser el arrastre de
@@ -29,7 +29,7 @@
 >   de generar, que el requisito no distinga plataforma, y que el bloqueo fije el
 >   equipo frente a una regeneración siguen siendo suyas, y esta Spec las
 >   conserva en `FR-020` a `FR-026`.
-> - [`.specify/specs/008-duplas-rotacion/spec.md`](../../../.specify/specs/008-duplas-rotacion/spec.md)
+> - [`docs/008-duplas-rotacion/spec.md`](../../008-duplas-rotacion/spec.md)
 >   — ya reemplazada por la rebanada 1 en su fila de dupla. Esta Spec **no
 >   amplía** ese reemplazo: su regla de que arrastrar a un integrante de una
 >   dupla mueve al otro con él sigue vigente y se conserva en `FR-016`.
@@ -411,7 +411,7 @@ esta rebanada:
   el gesto sobre su camiseta mueve a sus dos integrantes juntos, al mismo equipo,
   con la regla que ya aplica `__moverJugadorManual`
   ([`index.html:4028-4029`](../../../index.html#L4028-L4029)) y que
-  [`008-duplas-rotacion`](../../../.specify/specs/008-duplas-rotacion/spec.md)
+  [`008-duplas-rotacion`](../../008-duplas-rotacion/spec.md)
   fija.
 - **FR-017** — Cuando el destino de un intercambio sea la camiseta de una dupla
   de rotación, el sistema intercambiará las dos unidades completas: los dos
@@ -928,9 +928,9 @@ esa Spec.
   ([`../rebanada-1-cancha/CANCHA_SPEC.md`](../rebanada-1-cancha/CANCHA_SPEC.md)),
   que fija la cancha y la camiseta sobre las que esta rebanada opera, y cuyo
   `FR-054` esta Spec enmienda;
-  [`003-motor-generacion-equipos`](../../../.specify/specs/003-motor-generacion-equipos/spec.md),
+  [`003-motor-generacion-equipos`](../../003-motor-generacion-equipos/spec.md),
   cuyo `FR-014` fija que la edición manual existe y no distingue plataforma;
-  [`008-duplas-rotacion`](../../../.specify/specs/008-duplas-rotacion/spec.md),
+  [`008-duplas-rotacion`](../../008-duplas-rotacion/spec.md),
   cuya regla de arrastre de duplas esta Spec conserva; el design system de
   Football App; el handoff de diseño en [`../handoff/`](../handoff/), § Selector
   segmentado y § Arrastre.

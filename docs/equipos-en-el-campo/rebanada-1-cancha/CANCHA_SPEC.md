@@ -17,20 +17,20 @@
 > **Declaración de reemplazo (Principio I, enmienda 2.5.0).** Esta Spec
 > reemplaza, **solo en su parte de presentación**, dos specs vigentes:
 >
-> - [`.specify/specs/012-puntajes-coherentes-panel/spec.md`](../../../.specify/specs/012-puntajes-coherentes-panel/spec.md)
+> - [`docs/012-puntajes-coherentes-panel/spec.md`](../../012-puntajes-coherentes-panel/spec.md)
 >   — queda reemplazada la ubicación de los números ("al lado de su nombre",
 >   "en la columna de puntaje"), que sobre la cancha pasan a la píldora de la
 >   camiseta. **No** se reemplaza su regla de fondo, que esta Spec conserva en
 >   `FR-027`: el número que se muestra para una dupla es el de la unidad, el
 >   que el motor usó y el que suma al total.
-> - [`.specify/specs/008-duplas-rotacion/spec.md`](../../../.specify/specs/008-duplas-rotacion/spec.md)
+> - [`docs/008-duplas-rotacion/spec.md`](../../008-duplas-rotacion/spec.md)
 >   — queda reemplazada la fila de dupla del panel, que pasa a ser la cápsula
 >   de dupla sobre una sola camiseta (`FR-026`). **No** se reemplaza ninguna
 >   regla de armado, de puntaje ni de candado de las duplas.
 >
 > Todo lo demás de esas dos specs, el motor de generación completo
-> ([`003-motor-generacion-equipos`](../../../.specify/specs/003-motor-generacion-equipos/))
-> y las reglas de permisos ([`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/))
+> ([`003-motor-generacion-equipos`](../../003-motor-generacion-equipos/))
+> y las reglas de permisos ([`007-permisos-por-usuario`](../../007-permisos-por-usuario/))
 > siguen siendo fuente de verdad donde están.
 
 ## 1. Purpose
@@ -723,7 +723,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 - **Upstream services / specs:** el motor de generación de equipos, que produce
   `m.equipos` con sus posiciones asignadas
-  ([`.specify/specs/003-motor-generacion-equipos/`](../../../.specify/specs/)); el
+  ([`docs/003-motor-generacion-equipos/`](../../)); el
   design system de Football App
   ([`.claude/skills/football-app-design/`](../../../.claude/skills/football-app-design/)),
   fuente de verdad de la UI por el Principio VI; el handoff de diseño en
@@ -808,7 +808,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 | 2026-09-02 | Lucas Manoukian | `FR-012` se invierte: una línea del catálogo sin unidades ahora se dibuja igual, vacía, en vez de omitirse. Reportado desde la rebanada 2 (el arrastre): mover a mano un jugador entre equipos puede dejar a uno sin nadie en una línea (p. ej. sin Ataque), y con el comportamiento original la línea de al lado subía a ocupar ese lugar — un volante terminaba viéndose donde antes estaba el delantero, dando la impresión de que jugaba ahí. Se ajustan `S-01b`, `S-02` y `S-02c`, que describían el comportamiento viejo como el correcto. `S-01a` de `ARRASTRE_SPEC.md` (rebanada 2) queda igual de afectado; se anota ahí también. Self-critique: no corresponde (enmienda posterior a la implementación, a pedido explícito de una corrección puntual). |
 | 2026-08-31 | Lucas Manoukian | `FR-054` y el último *Then* de `S-06` quedan reemplazados por la rebanada 2: en una sola columna los equipos dejan de apilarse y pasan al selector segmentado. Cierra además la `OPEN-Q-01` de esta Spec, cuyo *target stage* era la Spec de la rebanada 2 o la 3. Self-critique: no corresponde (enmienda desde otra rebanada). |
 | 2026-08-31 | Lucas Manoukian | `FR-053` queda sin efecto: la premisa de `D-03` —que la cancha de 9 desborda a 360 px— no se sostiene contra la implementación, porque las columnas son flexibles y se encogen. Se usan los escalones del handoff en todo el rango. Descubierto al ejecutar el gate del Principio V: el escenario nuevo **pasaba** con el escalón revertido, que es exactamente lo que ese gate existe para detectar. Self-critique: no corresponde (enmienda posterior a la implementación). |
-| 2026-08-31 | Lucas Manoukian | Initial draft. Self-critique: passed (2🔴 / 6🟡 / 1🔵), todos resueltos antes de guardar. Los dos 🔴: una cita fabricada a `.specify/specs/006-panel-equipos/`, carpeta que no existe (006 es `copiar-formacion`) — reemplazada por las dos specs reales que esta Spec pisa en su parte de presentación; y TC-020, TC-030 y TC-031 sin criterio de cumplimiento en §11.3 — agregados como AC-23 y AC-24. Los 🟡: bandas de numeración de AC solapadas entre §11.2 y §11.3 (renumeradas a 11.1→AC-01.., 11.2→AC-10.., 11.3→AC-20.., 11.4→AC-40..), FR-023 y FR-024 compuestas (partidas), TC-013 prescribía un mecanismo de CSS en vez de una prohibición (reescrita), NFR-005 citaba un "navegador de referencia" inexistente (anclada al Chromium de Playwright que el repo ya usa), y dos afirmaciones sin verificar sin marcador (etiquetadas). El 🔵: OPEN-Q-05 se pudo cerrar a medias durante la pasada y quedó reformulada. |
+| 2026-08-31 | Lucas Manoukian | Initial draft. Self-critique: passed (2🔴 / 6🟡 / 1🔵), todos resueltos antes de guardar. Los dos 🔴: una cita fabricada a `docs/006-panel-equipos/`, carpeta que no existe (006 es `copiar-formacion`) — reemplazada por las dos specs reales que esta Spec pisa en su parte de presentación; y TC-020, TC-030 y TC-031 sin criterio de cumplimiento en §11.3 — agregados como AC-23 y AC-24. Los 🟡: bandas de numeración de AC solapadas entre §11.2 y §11.3 (renumeradas a 11.1→AC-01.., 11.2→AC-10.., 11.3→AC-20.., 11.4→AC-40..), FR-023 y FR-024 compuestas (partidas), TC-013 prescribía un mecanismo de CSS en vez de una prohibición (reescrita), NFR-005 citaba un "navegador de referencia" inexistente (anclada al Chromium de Playwright que el repo ya usa), y dos afirmaciones sin verificar sin marcador (etiquetadas). El 🔵: OPEN-Q-05 se pudo cerrar a medias durante la pasada y quedó reformulada. |
 
 ---
 

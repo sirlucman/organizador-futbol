@@ -111,7 +111,7 @@ sin navegador.
 | `tests/cancha.test.js` | Gana los casos de las funciones puras nuevas | modified |
 | `tests/layout.test.js` | Gana los escenarios del selector y del drop; se corrigen las etiquetas `spec:` que citaban el apilado | modified |
 | `tests/fixtures-app.js` | Sin cambios: los partidos que la rebanada 1 agregó alcanzan | untouched |
-| `.specify/specs/003-motor-generacion-equipos/spec.md` | Recibe la anotación recíproca de reemplazo | modified |
+| `docs/003-motor-generacion-equipos/spec.md` | Recibe la anotación recíproca de reemplazo | modified |
 | `docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md` | `FR-054` y `S-06` quedan enmendados | modified |
 | `index.html` — motor de generación | En la ruta de la feature, sin cambios (`D-01`) | untouched |
 
@@ -272,9 +272,9 @@ index.html
 tests/cancha.test.js
 tests/layout.test.js
 docs/equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md
-.specify/specs/003-motor-generacion-equipos/spec.md
-.specify/specs/008-duplas-rotacion/spec.md
-.specify/specs/012-puntajes-coherentes-panel/spec.md
+docs/003-motor-generacion-equipos/spec.md
+docs/008-duplas-rotacion/spec.md
+docs/012-puntajes-coherentes-panel/spec.md
 ```
 
 No hay archivos nuevos ni borrados: `__dropOnTeam` se retira de `index.html`,

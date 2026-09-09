@@ -103,7 +103,7 @@ por criterio explícito de `MD-24` (requerido solo con ≥2 boundaries).
 
 - **Feature exposure** — Sin input externo no confiable. Todas las interacciones vienen de
   miembros autenticados del grupo (roles `admin` / `jugador`), ya filtrados por el modelo
-  de permisos existente (`.specify/specs/007-permisos-por-usuario/spec.md`).
+  de permisos existente (`docs/007-permisos-por-usuario/spec.md`).
 - **Data sensitivity** — Ninguna regulada: nombres de jugadores y puntajes de un grupo
   amateur de fútbol 5/8/9. No hay PII sensible, datos de pago ni credenciales.
 - **Deployment surface** — SPA cliente (`index.html`) contra el mismo Firebase ya en

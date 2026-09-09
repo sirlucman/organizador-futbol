@@ -183,8 +183,9 @@ C4Context
   [`handoff/`](./handoff/): un README de 845 líneas con medidas, tokens, estados y
   reglas, más `Equipos en el campo.dc.html`, un prototipo interactivo de doce
   vistas. Las restricciones transversales del proyecto
-  ([`openspec/config.yaml`](../../openspec/config.yaml), gobernanza vigente desde
-  el 2026-09-01) fijan, entre otros, tres principios que condicionan fuertemente
+  ([`AGENTS.md`](../../AGENTS.md); al escribirse este documento vivían en
+  `openspec/config.yaml`, gobernanza vigente desde el 2026-09-01 y retirada el
+  2026-09-09) fijan, entre otros, tres principios que condicionan fuertemente
   este rediseño: la explicabilidad del motor de generación (todo lo que decide el
   motor debe explicarse), el responsive verificado por medición desde 360 px, y el
   design system como fuente de verdad de la UI.
@@ -246,7 +247,7 @@ C4Context
 **Industry-standard evidence** — estándares contrastados contra la feature:
 
 - *Style / project convention:*
-  [`.specify/memory/constitution.md`](../../.specify/memory/constitution.md)
+  `.specify/memory/constitution.md`
   v2.4.0 (consultada a la fecha de este documento) — Principio II (simplicidad:
   la solución más simple que cumpla, sin anticipar infraestructura), Principio
   III (explicabilidad del motor: fundamenta que el bloque "Por qué quedaron así"
@@ -255,8 +256,9 @@ C4Context
   origen del conflicto que resuelve `D-03`), Principio VI (design system como
   fuente de verdad de UI: fundamenta que los tokens del handoff se toman del
   design system y no se inventan). Estas restricciones se mudaron a
-  [`openspec/config.yaml`](../../openspec/config.yaml) el 2026-09-01, sin cambio
-  de contenido; la cita de versión de arriba queda como registro de qué se
+  `openspec/config.yaml` el 2026-09-01 y de ahí a
+  [`AGENTS.md`](../../AGENTS.md) el 2026-09-09, las dos veces sin cambio de
+  contenido; la cita de versión de arriba queda como registro de qué se
   consultó al escribir este documento.
 - *Style / project convention:*
   [`.claude/skills/football-app-design/`](../../.claude/skills/football-app-design/)
@@ -284,11 +286,11 @@ C4Context
   la convención de carpeta (`docs/<feature>/NOMBRE_SPEC.md` + su Implementation
   Plan) y el patrón de trabajo por ramas: la rama `docs/<feature>` se mergea
   antes que la rama `feature/<feature>`.
-- [`openspec/specs/resultados-partido/`](../../openspec/specs/resultados-partido/)
+- [`docs/resultados-partido/`](../resultados-partido/)
   — la especificación vigente de la carga de resultados, incluida la regla de que
   los goles de un equipo son los propios más los en contra del rival. `D-04`
   modifica su modelo de datos sin modificar esa regla.
-- [`.specify/specs/003-motor-generacion-equipos/`](../../.specify/specs/003-motor-generacion-equipos/),
+- [`docs/003-motor-generacion-equipos/`](../../docs/003-motor-generacion-equipos/),
   `010-refinamiento-objetivo`, `011-encaje-optimo-formacion`,
   `015-minimo-diferencia-alcanzable` — las especificaciones del motor real.
   Fijaron `D-01`: el motor está considerablemente más desarrollado que el
@@ -502,12 +504,12 @@ fluida queda registrada como diferida (§14), no descartada.
 | D-15 | El "desvío aceptable" del handoff es el `diffObjetivo` que ya existe; no se agrega parámetro. La grilla de diferencia por línea se muestra siempre, y el color aparece sólo cuando hay umbral configurado | Es el mismo valor, ya mostrado con ese texto exacto en [`index.html:4068`](../../index.html#L4068), y la regla de color ya existe en [`index.html:3868`](../../index.html#L3868). Sin umbral configurado la aplicación hoy no emite juicio; mantener ese criterio evita introducir una regla nueva | Easy |
 | D-16 | La enmienda de `D-09` es de alcance mínimo: `docs/` es el sistema para features nuevas; las specs vigentes en `.specify/` y `openspec/` siguen siendo fuente de verdad de lo ya construido; y una spec nueva que pise a una vieja lo declara explícitamente. Se ejecuta en su propia rama antes de la primera Spec | Principio II: migrar dieciséis specs de features ya construidas no mejora el producto en nada. Lo que faltaba era que la regla quedara sin ambigüedad, no que hubiera un solo directorio | Hard |
 | D-17 | El documento no cita cláusulas normativas de accesibilidad; las obligaciones se enuncian en términos directamente comprobables | Citar mal el nivel de un criterio es el tipo de error que después nadie revisa, y la obligación concreta —nombre accesible en botones solo de ícono, objetivos táctiles de 44×44 px— es verificable sin apoyarse en la cita | Easy |
-| D-18 | El arrastre se repone con la API nativa de arrastre del navegador, movida de la fila de lista a la camiseta; no se construye un gesto propio con eventos de puntero | Principio II: es la solución más simple que cumple. El mecanismo está verificado a mano en producción sobre iOS y sobre Chrome en Android (2026-08-27, `.specify/specs/003-motor-generacion-equipos` § Assumptions), así que reemplazarlo por uno propio sería cambiar algo probado por algo por probar. Sienta además el precedente del gesto para la carga por toque de la rebanada 6 | Easy |
+| D-18 | El arrastre se repone con la API nativa de arrastre del navegador, movida de la fila de lista a la camiseta; no se construye un gesto propio con eventos de puntero | Principio II: es la solución más simple que cumple. El mecanismo está verificado a mano en producción sobre iOS y sobre Chrome en Android (2026-08-27, `docs/003-motor-generacion-equipos` § Assumptions), así que reemplazarlo por uno propio sería cambiar algo probado por algo por probar. Sienta además el precedente del gesto para la carga por toque de la rebanada 6 | Easy |
 | D-19 | La edición manual del reparto se acota a movimientos **entre equipos**: pasar un jugador al otro equipo e intercambiar dos. Mover una camiseta dentro de su propio equipo queda sin rebanada asignada | Mover dentro del propio equipo exige escribir la posición asignada, y con ella el recálculo de los resúmenes de diferencia por línea, que la rebanada 3 rediseña de todos modos. Acotarlo mantiene la rebanada 2 chica sin perder la función que la rebanada 1 había suspendido | Easy |
 | D-20 | Un movimiento manual no escribe la posición asignada de nadie | Conserva la regla que la aplicación ya tenía: mover a un jugador sólo lo cambia de equipo. Ninguna spec vigente cambia de sentido, y la formación de cada equipo se sostiene | Easy |
 | D-21 | En una sola columna los dos equipos dejan de apilarse y se muestran de a uno, con el selector segmentado del handoff; la pestaña del equipo que no se ve recibe el drop. Reemplaza el `FR-054` de la Spec de la rebanada 1 | Con las canchas apiladas, en un teléfono el destino de todo movimiento manual queda fuera de pantalla, y alcanzarlo depende de cómo cada navegador desplace durante un arrastre nativo — algo que **no se puede verificar en este entorno, porque no hay un dispositivo táctil con el cual probarlo**. La decisión elimina la incógnita en vez de apostar a que se resuelva sola. Alcanza a todas las rebanadas siguientes: cambia cómo se **leen** los equipos en el celular, también para el rol jugador | Hard |
 | D-22 | Cuando hay un desvío aceptable configurado, la regla de color de la grilla de diferencia por línea **no alcanza a las líneas de un solo lugar por equipo** —Arco y Ataque, en las dos canchas que el producto soporta—: esas celdas nunca se pintan como excedidas. Cierra `OPEN-Q-07` | La diferencia de una línea de un solo lugar existe en cualquier armado posible y no se puede repartir: pintarla de rojo señalaría como problema algo que el motor no podía evitar, y con un umbral bajo iría en rojo casi siempre, hasta que el color dejara de significar nada. El motor ya lo explica en palabras en [`index.html:4481`](../../index.html#L4481), y esta decisión se limita a que el color no contradiga esa explicación. El predicado no se inventa: es el mismo que el receipt ya usa ([`index.html:4476-4478`](../../index.html#L4476-L4478)) | Easy |
-| D-23 | Los tres resúmenes en cajitas que el rediseño no dibuja —conteo de posiciones por equipo, titulares sin puntaje y jugadores bloqueados— **se retiran** del panel. Debajo de la cancha quedan sólo el Badge de diferencia total y la grilla de diferencia por línea. A cambio, la línea del receipt que cuenta titulares sin puntaje pasa a decirlo **por equipo** | Ninguno de los tres datos se pierde, cambia dónde se lee: la formación es lo que la cancha dibuja —es literalmente el Pain 1—, los candados se ven sobre las camisetas, y los bloqueados y los sin puntaje ya los enumera "Por qué quedaron así". Conservarlos sería mantener dos superficies para el mismo dato, contra el Principio II. Reemplaza en parte el `FR-009` de [`.specify/specs/003-motor-generacion-equipos`](../../.specify/specs/003-motor-generacion-equipos/spec.md) y la superficie de lectura de [`012-puntajes-coherentes-panel`](../../.specify/specs/012-puntajes-coherentes-panel/spec.md); el desglose por equipo se conserva justamente para no degradar el criterio de esa última | Hard |
+| D-23 | Los tres resúmenes en cajitas que el rediseño no dibuja —conteo de posiciones por equipo, titulares sin puntaje y jugadores bloqueados— **se retiran** del panel. Debajo de la cancha quedan sólo el Badge de diferencia total y la grilla de diferencia por línea. A cambio, la línea del receipt que cuenta titulares sin puntaje pasa a decirlo **por equipo** | Ninguno de los tres datos se pierde, cambia dónde se lee: la formación es lo que la cancha dibuja —es literalmente el Pain 1—, los candados se ven sobre las camisetas, y los bloqueados y los sin puntaje ya los enumera "Por qué quedaron así". Conservarlos sería mantener dos superficies para el mismo dato, contra el Principio II. Reemplaza en parte el `FR-009` de [`docs/003-motor-generacion-equipos`](../../docs/003-motor-generacion-equipos/spec.md) y la superficie de lectura de [`012-puntajes-coherentes-panel`](../../docs/012-puntajes-coherentes-panel/spec.md); el desglose por equipo se conserva justamente para no degradar el criterio de esa última | Hard |
 | D-24 | Sólo Copiar y Regenerar suben al encabezado de la tarjeta como botones de ícono. Los botones de ciclo de vida del partido —Finalizar partido, Editar resultado, Guardar cambios, Cancelar— siguen al pie, con texto, y adoptan los estilos de botón del design system | El handoff dibuja el encabezado de una pantalla, no el mando completo de la tarjeta: esos cuatro botones no aparecen en ninguna de sus doce vistas porque pertenecen a estados que el handoff no dibujó. Subirlos cargaría en el celular una fila que ya lleva dos íconos, y esconder tras un ícono sin texto una acción irreversible como Finalizar partido sería peor accesibilidad, no mejor. Alcanza a las rebanadas 4 y 6, que heredan la misma tarjeta | Easy |
 | D-25 | Después de un movimiento manual, los **números** del panel —el Badge de diferencia total y la grilla de diferencia por línea— se recalculan sobre el reparto que está en pantalla. El **texto** de "Por qué quedaron así" sigue describiendo la última generación del motor. Cierra la `OPEN-Q-03` de la Spec de la rebanada 2 | Son dos cosas distintas y conviene que se comporten distinto. Los números describen el estado: mostrarlos desactualizados junto a una cancha que ya cambió es un dato falso, y hoy pasa. El receipt describe una decisión que ocurrió, y el Principio III pide exactamente eso: recalcularlo exigiría volver a correr el motor sobre un reparto que el motor no produjo, que es lo que `D-01` deja fuera de alcance. Alcanza a las rebanadas siguientes, que muestran los mismos bloques | Easy |
 
@@ -572,8 +574,14 @@ fluida queda registrada como diferida (§14), no descartada.
 - **Migrar los partidos históricos** al modelo de eventos — *diferida sin fecha;
   se reabre sólo si la convivencia de formatos resulta molesta en la práctica.*
 - **Migrar las specs de `.specify/` y `openspec/`** al formato de `docs/` —
-  *diferida sin fecha* por `D-16`; se reabre sólo si la coexistencia de tres
-  sistemas genera confusión real.
+  *parcialmente hecha el 2026-09-09, el resto diferido sin fecha* por `D-16`.
+  Ese día se retiraron OpenSpec y speckit del proyecto: las dieciséis specs se
+  **mudaron** a `docs/<feature>/`, con lo que la coexistencia de tres sistemas
+  que motivaba el diferido dejó de existir. Lo que sigue diferido es
+  **reescribirlas** al formato de los tres documentos: conservan su forma
+  original y siguen siendo fuente de verdad tal como están (ver "Dónde vive la
+  fuente de verdad de cada feature" en [`AGENTS.md`](../../AGENTS.md)). Se
+  reabre sólo si esa diferencia de formato genera confusión real.
 - **El formato del texto que copia el botón Copiar** — *diferido sin fecha.* El
   handoff propone listar por línea con puntajes y la diferencia al pie; el texto
   vigente ([`index.html:1217-1231`](../../index.html#L1217-L1231)) está armado
@@ -666,6 +674,7 @@ equivalencia con el comportamiento actual, no de comportamiento nuevo.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-09 | Lucas Manoukian | Actualización de referencias tras el retiro de OpenSpec y speckit del proyecto ese día: las specs de `.specify/specs/` y `openspec/specs/` se mudaron a `docs/<feature>/` y la gobernanza de `openspec/config.yaml` pasó a `AGENTS.md`, las dos veces sin cambio de contenido. §6 y §6.5 actualizan el puntero de la gobernanza conservando el registro de qué se consultó al escribir este documento (la cita pinneada de `constitution.md` v2.4.0 queda íntegra, ya sin link porque el archivo no existe más). El diferido de §14 "Migrar las specs de `.specify/` y `openspec/`" pasa a *parcialmente hecha*: la mudanza ocurrió, la reescritura al formato de los tres documentos sigue diferida. `D-16` no se toca: sigue siendo el registro fiel de la decisión del 2026-08-31. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de referencias, verificada contra los archivos reales). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la fila de la rebanada 6 pasa a enlazar también `CARGA_POR_TOQUE_IMPLEMENTATION_PLAN.md`, ya escrito. Se corrige el puntero de cierre, que seguía anunciando ese mismo Plan como próximo paso, para anunciar en su lugar el código de `feature/carga-por-toque`. Sin cambios de contenido: ninguna decisión, requisito ni pregunta abierta se toca. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado: la rebanada 6 pasa de "En curso" a "Mergeada a `main` el 2026-09-01" (`feature/carga-por-toque`, verificado contra el repositorio real). De las siete rebanadas de `D-08`, sólo queda la 7 (la configuración), y es opcional (§14): no hay ninguna rebanada obligatoria pendiente. El puntero de cierre anuncia la Spec de la rebanada 7 como siguiente paso posible, si el propietario decide encararla. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de estado). |
 | 2026-09-01 | Lucas Manoukian | Actualización de estado, al empezar la Spec de la rebanada 6: la fila de la rebanada 6 pasa de "Pendiente" a "En curso", enlazando `CARGA_POR_TOQUE_SPEC.md`, ya escrita. Se corrige el puntero de cierre, que seguía anunciando esa misma Spec como próximo paso, para anunciar en su lugar su Implementation Plan. Sin cambios de decisiones, requisitos ni preguntas abiertas. Self-critique: no corresponde (actualización de estado, verificada contra el archivo real). |

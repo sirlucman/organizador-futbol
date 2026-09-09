@@ -24,7 +24,7 @@
 > **Declaración de reemplazo (Principio I, enmienda 2.5.0).** Esta Spec
 > reemplaza, cada uno en su parte, dos documentos vigentes:
 >
-> - [`.specify/specs/003-motor-generacion-equipos/spec.md`](../../../.specify/specs/003-motor-generacion-equipos/spec.md),
+> - [`docs/003-motor-generacion-equipos/spec.md`](../../003-motor-generacion-equipos/spec.md),
 >   `FR-009` — queda reemplazada **la forma del resumen posterior a la
 >   generación**. Los datos que ese requisito enumera se siguen mostrando todos,
 >   pero tres de ellos dejan de tener cajita propia y se leen donde ya estaban
@@ -33,7 +33,7 @@
 >   los que cambiaron de equipo también. **No** se reemplaza ninguna regla del
 >   motor: qué calcula, qué explica y en qué orden lo emite sigue siendo suyo
 >   (`D-01`). Ver `D-23` del Concept Note y `FR-050` a `FR-054`.
-> - [`.specify/specs/012-puntajes-coherentes-panel/spec.md`](../../../.specify/specs/012-puntajes-coherentes-panel/spec.md)
+> - [`docs/012-puntajes-coherentes-panel/spec.md`](../../012-puntajes-coherentes-panel/spec.md)
 >   — queda reemplazada **la superficie donde se lee la cuenta de titulares sin
 >   puntaje**: deja de ser el par de cajitas "Sin puntaje — Blanco: N" /
 >   "Sin puntaje — Negro: N" y pasa a ser la línea del receipt, que a partir de
@@ -49,14 +49,14 @@
 >   en `OPEN-Q-05`.
 >
 > Tampoco se reemplaza nada de
-> [`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/spec.md):
+> [`007-permisos-por-usuario`](../../007-permisos-por-usuario/spec.md):
 > su modelo de permisos —que el rol `jugador` no vea puntajes, estrategia,
 > diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del
 > armado— se conserva entero, y es lo que `FR-046` y `FR-081` restatean para los
 > bloques que esta rebanada rediseña.
 >
 > No se reemplaza nada de
-> [`009-ventaja-sin-arquero`](../../../.specify/specs/009-ventaja-sin-arquero/spec.md):
+> [`009-ventaja-sin-arquero`](../../009-ventaja-sin-arquero/spec.md):
 > su `FR-010` —que el aviso se evalúe sobre el **desvío** respecto del objetivo y
 > no sobre la diferencia cruda— es exactamente la regla que `FR-032` conserva al
 > mover ese aviso al Badge del encabezado.
@@ -286,7 +286,7 @@ límites propios de esta rebanada:
 - **TC-016** — La píldora de diferencia del encabezado evaluará su estado de
   exceso sobre el **desvío respecto del objetivo**, no sobre la diferencia cruda
   entre los dos equipos, conservando el `FR-010` de
-  [`009-ventaja-sin-arquero`](../../../.specify/specs/009-ventaja-sin-arquero/spec.md).
+  [`009-ventaja-sin-arquero`](../../009-ventaja-sin-arquero/spec.md).
   Es la distinción que existe hoy en
   [`index.html:4430-4436`](../../../index.html#L4430-L4436) y que hace que un
   armado que alcanzó una ventaja buscada de 6 puntos no se reporte como problema.
@@ -590,7 +590,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **FR-081** — Donde el rol de la sesión sea `jugador`, el sistema no mostrará la
   píldora de diferencia, ni la diferencia por línea, ni el receipt. Conserva sin
   cambios el modelo de permisos de
-  [`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/spec.md)
+  [`007-permisos-por-usuario`](../../007-permisos-por-usuario/spec.md)
   `FR-005`, cuyo escenario 2 declara que el rol `jugador` no ve puntajes,
   estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la
   explicación del armado. El jugador sigue viendo la cancha con los nombres, que

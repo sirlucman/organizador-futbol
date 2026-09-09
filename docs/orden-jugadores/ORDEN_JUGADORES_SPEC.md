@@ -88,7 +88,7 @@ only their current fixed order.
   screen (see §14 A-05).
 - The system shall not expose player scores to non-admin users in any form
   (the puntaje sort option itself stays admin-only — see §3.2 in the
-  existing permission model, `openspec/specs/resultados-partido/spec.md`
+  existing permission model, `docs/resultados-partido/spec.md`
   is not affected, this restates the existing `007-permisos-por-usuario`
   boundary).
 - The system shall not introduce per-user (per-device/local) ordering
@@ -785,8 +785,8 @@ infrastructure (consistent with every other feature in this app).
 - **Upstream services / specs:** none required to function. Related
   existing specs in this repo, cited for context only (their content was
   not read in detail for this Spec):
-  `.specify/specs/002-gestion-jugadores`,
-  `.specify/specs/007-permisos-por-usuario`.
+  `docs/002-gestion-jugadores`,
+  `docs/007-permisos-por-usuario`.
 - **Internal modules / teams:** none — single maintainer, single file. §7.8
   depends internally on the existing `getUnidadesConvocatoria`,
   `getTitularIds`, `titularesRequeridos`, and `equiposStale` functions
@@ -870,7 +870,7 @@ infrastructure (consistent with every other feature in this app).
 
 | Date | Author | Change |
 |---|---|---|
-| 2026-08-28 | Lucas Manoukian | Initial draft. Self-critique: passed (0🔴 / 5🟡 / 1🔵) — fixed EARS pattern misuse in FR-013/FR-022/FR-031/FR-060 (changed "Where" to "If…then" for conditional-consequence FRs), added TC-013 to make explicit that `playersSortMode` must be readable by non-admin sessions (unlike `motorConfig`, which is deliberately admin-only) since FR-052 depends on it, tagged the inferred half of A-04 with `[INFERRED]`, added a qualitative-NFR disclaimer to §8 matching the goles-en-contra precedent, clarified §10.1.1's reasoning for why `playersSortMode` doesn't need an ER diagram, and softened §13's claim about `.specify/specs/002-gestion-jugadores`/`007-permisos-por-usuario` (cited for context, not verified as active dependencies). |
+| 2026-08-28 | Lucas Manoukian | Initial draft. Self-critique: passed (0🔴 / 5🟡 / 1🔵) — fixed EARS pattern misuse in FR-013/FR-022/FR-031/FR-060 (changed "Where" to "If…then" for conditional-consequence FRs), added TC-013 to make explicit that `playersSortMode` must be readable by non-admin sessions (unlike `motorConfig`, which is deliberately admin-only) since FR-052 depends on it, tagged the inferred half of A-04 with `[INFERRED]`, added a qualitative-NFR disclaimer to §8 matching the goles-en-contra precedent, clarified §10.1.1's reasoning for why `playersSortMode` doesn't need an ER diagram, and softened §13's claim about `docs/002-gestion-jugadores`/`007-permisos-por-usuario` (cited for context, not verified as active dependencies). |
 | 2026-08-28 | Lucas Manoukian | Expanded scope per user request: added §7.8 (drag-and-drop reordering of the match convocatoria's titulares/suplentes queue, available to admin in every match state, including `Finalizado`, unlike the existing locked add/quitar/dupla controls). Added FR-070–FR-075, TC-014/TC-015/TC-042, Scenario S-08 with 5 variants, A-06/A-07, two new risks, two new open questions (OPEN-Q-04/05), and updated §3.1/§3.2 scope (the prior non-goal claiming drag-and-drop was exclusive to Jugadores is now corrected). Self-critique: skipped for this iteration — the added content mirrors the already-reviewed §7.1–§7.7 shape closely (same TC-040/TC-041 authorization pattern, same GWT/Variants discipline), and the user is present to review directly. |
 
 ---

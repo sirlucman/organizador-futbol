@@ -23,7 +23,7 @@
 > del merge de la rebanada 3 (`cc62e58`).
 
 > **Declaración de reemplazo (Principio I / gobernanza vigente en
-> [`openspec/config.yaml`](../../../openspec/config.yaml)).** Esta Spec
+> [`AGENTS.md`](../../../AGENTS.md)).** Esta Spec
 > reemplaza, cada uno en su parte, contenido de la Spec de la rebanada 3
 > ([`PANEL_ARMADO_SPEC.md`](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md)),
 > y sólo para el estado **partido finalizado, sin edición en curso**:
@@ -67,9 +67,9 @@
 > toca: rige sin cambios para el estado de equipos generados, que esta
 > rebanada no vuelve a abrir. Tampoco se reemplaza
 > nada de
-> [`.specify/specs/003-motor-generacion-equipos/spec.md`](../../../.specify/specs/003-motor-generacion-equipos/spec.md)
+> [`docs/003-motor-generacion-equipos/spec.md`](../../003-motor-generacion-equipos/spec.md)
 > ni de
-> [`007-permisos-por-usuario`](../../../.specify/specs/007-permisos-por-usuario/spec.md):
+> [`007-permisos-por-usuario`](../../007-permisos-por-usuario/spec.md):
 > el motor no se toca (`D-01`) y el modelo de permisos por rol se conserva
 > entero, igual que en las tres rebanadas anteriores.
 >
@@ -247,7 +247,7 @@ límites propios de esta rebanada:
   rebanada saldrá del design system
   ([`.claude/skills/football-app-design/`](../../../.claude/skills/football-app-design/)),
   en el orden que fija el principio de design system vigente en
-  [`openspec/config.yaml`](../../../openspec/config.yaml).
+  [`AGENTS.md`](../../../AGENTS.md).
 - **TC-031** — Las excepciones a `TC-030` —los valores que el handoff fija y
   el design system no nombra, como el fondo `#E8EBE6` de los chips— se
   listarán explícitamente en el Implementation Plan, con el valor y la razón.
@@ -500,7 +500,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
 - **FR-060** — Donde el rol de la sesión sea `jugador`, el sistema mostrará
   los chips de estadística, la fila de resultado y las filas de detalle sin
   restricciones. La lista de restricciones del rol `jugador`
-  ([`007-permisos-por-usuario/spec.md`](../../../.specify/specs/007-permisos-por-usuario/spec.md),
+  ([`007-permisos-por-usuario/spec.md`](../../007-permisos-por-usuario/spec.md),
   `FR-004` a `FR-007`) es taxativa y no incluye goles ni asistencias; su
   `FR-013` además lo declara en positivo: "jugador" MUST poder ver, para
   cualquier jugador, sus estadísticas de goles y asistencias.
