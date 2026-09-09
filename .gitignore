@@ -7,3 +7,11 @@
 node_modules/
 package.json
 package-lock.json
+
+# Llave de cuenta de servicio del Admin SDK (rol en el token, TC-032 / D-04). Da acceso total a
+# un proyecto Firebase entero: nunca se versiona. Vive fuera del repositorio y se le pasa a
+# tools/rol.js por --llave=<ruta>; estos patrones son la red de contención por si alguna vez
+# se la copia acá adentro por comodidad.
+*serviceAccount*.json
+*firebase-adminsdk*.json
+llaves/
