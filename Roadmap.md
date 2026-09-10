@@ -67,6 +67,7 @@ Los diferidos **deliberados** del rediseño —fútbol 5/6/7/11, migrar los part
 
 ### Datos y colaboración
 - Sincronización en vivo entre usuarios + resolución de conflictos de edición concurrente (hoy es "gana el último que guarda").
+- Caché local de los datos del arranque (la persistencia en IndexedDB que trae Firestore), para que la aplicación aparezca al instante con lo último conocido y se refresque por detrás. **Considerado y postergado el 2026-09-10**, al medir el arranque: la espera son ~620 ms de mediana y es toda de Firestore —abrir la conexión y esperar su primera respuesta—, así que la caché es la única vía a un arranque instantáneo (`preconnect` y precalentar el canal se midieron y no mueven la aguja; el piso por HTTP directo es ~400-500 ms). Se postergó porque muestra datos viejos hasta que llega el refresco: si alguien cargó un partido desde otro teléfono, la pantalla se actualiza sola medio segundo después. Por ahora la espera se cubre con la pantalla de carga (ver el cambio del 2026-09-10 en `docs/rol-en-el-token/`).
 
 ### Estrategias adicionales
 - que se predefina esquema táctico para el armado de equipos. Ej: 1 arquero, 3 defensores, 2 volantes, 2 delanteros

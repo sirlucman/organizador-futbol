@@ -23,6 +23,13 @@
  *   arranque completo       desde el primer frame hasta la barra final. Es el hueco más lo que
  *                           tarde el refresco del token, y es la magnitud que NFR-001b acota
  *
+ * Desde el 2026-09-10 el "arranque completo" incluye además la lectura a Firestore (~620 ms): la
+ * aplicación se revela recién cuando loadAll() terminó de pintar, así que la barra de solapas y
+ * los datos aparecen en el mismo frame. Por eso el objetivo de NFR-001b saltó de 600 a 2000 ms
+ * sin que la aplicación se haya vuelto más lenta — lo que se movió es el instante que cierra la
+ * medición. Lo que esta sonda NO ve, y es lo que el cambio compra, son los frames con la
+ * aplicación visible y vacía: eso lo mide el escenario `carga` de tests/layout.test.js.
+ *
  * Uso:
  *   node tools/medir-arranque.js --caso=vigente                 token vigente (NFR-001, AC-10)
  *   node tools/medir-arranque.js --caso=vencido                  token sin claim, con refresco (NFR-001b, AC-11)
@@ -302,7 +309,7 @@ async function main() {
 
   if (!SOLO_LECTURAS) {
     console.log(`  MEDIANA de ${filas.length} corridas`);
-    console.log(`    arranque completo (NFR-001b, AC-11) : ${mediana(filas.map(f => f.arranque))} ms   objetivo ≤ 600 ms`);
+    console.log(`    arranque completo (NFR-001b, AC-11) : ${mediana(filas.map(f => f.arranque))} ms   objetivo ≤ 2000 ms`);
     console.log(`    hueco de la solapa (NFR-001, AC-10) : ${mediana(filas.map(f => f.hueco))} ms   objetivo ≤ 50 ms`);
     console.log(`    refrescos forzados (TC-046)         : ${mediana(filas.map(f => f.refrescos))}   máximo admitido 1`);
     console.log(`    frames con la barra incompleta      : ${mediana(filas.map(f => f.framesIncompletos))}   objetivo 0 (FR-002)`);
