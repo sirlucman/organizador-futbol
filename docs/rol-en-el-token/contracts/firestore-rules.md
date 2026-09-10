@@ -23,21 +23,29 @@ contrato se escribe en dos pasos, y el primero es de **lectura**.
 | Paso | Qué es | Estado |
 |---|---|---|
 | 1a | **Comportamiento observable** de las reglas vivas de staging, medido | ✅ hecho el 2026-09-09 — §2 |
-| 1b | **Texto literal** de las reglas vivas, copiado de las dos consolas | ⛔ **pendiente** — §2.3 |
+| 1b | **Texto literal** de las reglas vivas, copiado de las dos consolas | ✅ hecho el 2026-09-10 — §2.4. Los dos proyectos son idénticos |
 | 2 | Texto nuevo, con `rol()` eliminada | ✅ escrito — §4 |
 | 3 | Tabla de equivalencia documento por documento | ✅ escrita — §3 |
 | 4 | Publicar en staging y verificar | ⛔ pendiente — §5 |
 | 5 | Publicar en producción y verificar | ⛔ pendiente — §5 |
 
-> ⛔ **El paso 1b es requisito de merge de esta rama.** `TC-041` obliga a
-> verificar la equivalencia contra las **reglas vivas**, no contra el contrato
-> committeado de `007`, porque ese contrato está *probadamente incompleto*. El
-> texto nuevo de §4 está reconstruido a partir del contrato de `007` **más** el
-> comportamiento medido de §2, y esa reconstrucción cubre todo lo que se puede
-> observar desde afuera — pero no puede descartar que la regla viva diga lo mismo
-> de otra forma, ni que tenga una condición que ningún cliente alcanza a
-> ejercitar. Antes de publicar hay que pegar acá el texto de las dos consolas y
-> compararlo con §4.
+> ✅ **El paso 1b está cumplido (2026-09-10).** `TC-041` obligaba a verificar la
+> equivalencia contra las **reglas vivas**, no contra el contrato committeado de
+> `007`, porque ese contrato está *probadamente incompleto*. El texto de las dos
+> consolas está transcripto en §2.4 y se comparó con §4 **operación por
+> operación, con un parseo mecánico de los dos textos** (no a ojo): de 22 pares
+> documento×operación, **21 quedan idénticos y 1 cambia** — la lectura de
+> `userRoles`, que es precisamente el único cambio que `TC-012` / `FR-012`
+> piden. El texto nuevo no contiene ninguna lectura de documento ni la función
+> `rol()`.
+>
+> Un detalle del método, porque casi produjo un falso "todo igual": el primer
+> parseo usaba una expresión regular para delimitar cada bloque `match`, y el
+> comodín entre llaves de `/userRoles/{uid}` la cortaba — devolvía un cuerpo
+> vacío, o sea "denegado", en el único documento que cambia, y el informe decía
+> que no cambiaba nada. Se rehízo contando llaves. La lección aplica a cualquier
+> verificación futura de estas reglas: el bloque que más importa es el que tiene
+> la ruta con comodín.
 
 ## 2. Las reglas vivas, medidas
 
@@ -114,26 +122,91 @@ distingue, por ejemplo, entre `allow read, write: if request.auth != null` y
 (rol() == 'admin' || rol() == 'jugador')` — las dos formas se ven igual desde el
 cliente con cuentas que tienen rol. Por eso el paso 1b sigue siendo obligatorio.
 
-`[UNVERIFIED — el texto literal de las reglas vivas requiere abrir la consola de
+~~`[UNVERIFIED — el texto literal de las reglas vivas requiere abrir la consola de
 Firebase de los dos proyectos. Lo medido es su comportamiento observable, no su
-texto.]`
+texto.]`~~ → **cerrado el 2026-09-10**: el texto de las dos consolas está en §2.4
+y confirma lo medido, sin sorpresas.
 
 ### 2.4 Texto vivo copiado de la consola
 
-> **Pegar acá antes de publicar nada** (`T-3.1`). Una sección por proyecto, con
-> la fecha de la copia, y una nota si los dos textos difieren entre sí.
+Copiado de la consola de cada proyecto el **2026-09-10** por el propietario. **Los
+dos textos son idénticos**, comprobado con `diff`: se transcribe una sola vez y
+se declara que aplica a los dos, en vez de duplicarlo y arriesgar que una copia
+se edite sin la otra.
 
-**`organizador-futbol-staging`** — copiado el `____-__-__`:
-
-```
-(pendiente)
-```
-
-**`organizador-futbol` (producción)** — copiado el `____-__-__`:
+**`organizador-futbol-staging`** y **`organizador-futbol` (producción)** — copiado el 2026-09-10:
 
 ```
-(pendiente)
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function rol() {
+      return get(/databases/$(database)/documents/userRoles/$(request.auth.uid)).data.rol;
+    }
+
+    match /userRoles/{uid} {
+      allow read: if request.auth != null && request.auth.uid == uid;
+      allow write: if false;
+    }
+
+    match /data/players {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && rol() == 'admin';
+    }
+
+    match /data/playerScores {
+      allow read, write: if request.auth != null && rol() == 'admin';
+    }
+
+    match /data/partidos {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && (rol() == 'admin' || rol() == 'jugador');
+    }
+
+    match /data/partidosArmado {
+      allow read, write: if request.auth != null && rol() == 'admin';
+    }
+
+    match /data/motorConfig {
+      allow read, write: if request.auth != null && rol() == 'admin';
+    }
+
+    match /data/statsGanadosEmpatadosPerdidosMigrado {
+      allow read, write: if request.auth != null && rol() == 'admin';
+    }
+    match /data/puntajeArmadoSeparadoMigrado {
+      allow read, write: if request.auth != null && rol() == 'admin';
+    }
+    match /data/playersSortMode {
+  allow read: if request.auth != null;
+  allow write: if request.auth != null && rol() == 'admin';
+}
+match /data/ordenJugadoresMigrado {
+  allow read, write: if request.auth != null && rol() == 'admin';
+}
+  }
+}
 ```
+
+**Lo que confirma esta copia**, contra lo que §2.2 había medido:
+
+- Los **nueve** documentos de `data/` tienen bloque `match` propio, más
+  `userRoles`. Once en total contando el `match` contenedor. **No hay catch-all**,
+  igual que lo indicaba la medición (§2.3, hallazgo B).
+- `data/playersSortMode` **existe en las reglas vivas** y concede
+  `read` a cualquier cuenta autenticada y `write` sólo a `admin` — exactamente lo
+  que la sonda había observado (§2.3, hallazgos A y C). La deducción de §2.2
+  quedó confirmada por el texto.
+- La función `rol()` es la que se esperaba, con su `get()` sobre
+  `userRoles/$(request.auth.uid)`.
+- Ninguna condición usa nada que la medición no pudiera ver: no hay cláusulas de
+  tiempo, ni de `resource.data`, ni de tamaño de payload.
+
+**Lo que corrige:** nada. El texto nuevo de §4, que se había reconstruido a
+partir del contrato de `007` más el comportamiento medido, resultó equivalente
+al vivo documento por documento. Con esto el marcador `[UNVERIFIED]` de §2.3
+queda **cerrado**.
 
 ## 3. Tabla de equivalencia, documento por documento
 
