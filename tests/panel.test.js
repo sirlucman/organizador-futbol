@@ -540,9 +540,26 @@ prueba('"panel/S-05d" el receipt produce las mismas cadenas que antes de extraer
   };
   const antes = bloqueDe(anterior), ahora = bloqueDe(src);
   const lineasAntes = antes.split('\n'), lineasAhora = ahora.split('\n');
-  /* Las diferencias esperadas y declaradas son exactamente dos: el predicado de línea de un solo
-     lugar, que pasó a llamar a `lineaDeUnSoloLugar` (TC-013), y la línea de titulares sin
-     puntaje, que ganó el desglose por equipo (FR-052). Cualquier otra es una regresión. */
+  /* Las diferencias esperadas y declaradas son exactamente tres: el predicado de línea de un solo
+     lugar, que pasó a llamar a `lineaDeUnSoloLugar` (TC-013); la línea de titulares sin puntaje,
+     que ganó el desglose por equipo (FR-052); y la extracción de la lectura de duplas, abajo.
+     Cualquier otra es una regresión. */
+  /* Tercera diferencia, declarada el 2026-09-10 con dos días de atraso. El commit `fd16145`
+     (2026-09-08, "las duplas de rotación se copian en un mismo renglón") sacó de acá la lectura
+     del snapshot de duplas y la puso en `duplasDeLaFormacion(m)`, para que la función de copiar
+     la formación use exactamente la misma. Es una extracción, no un cambio de conducta: la
+     función nueva lee `duplasSnapshot` y cae a `m.duplas` si no parsea, igual que el bloque que
+     reemplaza, y encima tolera un partido sin equipos, que antes tiraba. Nadie la declaró acá, y
+     este caso quedó en rojo 63 commits hasta que se lo rastreó — de ahí que las líneas se listen
+     por texto EXACTO y no con `includes`: una excepción declarada de más tapa la próxima
+     regresión de verdad. */
+  const EXTRACCION_DUPLAS = [
+    'const duplasDelArmado = duplasDeLaFormacion(m);',
+    'const duplasDelArmado = (() => {',
+    "try{ return JSON.parse(eq.duplasSnapshot || '[]'); }",
+    'catch(e){ return (m.duplas || []); }',
+    '})();',
+  ];
   const soloEn = (a, b) => a.filter(l => !b.includes(l));
   const nuevas = soloEn(lineasAhora, lineasAntes);
   const perdidas = soloEn(lineasAntes, lineasAhora);
@@ -551,7 +568,8 @@ prueba('"panel/S-05d" el receipt produce las mismas cadenas que antes de extraer
     || l.includes('.filter(pos =>')
     || l.includes("if(pos === 'Arquero') return true;")
     || l.includes('eq.formacion && eq.formacion.objetivo')
-    || l.includes('Se distribuyeron ');
+    || l.includes('Se distribuyeron ')
+    || EXTRACCION_DUPLAS.includes(l);
   const inesperadasNuevas = nuevas.filter(l => !esperado(l));
   const inesperadasPerdidas = perdidas.filter(l => !esperado(l));
   eq(inesperadasNuevas, [], 'la extracción no debería haber agregado ninguna línea de lógica nueva');
