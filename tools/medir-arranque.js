@@ -94,64 +94,94 @@ function sonda({ vencido }) {
   window.__lecturas = {};
   window.__refrescos = 0;
   window.__pintados = [];
+  window.__tAuth = null;
+  window.__rol = null;
 
-  const envolver = () => {
-    if (!window.firebase || window.__envuelto) return;
-    window.__envuelto = true;
-
-    const firestoreReal = window.firebase.firestore;
-    window.firebase.firestore = function (...args) {
-      const db = firestoreReal.apply(this, args);
-      const collectionReal = db.collection.bind(db);
-      db.collection = col => {
-        const ref = collectionReal(col);
-        const docReal = ref.doc.bind(ref);
-        ref.doc = key => {
-          const d = docReal(key);
-          const getReal = d.get.bind(d);
-          d.get = (...a) => { window.__lecturas[col] = (window.__lecturas[col] || 0) + 1; return getReal(...a); };
-          return d;
-        };
-        return ref;
+  /* Envuelve `firestore` para contar los `get` por colección. */
+  const envolverFirestore = real => function (...args) {
+    const db = real.apply(this, args);
+    const collectionReal = db.collection.bind(db);
+    db.collection = col => {
+      const ref = collectionReal(col);
+      const docReal = ref.doc.bind(ref);
+      ref.doc = key => {
+        const d = docReal(key);
+        const getReal = d.get.bind(d);
+        d.get = (...a) => { window.__lecturas[col] = (window.__lecturas[col] || 0) + 1; return getReal(...a); };
+        return d;
       };
-      return db;
+      return ref;
     };
-    Object.assign(window.firebase.firestore, firestoreReal);
-
-    const authReal = window.firebase.auth;
-    window.firebase.auth = function (...args) {
-      const auth = authReal.apply(this, args);
-      const onReal = auth.onAuthStateChanged.bind(auth);
-      auth.onAuthStateChanged = cb => onReal(user => {
-        if (!user) return cb(user);
-        const getIdTokenResultReal = user.getIdTokenResult.bind(user);
-        let primera = true;
-        user.getIdTokenResult = async forzado => {
-          if (forzado) window.__refrescos++;
-          const r = await getIdTokenResultReal(forzado);
-          /* El caso `vencido`: el primer token entrega los claims SIN `rol`, como los de una
-             sesión abierta desde antes del corte. El refresco no se toca, así que el camino que
-             se cronometra es el real, con su ida y vuelta a la red. */
-          if (vencido && primera && !forzado) {
-            primera = false;
-            const claims = Object.assign({}, r.claims);
-            delete claims.rol;
-            return Object.assign({}, r, { claims });
-          }
-          return r;
-        };
-        return cb(user);
-      });
-      return auth;
-    };
-    Object.assign(window.firebase.auth, authReal);
+    return db;
   };
 
-  /* index.html carga los tres <script> del CDN y después corre su IIFE, así que hay que envolver
-     en cuanto el global aparece y antes de que el IIFE lo use. Un microtask loop apretado lo
-     consigue sin depender del orden de los eventos de carga. */
-  const esperar = () => { envolver(); if (!window.__envuelto) setTimeout(esperar, 0); };
-  esperar();
+  /* Envuelve `auth` para (1) marcar el instante en que onAuthChange entrega la cuenta, que es de
+     donde arranca la magnitud que NFR-001b acota, (2) contar los refrescos forzados del token y
+     (3) en el caso `vencido`, entregar el primer token sin el claim `rol`. */
+  const envolverAuth = real => function (...args) {
+    const auth = real.apply(this, args);
+    const onReal = auth.onAuthStateChanged.bind(auth);
+    auth.onAuthStateChanged = cb => onReal(user => {
+      if (!user) return cb(user);
+      if (window.__tAuth === null) window.__tAuth = performance.now();
+      const getIdTokenResultReal = user.getIdTokenResult.bind(user);
+      let primera = true;
+      user.getIdTokenResult = async forzado => {
+        if (forzado) window.__refrescos++;
+        const r = await getIdTokenResultReal(forzado);
+        window.__rol = (r.claims || {}).rol === undefined ? null : (r.claims || {}).rol;
+        if (vencido && primera && !forzado) {
+          primera = false;
+          const claims = Object.assign({}, r.claims);
+          delete claims.rol;
+          window.__rol = null;
+          return Object.assign({}, r, { claims });
+        }
+        return r;
+      };
+      return cb(user);
+    });
+    return auth;
+  };
+
+  /* El punto de intercepción es la ASIGNACIÓN de los globales, no un sondeo.
+     Por qué: index.html carga los tres <script> del CDN y después corre su IIFE, que llama a
+     `firebase.firestore()` de entrada. Entre lo uno y lo otro no hay ningún hueco de tarea, así
+     que un `setTimeout` que espere a que `window.firebase` aparezca corre SIEMPRE tarde — la
+     aplicación ya se quedó con la referencia sin envolver, y el contador de lecturas informaba
+     cero para todo, que se lee igual que "no leyó nada". Pasó de verdad: la primera versión de
+     esta sonda daba `0 refrescos` y `ninguna lectura` contra staging.
+     Con `defineProperty` el envoltorio se aplica en el momento exacto en que cada script del CDN
+     asigna su pieza (`firebase-app` define `firebase`; `firebase-auth` y `firebase-firestore` le
+     cuelgan `auth` y `firestore` después), sin depender de ningún orden. */
+  const envoltorios = { firestore: envolverFirestore, auth: envolverAuth };
+  const interceptarPiezas = obj => {
+    for (const clave of Object.keys(envoltorios)) {
+      let real;
+      try {
+        Object.defineProperty(obj, clave, {
+          configurable: true,
+          get() { return real; },
+          set(v) {
+            /* Se envuelve la función y se le copian sus propiedades: el SDK cuelga cosas de ahí
+               (`firebase.auth.Auth.Persistence.LOCAL`, que index.html usa), y perderlas rompe la
+               aplicación en vez de medirla. */
+            const envuelta = envoltorios[clave](v);
+            Object.assign(envuelta, v);
+            Object.setPrototypeOf(envuelta, Object.getPrototypeOf(v));
+            real = envuelta;
+          },
+        });
+      } catch (e) { /* si el SDK ya la definió como no configurable, se mide sin esa pieza */ }
+    }
+  };
+
+  let firebaseInterno;
+  Object.defineProperty(window, 'firebase', {
+    configurable: true,
+    get() { return firebaseInterno; },
+    set(v) { firebaseInterno = v; interceptarPiezas(v); },
+  });
 
   const muestrear = () => {
     const app = document.getElementById('appRoot');
@@ -170,14 +200,18 @@ function sonda({ vencido }) {
 /* Deriva las magnitudes de las muestras. `final` es la composición que la barra tiene al terminar:
    se compara contra ella y no contra un 3 fijo, para que la sonda sirva igual con una cuenta
    jugador. */
-function magnitudes(pintados) {
+function magnitudes(pintados, tAuth) {
   if (!pintados.length) return null;
   const final = pintados[pintados.length - 1].solapas;
   const visibles = pintados.filter(m => m.appVisible);
   if (!visibles.length) return null;
   const aparece = visibles[0].t;
   const completa = (visibles.find(m => m.solapas === final) || visibles[visibles.length - 1]).t;
-  const t0 = pintados[0].t;
+  /* El origen es el instante en que `onAuthChange` entregó la cuenta, que es como el Glosario de
+     la Spec define el arranque, y NO el primer frame de la página. Medir desde el primer frame
+     metía adentro el tiempo que esta sonda tarda en encontrar el formulario, tipear y hacer clic
+     —1,7 s de latencia de la propia herramienta— y el número no significaba nada. */
+  const t0 = tAuth === null || tAuth === undefined ? pintados[0].t : tAuth;
   return {
     solapasFinal: final,
     /* El hueco que el Glosario de la Spec define: desde que la aplicación aparece hasta que la
@@ -229,17 +263,29 @@ async function main() {
     await page.fill('#loginUsuario', USUARIO);
     await page.fill('#loginPassword', PASSWORD);
     await page.click('#btnLogin');
-    await page.waitForSelector('#roster', { state: 'visible', timeout: 30000 });
-    await page.waitForTimeout(1200);
+    /* Se espera a que la barra de solapas esté pintada —que es lo que se cronometra— y después a
+       que las lecturas se estabilicen, que es cuando loadAll terminó de traer todo. NO se espera
+       `#roster`: vive en la solapa Jugadores, que no es la que abre por defecto, así que está
+       oculto y la espera nunca se cumplía. */
+    await page.waitForSelector('#appRoot', { state: 'visible', timeout: 30000 });
+    await page.waitForFunction(() => {
+      const total = Object.values(window.__lecturas || {}).reduce((a, b) => a + b, 0);
+      if (window.__ultimoTotal === total) return true;
+      window.__ultimoTotal = total;
+      return false;
+    }, { timeout: 30000, polling: 600 });
 
-    const r = await page.evaluate(() => ({ pintados: window.__pintados, lecturas: window.__lecturas, refrescos: window.__refrescos }));
-    const m = magnitudes(r.pintados);
+    const r = await page.evaluate(() => ({ pintados: window.__pintados, lecturas: window.__lecturas,
+      refrescos: window.__refrescos, tAuth: window.__tAuth, rol: window.__rol,
+      sesion: window.session, solapas: [...document.querySelectorAll('.tabs .tab-btn')].filter(b => b.offsetParent !== null).map(b => b.dataset.tab) }));
+    const m = magnitudes(r.pintados, r.tAuth);
     if (!m) { console.log(`  corrida ${i + 1}: no se pudo medir (la aplicación no se reveló)`); }
     else {
       filas.push({ ...m, lecturas: r.lecturas, refrescos: r.refrescos });
       const l = Object.entries(r.lecturas).map(([c, n]) => `${c}=${n}`).join(' ') || '(ninguna)';
       console.log(`  corrida ${i + 1}: arranque ${m.arranque} ms · hueco ${m.hueco} ms · ` +
         `refrescos ${r.refrescos} · frames incompletos ${m.framesIncompletos} · lecturas ${l}`);
+      console.log(`             claim rol=${JSON.stringify(r.rol)} · window.session.rol=${JSON.stringify((r.sesion||{}).rol)} · solapas: ${r.solapas.join('+') || '(ninguna)'}`);
     }
     if (errores.length) console.log(`             errores de página: ${errores.join(' / ')}`);
     await ctx.close();
