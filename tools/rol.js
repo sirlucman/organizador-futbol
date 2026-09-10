@@ -106,10 +106,17 @@ function cargarSdk(rutaLlave) {
     authMod = require('firebase-admin/auth');
     firestoreMod = require('firebase-admin/firestore');
   } catch (e) {
-    throw new Error('firebase-admin no está instalado, o es una versión anterior a la 10 (sin API ' +
-      'modular). Es una dependencia externa al repositorio (TC-003), igual que Playwright:\n' +
-      '    npm i firebase-admin');
+    /* El mensaje nombra la raíz del proyecto porque `npm i` hay que correrlo ahí: el
+       `node_modules` del repositorio es el que este script consume. Node resuelve las
+       dependencias desde la carpeta del SCRIPT, no desde el directorio actual, así que correr
+       `node <ruta>/tools/rol.js` desde cualquier lado funciona igual. */
+    const raiz = path.resolve(__dirname, '..');
+    throw new Error('No se pudo cargar firebase-admin. Es una dependencia externa al repositorio ' +
+      '(TC-003), igual que Playwright:\n' +
+      `    cd ${raiz} && npm i firebase-admin\n\n` +
+      `  (detalle: ${e.message.split('\n')[0]})`);
   }
+
   const instancia = app.initializeApp({ credential: app.cert(credencial) }, 'rol-' + credencial.project_id);
   return {
     proyecto: credencial.project_id,
