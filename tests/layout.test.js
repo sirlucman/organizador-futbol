@@ -395,6 +395,51 @@ const ESCENARIOS = [
       document.getElementById('loginScreen').style.display = '';
     }); } },
 
+  /* ---- la pantalla de carga del arranque (2026-09-10) ----
+     El estado de layout que agrega tapar la espera de las lecturas (`rol/NFR-006`, corregido ese
+     día). Corre en todos los anchos como cualquier pantalla, y además comprueba lo que el
+     desborde no ve: que mientras dura, la aplicación NO esté revelada, y que cuando termina la
+     pelota se saque del DOM en vez de esconderse. */
+  { clave: 'carga', rol: 'admin', nombre: 'pantalla de carga del arranque',
+    spec: ['rol/NFR-006'],
+    /* El doble responde al instante, así que sin demora la pantalla de carga ni llega a montar la
+       pelota (se monta a los 400 ms) y no habría nada que medir. 1500 ms deja tiempo de sobra
+       para que el runner llegue con su espera de 600 ms. */
+    doble: { lecturaDemora: 1500 },
+    async preparar(page) {
+      await page.waitForFunction(() => {
+        const l = document.getElementById('launchScreen');
+        return l && l.style.display === 'flex' && l.querySelector('.ball-loader canvas');
+      }, null, { timeout: 8000 });
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const durante = await page.evaluate(() => ({
+        app: document.getElementById('appRoot').style.display,
+        login: !!document.getElementById('loginScreen').offsetParent,
+        pelotas: document.querySelectorAll('#launchScreen .ball-loader canvas').length,
+      }));
+      if (durante.app !== 'none') problemas.push('la aplicación no debería estar revelada mientras se traen los datos: el punto del cambio es que aparezca entera de una vez');
+      if (durante.login) problemas.push('la pantalla de login debería estar oculta durante la carga');
+      if (durante.pelotas !== 1) problemas.push(`debería haber exactamente una pelota girando y hay ${durante.pelotas}`);
+
+      await page.waitForFunction(() => document.getElementById('appRoot').style.display !== 'none', null, { timeout: 15000 });
+      const despues = await page.evaluate(() => ({
+        launch: document.getElementById('launchScreen').style.display,
+        canvas: document.querySelectorAll('#launchScreen canvas').length,
+        partidos: document.getElementById('matchList').children.length,
+        solapas: [...document.querySelectorAll('.tabs .tab-btn')].filter(b => b.offsetParent !== null).length,
+      }));
+      if (despues.launch !== 'none') problemas.push(`al revelarse la aplicación la pantalla de carga quedó en display:${despues.launch}`);
+      /* Esconderla con `display:none` no alcanza: el rAF del BallLoader descarta la instancia
+         cuando el canvas deja de estar CONECTADO, así que una pelota escondida seguiría girando y
+         gastando un frame cada 16 ms hasta que se cierre la pestaña. */
+      if (despues.canvas) problemas.push('la pelota quedó en el DOM después de la carga: escondida sigue girando para siempre');
+      if (!despues.partidos) problemas.push('la aplicación se reveló sin contenido: tiene que aparecer ya pintada');
+      if (despues.solapas !== 3) problemas.push(`la barra apareció con ${despues.solapas} solapas en vez de 3`);
+      return problemas;
+    } },
+
   { clave: 'jugadores', rol: 'admin', nombre: 'listado de jugadores (admin)',
     invariante: INVARIANTE_FILA_DE_JUGADOR,
     async preparar(page) { await irAPestania(page, 'Jugadores'); } },

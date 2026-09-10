@@ -270,7 +270,7 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
    y los tres <script> del CDN de Firebase se bloquean con page.route. Tiene que
    ser una función serializable —nada de closures sobre el módulo— y recibir un
    único argumento, que es lo que admite addInitScript. */
-function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion }) {
+function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion, lecturaDemora }) {
   const docs = datos;
   /* Registro de escrituras. La cancha es presentación pura y no debe agregar ni un campo nuevo a
      lo que se persiste (Spec de la cancha, NFR-006): con esto un escenario puede abrir la
@@ -287,6 +287,10 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
   const doc = (col, key) => ({
     get: async () => {
       window.__lecturas[col] = (window.__lecturas[col] || 0) + 1;
+      /* `lecturaDemora` existe para poder MEDIR la pantalla de carga del arranque: contra
+         Firestore la espera dura ~620 ms de mediana, y con el doble es cero, así que sin esto un
+         escenario tendría que ganarle una carrera a su propia aplicación. */
+      if (lecturaDemora) await new Promise(r => setTimeout(r, lecturaDemora));
       const value = docs[key];
       return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
     },
@@ -318,7 +322,11 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
                      arranque con token vencido sea la real y no cero
        sinSesion     no hay nadie logueado: `onAuthStateChanged` entrega null y la aplicación
                      queda en la pantalla de login. Es la única forma de llegar ahí, porque por
-                     default el doble entra siempre */
+                     default el doble entra siempre
+       lecturaDemora cuántos ms tarda CADA lectura de Firestore. Contra Firestore la primera
+                     respuesta llega a los ~620 ms de mediana (todas juntas: abrir el canal es lo
+                     que se paga, no cada documento); acá es 0 por default, y el escenario de la
+                     pantalla de carga lo estira para poder medirla */
   const auth = () => ({
     setPersistence: async () => {},
     signInWithEmailAndPassword: async () => {},

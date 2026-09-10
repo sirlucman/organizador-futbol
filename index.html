@@ -1061,6 +1061,17 @@
     border-radius: var(--radius-card);
     padding: 26px 22px 20px;
   }
+  /* ---------- Pantalla de carga (entre el login y la aplicación) ----------
+     Sobre `--paper`, el mismo fondo que la aplicación, y no sobre el `--ink` del login: así,
+     cuando la app aparece, no cambia el color de fondo — sólo se llena la pantalla. Decisión del
+     propietario el 2026-09-10. */
+  .launch-screen{
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--paper);
+  }
   .login-card h2{ font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0 0 18px; text-align: center; }
   .login-card .field{ margin-bottom: 14px; }
   .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
@@ -1101,6 +1112,11 @@
     </div>
   </div>
 </div>
+
+<!-- Pantalla de carga: cubre la espera entre que la cuenta queda resuelta y que la aplicación
+     tiene sus datos pintados. Arranca vacía a propósito — la pelota la monta showLaunchScreen()
+     recién a los 400 ms, y sólo si la espera llega a durar tanto. -->
+<div class="launch-screen" id="launchScreen" style="display:none;"></div>
 
 <div class="wrap" id="appRoot" style="display:none;">
   <div class="clip"></div>
@@ -1908,7 +1924,9 @@
       .catch(e => { console.error('No se pudo leer ' + clave + ':', e); return null; });
   }
 
-  async function loadAll(pedidos){
+  /* `alPintar` es el aviso de que ya está en pantalla todo lo que se ve. El arranque lo usa para
+     revelar la aplicación (ver showLaunchScreen); nadie más lo pasa. */
+  async function loadAll(pedidos, alPintar){
     /* Las lecturas van todas juntas: antes eran hasta 7 round-trips secuenciales a Firestore. El
        orden en que se APLICAN abajo no cambia, porque el merge de puntaje/armado depende de que
        `players`/`matches` ya esten normalizados. */
@@ -1964,6 +1982,12 @@
     renderPlayersTab();
     renderMatchesTab();
     renderMotorTab();
+    /* Acá termina lo que se ve, y acá se revela la aplicación — no al final de esta función. Lo
+       que sigue son migraciones de una sola vez: escriben en Firestore y no cambian nada de lo
+       que hay en pantalla en el 99% de los arranques (el 1% restante lo repinta `recalculado`,
+       más abajo). Esperarlas para revelar sería volver a dejar a la persona mirando la pelota
+       por una escritura que no va a ver. */
+    if(alPintar) alPintar();
 
     if(!admin) return;
 
@@ -6853,6 +6877,7 @@
 
   /* ================= LOGIN / GATE (Feature 005) ================= */
   const loginScreen = el('loginScreen');
+  const launchScreen = el('launchScreen');
   const appRoot = el('appRoot');
   const loginError = el('loginError');
   let appLoaded = false; // evita volver a cargar los datos si onAuthChange dispara más de una vez
@@ -7052,8 +7077,9 @@
     }
     const t = performance.now()/1000;
     for(const inst of BALL_LIVE){
-      // Se auto-limpia: cuando loadAll() reemplaza el contenido de #roster, este canvas queda
-      // desconectado del DOM y la instancia se descarta sola, sin depender de un unmount explícito.
+      // Se auto-limpia: cuando quien lo montó saca el canvas del DOM —hideLaunchScreen(), o un
+      // render que reemplaza el contenido de su contenedor— la instancia se descarta sola, sin
+      // depender de un unmount explícito. Ojo: esconder con `display:none` NO desconecta.
       if(!inst.canvas.isConnected){ BALL_LIVE.delete(inst); continue; }
       const a = ballAtlasFor(inst.tone);
       const phase = inst.still ? 0 : (t/inst.spinSeconds) % 1;
@@ -7109,14 +7135,55 @@
     return wrap;
   }
 
-  /* Placeholder mientras loadAll() trae los datos (varias lecturas a Firestore). Sin esto la app
-     aparece completamente vacia por ~1.5s y parece colgada. No muestra ningun dato, asi que es
-     seguro pintarlo antes de conocer el rol. */
-  function showLoadingState(){
-    const roster = el('roster');
-    if(!roster) return;
-    roster.innerHTML = '';
-    roster.appendChild(renderBallLoader({ size: 92, caption: 'Cargando plantel', shadow: true }));
+  /* ===== Pantalla de carga del arranque (2026-09-10) =====
+     Traer los datos de Firestore cuesta ~620 ms de mediana (medido contra staging con
+     `tools/medir-arranque.js`). Hasta ahora esa espera se pasaba con la aplicación YA revelada y
+     vacía: aparecía el encabezado con la barra de solapas y, medio segundo largo después y de
+     golpe, todo el contenido. Se veía como una aplicación rota a medio cargar, no como una
+     espera. Ahora la espera transcurre sobre esta pantalla y `appRoot` se revela una sola vez,
+     completo. Pedido del propietario el 2026-09-10.
+
+     Por qué se tapa la espera en vez de acortarla: se midió, y no hay nada que acortar. Las nueve
+     lecturas se piden en 4 ms y llegan todas en el mismo milisegundo, y pintar cuesta 6 ms — los
+     ~620 ms son abrir la conexión con Firestore y esperar su primera respuesta. Ni `preconnect`
+     (661 ms contra 625 de base) ni precalentar el canal (621 contra 625) mueven la aguja, y el
+     piso leyendo por HTTP directo, sin el canal del SDK, es ~400-500 ms en frío. La única vía a
+     un arranque instantáneo sería cachear los datos en el navegador y pintar con lo último
+     conocido; muestra datos viejos hasta que llega el refresco, así que se postergó y quedó
+     anotada en `Roadmap.md`.
+
+     La pelota se monta recién a los 400 ms: montar un loader por menos tiempo es peor que no
+     mostrar nada (BallLoader.prompt.md). Casi siempre se llega a los 400 ms, pero un arranque
+     rápido no tiene por qué pagar un parpadeo. Va en `tone` clásico y no `night`, que el design
+     system reserva para fondos ink: acá el fondo es `--paper`. */
+  const LAUNCH_LOADER_MS = 400;
+  let launchTimer = 0;
+  function showLaunchScreen(){
+    launchScreen.style.display = 'flex';
+    if(launchTimer || launchScreen.firstChild) return;
+    launchTimer = setTimeout(() => {
+      launchTimer = 0;
+      launchScreen.appendChild(renderBallLoader({ size: 92, shadow: true }));
+    }, LAUNCH_LOADER_MS);
+  }
+  /* Desmonta la pelota SACÁNDOLA del DOM, no escondiéndola: el rAF del BallLoader descarta la
+     instancia cuando su canvas deja de estar conectado, y `display:none` no lo desconecta — una
+     pelota escondida seguiría girando y gastando un frame cada 16 ms para siempre. */
+  function hideLaunchScreen(){
+    if(launchTimer){ clearTimeout(launchTimer); launchTimer = 0; }
+    launchScreen.style.display = 'none';
+    launchScreen.innerHTML = '';
+  }
+  /* Levanta la pantalla de carga y revela la aplicación. Idempotente a propósito: la llaman tanto
+     loadAll() apenas terminó de pintar como el `finally` del arranque.
+     La guarda es por una carrera real: cerrar sesión mientras las lecturas están en vuelo deja a
+     loadAll() avisando "ya pinté" cuando la persona ya está de vuelta en el login, y sin la
+     guarda ese aviso revelaría la aplicación por encima del formulario. `appLoaded` vuelve a
+     false en el logout, así que es exactamente la condición que hay que mirar. */
+  function revelarApp(){
+    if(!appLoaded) return;
+    hideLaunchScreen();
+    appRoot.style.display = '';
   }
 
   async function attemptLogin(){
@@ -7143,6 +7210,12 @@
       loginError.textContent = '';
       el('loginUsuario').value = '';
       el('loginPassword').value = '';
+      // Desde acá hasta que la aplicación esté pintada hay UNA sola pantalla, la de carga: se
+      // entra apenas la cuenta queda entregada, así que cubre tanto el refresco del token como
+      // las lecturas a Firestore, y no hay ningún estado intermedio a la vista (ver
+      // showLaunchScreen).
+      loginScreen.style.display = 'none';
+      showLaunchScreen();
       // El rol se resuelve ANTES de revelar appRoot (rol-en-el-token, TD-02/FR-002). Invierte
       // deliberadamente el orden anterior, que mostraba la app primero y ajustaba `role-jugador`
       // despues: eso era lo correcto cuando resolver el rol costaba una lectura a Firestore
@@ -7154,21 +7227,24 @@
       // de cumplir FR-002 sin resolver el rol antes de esta linea.
       // El unico caso en que esta espera se nota es el CORTE de la mudanza: una sesion abierta
       // desde antes del cambio tiene un token sin el claim, y resolverlo cuesta un refresco
-      // (~250 ms medidos). Deliberadamente NO se tapa con un loader: el design system fija que
-      // montar uno por menos de ~400 ms es peor que no mostrar nada (BallLoader.prompt.md), y es
-      // una espera de una sola vez por persona — con el claim ya estampado no vuelve a pasar.
+      // (~250 ms medidos). Desde el 2026-09-10 esa espera cae dentro de la pantalla de carga,
+      // que ya estaba ahi por las lecturas: la suma es lo que la persona espera de una sola vez.
       await resolveSession(user);
       document.body.classList.toggle('role-jugador', !isAdmin());
-      loginScreen.style.display = 'none';
-      appRoot.style.display = '';
-      if(!appLoaded){
-        appLoaded = true;
-        showLoadingState();
-        // El rol ya esta resuelto, asi que se pide de una el conjunto correcto de documentos.
-        await loadAll(iniciarLecturas(isAdmin()));
-      }
+      if(appLoaded){ revelarApp(); return; }
+      appLoaded = true;
+      // El rol ya esta resuelto, asi que se pide de una el conjunto correcto de documentos.
+      // `revelarApp` corre en cuanto loadAll terminó de PINTAR, no cuando terminó del todo. El
+      // `finally` es la red de seguridad: si loadAll fallara antes de llegar a pintar, la persona
+      // tiene que quedar en la aplicación —aunque esté vacía— y no en una pelota girando para
+      // siempre.
+      try{ await loadAll(iniciarLecturas(isAdmin()), revelarApp); }
+      finally{ revelarApp(); }
     }else{
       appRoot.style.display = 'none';
+      // Un logout en medio del arranque tiene que levantar la pantalla de carga: si no, la
+      // pelota queda girando por encima del formulario de login.
+      hideLaunchScreen();
       loginScreen.style.display = 'flex';
       appLoaded = false; // permite recalcular el rol si se loguea otra cuenta distinta después
       // Fail-closed: hasta que la próxima sesión resuelva su rol, se asume el más restringido.
