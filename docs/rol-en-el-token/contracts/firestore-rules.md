@@ -26,8 +26,8 @@ contrato se escribe en dos pasos, y el primero es de **lectura**.
 | 1b | **Texto literal** de las reglas vivas, copiado de las dos consolas | ✅ hecho el 2026-09-10 — §2.4. Los dos proyectos son idénticos |
 | 2 | Texto nuevo, con `rol()` eliminada | ✅ escrito — §4 |
 | 3 | Tabla de equivalencia documento por documento | ✅ escrita — §3 |
-| 4 | Publicar en staging y verificar | ⛔ pendiente — §5 |
-| 5 | Publicar en producción y verificar | ⛔ pendiente — §5 |
+| 4 | Publicar en staging y verificar | ✅ hecho el 2026-09-10. `REGLAS_STRICT=1 node tests/reglas.test.js`: **20/20** |
+| 5 | Publicar en producción y verificar | ✅ hecho el 2026-09-10, con las **dos** cuentas — ver §6 |
 
 > ✅ **El paso 1b está cumplido (2026-09-10).** `TC-041` obligaba a verificar la
 > equivalencia contra las **reglas vivas**, no contra el contrato committeado de
@@ -356,3 +356,35 @@ lee `userRoles`, que pasa a denegar, y todas resuelven `jugador`.
 - En producción, una cuenta `admin` real lee y escribe los seis documentos
   sólo-admin. El lado *deny* de producción queda sin probar por no haber
   credenciales de una cuenta `jugador` ahí (`OPEN-Q-07`).
+
+## 6. Verificación de producción (2026-09-10)
+
+Reglas publicadas en `organizador-futbol` el 2026-09-10. Verificado con las **dos**
+cuentas reales, entrando con **tokens personalizados** emitidos por el Admin SDK
+y canjeados por ID tokens: sirve para cualquier cuenta sin conocer su
+contraseña, y es lo que permitió probar el lado *deny* de producción —que
+`OPEN-Q-07` daba por imposible.
+
+| Comprobación | Resultado |
+|---|---|
+| Claims en el token | `admin` → `rol=admin`; `jugador` → `rol=jugador`, `jugadorId=p_1786745941011_5064` |
+| Lecturas, los 3 públicos | `admin` R · `jugador` R |
+| Lecturas, los 6 sólo-admin | `admin` R · `jugador` **denegado** en los seis |
+| `userRoles`, su propio documento | **denegado** para las dos cuentas |
+| Escrituras del rol `jugador` sobre los 6 sólo-admin | **denegadas** en los seis |
+| Escritura del rol `jugador` sobre `data/players` | **denegada** |
+| Escritura del rol `admin` | permitida, comprobada reescribiendo el **mismo valor** en `data/ordenJugadoresMigrado` |
+
+La última fila merece la aclaración: el lado *allow* de una escritura no se
+puede verificar sin escribir, y esto es producción. Se eligió reescribir el
+valor que el documento ya tenía (`"true"`), así la comprobación es real y el
+dato no cambia. Se confirmó antes y después: `"true"` → `"true"`, y el documento
+quedó con su único campo `value`, sin residuos de sonda.
+
+**Lo que queda sin verificar en producción:** el conteo de lecturas por arranque
+(`NFR-002` / `NFR-004`). `tools/medir-arranque.js` apunta a staging por
+construcción —levanta el `index.html` del repositorio en `127.0.0.1`, y ese
+hostname elige staging—, y ahí dio **0 lecturas de `userRoles`**. Para
+producción la evidencia es estructural (el texto publicado, idéntico al de
+staging, no contiene ninguna lectura de documento) más el panel de uso de
+Firestore del proyecto (`OBS-02`).
