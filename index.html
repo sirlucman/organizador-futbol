@@ -1061,17 +1061,6 @@
     border-radius: var(--radius-card);
     padding: 26px 22px 20px;
   }
-  /* Loader de sesión (rol-en-el-token, TD-03). Ocupa el lugar de .login-card mientras se refresca
-     el token, así que se le da el mismo ancho: sin eso la pantalla se reacomoda al aparecer y al
-     desaparecer. El fondo de .login-screen es var(--ink), o sea que la pelota va con tone="night"
-     (BallLoader.prompt.md) y el epígrafe necesita un color claro — var(--muted) es gris de
-     página y sobre ink no se lee. */
-  .session-loader{ width: 100%; max-width: 320px; display: flex; justify-content: center; }
-  /* El `display:flex` de arriba es una regla de autor y le gana al `[hidden]{display:none}` de la
-     hoja del navegador, así que sin esta línea el contenedor ocupaba lugar SIEMPRE, oculto o no.
-     Lo encontró el escenario rol-login-fallido de tests/layout.test.js. */
-  .session-loader[hidden]{ display: none; }
-  .session-loader .ball-loader-caption{ color: var(--chalk); }
   .login-card h2{ font-family: var(--font-display); font-size: 20px; font-weight: 600; margin: 0 0 18px; text-align: center; }
   .login-card .field{ margin-bottom: 14px; }
   .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
@@ -1097,11 +1086,6 @@
 
 <div class="login-screen" id="loginScreen" style="display:none;">
   <div class="login-wordmark">The Football App</div>
-  <!-- Loader de sesión (rol-en-el-token, TD-03/FR-006): tapa la espera del refresco del token
-       cuando la cuenta entra con un token sin el claim `rol`. Vive acá y no dentro de
-       .login-card porque reemplaza la tarjeta entera mientras se resuelve el rol. Arranca vacío;
-       la pelota la monta mostrarLoaderSesion() con renderBallLoader. -->
-  <div class="session-loader" id="sessionLoader" hidden></div>
   <div class="login-card" id="loginCard">
     <div class="field">
       <label>Usuario</label>
@@ -7135,48 +7119,6 @@
     roster.appendChild(renderBallLoader({ size: 92, caption: 'Cargando plantel', shadow: true }));
   }
 
-  /* Loader de sesión (rol-en-el-token, TD-03/FR-006). Tapa la espera del refresco del token, que
-     es lo único que puede demorar el arranque desde que el rol sale del claim: con el token
-     vigente leer los claims cuesta 0 ms (medido) y esto no se monta nunca.
-
-     Va detrás de una DEMORA a propósito, y esto es un desvío deliberado de TD-03, que lo pedía
-     inmediato. El design system es explícito: "Mounting a loader for under ~400ms is worse than
-     showing nothing: gate it behind a delay" (BallLoader.prompt.md), y AGENTS.md lo pone como
-     fuente de verdad de lo visual. El refresco mide 250 ms de mediana, o sea que mostrarlo
-     inmediato produciría un parpadeo de un cuarto de segundo en el caso NORMAL — peor que no
-     mostrar nada. Con la demora, la pantalla de login se queda quieta el tiempo que ya se
-     tolera, y la pelota aparece sólo en la cola lenta, que es justo donde la pantalla empezaría
-     a parecer colgada. El umbral coincide con el techo de NFR-001b: si el loader aparece, es que
-     ese arranque se fue del presupuesto. */
-  const DEMORA_LOADER_SESION = 400;
-  let loaderSesionTimer = 0;
-  function mostrarLoaderSesion(){
-    const cont = el('sessionLoader'), card = el('loginCard');
-    if(!cont || loaderSesionTimer) return;
-    loaderSesionTimer = setTimeout(() => {
-      if(card) card.hidden = true;
-      cont.innerHTML = '';
-      cont.appendChild(renderBallLoader({ size: 92, tone: 'night', caption: 'Entrando', shadow: true }));
-      cont.hidden = false;
-      /* En la carga inicial con una sesion ya abierta, .login-screen esta oculta (arranca en
-         display:none y nadie la mostro): sin esto la pelota se montaria dentro de un contenedor
-         invisible y la pantalla seguiria en blanco, que es exactamente lo que el loader viene a
-         evitar. Quien la vuelve a ocultar es el arranque, en cuanto el rol queda resuelto. */
-      const pantalla = el('loginScreen');
-      if(pantalla) pantalla.style.display = 'flex';
-    }, DEMORA_LOADER_SESION);
-  }
-  /* Deshace lo anterior, para que un logout y un login nuevo encuentren la tarjeta en su lugar.
-     Vaciar el contenedor alcanza para dar de baja la pelota: ballTick descarta la instancia
-     cuando su canvas queda desconectado del DOM. */
-  function ocultarLoaderSesion(){
-    clearTimeout(loaderSesionTimer);
-    loaderSesionTimer = 0;
-    const cont = el('sessionLoader'), card = el('loginCard');
-    if(cont){ cont.hidden = true; cont.innerHTML = ''; }
-    if(card) card.hidden = false;
-  }
-
   async function attemptLogin(){
     const usuario = el('loginUsuario').value;
     const password = el('loginPassword').value;
@@ -7210,10 +7152,13 @@
       // pinta una sola vez, ya con su composicion final.
       // La barra de solapas vive DENTRO de appRoot, asi que revelarlo es pintarla: no hay forma
       // de cumplir FR-002 sin resolver el rol antes de esta linea.
-      mostrarLoaderSesion();
+      // El unico caso en que esta espera se nota es el CORTE de la mudanza: una sesion abierta
+      // desde antes del cambio tiene un token sin el claim, y resolverlo cuesta un refresco
+      // (~250 ms medidos). Deliberadamente NO se tapa con un loader: el design system fija que
+      // montar uno por menos de ~400 ms es peor que no mostrar nada (BallLoader.prompt.md), y es
+      // una espera de una sola vez por persona — con el claim ya estampado no vuelve a pasar.
       await resolveSession(user);
       document.body.classList.toggle('role-jugador', !isAdmin());
-      ocultarLoaderSesion();
       loginScreen.style.display = 'none';
       appRoot.style.display = '';
       if(!appLoaded){
@@ -7223,7 +7168,6 @@
         await loadAll(iniciarLecturas(isAdmin()));
       }
     }else{
-      ocultarLoaderSesion();
       appRoot.style.display = 'none';
       loginScreen.style.display = 'flex';
       appLoaded = false; // permite recalcular el rol si se loguea otra cuenta distinta después

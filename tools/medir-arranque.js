@@ -20,9 +20,8 @@
  *   hueco de la solapa      desde que la aplicación aparece hasta que la barra queda con su
  *                           composición final. Con esta feature es 0 por construcción: el rol se
  *                           resuelve ANTES de revelar appRoot (TD-02)
- *   retención del loader    cuánto tiempo estuvo el loader de sesión en pantalla
- *   arranque completo       desde el primer frame hasta la barra final. Es hueco + retención +
- *                           lo que tarde el refresco, y es la magnitud que NFR-001b acota
+ *   arranque completo       desde el primer frame hasta la barra final. Es el hueco más lo que
+ *                           tarde el refresco del token, y es la magnitud que NFR-001b acota
  *
  * Uso:
  *   node tools/medir-arranque.js --caso=vigente                 token vigente (NFR-001, AC-10)
@@ -160,7 +159,6 @@ function sonda({ vencido }) {
       window.__pintados.push({
         t: performance.now(),
         appVisible: app.style.display !== 'none' && app.offsetParent !== null,
-        loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
         solapas: [...document.querySelectorAll('.tabs .tab-btn')].filter(b => b.offsetParent !== null).length,
       });
     }
@@ -179,16 +177,15 @@ function magnitudes(pintados) {
   if (!visibles.length) return null;
   const aparece = visibles[0].t;
   const completa = (visibles.find(m => m.solapas === final) || visibles[visibles.length - 1]).t;
-  const conLoader = pintados.filter(m => m.loaderVisible);
   const t0 = pintados[0].t;
   return {
     solapasFinal: final,
     /* El hueco que el Glosario de la Spec define: desde que la aplicación aparece hasta que la
        barra queda con su composición final. */
     hueco: Math.round(completa - aparece),
-    retencionLoader: conLoader.length ? Math.round(conLoader[conLoader.length - 1].t - conLoader[0].t) : 0,
-    /* Lo que NFR-001b acota (corregido): hueco + retención del loader, o sea toda la espera desde
-       que la página empieza a vivir hasta que la barra queda pintada. */
+    /* Lo que NFR-001b acota (corregido): toda la espera desde que la página empieza a vivir
+       hasta que la barra queda pintada. El hueco de arriba es 0 por construcción (TD-02), así que
+       medir sólo el hueco no diría nada; lo que hay que acotar es esto. */
     arranque: Math.round(completa - t0),
     /* Muestras donde la aplicación ya estaba visible con la barra incompleta: con esta feature
        tiene que ser 0 (FR-002). Es la magnitud que hace la mejora visible, no sólo más rápida. */
@@ -241,7 +238,7 @@ async function main() {
     else {
       filas.push({ ...m, lecturas: r.lecturas, refrescos: r.refrescos });
       const l = Object.entries(r.lecturas).map(([c, n]) => `${c}=${n}`).join(' ') || '(ninguna)';
-      console.log(`  corrida ${i + 1}: arranque ${m.arranque} ms · hueco ${m.hueco} ms · loader ${m.retencionLoader} ms · ` +
+      console.log(`  corrida ${i + 1}: arranque ${m.arranque} ms · hueco ${m.hueco} ms · ` +
         `refrescos ${r.refrescos} · frames incompletos ${m.framesIncompletos} · lecturas ${l}`);
     }
     if (errores.length) console.log(`             errores de página: ${errores.join(' / ')}`);
@@ -261,7 +258,6 @@ async function main() {
     console.log(`  MEDIANA de ${filas.length} corridas`);
     console.log(`    arranque completo (NFR-001b, AC-11) : ${mediana(filas.map(f => f.arranque))} ms   objetivo ≤ 400 ms`);
     console.log(`    hueco de la solapa (NFR-001, AC-10) : ${mediana(filas.map(f => f.hueco))} ms   objetivo ≤ 50 ms`);
-    console.log(`    retención del loader de sesión      : ${mediana(filas.map(f => f.retencionLoader))} ms`);
     console.log(`    refrescos forzados (TC-046)         : ${mediana(filas.map(f => f.refrescos))}   máximo admitido 1`);
     console.log(`    frames con la barra incompleta      : ${mediana(filas.map(f => f.framesIncompletos))}   objetivo 0 (FR-002)`);
     console.log('');

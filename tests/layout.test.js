@@ -403,10 +403,10 @@ const ESCENARIOS = [
     spec: ['rol/S-03'],
     async preparar(page) { await irAPestania(page, 'Jugadores'); } },
 
-  /* ---- rol en el token: el primer pintado y el loader de sesión ----
-     Los cinco escenarios de la feature rol-en-el-token. Los tres primeros no miran el ancho
-     —miran QUÉ se pintó y CUÁNDO— pero corren igual desde 360 px porque el loader de sesión es
-     un estado de layout nuevo (NFR-006 corregido) y tiene que entrar en el piso soportado. */
+  /* ---- rol en el token: el primer pintado ----
+     Los cinco escenarios de la feature rol-en-el-token. No miran el ancho —miran QUÉ se pintó y
+     CUÁNDO— pero corren en todos los anchos igual, como no-regresión: la feature no agrega
+     ninguna pantalla nueva (NFR-006) y lo que hay que comprobar es que no haya movido nada. */
 
   { clave: 'rol-admin-primer-pintado', rol: 'admin', nombre: 'la barra de solapas ya tiene Configuración en su primer pintado',
     spec: ['rol/S-01', 'rol/S-01d', 'rol/S-02', 'rol/NFR-001', 'rol/NFR-002', 'rol/NFR-007'],
@@ -456,47 +456,48 @@ const ESCENARIOS = [
       return problemas;
     } },
 
-  { clave: 'rol-sesion-loader', rol: 'admin', nombre: 'loader de sesión mientras se refresca el token',
-    /* El escenario del ESTADO DE LAYOUT NUEVO que NFR-006 declara (corregido). Corre en todos los
-       anchos: la pelota de 92 px con su epígrafe tiene que entrar desde el piso de 360 px.
-       `refrescoRetenido` es lo que lo hace visible y medible — el loader está detrás de una demora
-       de 400 ms (el design system prohíbe montarlo por menos), y con el refresco instantáneo del
-       doble no se montaría nunca. Se retiene en vez de demorarlo un número fijo de milisegundos
-       porque con una demora hay que atrapar un estado transitorio dentro de una ventana, y el
-       runner tarda un rato variable en llegar acá (`networkidle` + 600 ms): con 2500 ms de demora
-       el escenario ya se cayó una vez a 559 px, bajo la carga de la suite completa. Retenido, el
-       loader se queda puesto hasta que `comprobar` lo suelta. */
-    doble: { claimAusente: true, refrescoTrae: 'admin', refrescoRetenido: true },
-    spec: ['rol/S-01b', 'rol/S-11', 'rol/S-11a', 'rol/NFR-001b', 'rol/NFR-006'],
+  { clave: 'rol-corte-token-vencido', rol: 'admin', nombre: 'el corte: una sesión abierta desde antes del cambio',
+    /* El camino de la mudanza, sobre la aplicación real: la cuenta ya está estampada del lado
+       servidor pero su token todavía no trae el claim, así que hay que refrescarlo. Es el único
+       arranque que cuesta una espera de red, y el que más fácil se rompe.
+
+       Acá vivía el escenario del loader de sesión, que se dio de baja (ver el change log de la
+       Spec): el loader tapaba justamente esta espera. Lo que el escenario verifica sigue siendo
+       necesario con loader o sin él —que la cuenta entre bien, con un solo refresco y con la
+       barra completa desde el primer frame—, así que se conserva sin la parte visual.
+
+       `refrescoDemora` pone los 250 ms que el refresco mide contra Firebase, para que la espera
+       sea la real y no cero. */
+    doble: { claimAusente: true, refrescoTrae: 'admin', refrescoDemora: 250 },
+    spec: ['rol/S-01b', 'rol/S-11', 'rol/S-11a', 'rol/NFR-001b'],
     async preparar(page) {
-      /* Se mide CON el loader en pantalla: el refresco tarda 900 ms y el loader monta a los 400,
-         así que a los 600 ms de carga la pelota está puesta y la tarjeta de login escondida. */
-      await page.waitForSelector('#sessionLoader .ball-loader', { state: 'visible', timeout: 4000 });
+      await page.waitForFunction(() => window.session && window.session.rol === 'admin', { timeout: 8000 });
     },
     async comprobar(page) {
-      /* Recién acá se suelta el refresco, y se espera a que termine, para poder afirmar sobre el
-         final: un refresco, la barra con sus tres solapas, y el loader retirado sin dejar la
-         tarjeta de login escondida debajo. */
-      await page.evaluate(() => window.__soltarRefresco && window.__soltarRefresco());
-      await page.waitForFunction(() => window.session && window.session.rol === 'admin', { timeout: 8000 });
-      await page.waitForTimeout(300);
       const r = await page.evaluate(() => ({
-        pintados: window.__pintados, refrescos: window.__refrescos,
-        loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
+        pintados: window.__pintados, refrescos: window.__refrescos, sesion: window.session,
         cardVisible: !!(document.getElementById('loginCard') || {}).offsetParent,
-        sesion: window.session,
       }));
       const problemas = [];
-      if (r.refrescos !== 1) problemas.push(`el refresco forzado debería ocurrir exactamente una vez y ocurrió ${r.refrescos} (rol/S-11a, TC-046)`);
-      if (r.sesion.rol !== 'admin') problemas.push(`el token refrescado traía admin y la sesión quedó en ${r.sesion.rol} (rol/S-11)`);
-      if (r.loaderVisible) problemas.push('el loader de sesión siguió visible después de resolver el rol (rol/S-11)');
-      if (r.cardVisible) problemas.push('la tarjeta de login quedó visible sobre la aplicación (rol/S-11)');
-      /* El loader existió: si no se montó nunca, este escenario no probó el estado de layout que
-         NFR-006 declara y estaría pasando en falso. */
-      if (!r.pintados.some(m => m.loaderVisible)) problemas.push('el loader de sesión no se montó en ningún momento: el escenario no midió el estado nuevo (rol/NFR-006)');
-      /* Y la barra sigue pintándose una sola vez, ya completa, también por este camino. */
-      const incompletas = r.pintados.filter(m => m.appVisible && m.solapas.length !== 3);
-      if (incompletas.length) problemas.push(`tras el refresco la barra se pintó incompleta en ${incompletas.length} muestra(s) (rol/S-01b, FR-002)`);
+      if (r.refrescos !== 1) problemas.push(`el refresco forzado deberia ocurrir exactamente una vez y ocurrio ${r.refrescos} (rol/S-11a, TC-046)`);
+      if (r.sesion.rol !== 'admin') problemas.push(`el token refrescado traia admin y la sesion quedo en ${r.sesion.rol} (rol/S-11)`);
+      if (r.cardVisible) problemas.push('la tarjeta de login quedo visible sobre la aplicacion (rol/S-01b)');
+      /* Lo mismo que el camino con claim: la barra nunca se pinta incompleta, tampoco cuando la
+         resolucion tuvo que esperar un refresco (FR-002). */
+      const visibles = r.pintados.filter(m => m.appVisible);
+      if (!visibles.length) problemas.push('appRoot nunca se revelo: el escenario no llego a medir');
+      const incompletas = visibles.filter(m => m.solapas.length !== 3);
+      if (incompletas.length) problemas.push(`tras el refresco la barra se pinto incompleta en ${incompletas.length} de ${visibles.length} muestras (rol/S-01b, FR-002)`);
+      /* NFR-001b acota la espera de este caso a 400 ms. El numero CONTRA FIREBASE lo mide
+         `tools/medir-arranque.js --caso=vencido`, que es lo unico que puede: aca el refresco es
+         el del doble. Lo que este chequeo si garantiza es que la aplicacion no agregue nada
+         encima de esa espera — si alguien metiera un segundo refresco o una demora propia, el
+         presupuesto se pasaria y esto lo veria. */
+      if (visibles.length) {
+        const completa = visibles.find(m => m.solapas.length === 3);
+        const arranque = completa ? completa.t - r.pintados[0].t : Infinity;
+        if (arranque > 400) problemas.push(`el arranque con token vencido tardo ${arranque} ms sobre un refresco simulado de 250 ms: el objetivo es 400 (rol/NFR-001b)`);
+      }
       return problemas;
     } },
 
@@ -520,15 +521,11 @@ const ESCENARIOS = [
     async comprobar(page) {
       const r = await page.evaluate(() => ({
         error: document.getElementById('loginError').textContent,
-        loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
         cardVisible: !!(document.getElementById('loginCard') || {}).offsetParent,
         sesion: window.session,
       }));
       const problemas = [];
       if (!r.error) problemas.push('un login rechazado debería mostrar el mensaje de error');
-      /* Lo que la feature podría haber roto: el loader de sesión no tiene nada que ver con un
-         login fallido, y si se montara acá taparía el formulario justo cuando hay que corregirlo. */
-      if (r.loaderVisible) problemas.push('el loader de sesión no debería aparecer en un login rechazado (rol/S-02a)');
       if (!r.cardVisible) problemas.push('la tarjeta de login debería seguir en pantalla para poder corregir las credenciales (rol/S-02a)');
       if (r.sesion.rol !== 'jugador') problemas.push(`un login rechazado no debería dejar rol ${r.sesion.rol} (rol/S-02a)`);
       return problemas;
@@ -2003,7 +2000,6 @@ async function main() {
             window.__pintados.push({
               t: Math.round(performance.now()),
               appVisible: app.style.display !== 'none' && app.offsetParent !== null,
-              loaderVisible: !!(document.getElementById('sessionLoader') || {}).offsetParent,
               solapas: [...document.querySelectorAll('.tabs .tab-btn')]
                 .filter(b => b.offsetParent !== null).map(b => b.dataset.tab),
             });
