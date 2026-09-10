@@ -623,7 +623,7 @@ docs/rol-en-el-token/ROL_EN_EL_TOKEN_SPEC.md
 #### 7.3.7 Task checklist (agent-runnable)
 
 - [ ] T-2.1 Corregir NFR-006 en [`ROL_EN_EL_TOKEN_SPEC.md`](./ROL_EN_EL_TOKEN_SPEC.md): pasa de "no introduce ningún estado de layout nuevo" a declarar **un** estado nuevo —el loader de sesión— cubierto por su escenario propio en `layout.test.js` desde 360 px, y agregar la fila correspondiente al change log §18
-- [ ] T-2.1b Corregir **NFR-001b** y **AC-11** en la misma pasada y por la misma causa raíz: con `TD-02` el "hueco de la solapa" —tal como lo define el Glosario de la Spec— es **0 ms por construcción** en los dos casos, así que el objetivo de ≤ 400 ms medido sobre esa magnitud queda vacuo. La métrica pasa a ser **hueco + retención del loader de sesión**, que es lo que §12.8 de este Plan ya mide y lo que `AC-11` debe pedir. Es el mismo tipo de consecuencia que `T-2.1` corrige para NFR-006, con las mismas dos decisiones detrás (`TD-02`, `TD-03`) (Hallazgo 1 de la crítica independiente)
+- [ ] T-2.1b Corregir **NFR-001b** y **AC-11** en la misma pasada y por la misma causa raíz: con `TD-02` el "hueco de la solapa" —tal como lo define el Glosario de la Spec— es **0 ms por construcción** en los dos casos, así que el objetivo de ≤ 400 ms medido sobre esa magnitud queda vacuo. La métrica pasa a ser **hueco + retención del loader de sesión**, que es lo que §12.8 de este Plan ya mide y lo que `AC-11` debe pedir. Es el mismo tipo de consecuencia que `T-2.1` corrige para NFR-006, con las mismas dos decisiones detrás (`TD-02`, `TD-03`) (Hallazgo 1 de la crítica independiente). **Superada dos veces (2026-09-10):** la métrica quedó en **arranque completo**, sin la retención del loader —`TD-03` fue dada de baja— y el objetivo pasó de 400 a **600 ms** al medirlo end-to-end (mediana 497 ms). Se deja el texto de la tarea como registro de lo que se hizo en su momento; el estado vigente está en `NFR-001b` de la Spec.
 - [ ] T-2.C1 Commit — `docs(rol-en-el-token): la Spec absorbe las consecuencias de TD-02 y TD-03`
 
 - [ ] T-2.2 Reescribir `resolveSession` en [`index.html:1404-1420`](../../index.html#L1404-L1420): parámetro `user`, lectura de `getIdTokenResult()`, refresco único guardado por `refrescoIntentado`, `ROLES_VALIDOS` y comparación exacta (FR-001, FR-004, FR-006, FR-007, `TC-042`, `TC-043`, `TC-046`)
@@ -1258,6 +1258,12 @@ que [`AGENTS.md`](../../AGENTS.md) prohíbe.
    del loader**, que es la que §12.8 mide y la que de hecho acota lo que la
    persona espera. Es más estricta que la de la Spec, nunca más laxa — pero la
    Spec tiene que decirlo, no el Plan solo.
+
+   > **Superado (2026-09-10).** La métrica quedó en **arranque completo** —sin la retención
+   > del loader, que se dio de baja con `TD-03`— y el objetivo pasó de 400 a **600 ms** al
+   > medirlo end-to-end contra staging: mediana **497 ms**. El diagnóstico de este hallazgo
+   > sigue siendo correcto (el hueco es 0 ms por construcción y medirlo no discrimina nada);
+   > lo que cambió es la magnitud que lo reemplaza y su número.
 
 Hasta que `T-2.1` y `T-2.1b` corran, la Spec y este Plan están en desacuerdo en
 esos dos puntos, y queda dicho acá para que no se descubra en la revisión.
