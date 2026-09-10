@@ -315,6 +315,20 @@ if (HAY_CUENTAS) {
     return sesiones;
   }
 
+  /* Sin identificador de la Spec a propósito: no satisface ningún `S-*` ni `TC-*`, es un blindaje
+     de regresión sobre un defecto que se vio fallar acá mismo. `cargarSdk` derivaba el nombre de
+     la app de Firebase del proyecto y no reusaba la existente, así que un segundo llamado en el
+     mismo proceso tiraba — y dos casos de este archivo fallaban con un mensaje del SDK que no
+     señalaba al script, lo que hacía parecer que el problema estaba en las reglas publicadas. */
+  prueba('cargarSdk se puede llamar más de una vez en el mismo proceso', async () => {
+    const { cargarSdk } = require('../tools/rol.js');
+    const a = cargarSdk(LLAVE), b = cargarSdk(LLAVE);
+    eq(a.proyecto, b.proyecto, 'las dos cargas apuntan al mismo proyecto');
+    ok(typeof b.auth.listUsers === 'function', 'y la segunda devuelve un sdk usable');
+    const cuentas = await listar(b);
+    ok(cuentas.length > 0, 'que efectivamente opera contra el proyecto');
+  });
+
   prueba('"rol/S-03b" una cuenta jugador que lee userRoles directo recibe permission-denied', async () => {
     const s = await abrir();
     eq(await puedeLeer(s.jugador.idToken, 'userRoles/' + s.jugador.uid), '—',
