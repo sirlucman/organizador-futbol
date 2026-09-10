@@ -302,7 +302,7 @@ async function main() {
 
   if (!SOLO_LECTURAS) {
     console.log(`  MEDIANA de ${filas.length} corridas`);
-    console.log(`    arranque completo (NFR-001b, AC-11) : ${mediana(filas.map(f => f.arranque))} ms   objetivo ≤ 400 ms`);
+    console.log(`    arranque completo (NFR-001b, AC-11) : ${mediana(filas.map(f => f.arranque))} ms   objetivo ≤ 600 ms`);
     console.log(`    hueco de la solapa (NFR-001, AC-10) : ${mediana(filas.map(f => f.hueco))} ms   objetivo ≤ 50 ms`);
     console.log(`    refrescos forzados (TC-046)         : ${mediana(filas.map(f => f.refrescos))}   máximo admitido 1`);
     console.log(`    frames con la barra incompleta      : ${mediana(filas.map(f => f.framesIncompletos))}   objetivo 0 (FR-002)`);

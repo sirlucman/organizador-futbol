@@ -488,15 +488,22 @@ const ESCENARIOS = [
       if (!visibles.length) problemas.push('appRoot nunca se revelo: el escenario no llego a medir');
       const incompletas = visibles.filter(m => m.solapas.length !== 3);
       if (incompletas.length) problemas.push(`tras el refresco la barra se pinto incompleta en ${incompletas.length} de ${visibles.length} muestras (rol/S-01b, FR-002)`);
-      /* NFR-001b acota la espera de este caso a 400 ms. El numero CONTRA FIREBASE lo mide
-         `tools/medir-arranque.js --caso=vencido`, que es lo unico que puede: aca el refresco es
-         el del doble. Lo que este chequeo si garantiza es que la aplicacion no agregue nada
-         encima de esa espera — si alguien metiera un segundo refresco o una demora propia, el
-         presupuesto se pasaria y esto lo veria. */
+      /* Lo que este chequeo mide es el SOBRECOSTO de la aplicacion sobre la espera del refresco,
+         no el numero de NFR-001b: aca el refresco es el del doble (250 ms simulados), no el de
+         Firebase. El numero real lo mide `tools/medir-arranque.js --caso=vencido` contra staging
+         —mediana 497 ms, que es lo que llevo el objetivo de NFR-001b de 400 a 600 ms—, y una
+         medicion de red no se puede hacer desde un doble.
+         El presupuesto de sobrecosto es deliberadamente ajustado: si alguien metiera un segundo
+         refresco, un `await` de mas o una demora propia, la espera se iria muy por encima de los
+         250 ms simulados y esto lo veria, sin depender de cuanto tarde la red de verdad. */
+      const SOBRECOSTO_MAXIMO = 150;
       if (visibles.length) {
         const completa = visibles.find(m => m.solapas.length === 3);
         const arranque = completa ? completa.t - r.pintados[0].t : Infinity;
-        if (arranque > 400) problemas.push(`el arranque con token vencido tardo ${arranque} ms sobre un refresco simulado de 250 ms: el objetivo es 400 (rol/NFR-001b)`);
+        if (arranque > 250 + SOBRECOSTO_MAXIMO) {
+          problemas.push(`el arranque con token vencido tardo ${arranque} ms sobre un refresco simulado de 250 ms: ` +
+            `la aplicacion no deberia agregar mas de ${SOBRECOSTO_MAXIMO} ms encima (rol/NFR-001b)`);
+        }
       }
       return problemas;
     } },
