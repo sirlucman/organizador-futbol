@@ -170,6 +170,33 @@ tipo(scope): asunto en minúscula, ≤ 72 caracteres (IDs de la Spec)
 - **Un cambio lógico por commit.** Cada commit compila y pasa lint por separado,
   para que `git bisect` sirva.
 - El cuerpo explica el *por qué* cuando no es obvio del asunto.
+- **No uses `chore: bump version` como asunto.** Es el texto que el workflow de
+  versionado busca para no morderse la cola, así que un commit con ese asunto
+  **suprime el bump automático** de ese push (ver *Versionado*).
+
+## Versionado
+
+**Es automático: no toques la versión a mano.**
+[`.github/workflows/version-bump.yml`](.github/workflows/version-bump.yml)
+corre en cada push a `main`, incrementa el parche en
+[`version`](version) y en la línea de `appVersion` de `index.html`, commitea
+como `chore: bump version to vX.Y.Z`, crea el tag `vX.Y.Z` y lo pushea.
+
+Dos consecuencias que no son obvias y que ya causaron un error:
+
+- **Un bump manual sobra y además rompe la serie de tags**, porque el tag lo
+  crea el workflow y un commit hecho a mano no lo crea. Pasó el 2026-09-10: se
+  bumpeó `2.0.12` a mano leyendo el historial —que está lleno de commits
+  `chore: bump version` y parece manual— y quedó un hueco entre los tags
+  `v2.0.11` y `v2.0.13`.
+- El workflow **se saltea a sí mismo** con
+  `if: !contains(head_commit.message, 'chore: bump version')`. Cualquier commit
+  con ese asunto en la punta del push cancela el bump de ese push entero, no
+  sólo el suyo.
+
+O sea: mergeá a `main`, pusheá, y la versión se acomoda sola. Si después del
+push la versión publicada no subió, mirá el asunto del último commit antes de
+tocar nada.
 
 ## Tests
 
