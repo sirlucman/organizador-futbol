@@ -4493,8 +4493,9 @@
 
   function updateTeamTotalsDisplay(m){
     const spanB = el('totalBlancoSpan'), spanN = el('totalNegroSpan');
-    if(spanB) spanB.textContent = teamHeaderTotalText(m.equipos.sumaBlanco);
-    if(spanN) spanN.textContent = teamHeaderTotalText(m.equipos.sumaNegro);
+    const suma = sumasVigentes(m);
+    if(spanB) spanB.textContent = teamHeaderTotalText(suma.blanco);
+    if(spanN) spanN.textContent = teamHeaderTotalText(suma.negro);
   }
 
   function posicionAsignadaDe(p, m){
@@ -5145,19 +5146,23 @@
     e.dataTransfer.setData('text/plain', playerId);
   };
 
-  // Mueve un único id de un equipo a otro (misma lógica que ya existía). Extraída de
-  // __moverJugadorManual para poder aplicarla también al partner de una dupla (FR-011).
+  /* Mueve un único id de un equipo a otro. Extraída de __moverJugadorManual para poder aplicarla
+     también al partner de una dupla (FR-011).
+
+     Sólo mueve el id: ya NO parchea `sumaBlanco`/`sumaNegro`. Ese parche restaba y sumaba el
+     puntaje INDIVIDUAL del jugador, y para una dupla de rotación eso no es lo que había en el
+     total: el motor la contó una sola vez, con el puntaje de la unidad. Mover la dupla movía
+     entonces la suma de sus dos integrantes en vez del valor de la unidad, y el total quedaba mal
+     para los dos equipos mientras la grilla de diferencia por línea —que sí se recalcula— seguía
+     bien. Ahora el total de pantalla se recalcula del reparto vigente (`sumasVigentes`) y el valor
+     guardado queda como registro de la generación, sin parchear, igual que `balanceLineas`. */
   function moverUnJugadorDeEquipo(m, playerId, targetTeam){
     const equipoActual = m.equipos.blanco.includes(playerId) ? 'blanco' : (m.equipos.negro.includes(playerId) ? 'negro' : null);
     if(!equipoActual || equipoActual === targetTeam) return;
     const p = players.find(pl => pl.id === playerId);
     if(!p) return;
-    const posUsada = m.equipos.posicionAsignada ? (m.equipos.posicionAsignada[playerId] || p.principal) : null;
-    const valor = posUsada ? puntajeEnPosicion(p, posUsada) : (computeAvg(p.scores) || 0);
     m.equipos[equipoActual] = m.equipos[equipoActual].filter(id => id !== playerId);
     m.equipos[targetTeam].push(playerId);
-    if(equipoActual === 'blanco') m.equipos.sumaBlanco -= valor; else m.equipos.sumaNegro -= valor;
-    if(targetTeam === 'blanco') m.equipos.sumaBlanco += valor; else m.equipos.sumaNegro += valor;
   }
 
   window.__moverJugadorManual = function(matchId, playerId, targetTeam){
@@ -5258,6 +5263,35 @@
     }).filter(Boolean);
   }
 
+  /* El puntaje de cada equipo TAL COMO ESTÁ EN PANTALLA, no como lo dejó la generación. Es la
+     misma corrección de `D-25` que ya tiene la grilla de diferencia por línea (FR-071), aplicada
+     al número que quedó afuera: el total del encabezado y la píldora se seguían leyendo de
+     `sumaBlanco`/`sumaNegro`, un valor calculado al generar que después se parchea a mano en cada
+     movimiento. Ese parche divergía de la pantalla por dos caminos distintos:
+
+       - Mover una dupla de rotación: `moverUnJugadorDeEquipo` le suma y le resta a cada
+         integrante su puntaje INDIVIDUAL, pero el motor contó a la dupla UNA sola vez, con el
+         puntaje de la unidad. Arrastrar una dupla de 9 y 5 al otro equipo movía 14 puntos de un
+         lado al otro cuando la unidad valía 7, y el total quedaba mal para los dos equipos.
+       - Editar el puntaje de un jugador después de generar: `equiposStale` no mira los puntajes,
+         así que el partido no queda marcado para regenerar y el total guardado envejece sin que
+         nada lo avise.
+
+     Se suma `valorDePuntaje` fila por fila, que es la función que ya define "el número que suma
+     al total del equipo" (012-puntajes-coherentes-panel). Así el total del encabezado es, por
+     construcción, la suma de la columna de puntaje que se ve debajo, y no puede volver a
+     separarse de ella. El valor guardado no se toca ni se pisa (TC-011): queda como registro de
+     lo que la generación produjo, y es lo que sigue leyendo el receipt, que describe la
+     generación y no el estado actual. */
+  function sumaVigenteDeEquipo(m, ids){
+    return agruparFilasDeEquipo(m, jugadoresDeEquipoOrdenados(m, ids))
+      .reduce((total, grupo) => total + (valorDePuntaje(grupo, m) || 0), 0);
+  }
+  function sumasVigentes(m){
+    const eq = (m && m.equipos) || {};
+    return { blanco: sumaVigenteDeEquipo(m, eq.blanco), negro: sumaVigenteDeEquipo(m, eq.negro) };
+  }
+
   /* La píldora de diferencia del encabezado. Lo que se compara con el desvío aceptable es el
      DESVÍO respecto de la diferencia buscada, no la diferencia cruda: con una ventaja de 6
      configurada, terminar 6 puntos apartados es un acierto y no un problema. Es la regla de
@@ -5265,9 +5299,10 @@
      (FR-003, FR-003b, FR-003c, FR-009, FR-037, TC-016.) */
   function resumenDiferenciaEquipos(m, diffObjetivo){
     const eq = m.equipos;
-    const diferencia = Math.round(Math.abs(eq.sumaBlanco - eq.sumaNegro) * 10) / 10;
+    const suma = sumasVigentes(m);
+    const diferencia = Math.round(Math.abs(suma.blanco - suma.negro) * 10) / 10;
     const objetivoDiff = objetivoDiferencia(eq.arquerosInfo);
-    const desvio = Math.round(Math.abs((eq.sumaBlanco - eq.sumaNegro) - objetivoDiff) * 10) / 10;
+    const desvio = Math.round(Math.abs((suma.blanco - suma.negro) - objetivoDiff) * 10) / 10;
     const hayUmbral = diffObjetivo !== null && diffObjetivo !== undefined && diffObjetivo !== '' && !Number.isNaN(Number(diffObjetivo));
     return {
       diferencia,
@@ -5740,9 +5775,9 @@
         ${renderEncabezadoPartidoFinalizado(m)}
         ${renderFilaResultado(m)}
         ${renderZonaEquipos(m, {
-          blanco: { header: encabezadoCampo('Equipo Blanco', m.equipos.sumaBlanco),
+          blanco: { header: encabezadoCampo('Equipo Blanco', sumaVigenteDeEquipo(m, eq.blanco)),
             contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleEquipoHtml(eq.blanco) },
-          negro: { header: encabezadoCampo('Equipo Negro', m.equipos.sumaNegro),
+          negro: { header: encabezadoCampo('Equipo Negro', sumaVigenteDeEquipo(m, eq.negro)),
             contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleEquipoHtml(eq.negro) }
         })}
       `;
@@ -5789,10 +5824,10 @@
       ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {
         blanco: {
-          header: encabezadoCampoEquipos(m, 'Equipo Blanco', `<span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(eq.sumaBlanco)}</span>`),
+          header: encabezadoCampoEquipos(m, 'Equipo Blanco', `<span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(sumaVigenteDeEquipo(m, eq.blanco))}</span>`),
           contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
         negro: {
-          header: encabezadoCampoEquipos(m, 'Equipo Negro', `<span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(eq.sumaNegro)}</span>`),
+          header: encabezadoCampoEquipos(m, 'Equipo Negro', `<span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(sumaVigenteDeEquipo(m, eq.negro))}</span>`),
           contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
       })}
       ${renderAccionesDeCarga(m)}
@@ -5972,15 +6007,16 @@
   function renderFilaResultado(m){
     const golesBlanco = golesEquipoActual(m.equipos.blanco, m) || 0;
     const golesNegro = golesEquipoActual(m.equipos.negro, m) || 0;
+    const suma = sumasVigentes(m); // el puntaje que está en pantalla, no el que guardó la generación
     const conNombres = !enUnaColumna();
     const lado = (nombre, puntaje, alineacion) => conNombres
       ? '<div class="resultado-equipo ' + alineacion + '"><span class="resultado-nombre">Equipo ' + nombre + '</span>'
         + '<span><span class="resultado-puntaje">' + (Math.round(puntaje*10)/10) + '</span><span class="resultado-pts">pts</span></span></div>'
       : '';
     return '<div class="fila-resultado">'
-      + lado('Blanco', m.equipos.sumaBlanco, 'izq')
+      + lado('Blanco', suma.blanco, 'izq')
       + '<div class="resultado-marcador"><span class="resultado-gol">' + golesBlanco + '</span><span class="resultado-guion">&ndash;</span><span class="resultado-gol">' + golesNegro + '</span></div>'
-      + lado('Negro', m.equipos.sumaNegro, 'der')
+      + lado('Negro', suma.negro, 'der')
       + '</div>';
   }
 
@@ -6625,17 +6661,14 @@
     m.convocados = m.convocados.filter(id => id !== playerId);
     // Si integraba una dupla, el vínculo se deshace solo (User Story 2, escenario 5).
     m.duplas = (m.duplas || []).filter(par => !par.includes(playerId));
-    // Si ya se generaron equipos, hay que sacarlo también de ahí (mismo ajuste de suma que usa
-    // `moverUnJugadorDeEquipo`): sino queda "fantasma" sumando sus puntos en el total del equipo
-    // y en Diferencia por línea aunque ya no esté convocado al partido.
+    // Si ya se generaron equipos, hay que sacarlo también de ahí: sino queda "fantasma" sumando
+    // sus puntos en el total del equipo y en Diferencia por línea aunque ya no esté convocado al
+    // partido. Sacarlo de la lista alcanza: los dos números se recalculan del reparto vigente
+    // (`sumasVigentes`, `balanceLineasVigente`), así que no hay ninguna suma que ajustar a mano.
     if(m.equipos){
       const equipoActual = m.equipos.blanco.includes(playerId) ? 'blanco' : (m.equipos.negro.includes(playerId) ? 'negro' : null);
       if(equipoActual){
-        const p = players.find(pl => pl.id === playerId);
-        const posUsada = (p && m.equipos.posicionAsignada) ? (m.equipos.posicionAsignada[playerId] || p.principal) : null;
-        const valor = p ? (posUsada ? puntajeEnPosicion(p, posUsada) : (computeAvg(p.scores) || 0)) : 0;
         m.equipos[equipoActual] = m.equipos[equipoActual].filter(id => id !== playerId);
-        if(equipoActual === 'blanco') m.equipos.sumaBlanco -= valor; else m.equipos.sumaNegro -= valor;
         if(m.equipos.posicionAsignada) delete m.equipos.posicionAsignada[playerId];
       }
     }
