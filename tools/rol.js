@@ -117,7 +117,14 @@ function cargarSdk(rutaLlave) {
       `  (detalle: ${e.message.split('\n')[0]})`);
   }
 
-  const instancia = app.initializeApp({ credential: app.cert(credencial) }, 'rol-' + credencial.project_id);
+  /* La app de Firebase se nombra por proyecto y se REUSA si ya está abierta. `initializeApp` con
+     un nombre que ya existe tira, y con eso `cargarSdk` no se podía llamar dos veces en el mismo
+     proceso — que es exactamente lo que hace tests/reglas.test.js cuando un caso necesita el
+     Admin SDK además del que abrió al arrancar. Se vio fallar así, con un mensaje que no dejaba
+     claro que el problema era del script y no de las reglas que estaba probando. */
+  const nombreApp = 'rol-' + credencial.project_id;
+  const instancia = app.getApps().find(a => a.name === nombreApp) ||
+    app.initializeApp({ credential: app.cert(credencial) }, nombreApp);
   return {
     proyecto: credencial.project_id,
     auth: authMod.getAuth(instancia),
