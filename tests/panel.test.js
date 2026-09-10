@@ -62,6 +62,11 @@ const DECLARACIONES = [
   'equiposStale',
   'balanceLineasVigente',
   'celdasDiferenciaPorLinea',
+  'sumaVigenteDeEquipo',
+  'sumasVigentes',
+  'unidadDelPartido',
+  'moverUnJugadorDeEquipo',
+  'intercambiarUnidades',
   'resumenDiferenciaEquipos',
   'conteoSinPuntajePorEquipo',
   'estrategiaValida',
@@ -298,6 +303,62 @@ prueba('"panel/S-06a" la suma de las líneas de un equipo es su total', () => {
   const totalNegro = Object.values(balance).reduce((t, l) => t + l.negro, 0);
   eq(totalBlanco, m.equipos.sumaBlanco, 'las líneas del Blanco suman su total');
   eq(totalNegro, m.equipos.sumaNegro, 'las del Negro también');
+});
+
+/* El total del encabezado y la píldora se leían de `sumaBlanco`/`sumaNegro` —el valor calculado
+   al generar, parcheado a mano en cada movimiento— mientras la grilla por línea se recalculaba.
+   Los dos números salían del mismo reparto y no coincidían. Bug de producción del 2026-09-10. */
+prueba('"panel/S-06g" el total de un equipo se recalcula del reparto en pantalla, no del guardado', () => {
+  const m = ARMADO_8();
+  const guardadoBlanco = m.equipos.sumaBlanco;
+  // b2 (Defensor, 8) pasa al Negro a mano, por la misma función que usa el arrastre.
+  P.moverUnJugadorDeEquipo(m, 'b2', 'negro');
+  eq(m.equipos.sumaBlanco, guardadoBlanco, 'el valor guardado no se toca: es el registro de la generación (TC-011)');
+  eq(P.sumaVigenteDeEquipo(m, m.equipos.blanco), guardadoBlanco - 8, 'el total en pantalla sí baja los 8 de b2');
+  eq(P.sumasVigentes(m).negro, m.equipos.sumaNegro + 8, 'y el del Negro los gana');
+});
+
+prueba('"panel/S-06h" mover una dupla mueve el puntaje de la UNIDAD, no la suma de sus dos integrantes', () => {
+  /* La dupla b2(9) + b3(5) ocupa un solo lugar y vale 7 —el promedio—, que es lo que el motor
+     contó una única vez en el total. El parche del movimiento restaba y sumaba los puntajes
+     INDIVIDUALES, así que arrastrarla movía 14 puntos en vez de 7 y rompía los dos totales. */
+  const m = M(
+    [['b1','Arquero',6],['b2','Volante',9],['b3','Volante',5],['b4','Volante',6]],
+    [['n1','Arquero',6],['n2','Volante',7],['n3','Volante',6]],
+    { duplas: [['b2','b3']], sumaBlanco: 19, sumaNegro: 19 });
+  eq(P.sumasVigentes(m), { blanco: 19, negro: 19 }, 'recién generado, el total en pantalla es el que guardó el motor');
+  eq(P.resumenDiferenciaEquipos(m, 1).texto, 'Equipos parejos', 'y la píldora dice que están parejos');
+
+  P.moverUnJugadorDeEquipo(m, 'b2', 'negro');
+  P.moverUnJugadorDeEquipo(m, P.getDuplaPartner(m, 'b2'), 'negro'); // la dupla viaja junta (FR-011)
+  eq(P.sumasVigentes(m), { blanco: 12, negro: 26 }, 'el Blanco pierde los 7 de la unidad, no los 14 de sus integrantes');
+  eq(P.resumenDiferenciaEquipos(m, 1).texto, 'Diferencia 14 pts', 'y la píldora dice 14, no 28');
+});
+
+prueba('"panel/S-06i" el total del encabezado es siempre la suma de la grilla por línea', () => {
+  const casos = [
+    ['recién generado', ARMADO_8()],
+    ['con una unidad movida a mano', (() => { const m = ARMADO_8(); P.moverUnJugadorDeEquipo(m, 'b2', 'negro'); return m; })()],
+    ['con dos unidades intercambiadas', (() => { const m = ARMADO_8(); P.intercambiarUnidades(m, 'b2', 'n2'); return m; })()],
+  ];
+  casos.forEach(([etiqueta, m]) => {
+    const balance = P.balanceLineasVigente(m, porIdDe(m));
+    const porLinea = lado => Object.values(balance).reduce((t, l) => t + l[lado], 0);
+    const suma = P.sumasVigentes(m);
+    eq(Math.round(suma.blanco * 10) / 10, Math.round(porLinea('blanco') * 10) / 10, `Blanco coincide (${etiqueta})`);
+    eq(Math.round(suma.negro * 10) / 10, Math.round(porLinea('negro') * 10) / 10, `Negro coincide (${etiqueta})`);
+  });
+});
+
+prueba('"panel/S-06j" cambiar el puntaje de un jugador después de generar cambia el total en pantalla', () => {
+  /* `equiposStale` no mira los puntajes, así que el partido no queda marcado para regenerar:
+     si el total no se recalculara, envejecería sin que nada lo avise. */
+  const m = ARMADO_8();
+  const antes = P.sumasVigentes(m).blanco;
+  const b2 = plantel.find(p => p.id === 'b2');
+  b2.scores[P.posicionAsignadaDe(b2, m)] = 1; // de 8 a 1
+  eq(P.sumasVigentes(m).blanco, antes - 7, 'el total del Blanco sigue al puntaje nuevo');
+  eq(m.equipos.sumaBlanco, antes, 'y el guardado queda como estaba, registrando la generación');
 });
 
 prueba('"panel/S-06d" una línea que queda vacía para un equipo muestra 0 y la diferencia entera', () => {

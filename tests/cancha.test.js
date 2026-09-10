@@ -46,6 +46,16 @@ const DECLARACIONES = [
   'unidadDelPartido',
   'resolverDestinoDrop',
   'intercambiarUnidades',
+  // El total de cada equipo, que desde el arreglo de la sumatoria se recalcula del reparto en
+  // pantalla en vez de leerse del valor guardado al generar.
+  'valorGeneralDe',
+  'construirUnidadDupla',
+  'valorDePuntaje',
+  'ORDEN_POSICION_LECTURA',
+  'jugadoresDeEquipoOrdenados',
+  'agruparFilasDeEquipo',
+  'sumaVigenteDeEquipo',
+  'sumasVigentes',
 ];
 
 function cargarCancha() {
@@ -413,12 +423,16 @@ prueba('"arrastre/S-02e" cualquier intercambio deja a cada equipo con la misma c
      'el intercambio existe justamente para corregir sin desbalancear');
 });
 
+/* El total sale de `sumasVigentes` —el reparto que está en pantalla— y no de `sumaBlanco`, que
+   quedó como registro de la generación y ya no se parchea en cada movimiento. */
 prueba('"arrastre/S-02e" el intercambio recalcula los totales de los dos equipos', () => {
   const m = ochoContraOcho();
-  const sumaAntes = m.equipos.sumaBlanco + m.equipos.sumaNegro;
+  const antes = C.sumasVigentes(m);
   soltar(m, 'b-del', { clase: 'camiseta', id: 'n-arq' });   // 8 pts contra 6 pts
-  eq(m.equipos.sumaBlanco + m.equipos.sumaNegro, sumaAntes, 'la suma de los dos totales no cambia');
-  ok(m.equipos.sumaBlanco !== m.equipos.sumaNegro, 'pero el reparto entre ellos sí');
+  const despues = C.sumasVigentes(m);
+  eq(despues.blanco + despues.negro, antes.blanco + antes.negro, 'la suma de los dos totales no cambia');
+  ok(despues.blanco !== despues.negro, 'pero el reparto entre ellos sí');
+  eq(despues.blanco, antes.blanco - 2, 'el Blanco entrega 8 y recibe 6');
 });
 
 /* ---------- las duplas de rotación viajan enteras ---------- */

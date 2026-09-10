@@ -43,6 +43,21 @@ const DECLARACIONES = [
   'ANCHO_UNA_COLUMNA',
   'enUnaColumna',
   'golesEquipoActual',
+  // El puntaje de armado que la fila muestra a cada costado se recalcula del reparto en pantalla
+  // (`sumasVigentes`), no se lee del total guardado al generar.
+  'POSITIONS',
+  'computeAvg',
+  'valorGeneralDe',
+  'puntajeEnPosicion',
+  'getDuplaPartner',
+  'posicionAsignadaDe',
+  'construirUnidadDupla',
+  'valorDePuntaje',
+  'ORDEN_POSICION_LECTURA',
+  'jugadoresDeEquipoOrdenados',
+  'agruparFilasDeEquipo',
+  'sumaVigenteDeEquipo',
+  'sumasVigentes',
   'renderFilaResultado',
 ];
 
@@ -150,18 +165,35 @@ prueba('"finalizado/S-03d" la suma de los chips coincide con la suma de stats de
 /* ================================================================= LA FILA DE RESULTADO */
 console.log('\n\x1b[1mLA FILA DE RESULTADO\x1b[0m — nombre, puntaje de armado y marcador (FR-040 a FR-042)\n');
 
-prueba('"finalizado/S-04" la fila de resultado muestra nombre, puntaje de armado y marcador', () => {
-  const m = { id: 'm1', estado: 'Finalizado', equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 52.5, sumaNegro: 51.5 },
+/* El puntaje de armado que la fila muestra sale del reparto EN PANTALLA (`sumasVigentes`), así
+   que el partido de prueba tiene que traer jugadores con puntaje de verdad: leerlo de
+   `sumaBlanco` era justamente lo que dejaba el número viejo cuando el reparto cambiaba. */
+const PARTIDO_4A3 = () => {
+  P.__setPlayers([
+    { id: 'b1', nombre: 'B', apellido: 'Uno', principal: 'Defensor', secundarias: [], scores: { Defensor: 52.5 } },
+    { id: 'n1', nombre: 'N', apellido: 'Uno', principal: 'Defensor', secundarias: [], scores: { Defensor: 51.5 } },
+  ]);
+  return { id: 'm1', estado: 'Finalizado', equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 52.5, sumaNegro: 51.5 },
     resultado: { statsPorJugador: { b1: { goles: 4 }, n1: { goles: 3 } } } };
+};
+
+prueba('"finalizado/S-04" la fila de resultado muestra nombre, puntaje de armado y marcador', () => {
+  const m = PARTIDO_4A3();
   const html = P.renderFilaResultado(m);
   ok(html.includes('Blanco') && html.includes('Negro'), 'los dos nombres de equipo aparecen');
   ok(html.includes('52.5') && html.includes('51.5'), 'los dos puntajes de armado aparecen');
   ok(html.includes('>4<') && html.includes('>3<'), 'el marcador real (4 - 3) aparece');
 });
 
+prueba('"finalizado/S-04b" el puntaje de la fila sigue al reparto, no al total guardado al generar', () => {
+  const m = PARTIDO_4A3();
+  m.equipos.sumaBlanco = 999; // el registro de la generación puede haber quedado viejo
+  ok(!P.renderFilaResultado(m).includes('999'), 'el número guardado no se muestra');
+  ok(P.renderFilaResultado(m).includes('52.5'), 'se muestra el que suman los jugadores que están en el equipo');
+});
+
 prueba('"finalizado/S-04" en una columna la fila queda con el marcador solo (12c es de dos columnas)', () => {
-  const m = { id: 'm1', estado: 'Finalizado', equipos: { blanco: ['b1'], negro: ['n1'], sumaBlanco: 52.5, sumaNegro: 51.5 },
-    resultado: { statsPorJugador: { b1: { goles: 4 }, n1: { goles: 3 } } } };
+  const m = PARTIDO_4A3();
   P.__setUnaColumna(true);
   const html = P.renderFilaResultado(m);
   P.__setUnaColumna(false);
