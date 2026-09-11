@@ -584,9 +584,40 @@ significado y no se redefinen. Los propios de esta rebanada:
   (`equiposStale` no observa los puntajes).
 - **FR-071** — Cuando el sistema aplique un movimiento manual, recalculará la
   diferencia por línea de cada celda sobre el reparto resultante.
-- **FR-072** — El sistema no modificará el texto del receipt como consecuencia de
-  un movimiento manual: el receipt sigue describiendo la última generación
-  (`D-25`).
+- **FR-072** — ~~El sistema no modificará el texto del receipt como consecuencia
+  de un movimiento manual: el receipt sigue describiendo la última generación
+  (`D-25`).~~ **Invertido parcialmente el 2026-09-10 por `FR-072b` a `FR-072d`**
+  (enmienda de `D-25` en el Concept Note): el propietario pidió que el bloque se
+  ajuste a los cambios hechos después de generar. Sigue vigente para las
+  explicaciones que **no** se pueden derivar del reparto (`FR-072c`).
+- **FR-072b** — El sistema mostrará el bloque "Por qué quedaron así" separado en
+  dos grupos rotulados —"Con tus cambios", las explicaciones que describen el
+  reparto que está en pantalla, y "Como lo armó el motor", las que describen la
+  última generación— **sólo cuando el reparto en pantalla se haya apartado de lo
+  que produjo la generación**. Mientras no se haya apartado, el bloque será una
+  sola lista sin rótulos de grupo, en el orden de emisión de siempre: todo lo que
+  se ve lo hizo el motor, y rotular dos grupos inventaría una distinción que en
+  ese momento no existe.
+- **FR-072b2** — El sistema decidirá si el reparto se apartó comparando medida
+  contra medida —el total de cada equipo, el balance por línea y el cumplimiento
+  de la formación, cada uno recalculado contra el valor que la generación
+  guardó—, y no registrando que hubo un movimiento: un movimiento que no cambia
+  ninguna de las tres deja los dos grupos diciendo lo mismo, y ahí dividirlos es
+  ruido.
+- **FR-072c** — El sistema recalculará, sobre el reparto que está en pantalla,
+  toda explicación que se pueda derivar de él: el desglose de titulares sin
+  puntaje, el cumplimiento de la formación, la línea más despareja y las líneas
+  de un solo lugar, el reparto de duplas, el bloqueo de un jugador, el aviso de
+  diferencia por encima del objetivo y las reglas desactivadas. Las que narran
+  una decisión que el motor tomó durante esa corrida —de quién se usó la posición
+  secundaria, qué arquero se reubicó, a qué equipo se le dio la ventaja por no
+  tener arquero fijo, si la enumeración se truncó, cuántas asignaciones se
+  mantuvieron respecto de la generación anterior— **no** se recalcularán: no se
+  derivan del reparto final, y se muestran en el grupo "Como lo armó el motor".
+- **FR-072d** — El sistema mostrará el bloque como un desplegable **cerrado**
+  por omisión. Un bloque que el administrador haya abierto seguirá abierto
+  después de un repintado de la sección (un movimiento manual, una carga de gol);
+  abrir otro partido arranca cerrado. El estado no se persiste (`NFR-005`).
 - **FR-073** — El sistema no escribirá el resultado del recálculo en el partido ni
   disparará un guardado por causa del recálculo.
 - **FR-074** — Cuando el sistema aplique un movimiento manual, recalculará la
@@ -642,7 +673,8 @@ significado y no se redefinen. Los propios de esta rebanada:
 | NFR-004 | Rendimiento | Recalcular la píldora, la grilla y la cuenta de sin puntaje, y repintar la tarjeta, con un plantel de 18 titulares, no supera los 150 ms medidos con `performance.now()` en el Chromium que `tests/layout.test.js` ya conduce vía Playwright. Es el mismo techo que el `NFR-004` de la rebanada 2 le puso a un movimiento completo, del que este recálculo pasa a ser parte. |
 | NFR-005 | Compatibilidad de datos | El conjunto de campos escritos en el documento de partido por esta rebanada es **vacío**: ningún camino nuevo escribe, y el recálculo de `FR-070` a `FR-073` no persiste nada. Los campos que el cambio de estrategia y la regeneración ya escribían no cambian de forma. |
 | NFR-006 | Mantenibilidad | Todo valor de color, espaciado, radio, sombra y tipografía del panel proviene de un token del design system o de una excepción listada en el Implementation Plan; no queda ningún valor literal sin declarar. |
-| NFR-007 | Fidelidad del receipt | El conjunto de explicaciones que el panel muestra para un armado dado es idéntico, cadena por cadena y en el mismo orden, al que la aplicación muestra hoy, con la única excepción de la línea de titulares sin puntaje de `FR-052`. Se verifica comparando la lista producida antes y después del cambio sobre los mismos armados de prueba. |
+| NFR-007 | Fidelidad del receipt | ~~El conjunto de explicaciones que el panel muestra para un armado dado es idéntico, cadena por cadena y en el mismo orden, al que la aplicación muestra hoy, con la única excepción de la línea de titulares sin puntaje de `FR-052`.~~ **Reemplazado el 2026-09-10 por `NFR-007b`:** exigir que el texto no cambie contradice a `FR-072b`/`FR-072c`, que piden justamente que se ajuste al reparto. |
+| NFR-007b | Ninguna explicación se pierde al partir el bloque | Para un armado dado, la unión de los dos grupos de `FR-072b` contiene exactamente el mismo conjunto de explicaciones que producía la lista única, salvo la línea del bloqueado, cuyo texto `FR-072c` corrige porque afirmaba que un jugador "permaneció" en el equipo que se lee del reparto actual. Se verifica corriendo el mismo armado contra la versión anterior de `index.html` y comparando los conjuntos (`panel/S-05g`). |
 
 ## 9. System behaviour & scenarios
 
@@ -728,15 +760,17 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-04f [failure]` — el armado guardado no lleva balance por línea: el bloque no se dibuja (`TC-015`)
 - `S-04g [failure]` — la sesión es de rol `jugador`: el bloque no se dibuja aunque el armado lleve balance (`FR-081`)
 
-#### Scenario S-05 — El receipt dice lo mismo que decía, sin caja (covers FR-040, FR-041, FR-042, FR-043, FR-052, NFR-007)
+#### Scenario S-05 — El receipt, en dos grupos y dentro de un desplegable (covers FR-040, FR-041, FR-042, FR-043, FR-052, FR-072b, FR-072c, FR-072d, NFR-007b)
 
 - **Given** un armado generado con dos titulares sin puntaje, uno en cada equipo, y un jugador bloqueado
 - **When** se muestra la tarjeta
 - **Then** el bloque "Por qué quedaron así" lista las explicaciones del motor como viñetas, en el orden en que el motor las emite
 - **And** el bloque no tiene borde ni fondo propio: se separa de lo anterior con un divisor
 - **And** una de las líneas declara cuántos titulares sin puntaje hay en total y cuántos en cada equipo
-- **And** otra declara que el jugador bloqueado permaneció en su equipo
-- **And** ninguna otra línea difiere de la que la aplicación mostraba antes de esta rebanada
+- **And** otra declara en qué equipo está bloqueado el jugador y que la próxima generación no lo va a mover
+- **And** el bloque está cerrado: sólo se ve su rótulo con el chevron
+- **And** al abrirlo, y como el reparto no se tocó desde la generación, las explicaciones aparecen en una sola lista sin rótulos de grupo
+- **And** después de pasar un jugador al otro equipo, aparecen en dos grupos rotulados: "Con tus cambios" y "Como lo armó el motor"
 
 **Variants:**
 
@@ -744,16 +778,23 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-05b [boundary]` — no hay ningún titular sin puntaje: la línea no se emite
 - `S-05c [boundary]` — el motor no emitió ninguna explicación: el bloque y su divisor no se dibujan (`FR-045`)
 - `S-05e [failure]` — la sesión es de rol `jugador`: el bloque no se dibuja aunque haya explicaciones (`FR-046`)
-- `S-05d [property]` — para cada armado de prueba, la lista de explicaciones coincide cadena por cadena con la de antes del cambio, salvo la de titulares sin puntaje
+- `S-05d [property]` — ~~para cada armado de prueba, la lista de explicaciones coincide cadena por cadena con la de antes del cambio, salvo la de titulares sin puntaje~~ **retirado el 2026-09-10 junto con `NFR-007`**, cuya premisa invirtió `FR-072b`; lo reemplaza `S-05g`
+- `S-05f [property]` — para cada armado recién generado con una estrategia de formación fija, el cumplimiento de la formación recalculado sobre el reparto coincide con el que guardó el motor, lugar por lugar (`FR-072c`)
+- `S-05g [property]` — para un armado que dispara todas las clases de explicación, la unión de los dos grupos es exactamente el conjunto de cadenas que producía la lista única, salvo la línea del bloqueado (`NFR-007b`)
+- `S-05h [boundary]` — el bloque arranca cerrado; abierto, sigue abierto después de un repintado de la sección, y el de otro partido arranca cerrado (`FR-072d`)
+- `S-05i [boundary]` — ya dividido, hay explicaciones en un solo grupo: el rótulo "Con tus cambios" no se emite, y el de "Como lo armó el motor" sí (`FR-072b`)
+- `S-05j [property]` — para cada armado recién generado, con y sin duplas de rotación y en las cuatro estrategias, el reparto NO figura como apartado: el bloque va en una sola lista sin rótulos (`FR-072b`, `FR-072b2`)
+- `S-05j [boundary]` — un intercambio de dos jugadores del mismo puesto y el mismo puntaje no aparta el reparto; pasar un defensor al otro equipo sí (`FR-072b2`)
 
-#### Scenario S-06 — Los números siguen al reparto y el texto no (covers FR-070, FR-071, FR-072, FR-073, FR-074, D-25)
+#### Scenario S-06 — Los números y las explicaciones derivables siguen al reparto (covers FR-070, FR-070b, FR-070c, FR-071, FR-072, FR-072c, FR-073, FR-074, D-25, D-26)
 
 - **Given** un partido con equipos generados con una estrategia que produce balance por línea
 - **And** una sesión con rol `admin` y la inscripción abierta
 - **When** el administrador pasa un jugador al otro equipo arrastrando su camiseta
 - **Then** la píldora de diferencia muestra la diferencia del reparto resultante
 - **And** las celdas de diferencia por línea muestran los puntajes del reparto resultante
-- **And** el bloque "Por qué quedaron así" muestra exactamente las mismas líneas que antes del movimiento
+- **And** el grupo "Con tus cambios" del bloque refleja el reparto resultante
+- **And** el grupo "Como lo armó el motor" muestra exactamente las mismas líneas que antes del movimiento
 - **And** el documento de partido no registra ninguna escritura causada por el recálculo
 
 **Variants:**
@@ -768,6 +809,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - `S-06h [boundary]` — la unidad movida es una dupla de rotación: el total de cada equipo cambia en el puntaje de la **unidad**, no en la suma de sus dos integrantes, y la píldora dice esa diferencia (`FR-070b`)
 - `S-06i [property]` — para todo movimiento, el total de cada equipo es igual a la suma de sus puntajes por línea (`FR-070b`, extiende `S-06a` al número del encabezado)
 - `S-06j [boundary]` — un puntaje de jugador cambia después de generar, sin ningún movimiento: el total del encabezado lo refleja y el guardado no (`FR-070c`)
+- `S-06k [boundary]` — el movimiento le saca un defensor a un equipo: la línea de formación pasa de "cumplida en ambos equipos" a nombrar al equipo incompleto, y el grupo de la última generación no cambia (`FR-072c`, `D-26`)
 
 #### Scenario S-07 — Copiar confirma con su propio ícono (covers FR-006, FR-006b, FR-006c, FR-008)
 
@@ -1138,6 +1180,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-10 | Lucas Manoukian (claude-opus-5) | A pedido del propietario, el bloque "Por qué quedaron así" pasa a ajustarse a los cambios hechos después de generar. Es una **inversión parcial de `FR-072`** y una **enmienda de `D-25`** (registrada como `D-26` en el Concept Note, que es donde vive la decisión): el bloque se parte en dos grupos rotulados —`FR-072b`— y el que describe el reparto en pantalla se recalcula —`FR-072c`—. La división aparece **sólo si el reparto se apartó de lo que generó el motor** (`FR-072b2`): recién generado, todo lo que se ve lo hizo el motor y el bloque va en una sola lista sin rótulos. Esa condición se agregó el mismo día, después de que el propietario la encontrara faltando en el partido del sábado 12 —sólo había generado y aparecían las dos secciones—, y con ella salió a la luz un defecto del recuento de formación: contaba los dos integrantes de una dupla de rotación por separado, inflaba un equipo, el ajuste de "equipo corto" le regalaba un lugar de campo al otro y ese otro se reportaba con un puesto faltante que no le faltaba ("No se pudo completar la formación 3-3-1 en el Equipo Negro" sobre un armado que la cumplía). Se corrige colapsando las duplas antes de contar, igual que hace el balance por línea, y `S-05f` pasa a cubrir el caso con dupla, mientras las explicaciones que narran una decisión del motor durante esa corrida siguen describiendo la generación, porque no se derivan del reparto final. Se agrega `FR-072d`: el bloque es un desplegable cerrado por omisión, que recuerda su estado entre repintados. `NFR-007` ("el receipt dice exactamente lo mismo que decía") queda **reemplazado por `NFR-007b`**: exigir que el texto no cambie contradice lo que se acaba de pedir; lo que se guarda ahora es que ninguna explicación se pierda al partir la lista, medido contra la versión anterior de `index.html`. En consecuencia se retira la variante `S-05d` y se agregan `S-05f` a `S-05i` y `S-06k`. Una sola cadena cambia de texto: la del bloqueado, que decía "permaneció en el Equipo X porque estaba bloqueado" leyendo el equipo ACTUAL — era falsa en cuanto se arrastraba a un jugador bloqueado, porque nombraba el equipo nuevo afirmando que no se había movido. Self-critique: no corresponde (cambio acotado a pedido explícito; la coincidencia entre el recuento de formación en vivo y el del motor se verificó midiendo las dos estrategias de formación fija, y la ausencia de pérdida de explicaciones se verificó contra el `index.html` anterior). |
 | 2026-09-10 | Lucas Manoukian (claude-opus-5) | Bug de producción: la sumatoria de puntos de cada equipo y la diferencia total estaban mal, mientras "Diferencia por línea" estaba bien. La causa: `FR-070` estaba implementado leyendo `sumaBlanco`/`sumaNegro` —el total calculado al generar, parcheado a mano en cada movimiento— en vez de recalculándolo, y ese parche divergía del reparto en pantalla por dos caminos: (1) al mover una dupla de rotación restaba y sumaba el puntaje **individual** de cada integrante, cuando el motor había contado la dupla una sola vez con el puntaje de la unidad; (2) al editar el puntaje de un jugador después de generar, el total envejecía sin que `equiposStale` lo marcara. `FR-070` y `S-06a` ya exigían el comportamiento correcto, así que no se enmienda ninguno: se agregan `FR-070b` (el total del encabezado y el de la fila de resultado salen del reparto en pantalla, con cada unidad contada una vez) y `FR-070c` (se usan los puntajes vigentes), que era la parte que la §7.8 no cubría explícitamente, más las variantes `S-06g` a `S-06j`. Self-critique: no corresponde (arreglo acotado de un bug dentro de una feature ya documentada; la equivalencia con el total del motor en el caso recién generado se verificó midiendo las cuatro estrategias con y sin duplas, y las variantes nuevas se vieron fallar contra el `index.html` de producción antes del arreglo). |
 | 2026-09-02 | Lucas Manoukian | Dos correcciones sobre la misma zona, a pedido del usuario. **(1)** `FR-011` se invierte: el combo deja de mostrar el resumen permanente de la estrategia elegida — resultó más ruido que ayuda en la pantalla de equipos generados, mismo motivo que ya había retirado el subtítulo el 2026-09-01. `FR-013` queda sin efecto (no hay resumen que repintar) y `D-14` se anota como parcialmente revertida; `S-02` se reescribe entero y `S-02a` reduce su alcance a validar sólo la integridad del campo `resumen` en el catálogo, no su despliegue. **(2)** `FR-015` se enmienda: con la inscripción cerrada o el partido finalizado, el combo directamente no se muestra, en vez de quedar deshabilitado y visible — cambio hecho el mismo día que el de `S-02` pero no registrado entonces; se documenta ahora al notar la omisión. Self-critique: no corresponde (correcciones acotadas a pedido explícito, verificadas con la suite de tests). |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las seis decisiones tomadas con el propietario el mismo día, que por `MD-01` se registraron como `D-22` a `D-25` en el Concept Note y como diferido de su §14 (el texto de Copiar), y no dentro de esta Spec. Cierra la `OPEN-Q-05` de la rebanada 2 (el selector se conserva donde está) y hereda la `OPEN-Q-03` de aquella Spec ya resuelta por `D-25`. Declara el reemplazo del `FR-009` de `003-motor-generacion-equipos` y de la superficie de lectura de `012-puntajes-coherentes-panel`. Self-critique: passed (2🔴 / 2🟡 / 1🔵), los cinco resueltos. Los 🔴: `TC-020` no tenía criterio de cumplimiento en §11.3 pese a que la rúbrica lo exige para todo `TC-*` (se agregó `AC-29b`), y la §9.4 usaba un `flowchart`, tipo que `MD-24` no admite en la §9 de una Spec (se reemplazó por una tabla, con la razón declarada). Los 🟡: tres `FR-*` compuestos partidos conservando los identificadores estables (`FR-002b`, `FR-006b`, `FR-083`), y `D-03` heredada de hecho por `NFR-001` pero ausente de §3.3. El 🔵: `FR-003` llevaba dos casos de contenido en una línea, partido en `FR-003b` y `FR-003c`. |
