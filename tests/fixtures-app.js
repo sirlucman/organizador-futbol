@@ -121,8 +121,13 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     /* Campos que el generador siempre escribe y el resumen lee. Sin ellos la explicación
        renderizaba "Se mantuvieron NaN asignaciones; undefined jugadores cambiaron de
        equipo": ruido de fixture que puede tapar un problema real. */
-    esPrimeraGeneracion: true,
-    cambios: 0,
+    /* Segunda generación con dos cambios, y no la primera: es lo que hace que el receipt emita
+       "Se mantuvieron N asignaciones de la generación anterior; 2 jugadores cambiaron de equipo",
+       la única línea de este fixture que pertenece al grupo "Como lo armó el motor". Sin ella el
+       bloque nunca se puede ver dividido en dos grupos y el escenario `panel-receipt-abierto` no
+       tendría el caso más alto que medir (`FR-072b`). */
+    esPrimeraGeneracion: false,
+    cambios: 2,
     estrategia: 'Formación fija pareja',
     estrategiaKey: 'estrategia4',
     /* `formacion` y `balanceLineas` los escribe el generador con las Estrategias 3 y 4, y sin

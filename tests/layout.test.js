@@ -1003,6 +1003,10 @@ const ESCENARIOS = [
           celdas: [...sec.querySelectorAll('.panel-celda')].map(c => c.querySelector('.panel-celda-linea').textContent.trim()),
           receipt: !!sec.querySelector('.panel-receipt'),
           receiptItems: sec.querySelectorAll('.panel-receipt li').length,
+          /* Cerrado por omisión (`FR-072d`). Este escenario llega a la pantalla sin tocar nada,
+             así que es el único lugar donde el estado inicial se puede afirmar de verdad. */
+          receiptAbierto: !!(sec.querySelector('details.panel-receipt') || {}).open,
+          receiptEsDesplegable: !!sec.querySelector('details.panel-receipt > summary'),
           receiptConCaja: sec.querySelector('.panel-receipt')
             ? getComputedStyle(sec.querySelector('.panel-receipt')).backgroundColor !== 'rgba(0, 0, 0, 0)' : false,
           cajitas: sec.querySelectorAll('.conv-summary').length,
@@ -1024,6 +1028,8 @@ const ESCENARIOS = [
       if (!estructura.receipt) problemas.push('no se dibujó el bloque "Por qué quedaron así" (FR-040)');
       if (!estructura.receiptItems) problemas.push('el receipt quedó sin ninguna viñeta (FR-041)');
       if (estructura.receiptConCaja) problemas.push('el receipt conserva fondo propio: va sin caja, con divisor (FR-042)');
+      if (!estructura.receiptEsDesplegable) problemas.push('el receipt no es un <details> con su <summary> (FR-072d)');
+      if (estructura.receiptAbierto) problemas.push('el receipt se dibuja abierto y tiene que arrancar cerrado (FR-072d)');
       /* La píldora vive en el encabezado en dos columnas y baja a su propia fila en una. */
       if (ancho >= 901 && !estructura.pildoraEnHeader) problemas.push('en dos columnas la píldora va en el encabezado (FR-004)');
       if (ancho <= 900 && !estructura.pildoraEnFila) problemas.push('en una columna la píldora baja a la fila del equipo visible (FR-005)');
@@ -1130,9 +1136,9 @@ const ESCENARIOS = [
       return problemas;
     } },
 
-  { clave: 'panel-recalculo', rol: 'admin', nombre: 'los números siguen al reparto y el texto no',
+  { clave: 'panel-recalculo', rol: 'admin', nombre: 'los números y las explicaciones derivables siguen al reparto',
     anchos: [1200],
-    spec: ['panel/S-06', 'panel/S-06b', 'panel/NFR-004', 'panel/NFR-005'],
+    spec: ['panel/S-06', 'panel/S-06b', 'panel/S-06k', 'panel/NFR-004', 'panel/NFR-005'],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); },
     async comprobar(page) {
       const problemas = [];
@@ -1140,7 +1146,14 @@ const ESCENARIOS = [
       const leer = () => page.evaluate(() => ({
         pildora: (document.querySelector('.panel-pildora') || {}).textContent || null,
         celdas: [...document.querySelectorAll('.panel-celda')].map(c => c.querySelector('.panel-celda-cifras').textContent.trim()),
-        receipt: [...document.querySelectorAll('.panel-receipt li')].map(li => li.textContent.trim()),
+        /* Las tres listas posibles del receipt. Mientras el reparto no se haya apartado de la
+           generación es UNA sola sin rótulos (`--unica`); apartado, son los dos grupos. Medirlas
+           por separado es lo que permite afirmar que uno siguió al reparto y el otro no; antes
+           era un solo `.panel-receipt li` y sólo se podía comparar el bloque entero, que es lo
+           que este escenario afirmaba que NO cambiaba (`FR-072`). */
+        unica: [...document.querySelectorAll('.panel-receipt-lista--unica li')].map(li => li.textContent.trim()),
+        vigentes: [...document.querySelectorAll('.panel-receipt-lista--vigentes li')].map(li => li.textContent.trim()),
+        generacion: [...document.querySelectorAll('.panel-receipt-lista--generacion li')].map(li => li.textContent.trim()),
       }));
       const antes = await leer();
       const ms = await page.evaluate(async () => {
@@ -1162,9 +1175,26 @@ const ESCENARIOS = [
       if (antes.pildora === despues.pildora) {
         problemas.push('la píldora muestra la misma diferencia después de mover a alguien (FR-070)');
       }
-      /* La otra mitad de D-25: el texto NO sigue al reparto. Describe la última generación. */
-      if (JSON.stringify(antes.receipt) !== JSON.stringify(despues.receipt)) {
-        problemas.push('el receipt cambió tras un movimiento manual: describe la generación, no el estado (FR-072)');
+      /* La enmienda de `D-25` (registrada como `D-26`): lo que se puede derivar del reparto sigue
+         al reparto, y lo que narra una decisión del motor no. Antes este escenario afirmaba que el
+         bloque ENTERO no cambiaba, que es exactamente lo que el propietario pidió invertir.
+
+         Este fixture llega YA dividido, y a propósito: su `balanceLineas` guardado es sintético
+         —está elegido a mano para ejercitar la regla de color de `D-22`, no calculado de su
+         reparto—, así que el reparto en pantalla dice algo distinto de lo que dice el registro de
+         la generación y `FR-072b2` divide el bloque con razón. Que un armado recién generado NO se
+         divida se verifica en `panel/S-05j`, que corre el motor de verdad en las cuatro
+         estrategias con y sin duplas; acá no hay armado recién generado que mirar. */
+      if (antes.unica.length) {
+        problemas.push('el fixture tiene un balance guardado que no es el de su reparto: el bloque debería venir dividido (FR-072b2)');
+      }
+      if (!antes.vigentes.length) problemas.push('el fixture debería producir explicaciones derivables del reparto (FR-072b)');
+      if (!antes.generacion.length) problemas.push('el fixture debería producir explicaciones de la generación (FR-072b)');
+      if (JSON.stringify(antes.vigentes) === JSON.stringify(despues.vigentes)) {
+        problemas.push('el grupo "Con tus cambios" no cambió tras mover a alguien: tiene que seguir al reparto (FR-072c, D-26)');
+      }
+      if (JSON.stringify(antes.generacion) !== JSON.stringify(despues.generacion)) {
+        problemas.push('el grupo "Como lo armó el motor" cambió tras un movimiento manual: describe la generación, no el estado (FR-072c)');
       }
       if (ms > 150) problemas.push(`el ciclo mover-recalcular-repintar tardó ${Math.round(ms)}ms, por encima del techo de 150ms (NFR-004)`);
       /* El recálculo es de render: no escribe nada por sí mismo. Lo que escribe es el movimiento,
@@ -1174,6 +1204,60 @@ const ESCENARIOS = [
       const permitidas = ['partidos', 'partidosArmado'];
       const deMas = claves.filter(k => !permitidas.includes(k));
       if (deMas.length) problemas.push(`el recálculo escribió claves inesperadas: ${deMas.join(', ')} (FR-073, NFR-005)`);
+      return problemas;
+    } },
+
+  /* El receipt pasó a ser un desplegable cerrado por omisión (`FR-072d`), y cerrado el navegador
+     no dibuja su contenido: los invariantes de `panel-armado` medirían una caja vacía y el layout
+     de los dos grupos —los rótulos, las viñetas largas, el texto que envuelve— nunca se mediría en
+     360px. Este escenario lo abre en `preparar`, que es antes de `MEDIR`, para que las trece
+     medidas de ancho lo tomen abierto.
+
+     El fixture llega con los dos grupos sin necesidad de tocar nada, porque su `balanceLineas`
+     guardado es sintético y no coincide con su reparto (ver `panel-recalculo`): es el caso más
+     alto del bloque, que es el que conviene medir.
+
+     `itemsVisibles` es lo que impide que el escenario se vuelva un falso verde: si el desplegable
+     no llegara a abrirse, no habría nada renderizado y las medidas pasarían por vacías. */
+  { clave: 'panel-receipt-abierto', rol: 'admin', nombre: 'el receipt desplegado, en los dos grupos',
+    spec: ['panel/S-05h', 'panel/S-05i', 'panel/NFR-001', 'panel/NFR-002'],
+    async preparar(page) {
+      await abrirPartido(page, '2026-09-03');
+      /* Debajo del punto de corte la columna de equipos arranca oculta, y con ella el receipt:
+         sin esto no habría nada que abrir ni que medir en los anchos angostos, que son justo los
+         que importan. */
+      await mostrarEquiposMobile(page);
+      await page.evaluate(() => {
+        const d = document.querySelector('details.panel-receipt');
+        if (d) d.open = true;
+      });
+      await page.waitForTimeout(120); // que termine la transición del chevron antes de medir
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const r = await page.evaluate(() => {
+        const d = document.querySelector('details.panel-receipt');
+        if (!d) return null;
+        const items = [...d.querySelectorAll('li')];
+        return {
+          abierto: d.open,
+          itemsVisibles: items.filter(li => li.offsetParent !== null).length,
+          grupos: [...d.querySelectorAll('.panel-receipt-grupo')].map(s => s.textContent.trim()),
+          vigentes: d.querySelectorAll('.panel-receipt-lista--vigentes li').length,
+          generacion: d.querySelectorAll('.panel-receipt-lista--generacion li').length,
+          marcadorNativo: getComputedStyle(d.querySelector('summary')).listStyleType,
+        };
+      });
+      if (!r) return ['no se dibujó el bloque "Por qué quedaron así" (FR-040)'];
+      if (!r.abierto) problemas.push('el desplegable no quedó abierto: las medidas de este escenario serían de una caja vacía');
+      if (!r.itemsVisibles) problemas.push('abierto, el bloque no renderizó ninguna viñeta: no hay nada que medir (FR-041)');
+      if (!r.vigentes) problemas.push('el fixture debería producir explicaciones derivables del reparto (FR-072b)');
+      if (!r.generacion) problemas.push('el fixture debería producir explicaciones de la generación (FR-072b)');
+      if (r.grupos.join('|') !== 'Con tus cambios|Como lo armó el motor') {
+        problemas.push(`los rótulos de grupo quedaron [${r.grupos.join(', ')}] y se esperaban los dos, en ese orden (FR-072b)`);
+      }
+      if (r.marcadorNativo !== 'none') problemas.push('el summary conserva el marcador nativo del navegador, que no está en el design system');
+      // El estado inicial cerrado lo verifica `panel-armado`, que llega a la pantalla sin tocar nada.
       return problemas;
     } },
 

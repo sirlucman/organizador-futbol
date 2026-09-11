@@ -64,6 +64,12 @@ const DECLARACIONES = [
   'celdasDiferenciaPorLinea',
   'sumaVigenteDeEquipo',
   'sumasVigentes',
+  // El recuento de formación sobre el reparto en pantalla y lo que necesita.
+  'COSTO_DESCUBIERTA',
+  'costoEncaje',
+  'faltantesDeFormacionVigente',
+  'repartoDivergeDeLaGeneracion',
+  'ICON_CHEVRON_RECEIPT',
   'unidadDelPartido',
   'moverUnJugadorDeEquipo',
   'intercambiarUnidades',
@@ -74,11 +80,12 @@ const DECLARACIONES = [
 ];
 
 /* Las declaraciones que necesita `explicacionesDelArmado`, que se carga aparte para poder
-   compararlo contra la versión anterior de index.html (ver S-05d). */
+   compararlo contra la versión anterior de index.html (ver S-05g). */
 const DECLARACIONES_RECEIPT = [
   'aplicaEnEstrategia',
   'margenTotalPorLinea',
   'objetivoDiferencia',
+  'duplasDeLaFormacion',
   'explicacionesDelArmado',
 ];
 
@@ -89,10 +96,15 @@ function cargarPanel() {
     function __setPlayers(p){ players = p; }
     let motorConfig = { reglas: [] };
     function __setMotorConfig(c){ motorConfig = c; }
+    /* Estado de pantalla del desplegable del receipt: renderPorQueQuedaronAsi lo lee del ámbito
+       del IIFE, igual que lee players. El setter permite probar los dos estados sin DOM.
+       (Sin comillas invertidas: este prelude es un template literal y las cortaría.) */
+    let receiptAbiertoDe = null;
+    function __setReceiptAbiertoDe(v){ receiptAbiertoDe = v; }
     const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia3:{}, estrategia4:{} };
   `;
   try {
-    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setMotorConfig, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
+    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setMotorConfig, __setReceiptAbiertoDe, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
   } catch (e) {
     throw new Error(`El código extraído de index.html no evaluó: ${e.message}`);
   }
@@ -100,8 +112,10 @@ function cargarPanel() {
 const P = cargarPanel();
 
 /* El receipt se carga aparte y desde una FUENTE arbitraria, para poder correr el mismo armado
-   contra este index.html y contra el de un commit anterior. Es lo que hace de `NFR-007` —"el
-   receipt dice exactamente lo mismo que decía"— un criterio medible y no una declaración.
+   contra este index.html y contra el de un commit anterior. Es lo que hace de `NFR-007b` —"ninguna
+   explicación se pierde al partir el bloque en dos"— un criterio medible y no una declaración.
+   (Hasta el 2026-09-10 sostenía a `NFR-007`, "el receipt dice exactamente lo mismo que decía", que
+   `FR-072b` invirtió: el mecanismo sirve igual, cambió lo que se le pregunta.)
    Mismo mecanismo que `tools/medir-motor.js` usa para comparar motores entre commits. */
 function cargarReceipt(fuente) {
   const nombres = [...DECLARACIONES, ...DECLARACIONES_RECEIPT]
@@ -490,28 +504,162 @@ prueba('"panel/S-21b" una clave heredada de Object no se cuela como estrategia',
 });
 
 prueba('"panel/S-22" un nombre con marcado dentro del receipt se muestra como texto literal', () => {
-  const html = P.renderPorQueQuedaronAsi(['<img src=x onerror=alert(1)> permaneció en el Equipo Blanco porque estaba bloqueado.']);
+  const html = P.renderPorQueQuedaronAsi({ vigentes: ['<img src=x onerror=alert(1)> está bloqueado en el Equipo Blanco.'], generacion: [] });
   ok(!html.includes('<img'), 'la etiqueta no llega al DOM como etiqueta');
   ok(html.includes('&lt;img'), 'llega escapada');
 });
 
+prueba('"panel/S-22" el escapado alcanza igual al grupo generado por el motor', () => {
+  const html = P.renderPorQueQuedaronAsi({ vigentes: [], generacion: ['<img src=x onerror=alert(1)> ocupó el arco por su posición secundaria.'] });
+  ok(!html.includes('<img'), 'el grupo nuevo no es una vía de escape del escapado');
+  ok(html.includes('&lt;img'), 'llega escapado igual que el otro');
+});
+
 prueba('"panel/S-22a" la comilla doble se escapa: es la que rompe un atributo', () => {
-  const html = P.renderPorQueQuedaronAsi(['Juan "El Loco" permaneció en el Equipo Blanco.']);
+  const html = P.renderPorQueQuedaronAsi({ vigentes: ['Juan "El Loco" está bloqueado en el Equipo Blanco.'], generacion: [] });
   ok(!html.includes('"El Loco"'), 'la comilla cruda no sobrevive');
   ok(html.includes('&quot;'), 'se escapa');
 });
 
 prueba('"panel/S-22b" el escapado alcanza a cualquier explicación, no sólo a la del bloqueado', () => {
-  const html = P.renderPorQueQuedaronAsi([
-    '<b>uno</b> jugaba de arquero pero se ubicó como Delantero.',
-    '<i>dos</i> ocupó el arco por su posición secundaria.',
-  ]);
+  const html = P.renderPorQueQuedaronAsi({
+    vigentes: ['<b>uno</b> está bloqueado en el Equipo Blanco.'],
+    generacion: ['<i>dos</i> ocupó el arco por su posición secundaria.'],
+  });
   ok(!html.includes('<b>') && !html.includes('<i>'), 'ninguna explicación se inserta cruda');
 });
 
 prueba('"panel/S-05c" sin explicaciones no se dibuja el bloque ni su divisor', () => {
-  eq(P.renderPorQueQuedaronAsi([]), '', 'lista vacía no produce nada');
+  eq(P.renderPorQueQuedaronAsi({ vigentes: [], generacion: [] }), '', 'los dos grupos vacíos no producen nada');
   eq(P.renderPorQueQuedaronAsi(null), '', 'null tampoco');
+});
+
+/* ---------- el desplegable (2026-09-10) ---------- */
+
+prueba('"panel/S-05h" el bloque es un desplegable cerrado por default', () => {
+  P.__setReceiptAbiertoDe(null);
+  const html = P.renderPorQueQuedaronAsi({ vigentes: ['algo'], generacion: [] }, 'm1');
+  ok(html.startsWith('<details'), 'es un <details>, no un <div>: trae el plegado y el teclado del navegador');
+  ok(!html.includes(' open'), 'y arranca cerrado, para no ensuciar la pantalla');
+  ok(html.includes('<summary'), 'el rótulo es el <summary>, así que es lo único que se ve cerrado');
+});
+
+prueba('"panel/S-05h" un bloque abierto sigue abierto después de repintar, y sólo el de su partido', () => {
+  /* `renderTeamsSection` repinta la sección entera en cada cambio. Sin recordar el estado, el
+     bloque se cerraría solo justo al mover un jugador, que es cuando se lo quiere mirar. */
+  P.__setReceiptAbiertoDe('m1');
+  ok(P.renderPorQueQuedaronAsi({ vigentes: ['algo'], generacion: [] }, 'm1').includes(' open'),
+    'el partido cuyo bloque se abrió lo vuelve a pintar abierto');
+  ok(!P.renderPorQueQuedaronAsi({ vigentes: ['algo'], generacion: [] }, 'm2').includes(' open'),
+    'otro partido arranca cerrado: el estado es de un solo partido a la vez');
+  P.__setReceiptAbiertoDe(null);
+});
+
+/* El defecto que encontró el propietario el 2026-09-10 en el partido del sábado 12: había sólo
+   generado, sin tocar nada, y el bloque aparecía partido en dos. Recién generado TODO lo que se ve
+   lo hizo el motor, así que la división no describe ninguna diferencia real. */
+prueba('"panel/S-05j" recién generado el bloque va en una sola lista, sin rótulos de grupo', () => {
+  const { cargarMotor } = require('./harness');
+  const motor = cargarMotor({ puntaje: { enabled: true, params: { diferenciaMaxima: 2, ventajaSinArquero: 6 } } });
+  const JP = (id, principal, scores, secundarias) =>
+    ({ id, nombre: id, apellido: '', principal, secundarias: secundarias || [], scores });
+  const base = [
+    JP('ar1','Arquero',{Arquero:8, Defensor:6}), JP('ar2','Arquero',{Arquero:7}),
+    JP('df1','Defensor',{Defensor:9}), JP('df2','Defensor',{Defensor:5}),
+    JP('df3','Defensor',{Defensor:7, Volante:6},['Volante']), JP('df4','Defensor',{Defensor:6}),
+    JP('df5','Defensor',{Defensor:6.5}), JP('df6','Defensor',{Defensor:5.5}),
+    JP('vo1','Volante',{Volante:8}), JP('vo2','Volante',{Volante:7, Defensor:6},['Defensor']),
+    JP('vo3','Volante',{Volante:6}), JP('vo4','Volante',{Volante:6.5}),
+    JP('vo5','Volante',{Volante:7.5}), JP('vo6','Volante',{Volante:5}),
+    JP('de1','Delantero',{Delantero:8}), JP('de2','Delantero',{Delantero:7}),
+    JP('vo7','Volante',{Volante:6.2}),
+  ];
+  const estrategias = ['generarEquiposEstrategia1','generarEquiposEstrategia2','generarEquiposEstrategia3','generarEquiposEstrategia4'];
+  estrategias.forEach(estrategia => {
+    [false, true].forEach(conDupla => {
+      const plantelMotor = base.map(p => ({ ...p, scores: { ...p.scores } }));
+      const porId = Object.fromEntries(plantelMotor.map(p => [p.id, p]));
+      P.__setPlayers(plantelMotor);
+      const DUPLA = ['df1','df2'];
+      let unidades = plantelMotor.slice(0, 16);
+      const unidadPorId = {};
+      if (conDupla) {
+        const u = P.construirUnidadDupla(porId.df1, porId.df2);
+        unidades = plantelMotor.filter(p => !DUPLA.includes(p.id)).concat([u]);
+        unidadPorId[u.id] = DUPLA;
+      }
+      let r = motor[estrategia](unidades, [], {}, {}, FORMACION_8);
+      if (conDupla) r = motor.expandirUnidadesEnResultado(r, unidadPorId);
+      const m = {
+        id: 'm1', convocados: plantelMotor.map(p => p.id), duplas: conDupla ? [DUPLA] : [], bloqueados: [],
+        equipos: {
+          blanco: r.blanco, negro: r.negro, sumaBlanco: r.sumaBlanco, sumaNegro: r.sumaNegro,
+          posicionAsignada: r.posicionAsignada, posicionOverride: r.posicionOverride,
+          estrategiaKey: estrategia, formacion: r.formacion || null,
+          arquerosInfo: r.arquerosInfo, balanceLineas: r.balanceLineas || null,
+        },
+      };
+      const etiqueta = `${estrategia}${conDupla ? ' con dupla' : ''}`;
+      eq(P.repartoDivergeDeLaGeneracion(m, porId), false,
+        `${etiqueta}: recién generado el reparto NO se apartó de la generación`);
+    });
+  });
+});
+
+prueba('"panel/S-05j" sin dividir es una sola lista en el orden de siempre; al apartarse, dos grupos', () => {
+  const explicaciones = {
+    vigentes: ['vig-1', 'vig-2'],
+    generacion: ['gen-1'],
+    // El orden de emisión intercala los dos grupos: es el que la lista única tiene que conservar.
+    ordenadas: [{ texto: 'gen-1', grupo: 'generacion' }, { texto: 'vig-1', grupo: 'vigentes' }, { texto: 'vig-2', grupo: 'vigentes' }],
+  };
+  const unica = P.renderPorQueQuedaronAsi(explicaciones, 'm1', false);
+  ok(!unica.includes('panel-receipt-grupo'), 'sin dividir no se emite ningún rótulo de grupo');
+  eq(unica.match(/<ul/g).length, 1, 'y hay una sola lista');
+  const orden = [...unica.matchAll(/<li>([^<]+)<\/li>/g)].map(x => x[1]);
+  eq(orden, ['gen-1', 'vig-1', 'vig-2'], 'la lista única conserva el orden de emisión, no el de los grupos');
+
+  const dividida = P.renderPorQueQuedaronAsi(explicaciones, 'm1', true);
+  ok(dividida.includes('Con tus cambios') && dividida.includes('Como lo armó el motor'),
+    'apartado de la generación, sí se rotulan los dos grupos');
+  eq(dividida.match(/<ul/g).length, 2, 'y hay dos listas');
+});
+
+prueba('"panel/S-05j" un movimiento manual hace que el reparto se aparte, y un intercambio neutro no', () => {
+  const armado = () => M(
+    [['b1','Arquero',6],['b2','Defensor',7],['b3','Defensor',6],['b4','Defensor',6],
+     ['b5','Volante',6],['b6','Volante',6],['b7','Volante',6],['b8','Delantero',6]],
+    [['n1','Arquero',6],['n2','Defensor',6],['n3','Defensor',6],['n4','Defensor',6],
+     ['n5','Volante',6],['n6','Volante',6],['n7','Volante',6],['n8','Delantero',6]]);
+  const m = armado();
+  /* El balance guardado tiene que ser el de este reparto: `M` no lo calcula, lo deja en `{}`. */
+  m.equipos.balanceLineas = P.balanceLineasVigente({ ...m, equipos: { ...m.equipos, balanceLineas: {} } }, porIdDe(m));
+  m.equipos.formacion = { objetivo: FORMACION_8, blanco: { cumplida: true, faltantes: [] }, negro: { cumplida: true, faltantes: [] } };
+  eq(P.repartoDivergeDeLaGeneracion(m, porIdDe(m)), false, 'sin tocar nada, no se apartó');
+
+  P.moverUnJugadorDeEquipo(m, 'b2', 'negro');
+  eq(P.repartoDivergeDeLaGeneracion(m, porIdDe(m)), true, 'pasar un defensor al otro equipo sí lo aparta');
+
+  /* Intercambiar dos jugadores del mismo puesto y el mismo puntaje no cambia ninguna de las tres
+     medidas, así que los dos grupos dirían lo mismo y dividirlos sería ruido. */
+  const m2 = armado();
+  m2.equipos.balanceLineas = P.balanceLineasVigente({ ...m2, equipos: { ...m2.equipos, balanceLineas: {} } }, porIdDe(m2));
+  m2.equipos.formacion = { objetivo: FORMACION_8, blanco: { cumplida: true, faltantes: [] }, negro: { cumplida: true, faltantes: [] } };
+  P.intercambiarUnidades(m2, 'b3', 'n2'); // los dos Defensor, los dos 6
+  eq(P.repartoDivergeDeLaGeneracion(m2, porIdDe(m2)), false,
+    'un intercambio que no cambia ningún número no cuenta como apartarse');
+});
+
+prueba('"panel/S-05i" ya dividido, los dos grupos se rotulan sólo cuando hay algo en los dos', () => {
+  const conLosDos = P.renderPorQueQuedaronAsi({ vigentes: ['a'], generacion: ['b'] }, 'm1', true);
+  ok(conLosDos.includes('Con tus cambios') && conLosDos.includes('Como lo armó el motor'),
+    'con los dos grupos, cada uno dice qué es');
+  const soloVigentes = P.renderPorQueQuedaronAsi({ vigentes: ['a'], generacion: [] }, 'm1', true);
+  ok(!soloVigentes.includes('Con tus cambios'),
+    'con un grupo solo, contrastarlo contra un grupo ausente confundiría en vez de aclarar');
+  const soloGeneracion = P.renderPorQueQuedaronAsi({ vigentes: [], generacion: ['b'] }, 'm1', true);
+  ok(soloGeneracion.includes('Como lo armó el motor'),
+    'salvo el de generación, que sí necesita decir que no describe el estado actual');
 });
 
 console.log('');
@@ -562,79 +710,219 @@ prueba('"panel/S-02a" cada estrategia del catálogo tiene su propio resumen, no 
 });
 
 console.log('');
-console.log('\x1b[1mEL RECEIPT NO CAMBIÓ\x1b[0m — la extracción movió código, no texto (NFR-007)\n');
+console.log('\x1b[1mEL RECEIPT SE PARTIÓ EN DOS\x1b[0m — ninguna explicación se perdió en el reparto\n');
 
-prueba('"panel/S-05d" el receipt produce las mismas cadenas que antes de extraerlo', () => {
-  /* La versión de referencia sale del index.html de `main` en el commit del merge de la Spec,
-     leído con git. Sin git —un tarball, un CI sin historia— el caso se declara salteado en vez
-     de dar un falso verde: lo que no se pudo comparar, no se afirma. */
+/* Reemplaza a "panel/S-05d" ("el receipt produce las mismas cadenas que antes de extraerlo"), que
+   guardaba `NFR-007` —"el receipt dice exactamente lo mismo que decía"—. Esa premisa la retiró el
+   propietario el 2026-09-10: el bloque AHORA tiene que ajustarse a los cambios hechos después de
+   generar, así que un test que exige que su texto no cambie ya no describe lo que se quiere.
+
+   Lo que se guarda en su lugar es más fuerte y es el riesgo real de partir una lista en dos:
+   perder una explicación por el camino. Se corre el mismo armado contra este index.html y contra
+   el anterior, y se exige que la UNIÓN de los dos grupos nuevos sea exactamente el conjunto de
+   cadenas que emitía la lista vieja. Mismo mecanismo de `cargarReceipt` que usaba S-05d. */
+prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la lista única', () => {
   let anterior;
   try {
     anterior = require('child_process')
-      .execFileSync('git', ['show', '0488d7b:index.html'], { cwd: path.join(__dirname, '..'), maxBuffer: 64 * 1024 * 1024 })
+      .execFileSync('git', ['show', '0780e54:index.html'], { cwd: path.join(__dirname, '..'), maxBuffer: 64 * 1024 * 1024 })
       .toString('utf8');
   } catch (e) {
-    console.log('      \x1b[33m∅ salteado\x1b[0m — no se pudo leer index.html de 0488d7b con git');
+    console.log('      \x1b[33m∅ salteado\x1b[0m — no se pudo leer index.html de 0780e54 con git');
     return;
   }
   const receiptAntes = cargarReceipt(anterior);
   const receiptAhora = cargarReceipt(src);
-  ok(!receiptAntes.explicacionesDelArmado,
-    'en la versión anterior el receipt NO tenía función con nombre: por eso hubo que extraerlo');
-  ok(typeof receiptAhora.explicacionesDelArmado === 'function',
-    'en esta versión sí, que es lo que hace comparable la lista');
-  /* Con la versión anterior no hay función que llamar —el bloque vivía en línea dentro de
-     renderTeamsSection—, así que lo que se compara es el TEXTO del bloque, carácter por
-     carácter, ignorando la indentación que la extracción cambió. */
-  const bloqueDe = (fuente) => {
-    const i = fuente.indexOf('const explicaciones = [];');
-    const j = fuente.indexOf('Reglas desactivadas en el motor:', i);
-    const k = fuente.indexOf('}', j);
-    /* Se comparan LÍNEAS DE CÓDIGO: los comentarios se sacan antes, porque la extracción los
-       reescribió a propósito y compararlos sería comparar prosa. */
-    return fuente.slice(i, k + 1)
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .split('\n')
-      .map(l => l.replace(/\/\/.*$/, '').trim())
-      .filter(Boolean)
-      .join('\n');
+  ok(typeof receiptAntes.explicacionesDelArmado === 'function', 'la versión anterior tiene la función, que es lo que hace comparable la lista');
+
+  /* Un armado que dispara la mayor cantidad de líneas posible: formación fija pareja, un arquero
+     excedente, una dupla, un bloqueado, una segunda generación y una regla apagada. */
+  const armado = () => {
+    const jugadores = [
+      J('b-arq', 'Arquero', 8), J('b-def1', 'Defensor', 7), J('b-def2', 'Defensor', 6),
+      J('b-def3', 'Defensor', 6), J('b-vol1', 'Volante', 7), J('b-vol2', 'Volante', 6),
+      J('b-vol3', 'Volante', 6), J('b-del', 'Delantero', 7),
+      /* 17º convocado: la dupla b-vol1+b-vol2 ocupa UN lugar de la formación, así que sin este el
+         Blanco quedaría con 7 unidades contra 8 del Negro y su formación figuraría —con razón—
+         incompleta, que no es lo que este caso quiere medir. */
+      J('b-vol4', 'Volante', 6),
+      J('n-arq', 'Arquero', 6), J('n-def1', 'Defensor', 6), J('n-def2', 'Defensor', 6),
+      J('n-def3', 'Defensor', 6), J('n-vol1', 'Volante', 6), J('n-vol2', 'Volante', 6),
+      J('n-vol3', 'Volante', 6), J('n-del', 'Delantero', 6),
+    ];
+    const posicionAsignada = {};
+    jugadores.forEach(p => { posicionAsignada[p.id] = p.principal; });
+    const ids = jugadores.map(p => p.id);
+    return {
+      jugadores,
+      m: {
+        id: 'm1', convocados: ids, duplas: [['b-vol1', 'b-vol2']], bloqueados: ['b-def1'],
+        equipos: {
+          blanco: ids.slice(0, 9), negro: ids.slice(9),
+          sumaBlanco: 53, sumaNegro: 48, posicionAsignada,
+          estrategiaKey: 'estrategia4',
+          formacion: { objetivo: FORMACION_8, blanco: { cumplida: true, faltantes: [] }, negro: { cumplida: true, faltantes: [] } },
+          arquerosInfo: { total: 2, compensado: false },
+          arquerosExcedentes: [{ playerId: 'n-arq', pos: 'Delantero' }],
+          arquerosPorSecundaria: [{ playerId: 'b-del' }],
+          duplasSnapshot: JSON.stringify([['b-vol1', 'b-vol2']]),
+          esPrimeraGeneracion: false, cambios: 2,
+          swaps: [{ playerId: 'n-vol1', desde: 'Volante', hacia: 'Defensor', motivo: 'formacion' }],
+          balanceLineas: null, enumeracionTruncada: true, // se completa abajo, con el reparto ya armado
+        },
+      },
+    };
   };
-  const antes = bloqueDe(anterior), ahora = bloqueDe(src);
-  const lineasAntes = antes.split('\n'), lineasAhora = ahora.split('\n');
-  /* Las diferencias esperadas y declaradas son exactamente tres: el predicado de línea de un solo
-     lugar, que pasó a llamar a `lineaDeUnSoloLugar` (TC-013); la línea de titulares sin puntaje,
-     que ganó el desglose por equipo (FR-052); y la extracción de la lectura de duplas, abajo.
-     Cualquier otra es una regresión. */
-  /* Tercera diferencia, declarada el 2026-09-10 con dos días de atraso. El commit `fd16145`
-     (2026-09-08, "las duplas de rotación se copian en un mismo renglón") sacó de acá la lectura
-     del snapshot de duplas y la puso en `duplasDeLaFormacion(m)`, para que la función de copiar
-     la formación use exactamente la misma. Es una extracción, no un cambio de conducta: la
-     función nueva lee `duplasSnapshot` y cae a `m.duplas` si no parsea, igual que el bloque que
-     reemplaza, y encima tolera un partido sin equipos, que antes tiraba. Nadie la declaró acá, y
-     este caso quedó en rojo 63 commits hasta que se lo rastreó — de ahí que las líneas se listen
-     por texto EXACTO y no con `includes`: una excepción declarada de más tapa la próxima
-     regresión de verdad. */
-  const EXTRACCION_DUPLAS = [
-    'const duplasDelArmado = duplasDeLaFormacion(m);',
-    'const duplasDelArmado = (() => {',
-    "try{ return JSON.parse(eq.duplasSnapshot || '[]'); }",
-    'catch(e){ return (m.duplas || []); }',
-    '})();',
+
+  const { jugadores, m } = armado();
+  /* El balance guardado tiene que ser el que el motor guardaría para ESTE reparto, con la dupla
+     contada una sola vez: la versión anterior lo lee de `eq.balanceLineas` y la nueva lo recalcula
+     colapsando duplas, así que con un balance sin colapsar las dos hablarían de balances distintos
+     y la comparación mediría eso en vez de medir si se perdió una línea. */
+  P.__setPlayers(jugadores);
+  m.equipos.balanceLineas = P.balanceLineasVigente(
+    { ...m, equipos: { ...m.equipos, balanceLineas: {} } },
+    Object.fromEntries(jugadores.map(p => [p.id, p])));
+  receiptAntes.__setPlayers(jugadores);
+  receiptAhora.__setPlayers(jugadores);
+  const antes = receiptAntes.explicacionesDelArmado(m, m.equipos, jugadores);
+  const ahoraDos = receiptAhora.explicacionesDelArmado(m, m.equipos, jugadores);
+  ok(Array.isArray(antes), 'antes devolvía una lista plana');
+  ok(Array.isArray(ahoraDos.vigentes) && Array.isArray(ahoraDos.generacion), 'ahora devuelve los dos grupos');
+  const ahora = [...ahoraDos.vigentes, ...ahoraDos.generacion];
+
+  ok(antes.length > 6, `el armado de prueba tiene que disparar muchas líneas, disparó ${antes.length}`);
+  eq(ahora.length, antes.length, 'la unión de los dos grupos tiene la misma cantidad de líneas');
+
+  /* La ÚNICA cadena que cambió de texto, declarada por su prefijo exacto: la del bloqueado. Decía
+     "permaneció en el Equipo X porque estaba bloqueado", y eso era falso en cuanto se arrastraba a
+     un jugador bloqueado —nombraba el equipo nuevo afirmando que no se había movido—. Se lista una
+     sola, y por texto exacto, con el mismo criterio con el que S-05d listaba sus excepciones: una
+     excepción declarada de más tapa la próxima regresión de verdad. */
+  const REESCRITAS = {
+    'b-def1 permaneció en el Equipo Blanco porque estaba bloqueado.':
+      'b-def1 está bloqueado en el Equipo Blanco: la próxima generación no lo va a mover de ahí.',
+  };
+  const normalizar = l => REESCRITAS[l] || l;
+  ok(antes.some(l => REESCRITAS[l]), 'el armado de prueba tiene que disparar la línea del bloqueado, que es la única reescrita');
+  eq([...ahora].sort(), [...antes.map(normalizar)].sort(),
+     'ninguna explicación se perdió ni se inventó al partir la lista en dos grupos');
+
+  // Y el reparto entre grupos es el declarado: lo que narra al motor va aparte.
+  ok(ahoraDos.generacion.some(l => l.includes('posición secundaria de')), 'los swaps van al grupo de la generación');
+  ok(ahoraDos.generacion.some(l => l.includes('demasiadas combinaciones')), 'la enumeración truncada también');
+  ok(ahoraDos.generacion.some(l => l.includes('generación anterior')), 'y la comparación entre generaciones');
+  ok(ahoraDos.vigentes.some(l => l.includes('dupla de rotación quedó en el Equipo')), 'el reparto de duplas describe lo que se ve');
+  ok(ahoraDos.vigentes.some(l => l.includes('está bloqueado en el Equipo')), 'y el bloqueo también');
+});
+
+prueba('"panel/S-06k" mover un jugador ajusta el grupo vigente y deja intacto el de la generación', () => {
+  /* Es el pedido del propietario del 2026-09-10: que el bloque se ajuste a los cambios hechos
+     después de generar. Se corre el receipt real antes y después de un movimiento. */
+  const R = cargarReceipt(src);
+  const jugadores = [
+    J('b-arq','Arquero',6), J('b-def1','Defensor',6), J('b-def2','Defensor',6), J('b-def3','Defensor',6),
+    J('b-vol1','Volante',6), J('b-vol2','Volante',6), J('b-vol3','Volante',6), J('b-del','Delantero',6),
+    J('n-arq','Arquero',6), J('n-def1','Defensor',6), J('n-def2','Defensor',6), J('n-def3','Defensor',6),
+    J('n-vol1','Volante',6), J('n-vol2','Volante',6), J('n-vol3','Volante',6), J('n-del','Delantero',6),
   ];
-  const soloEn = (a, b) => a.filter(l => !b.includes(l));
-  const nuevas = soloEn(lineasAhora, lineasAntes);
-  const perdidas = soloEn(lineasAntes, lineasAhora);
-  const esperado = l => l.includes('lineaDeUnSoloLugar')
-    || l.includes('unSoloLugar = ORDEN_LINEAS')
-    || l.includes('.filter(pos =>')
-    || l.includes("if(pos === 'Arquero') return true;")
-    || l.includes('eq.formacion && eq.formacion.objetivo')
-    || l.includes('Se distribuyeron ')
-    || EXTRACCION_DUPLAS.includes(l);
-  const inesperadasNuevas = nuevas.filter(l => !esperado(l));
-  const inesperadasPerdidas = perdidas.filter(l => !esperado(l));
-  eq(inesperadasNuevas, [], 'la extracción no debería haber agregado ninguna línea de lógica nueva');
-  eq(inesperadasPerdidas, [], 'la extracción no debería haber perdido ninguna línea de lógica');
+  R.__setPlayers(jugadores);
+  P.__setPlayers(jugadores);
+  const ids = jugadores.map(p => p.id);
+  const posicionAsignada = {};
+  jugadores.forEach(p => { posicionAsignada[p.id] = p.principal; });
+  const m = {
+    id: 'm1', convocados: ids, duplas: [], bloqueados: [],
+    equipos: {
+      blanco: ids.slice(0, 8), negro: ids.slice(8), sumaBlanco: 48, sumaNegro: 48, posicionAsignada,
+      estrategiaKey: 'estrategia4', formacion: { objetivo: FORMACION_8, blanco: { cumplida: true, faltantes: [] }, negro: { cumplida: true, faltantes: [] } },
+      arquerosInfo: { total: 2, compensado: false }, esPrimeraGeneracion: false, cambios: 3,
+      balanceLineas: {}, swaps: [],
+    },
+  };
+  const antes = R.explicacionesDelArmado(m, m.equipos, jugadores);
+  ok(antes.vigentes.some(l => l === 'Formación 3-3-1 cumplida en ambos equipos.'),
+    'recién generado el bloque dice que la formación está cumplida');
+
+  P.moverUnJugadorDeEquipo(m, 'b-def1', 'negro');
+  const despues = R.explicacionesDelArmado(m, m.equipos, jugadores);
+  ok(despues.vigentes.some(l => l === 'No se pudo completar la formación 3-3-1 en el Equipo Blanco.'),
+    'después de sacarle un defensor al Blanco, el bloque lo dice — antes seguía afirmando "cumplida"');
+  eq(despues.generacion, antes.generacion,
+    'y el grupo "Como lo armó el motor" no se mueve: describe lo que hizo el motor, que no cambió');
+});
+
+/* `faltantesDeFormacionVigente` espeja la regla de `calcularFaltantes`, que vive dentro del motor
+   y depende de su estado interno. Que las dos coincidan no se afirma: se mide, corriendo el motor
+   de verdad y comparando su veredicto guardado con el recalculado sobre el mismo reparto. Es la
+   misma disciplina con la que se verificó el total de cada equipo (`FR-070b`). */
+prueba('"panel/S-05f" el recuento de formación en vivo coincide con el del motor recién generado', () => {
+  const { cargarMotor } = require('./harness');
+  const motor = cargarMotor({ puntaje: { enabled: true, params: { diferenciaMaxima: 2, ventajaSinArquero: 0 } } });
+  const JP = (id, principal, scores, secundarias) =>
+    ({ id, nombre: id, apellido: '', principal, secundarias: secundarias || [], scores });
+  const plantelMotor = [
+    JP('ar1', 'Arquero', { Arquero: 8, Defensor: 6 }), JP('ar2', 'Arquero', { Arquero: 7 }),
+    JP('df1', 'Defensor', { Defensor: 9 }), JP('df2', 'Defensor', { Defensor: 5 }),
+    JP('df3', 'Defensor', { Defensor: 7, Volante: 6 }, ['Volante']), JP('df4', 'Defensor', { Defensor: 6 }),
+    JP('df5', 'Defensor', { Defensor: 6.5 }), JP('df6', 'Defensor', { Defensor: 5.5 }),
+    JP('vo1', 'Volante', { Volante: 8 }), JP('vo2', 'Volante', { Volante: 7, Defensor: 6 }, ['Defensor']),
+    JP('vo3', 'Volante', { Volante: 6 }), JP('vo4', 'Volante', { Volante: 6.5 }),
+    JP('vo5', 'Volante', { Volante: 7.5 }), JP('vo6', 'Volante', { Volante: 5 }),
+    JP('de1', 'Delantero', { Delantero: 8 }), JP('de2', 'Delantero', { Delantero: 7 }),
+  ];
+  const porId = Object.fromEntries(plantelMotor.map(p => [p.id, p]));
+  const extra = JP('vo7', 'Volante', { Volante: 6.2 }); // 17º convocado: la dupla ocupa un solo lugar
+  plantelMotor.push(extra);
+  porId[extra.id] = extra;
+  P.__setPlayers(plantelMotor);
+  const DUPLA = ['df1', 'df2'];
+  ['generarEquiposEstrategia3', 'generarEquiposEstrategia4'].forEach(estrategia => {
+    /* Con dupla y sin dupla: el caso con dupla es el que falló el 2026-09-10 —el recuento contaba
+       a sus dos integrantes por separado, inflaba un equipo, el ajuste de "equipo corto" le
+       regalaba un lugar al otro y ese otro figuraba con un puesto faltante que no le faltaba. */
+    [false, true].forEach(conDupla => {
+      let unidades = plantelMotor.slice(0, 16);
+      const unidadPorId = {};
+      if (conDupla) {
+        const u = P.construirUnidadDupla(porId.df1, porId.df2);
+        unidades = plantelMotor.filter(p => !DUPLA.includes(p.id)).concat([u]);
+        unidadPorId[u.id] = DUPLA;
+      }
+      let r = motor[estrategia](unidades, [], {}, {}, FORMACION_8);
+      if (conDupla) r = motor.expandirUnidadesEnResultado(r, unidadPorId);
+      const m = {
+        id: 'm1', convocados: plantelMotor.map(p => p.id), duplas: conDupla ? [DUPLA] : [], bloqueados: [],
+        equipos: {
+          blanco: r.blanco, negro: r.negro, sumaBlanco: r.sumaBlanco, sumaNegro: r.sumaNegro,
+          posicionAsignada: r.posicionAsignada, estrategiaKey: estrategia,
+          formacion: r.formacion, arquerosInfo: r.arquerosInfo, balanceLineas: r.balanceLineas,
+        },
+      };
+      const etiqueta = `${estrategia}${conDupla ? ' con dupla' : ''}`;
+      const vigente = P.faltantesDeFormacionVigente(m, porId);
+      ['blanco', 'negro'].forEach(equipo => {
+        eq(vigente[equipo].length === 0, r.formacion[equipo].cumplida,
+          `${etiqueta}: el veredicto de cumplimiento del ${equipo} tiene que coincidir con el del motor`);
+        eq([...vigente[equipo]].sort(), [...r.formacion[equipo].faltantes].sort(),
+          `${etiqueta}: y los lugares faltantes del ${equipo} también`);
+      });
+    });
+  });
+});
+
+prueba('"panel/S-05f" mover un jugador puede romper una formación que la generación cumplía', () => {
+  /* Es el caso que motiva el recálculo: la línea decía "cumplida en ambos equipos" para siempre,
+     porque leía la bandera que la generación había guardado. */
+  const m = M(
+    [['b1','Arquero',6],['b2','Defensor',6],['b3','Defensor',6],['b4','Defensor',6],
+     ['b5','Volante',6],['b6','Volante',6],['b7','Volante',6],['b8','Delantero',6]],
+    [['n1','Arquero',6],['n2','Defensor',6],['n3','Defensor',6],['n4','Defensor',6],
+     ['n5','Volante',6],['n6','Volante',6],['n7','Volante',6],['n8','Delantero',6]]);
+  eq(P.faltantesDeFormacionVigente(m, porIdDe(m)).blanco, [], 'recién generado, el Blanco tiene su 3-3-1 completo');
+  P.moverUnJugadorDeEquipo(m, 'b2', 'negro');
+  ok(P.faltantesDeFormacionVigente(m, porIdDe(m)).blanco.includes('Defensor'),
+    'con un defensor menos, al Blanco le falta un lugar en defensa');
 });
 
 prueba('"panel/S-05a" la línea de titulares sin puntaje declara el desglose por equipo', () => {
