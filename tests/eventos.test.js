@@ -5,7 +5,7 @@
  *
  * Cubre las tres funciones puras que reemplazan la persistencia de resultado —síntesis,
  * derivación y el despacho entre eventos y statsPorJugador— y el recálculo acumulado sobre un
- * historial con partidos de los dos formatos. Esta rebanada no tiene ninguna superficie visual:
+ * historial con partidos de los dos formatos, incluido el que corre al eliminar un partido. Esta rebanada no tiene ninguna superficie visual:
  * lo que se escribe realmente al finalizar o editar un partido vive en tests/layout.test.js
  * (Implementation Plan, TD-07).
  *
@@ -28,6 +28,7 @@ const DECLARACIONES = [
   'eventosDesdeStats',
   'statsPorJugadorDelPartido',
   'recomputeAllPlayerStatsFromMatches',
+  'quitarPartidoDelHistorial',
 ];
 
 function cargarEventos() {
@@ -37,9 +38,10 @@ function cargarEventos() {
     let players = [];
     function __setMatches(m){ matches = m; }
     function __setPlayers(p){ players = p; }
+    function __getMatches(){ return matches; }
   `;
   try {
-    return new Function(`${prelude}${cuerpo}\nreturn { __setMatches, __setPlayers, ${DECLARACIONES.join(', ')} };`)();
+    return new Function(`${prelude}${cuerpo}\nreturn { __setMatches, __setPlayers, __getMatches, ${DECLARACIONES.join(', ')} };`)();
   } catch (e) {
     throw new Error(`El código extraído de index.html no evaluó: ${e.message}`);
   }
@@ -207,6 +209,30 @@ prueba('"eventos/S-05" recomputeAllPlayerStatsFromMatches suma un partido histó
   eq(jugadoresTest[0].golesTotales, 3, '2 goles del partido histórico + 1 del partido con eventos');
   eq(jugadoresTest[0].golesPenalTotales, 1, 'sólo el segundo partido tiene un penal');
   eq(jugadoresTest[0].partidosJugados, 2, 'los dos partidos cuentan como jugados, sin importar el formato');
+});
+
+prueba('"004/FR-014" quitarPartidoDelHistorial deja los acumulados sin el partido eliminado', () => {
+  // Dos partidos iguales, 2 goles en cada uno: el jugador acumula 4. Al eliminar uno, lo que
+  // queda tiene que ser lo del partido que sigue existiendo (2) — no los 4 de antes, que es lo
+  // que pasaba cuando eliminar un partido no tocaba los acumulados.
+  const jugadoresTest = [{ id: 'j1' }];
+  const partido = (id) => ({ id, estado: 'Finalizado', equipos: { blanco: ['j1'], negro: ['j2'] },
+    resultado: { eventos: [
+      { jugadorId: 'j1', tipo: 'gol' },
+      { jugadorId: 'j1', tipo: 'gol' },
+      { jugadorId: 'j1', tipo: 'asistencia' },
+    ] } });
+  P.__setPlayers(jugadoresTest);
+  P.__setMatches([partido('m1'), partido('m2')]);
+  P.recomputeAllPlayerStatsFromMatches();
+  eq(jugadoresTest[0].golesTotales, 4, 'los dos partidos suman antes de eliminar ninguno');
+
+  P.quitarPartidoDelHistorial('m1');
+  eq(P.__getMatches().map(m => m.id), ['m2'], 'el partido eliminado sale del historial');
+  eq(jugadoresTest[0].golesTotales, 2, 'los goles del partido eliminado ya no se cuentan');
+  eq(jugadoresTest[0].asistenciasTotales, 1, 'las asistencias del partido eliminado tampoco');
+  eq(jugadoresTest[0].partidosJugados, 1, 'ni el partido jugado');
+  eq(jugadoresTest[0].partidosGanados, 1, 'ni el ganado: queda sólo el del partido que sigue ahí');
 });
 
 /* ---------- salida ---------- */
