@@ -102,6 +102,7 @@ El administrador se da cuenta de que cargó mal un gol, una asistencia o el resu
 - ¿Qué pasa con un suplente convocado a un partido finalizado que nunca reemplazó a un titular? No suma ese partido a sus partidos jugados, ganados, perdidos, empatados, goles ni asistencias, porque nunca integró ninguno de los dos equipos.
 - ¿Qué pasa si el partido finalizado terminó con el mismo puntaje para ambos equipos? Suma 1 a "empatados" para todos los jugadores que integraron alguno de los dos equipos, y no afecta ni a ganados ni a perdidos.
 - ¿Qué pasa si se edita el resultado de un partido finalizado y esa edición hace que cambie el resultado (ganador/perdedor/empate) de ese partido? Las seis estadísticas de todos los jugadores convocados a ese partido se recalculan desde cero en base al historial completo de partidos finalizados, no solo se ajusta el partido editado de forma aislada.
+- ¿Qué pasa con las estadísticas acumuladas cuando se elimina un partido ya finalizado (FR-016 de `docs/001-organizacion-partidos/spec.md`)? Las seis estadísticas de todos los jugadores se recalculan desde cero en base al historial que queda, así que el partido eliminado deja de contar en el total de cada jugador. Un jugador cuyo único partido finalizado se elimina vuelve a mostrar el campo vacío, como si nunca hubiera jugado (FR-004).
 
 ## Requirements *(mandatory)*
 
@@ -120,6 +121,7 @@ El administrador se da cuenta de que cargó mal un gol, una asistencia o el resu
 - **FR-011**: El sistema MUST mostrar el campo vacío en ganados, perdidos y empatados cuando el jugador nunca fue convocado a un partido finalizado. El 0 se reserva para jugadores con al menos 1 partido jugado.
 - **FR-012**: El sistema MUST permitir editar el resultado (goles y asistencias por jugador) de un partido ya finalizado, restringido a quien haya iniciado sesión como administrador (ver `docs/005-login-basico/spec.md`); nadie sin sesión de administrador puede modificarlo.
 - **FR-013**: El sistema MUST recalcular, al guardar la edición del resultado de un partido finalizado, las seis estadísticas (partidos jugados, ganados, perdidos, empatados, goles, asistencias) de todos los jugadores a partir del historial completo de partidos finalizados, para que el resultado corregido quede reflejado de forma consistente en los totales acumulados.
+- **FR-014**: El sistema MUST recalcular, al eliminar un partido, las seis estadísticas de todos los jugadores a partir del historial de partidos que quedan, con la misma regla de FR-013. Un partido finalizado ya le había sumado sus goles, asistencias, partido jugado y ganado/perdido/empatado a cada jugador que integró un equipo: sin ese recálculo, esos valores quedan acumulados en el jugador sin ningún partido que los respalde, y el listado de jugadores muestra más de lo que se puede ver en Partidos. Agregado el 2026-09-11 a partir del bug detectado en producción (un jugador con 12 goles acumulados y 2 en el único partido que los tenía cargados); el recálculo corre además una vez sobre los datos ya guardados, para limpiar lo que dejaron los partidos eliminados antes de este requisito.
 
 ### Key Entities
 

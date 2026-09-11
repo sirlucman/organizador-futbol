@@ -1912,6 +1912,10 @@
   const DOCS_SOLO_ADMIN = ['motorConfig','playerScores','partidosArmado',
                            'statsGanadosEmpatadosPerdidosMigrado','puntajeArmadoSeparadoMigrado',
                            'ordenJugadoresMigrado'];
+  /* Valor que tiene que tener `statsGanadosEmpatadosPerdidosMigrado` para que los acumulados de
+     los jugadores se consideren al día. Subirlo dispara UN recálculo desde el historial de
+     partidos finalizados, la próxima vez que entre un "admin" (ver loadAll, más abajo). */
+  const RECALCULO_STATS = 'v2';
 
   /* Dispara todas las lecturas del arranque juntas y devuelve las promesas, para que loadAll las
      aplique cuando lleguen. Antes eran dos fases en serie —primero el rol, despues los datos— y
@@ -2004,15 +2008,29 @@
 
     if(!admin) return;
 
-    // Migración única: los partidos finalizados antes de agregar ganados/empatados/perdidos no los tienen
-    // acumulados. Se recalculan una sola vez a partir del historial guardado; de ahí en más el flujo normal
-    // es que __finalizarPartido los sume incrementalmente al finalizar cada partido (FR-009/FR-010).
-    // Solo "admin" la corre; "jugador" ni pide el flag (las reglas de Firestore lo restringen a admin).
+    /* Recálculo de una sola vez de los acumulados de todos los jugadores, a partir del historial
+       de partidos finalizados (la fuente de verdad). Fuera de acá, el flujo normal es que
+       __finalizarPartido los sume de a uno al finalizar cada partido (FR-009/FR-010) y que
+       `quitarPartidoDelHistorial`/`__guardarEdicionResultado` los reconstruyan (FR-013, FR-014).
+       Solo "admin" lo corre; "jugador" ni pide el flag (las reglas de Firestore lo restringen a
+       admin).
+
+       El flag está VERSIONADO, y el valor que se espera es el de RECALCULO_STATS: cada vez que
+       aparece un desvío entre los acumulados y el historial hay que recalcular una vez sobre los
+       datos que YA están guardados, y un flag booleano no deja hacerlo dos veces. 'true' fue la
+       migración original del 2026-08-12 (los partidos finalizados antes de que existieran
+       ganados/empatados/perdidos no los tenían acumulados); 'v2' repara los partidos finalizados
+       que se eliminaron antes de que existiera `quitarPartidoDelHistorial` y dejaron sus
+       goles/asistencias/PJ sumados a los jugadores (FR-014).
+
+       Se versiona el documento que ya existe en vez de agregar uno nuevo: un documento nuevo
+       necesita además su propio bloque en las Firestore Rules, publicado a mano en los dos
+       proyectos (ver docs/rol-en-el-token/contracts/firestore-rules.md). */
     let recalculado = false;
-    if(!crudo['statsGanadosEmpatadosPerdidosMigrado']){
+    if(crudo['statsGanadosEmpatadosPerdidosMigrado'] !== RECALCULO_STATS){
       recomputeAllPlayerStatsFromMatches();
       await savePlayers();
-      try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', 'true', false); }catch(e){ console.error(e); }
+      try{ await window.storage.set('statsGanadosEmpatadosPerdidosMigrado', RECALCULO_STATS, false); }catch(e){ console.error(e); }
       recalculado = true;
     }
 
@@ -2086,6 +2104,23 @@
       p.partidosPerdidos = t.pe;
     });
   }
+
+  // Saca un partido del historial y reconstruye los acumulados de todos los jugadores desde lo
+  // que quedó. Un partido finalizado ya le había sumado sus goles, asistencias, partido jugado y
+  // ganado/empatado/perdido a cada jugador que integró un equipo (`__finalizarPartido` los
+  // acumula de a uno, FR-003/FR-010); al desaparecer el partido, esos acumulados quedaban sin
+  // ningún partido que los respalde y el listado de Jugadores mostraba más goles que los que se
+  // podían ver en Partidos (FR-014 — nilo figuraba en producción con 12 goles acumulados y 2 en
+  // el único partido que los tenía cargados). Recalcular desde el historial es el mismo camino
+  // que ya usa la edición de un resultado finalizado (FR-013).
+  // Vive en su propia función, y no adentro del handler, para que el recálculo tras el borrado se
+  // pueda probar en Node: `__deleteMatch` es un handler con confirmación y render, y el harness de
+  // tests recorta de index.html por nombre de declaración (ver tests/harness.js).
+  function quitarPartidoDelHistorial(id){
+    matches = matches.filter(mm => mm.id !== id);
+    recomputeAllPlayerStatsFromMatches();
+  }
+
   // Separa el puntaje por posición (`p.scores`) del resto de los campos de Jugador antes de guardar:
   // `players` (público) no lleva puntaje, `playerScores` (solo admin) sí — ver data-model.md → Jugador.
   // Devuelve `true`/`false` (en vez de relanzar el error) para no romper a quienes ya la llaman
@@ -6446,9 +6481,11 @@
     const m = matches.find(mm => mm.id === id);
     if(!m) return;
     openConfirm(`¿Eliminar el partido del ${formatFecha(m.fecha)}? Esta acción no se puede deshacer.`, () => {
-      matches = matches.filter(mm => mm.id !== id);
+      quitarPartidoDelHistorial(id);
       saveMatches();
+      savePlayers();
       if(currentMatchId === id) currentMatchId = null;
+      renderPlayersTab();
       renderMatchesTab();
     });
   };
