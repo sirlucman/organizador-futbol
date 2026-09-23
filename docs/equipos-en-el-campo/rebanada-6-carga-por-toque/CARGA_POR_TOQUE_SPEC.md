@@ -101,10 +101,11 @@
 > Ningún otro `FR-*`/`NFR-*`/`TC-*` de las rebanadas 1 a 5 queda tocado: la
 > geometría de la cancha, el arrastre entre equipos, los roles y el resto del
 > comportamiento de lectura siguen exactamente como esas Specs los dejaron.
-> La **anotación recíproca** en los cinco documentos —que `AGENTS.md` pide
-> además de esta declaración— todavía no está hecha; hasta que lo esté, los
-> requisitos de arriba siguen leyéndose como vigentes en su documento de
-> origen.
+> La **anotación recíproca** que `AGENTS.md` pide además de esta declaración
+> está hecha: los cinco documentos marcan en el lugar la parte reemplazada, con
+> fecha 2026-09-23 y su fila en el Change log respectivo (el de
+> `resultados-partido` no tiene tabla de Change log, así que lleva el aviso
+> arriba del documento).
 
 ## 1. Purpose
 
