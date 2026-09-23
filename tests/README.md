@@ -3,6 +3,7 @@
 ```sh
 node tests/motor.test.js        # el motor de generación de equipos
 node tests/cancha.test.js       # la cancha: agrupado en líneas, sub-filas, nombre y escapado
+node tests/escapado.test.js     # el escapado del texto de jugador (regla transversal de AGENTS.md)
 node tests/layout.test.js       # el layout responsive (Principio V)
 node tests/sesion.test.js       # el rol desde el claim del token: fail-closed, refresco acotado
 node tests/rol-script.test.js   # el script de roles: rechazos, listado, escritura conjunta
@@ -15,6 +16,32 @@ Todos devuelven código de salida 1 solo si se rompe el comportamiento actual.
 dependencias: Node y nada más. `layout.test.js` necesita un navegador y `reglas.test.js` necesita credenciales de
 staging; los dos explican por qué más abajo, y los dos avisan y no fallan cuando no las
 tienen.
+
+## El test de escapado
+
+`AGENTS.md` → Estilo fija una regla que no es de ninguna Spec: «Todo texto que venga de un
+jugador se escapa antes de insertarse, tanto en contenido como en atributos». La auditoría de
+conformidad del 2026-09-23 encontró cuatro superficies que la violaban —la ficha del partido en
+la lista, la convocatoria, el autocompletado y el selector de duplas— y ninguna tenía un ID de
+Spec que la cubriera, así que tampoco había un test que pudiera fallar.
+
+Es un test **de fuente**, no de comportamiento, con el mismo criterio que la verificación de
+literales de color de `cancha.test.js`: recorre `index.html` y exige que toda interpolación de
+un nombre de jugador dentro de una plantilla (`${…}`) o de una concatenación pase por
+`escaparHtml`. Al mirar el archivo entero cubre también la superficie que se escriba mañana.
+
+Tres usos crudos son legítimos y están listados como excepción **por nombre de función**, no por
+número de línea, para que mover código no las invalide:
+`formatearFormacionParaCopiar` (texto plano al portapapeles), `__deletePlayer` (el mensaje va a
+`openConfirm`, que escribe con `textContent`) y `explicacionesDelArmado` (las líneas se escapan
+al insertarse, en `renderPorQueQuedaronAsi`). Cada excepción trae su propia aserción de que su
+premisa sigue siendo cierta: si `openConfirm` pasara a usar `innerHTML`, el test falla aunque
+nadie toque la lista. Una lista de excepciones que nadie revalida deja de ser una excepción y
+pasa a ser un agujero.
+
+Por qué no es un test de navegador: tres de las cuatro superficies escriben directamente sobre
+el DOM en vez de devolver una cadena, y `layout.test.js` —el único harness con navegador—
+devuelve 0 cuando Playwright no está instalado. Un test de fuente corre siempre.
 
 ## El test de la cancha
 
