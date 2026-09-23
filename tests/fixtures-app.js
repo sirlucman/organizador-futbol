@@ -128,7 +128,7 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
        tendría el caso más alto que medir (`FR-072b`). */
     esPrimeraGeneracion: false,
     cambios: 2,
-    estrategia: 'Formación fija pareja',
+    estrategia: 'Formación fija',
     estrategiaKey: 'estrategia4',
     /* `formacion` y `balanceLineas` los escribe el generador con las Estrategias 3 y 4, y sin
        ellos el bloque de diferencia por línea NO SE DIBUJA — así que hasta la rebanada 3 ningún
@@ -187,7 +187,7 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
     sumaBlanco: 59.5, sumaNegro: 58,
     posicionAsignada: posicion9,
     esPrimeraGeneracion: true, cambios: 0,
-    estrategia: 'Formación fija pareja', estrategiaKey: 'estrategia4',
+    estrategia: 'Formación fija', estrategiaKey: 'estrategia4',
     duplasSnapshot,
     /* Cancha de 9: el Medio tiene CUATRO lugares por equipo, así que sí puede marcarse como
        excedido — es lo que distingue este fixture del de 8 para la regla de D-22. */

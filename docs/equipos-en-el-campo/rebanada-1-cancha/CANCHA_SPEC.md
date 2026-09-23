@@ -452,7 +452,7 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 
 #### Scenario S-01 — El administrador ve los equipos generados sobre la cancha (covers FR-001, FR-002, FR-010, FR-011, FR-020, FR-022, FR-024, FR-040)
 
-- **Given** un partido de fútbol 8 con la inscripción abierta y los equipos ya generados con la estrategia "Formación fija pareja"
+- **Given** un partido de fútbol 8 con la inscripción abierta y los equipos ya generados con la estrategia "Formación fija pareja" (desde el 2026-09-23 esa estrategia se llama sólo "Formación fija": la Estrategia 3, que tenía ese nombre, salió del catálogo)
 - **And** una sesión con rol `admin`
 - **When** el administrador abre el detalle del partido
 - **Then** el sistema muestra dos canchas, una por equipo

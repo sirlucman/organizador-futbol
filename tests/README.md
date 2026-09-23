@@ -52,9 +52,11 @@ Si algún día el motor se extrae a su propio archivo (lo que el Principio IV de
 
 **Hoy el bloque PENDIENTE está vacío**: `009` a `014` están implementadas y sus casos viven en BASELINE (`014 IMPLEMENTADA` en motor.test.js). La única feature sin implementar es `015-minimo-diferencia-alcanzable`, que sigue en `Draft` y no tiene casos escritos todavía.
 
-## La Estrategia 4 ("Formación fija pareja")
+## La Estrategia 4 ("Formación fija")
 
 Arma igual que la Estrategia 3 y cambia una sola cosa: cómo elige el reparto entre los dos equipos. Por eso sus tests van en dos grupos:
+
+> Se llamaba "Formación fija pareja" hasta el 2026-09-23, cuando la Estrategia 3 se retiró del catálogo de estrategias elegibles y le dejó el nombre. Lo que se retiró es la OPCIÓN, no el armado: `generarEquiposEstrategia3` sigue siendo el núcleo que la 4 llama con `balancePorLinea: true`, y los tests lo invocan directo sin esa opción — es la única forma de medir qué agrega el balance por línea, así que los dos grupos de abajo siguen valiendo tal cual.
 
 - **Lo nuevo** — que las líneas queden parejas, que el total no se pase del margen configurado, y que con margen 0 nunca entregue un total peor que la Estrategia 3.
 - **Lo heredado** — formación cumplida, nadie fuera de puesto, misma cantidad de jugadores por equipo, reparto de duplas y bloqueados. Es el grupo que importa cuando algo se rompe: una estrategia que empareja líneas rompiendo la formación no sirve para nada.
