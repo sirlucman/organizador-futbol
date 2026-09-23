@@ -6440,9 +6440,9 @@
       const scorersHtml = goleadores.length
         ? goleadores.map(x => {
             const lineas = [];
-            if(x.goles > 0) lineas.push(`<div>${fullName(x.p)} ${x.goles}<span class="stat-goal-icon">${GOAL_ICON}</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`);
+            if(x.goles > 0) lineas.push(`<div>${escaparHtml(fullName(x.p))} ${x.goles}<span class="stat-goal-icon">${GOAL_ICON}</span>${x.golesPenal > 0 ? ` (${x.golesPenal} de penal)` : ''}</div>`);
             if(x.golesEnContra > 0){
-              const prefijo = x.goles > 0 ? '' : `${fullName(x.p)} `;
+              const prefijo = x.goles > 0 ? '' : `${escaparHtml(fullName(x.p))} `;
               lineas.push(`<div>${prefijo}${x.golesEnContra}<span class="stat-goal-icon">${RED_GOAL_ICON}</span> (EC)</div>`);
             }
             return lineas.join('');
@@ -6787,7 +6787,7 @@
           <div class="conv-row" ${dragAttrs}>
             <span class="conv-num">${idx+1}</span>
             <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
-            <div class="conv-name">${fullName(p)}</div>
+            <div class="conv-name">${escaparHtml(fullName(p))}</div>
             ${botonMenuConvocado(m, p.id)}
           </div>`;
       }
@@ -6802,12 +6802,12 @@
           <div class="conv-pos-badge" style="${posBadgeStyle(pA.principal)}" title="${escaparHtml(pA.principal)}">${pA.principal.slice(0,3).toUpperCase()}</div>
           <div class="conv-dupla-members">
             <div class="conv-dupla-member">
-              <div class="conv-name">${fullName(pA)}</div>
+              <div class="conv-name">${escaparHtml(fullName(pA))}</div>
               ${botonMenuConvocado(m, idA)}
             </div>
             ${ICON_ROTACION_COLA}
             <div class="conv-dupla-member">
-              <div class="conv-name">${fullName(pB)}</div>
+              <div class="conv-name">${escaparHtml(fullName(pB))}</div>
               ${botonMenuConvocado(m, idB)}
             </div>
           </div>
@@ -6891,7 +6891,7 @@
     listEl.innerHTML = candidatos.map(p => `
       <div class="ac-item" onclick="window.__vincularDupla('${m.id}','${duplaModalPlayerId}','${p.id}')">
         <span class="ac-pos-dot" style="background:${POS_COLOR[p.principal] || 'var(--muted)'}"></span>
-        ${fullName(p)}${!m.convocados.includes(p.id) ? ' <span class="tag" style="margin-left:auto;">no convocado</span>' : ''}
+        ${escaparHtml(fullName(p))}${!m.convocados.includes(p.id) ? ' <span class="tag" style="margin-left:auto;">no convocado</span>' : ''}
       </div>`).join('');
   }
 
@@ -6943,12 +6943,12 @@
 
     let html = '';
     if(results.length === 0){
-      html = `<div class="ac-empty">No encontramos jugadores activos que coincidan con "${term}". Creá el jugador desde la sección "Jugadores".</div>`;
+      html = `<div class="ac-empty">No encontramos jugadores activos que coincidan con "${escaparHtml(term)}". Creá el jugador desde la sección "Jugadores".</div>`;
     }else{
       html = results.map((p, i) => `
         <div class="ac-item" data-id="${p.id}" onclick="window.__addToMatch('${m.id}','${p.id}')">
           <span class="ac-pos-dot" style="background:${POS_COLOR[p.principal] || 'var(--muted)'}"></span>
-          ${fullName(p)}${i === 0 ? ' <span class="tag" style="margin-left:auto;">TAB</span>' : ''}
+          ${escaparHtml(fullName(p))}${i === 0 ? ' <span class="tag" style="margin-left:auto;">TAB</span>' : ''}
         </div>`).join('');
     }
     dropdown.innerHTML = html;
