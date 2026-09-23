@@ -10,6 +10,16 @@
 
 **Input**: User description: "Que una vez armado todo barra todo a ver si hay algo intercambiable en el equipo. En el partido del jueves, Claudio/Juan quedaron de delanteros cuando Leandro puede jugar ahí y ellos de volantes."
 
+
+> **Nota 2026-09-23 — cómo leer "Estrategia 3" en este documento.** La Estrategia 3 se retiró del
+> catálogo de estrategias elegibles ese día: ya no aparece en el combo de un partido ni en
+> Configuración. Lo que se retiró es la opción, no el armado. Todo lo que esta spec describe
+> —y todo lo que llama "Estrategia 3"— sigue siendo el código que corre hoy detrás de la
+> estrategia **"Formación fija"** (la ex "Formación fija pareja", que la llama con el balance por
+> línea prendido). Ningún requisito de este documento queda reemplazado ni retirado. Ver la
+> "Actualización 2026-09-23" de
+> [`docs/003-motor-generacion-equipos/spec.md`](../003-motor-generacion-equipos/spec.md).
+
 ## Contexto
 
 La Estrategia 3 decide las posiciones **en una sola pasada y nunca las revisa**: parte de la posición principal de cada titular y solo corrige las posiciones que quedaron con excedente, moviendo a esos titulares a los lugares que faltan. Eso tiene una consecuencia concreta: **un titular cuya posición natural no tenía excedente nunca se considera para un lugar vacío**, aunque lo cubra como secundaria. Y el lugar que queda sin candidatos se llena con el primer titular suelto de la lista, sin evaluar si juega ahí.

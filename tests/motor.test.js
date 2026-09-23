@@ -597,7 +597,9 @@ test('014: la leyenda por integrante se dispara cuando no tiene nota en el puest
   ok(motor.puntajeEnPosicion(juan, 'Volante') > 0, 'en Volante Juan sí tiene nota → sin leyenda');
 });
 
-/* ---------- Estrategia 4: "Formación fija pareja" (balance por línea) ----------
+/* ---------- Estrategia 4: "Formación fija" (balance por línea) ----------
+   (Se llamaba "Formación fija pareja" hasta que la 3 salió del catálogo el 2026-09-23 y le dejó
+   el nombre. La 3 se sigue invocando acá directamente: es el punto de comparación.)
    La estrategia arma igual que la 3 hasta las posiciones y cambia una sola cosa: cómo elige el
    reparto entre los dos equipos. Por eso los tests se dividen en dos grupos: los que verifican
    que lo NUEVO funciona (las líneas quedan parejas) y los que verifican que lo VIEJO sigue

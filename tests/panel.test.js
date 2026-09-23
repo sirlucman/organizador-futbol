@@ -76,6 +76,7 @@ const DECLARACIONES = [
   'resumenDiferenciaEquipos',
   'conteoSinPuntajePorEquipo',
   'estrategiaValida',
+  'estrategiaVigente',
   'renderPorQueQuedaronAsi',
 ];
 
@@ -101,7 +102,8 @@ function cargarPanel() {
        (Sin comillas invertidas: este prelude es un template literal y las cortaría.) */
     let receiptAbiertoDe = null;
     function __setReceiptAbiertoDe(v){ receiptAbiertoDe = v; }
-    const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia3:{}, estrategia4:{} };
+    const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia4:{} };
+    const ESTRATEGIAS_RETIRADAS = { estrategia3: 'estrategia4' };
   `;
   try {
     return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setMotorConfig, __setReceiptAbiertoDe, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
@@ -128,7 +130,8 @@ function cargarReceipt(fuente) {
     function reglaEnabled(){ return true; }
     function reglaParam(){ return null; }
     const REGLAS_CATALOGO = {};
-    const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia3:{}, estrategia4:{} };
+    const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia4:{} };
+    const ESTRATEGIAS_RETIRADAS = { estrategia3: 'estrategia4' };
   `;
   return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, ${nombres.join(', ')} };`)();
 }
@@ -488,8 +491,20 @@ console.log('');
 console.log('\x1b[1mENTRADA Y ESCAPADO\x1b[0m — lo que el panel no debe aceptar ni ejecutar\n');
 
 prueba('"panel/S-21" un valor que no es una clave del catálogo no se acepta', () => {
-  eq(P.estrategiaValida('estrategia4'), true, 'las cuatro del catálogo sí');
+  eq(P.estrategiaValida('estrategia4'), true, 'las del catálogo sí');
   eq(P.estrategiaValida('estrategia9'), false, 'una que no existe, no');
+  eq(P.estrategiaValida('estrategia3'), false, '"Formación fija" se retiró del catálogo el 2026-09-23');
+});
+
+/* La contracara del retiro de `estrategia3`: sigue habiendo partidos guardados con esa clave, y
+   el combo y el motor tienen que ofrecerles la estrategia que la reemplazó y no el default
+   histórico, que los haría caer en "Solo por puntaje" sin que nadie lo pidiera. */
+prueba('"panel/S-21c" un partido guardado con una estrategia retirada trabaja con su sucesora', () => {
+  eq(P.estrategiaVigente('estrategia3'), 'estrategia4', '"Formación fija" retirada → la que se quedó con el nombre');
+  eq(P.estrategiaVigente('estrategia2'), 'estrategia2', 'una vigente se devuelve tal cual');
+  eq(P.estrategiaVigente('estrategia9'), 'estrategia1', 'una que nunca existió cae al default histórico');
+  eq(P.estrategiaVigente(undefined), 'estrategia1', 'un partido viejo sin estrategia guardada, también');
+  eq(P.estrategiaVigente('toString'), 'estrategia1', 'y no se cuela una clave heredada de Object');
 });
 
 prueba('"panel/S-21a" la cadena vacía no es una estrategia', () => {
@@ -680,7 +695,7 @@ function partidoConArmadoAlDia() {
 prueba('"panel/S-03a" cambiar la estrategia elegida deja el armado desactualizado', () => {
   const m = partidoConArmadoAlDia();
   eq(P.equiposStale(m), false, 'recién generado, el armado está al día');
-  m.estrategia = 'estrategia3';
+  m.estrategia = 'estrategia2';
   eq(P.equiposStale(m), true, 'elegir otra estrategia sin regenerar lo desactualiza');
 });
 
@@ -704,9 +719,9 @@ prueba('"panel/S-02a" cada estrategia del catálogo tiene su propio resumen, no 
   const catalogo = src.match(/const ESTRATEGIAS = \{[\s\S]*?\n  \};/);
   ok(catalogo, 'el catálogo de estrategias sigue existiendo');
   const resumenes = [...catalogo[0].matchAll(/resumen: '([^']+)'/g)].map(m => m[1]);
-  eq(resumenes.length, 4, 'las cuatro estrategias del catálogo traen resumen');
+  eq(resumenes.length, 3, 'las tres estrategias del catálogo traen resumen');
   ok(resumenes.every(r => r.trim().length > 10), 'ninguno está vacío ni es un placeholder');
-  eq(new Set(resumenes).size, 4, 'y los cuatro son distintos entre sí');
+  eq(new Set(resumenes).size, 3, 'y los tres son distintos entre sí');
 });
 
 console.log('');

@@ -1120,6 +1120,11 @@ ninguna. El modelo de datos cambia en la rebanada 5.
   pareja" guarda `balanceLineas` en el armado
   ([`index.html:3536`](../../../index.html#L3536)), de modo que el bloque por
   línea sólo puede aparecer con esas dos. Verificado por lectura el 2026-08-31.
+  Sigue valiendo después del 2026-09-23, cuando "Formación fija" (la Estrategia 3)
+  salió del catálogo de estrategias elegibles y "Formación fija pareja" se quedó
+  con ese nombre: son las mismas dos claves de armado (`estrategia3` en los
+  partidos ya generados, `estrategia4` en los nuevos) y las dos siguen guardando
+  `balanceLineas`.
 - **A-03** — Un movimiento manual no cambia la posición asignada de nadie
   (`D-20`), de modo que recalcular la diferencia por línea es aplicar
   `balanceLineasDe` al mismo mapa de posiciones con los repartos nuevos.

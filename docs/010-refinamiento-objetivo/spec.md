@@ -10,6 +10,16 @@
 
 **Input**: User description: "Que el refinamiento final de la Estrategia 3 respete el objetivo de diferencia en vez de minimizar la diferencia cruda. Cierra la limitación conocida de 009."
 
+
+> **Nota 2026-09-23 — cómo leer "Estrategia 3" en este documento.** La Estrategia 3 se retiró del
+> catálogo de estrategias elegibles ese día: ya no aparece en el combo de un partido ni en
+> Configuración. Lo que se retiró es la opción, no el armado. Todo lo que esta spec describe
+> —y todo lo que llama "Estrategia 3"— sigue siendo el código que corre hoy detrás de la
+> estrategia **"Formación fija"** (la ex "Formación fija pareja", que la llama con el balance por
+> línea prendido). Ningún requisito de este documento queda reemplazado ni retirado. Ver la
+> "Actualización 2026-09-23" de
+> [`docs/003-motor-generacion-equipos/spec.md`](../003-motor-generacion-equipos/spec.md).
+
 ## Contexto
 
 La Estrategia 3 termina su armado con un paso de refinamiento: busca pares de titulares de la misma posición en equipos distintos y aplica el intercambio que más achique la diferencia de puntaje, repitiendo hasta que ninguno mejore. Ese paso es el único del motor que revisa el resultado en lugar de decidir de una sola pasada, y es el que hace que la Estrategia 3 llegue a diferencias muy chicas.
