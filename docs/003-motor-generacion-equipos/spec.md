@@ -45,7 +45,7 @@
 
 **Actualización 2026-09-23 — la Estrategia 3 se retira del catálogo**: "Formación fija" deja de ofrecerse como estrategia elegible. No se puede seleccionar en el combo de un partido ni en la sección Configuración, y los partidos nuevos no pueden nacer con ella. La Estrategia 4 pasa a llamarse **"Formación fija"** (se llamaba "Formación fija pareja").
 
-Lo que se retira es la OPCIÓN, no el comportamiento. El armado de la Estrategia 3 —FR-018 a FR-021, y todo lo que `010-refinamiento-objetivo` y `011-encaje-optimo-formacion` le agregaron— sigue siendo el que corre hoy: la Estrategia 4 lo llama con el balance por línea prendido, y siempre fue exactamente eso (`generarEquiposEstrategia4` es una llamada a `generarEquiposEstrategia3` con una opción). Por eso ningún FR de esta spec queda reemplazado. Lo que sí deja de poder ocurrir es correr ese armado **sin** el balance por línea desde la interfaz; sigue siendo alcanzable desde los tests del motor, que es donde se mide qué agrega la 4 sobre la 3.
+Lo que se retira es la OPCIÓN, no el comportamiento. El armado de la Estrategia 3 —FR-018 a FR-021, y todo lo que `010-refinamiento-objetivo` y `011-encaje-optimo-formacion` le agregaron— sigue siendo el que corre hoy: la Estrategia 4 lo llama con el balance por línea prendido, y siempre fue exactamente eso (`generarEquiposEstrategia4` es una llamada a `generarEquiposEstrategia3` con una opción). Por eso el **comportamiento** que describen `FR-019` a `FR-021` no cambia por esta retirada. Lo que sí queda reemplazado es el **catálogo**: `FR-001` (que exige «al menos cuatro estrategias… seleccionables»), `FR-018` («El sistema MUST ofrecer la Estrategia 3») y `FR-022` («El sistema MUST ofrecer la Estrategia 4 (formación fija pareja)… La Estrategia 3 MUST seguir disponible») describen una oferta que ya no existe: hoy el catálogo tiene tres entradas y la etiqueta «formación fija pareja» no está en ninguna parte. La frase original de este párrafo decía que ningún FR quedaba reemplazado; era falsa para esos tres, y lo corrigió la auditoría de conformidad del 2026-09-23. Lo que sí deja de poder ocurrir es correr ese armado **sin** el balance por línea desde la interfaz; sigue siendo alcanzable desde los tests del motor, que es donde se mide qué agrega la 4 sobre la 3.
 
 Consecuencias en los criterios de aceptación ya escritos:
 
@@ -54,6 +54,24 @@ Consecuencias en los criterios de aceptación ya escritos:
 - La razón que sostenía tener las dos —"poder correrlas sobre el mismo partido y decidir con datos cuál conviene" (Clarification de la sesión 2026-08-24 sobre informar el balance por línea también en la 3)— se cumplió: se eligió la 4 y se usa en todos los partidos. El dato del balance por línea se sigue devolviendo siempre igual, porque es lo que alimenta el resumen.
 
 Los partidos ya armados con la Estrategia 3 **no se tocan**: su reparto, su resumen y su explicación se siguen mostrando tal como quedaron, con la clave `estrategia3` guardada. Recién si un "admin" pide armarlos de nuevo, ese partido pasa a "Formación fija" (la ex 4).
+
+**Actualización 2026-09-23 (2) — se anotan los reemplazos que faltaban**: la
+auditoría de conformidad del 2026-09-23 encontró que `009-ventaja-sin-arquero`,
+`010-refinamiento-objetivo` y `011-encaje-optimo-formacion` habían declarado
+correctamente, cada una en su sección *Enmiendas a specs vigentes*, qué parte de esta
+spec reemplazaban — pero que esta spec nunca lo anotó. `AGENTS.md` pide las dos
+cosas: la declaración en el documento nuevo **y** la marca en el viejo. Faltaba la
+segunda, así que seis requisitos seguían leyéndose como vigentes tal como estaban
+escritos. Se marcan en el lugar: `FR-004` (sólo su cláusula (b)), `FR-005` (sólo su
+última oración), `FR-012`, `FR-019`, `FR-020` y `FR-021`.
+
+`FR-012` es el caso distinto: **ninguna spec lo había declarado**. Su disparador pasó
+de la diferencia al desvío junto con `FR-004`(b), pero nadie lo escribió; lo encontró
+la auditoría. Con la ventaja en 0 —el valor por defecto— las dos formulaciones dan el
+mismo número, que es por qué nadie lo notó.
+
+No cambia ningún comportamiento ni ningún requisito de esta spec: sólo se hace
+explícito lo que ya había sido reemplazado.
 
 **Actualización 2026-08-25**: se cierra el gap del desempate de posiciones de la Estrategia 4. El armado se decidía en dos pasos —primero qué escenario de posiciones, después cómo se reparten los titulares entre los equipos— y el primero se quedaba con un escenario cualquiera entre todos los que empataban en encaje. El segundo paso era exhaustivo, pero solo dentro de ese escenario, así que el armado final no era el óptimo cuando el escenario descartado era el que habilitaba el mejor balance por línea. Se verificó por fuerza bruta sobre el espacio conjunto que el gap se manifestaba: en planteles con empate de encaje el motor se quedaba corto en cerca de la mitad de los casos, hasta por 4.5 puntos en una línea (los planteles reales del repositorio no lo exponían porque tienen muy pocas posiciones secundarias cargadas y sus clases de empate son de 1 o 2 escenarios). Ahora el reparto se evalúa sobre todos los escenarios empatados. Ver FR-028 y SC-009.
 
@@ -223,7 +241,26 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-002**: La Estrategia 1 MUST evaluar a cada jugador exclusivamente por su puntaje promedio, sin optimizar posiciones, mostrando igualmente la posición principal a modo informativo.
 - **FR-003**: La Estrategia 2 MUST determinar la mejor posición para cada jugador priorizando la posición principal, MUST usar una posición secundaria únicamente cuando corrija una imparidad de titulares en esa posición, y MUST calcular el puntaje con el de la posición asignada.
 - **FR-004**: El sistema MUST garantizar, como invariantes no configurables: (a) que ningún equipo tenga más de un arquero, y (b) que el motor siempre intente minimizar la diferencia de puntaje entre ambos equipos. Ninguno de los dos MUST aparecer como regla que se pueda deshabilitar en la sección Configuración.
+  **Reemplazado en parte (2026-09-23).** La cláusula (a) —ningún equipo con más de
+  un arquero— sigue vigente tal cual. La cláusula (b) la reemplaza
+  [`010-refinamiento-objetivo`](../010-refinamiento-objetivo/spec.md) (§ *Enmiendas a
+  specs vigentes*): donde dice «minimizar la diferencia de puntaje entre ambos
+  equipos» debe leerse «minimizar el **desvío respecto del objetivo de diferencia**»,
+  que vale cero salvo que haya una ventaja configurada y aplique
+  ([`009-ventaja-sin-arquero`](../009-ventaja-sin-arquero/spec.md)). Con la ventaja en
+  0 —el valor por defecto— las dos formulaciones coinciden, y por eso la diferencia
+  pasó desapercibida.
 - **FR-005**: El sistema MUST elegir a los arqueros de cada equipo por niveles: primero entre los titulares con Arquero como posición principal (los de mejor puntaje en esa posición, hasta un máximo de dos, uno por equipo); un titular con Arquero como posición principal nunca puede ser desplazado por uno que la tenga solo como posición secundaria. Únicamente cuando algún equipo quede sin arquero después de agotar los titulares con Arquero como posición principal, el sistema MUST buscar entre los titulares con Arquero como posición secundaria (los de mejor puntaje en esa posición) para cubrir ese lugar faltante; si no hay ningún candidato en ningún nivel, no asigna a nadie al arco. El sistema MUST reubicar en su mejor posición secundaria (o, en su defecto, como Delantero) a los titulares con Arquero como posición principal que no resulten elegidos; los candidatos elegibles solo por posición secundaria que no resulten elegidos MUST seguir jugando su posición principal habitual, sin relocación especial. El sistema MUST compensar equilibrando el resto del equipo únicamente cuando exista un único titular elegido para el arco (en cualquiera de los dos niveles) y el otro equipo quede sin arquero fijo.
+  **Reemplazado en su última oración (2026-09-23).** Todo lo anterior —la elección
+  de arqueros por niveles, que un natural nunca sea desplazado por un secundario, y
+  la reubicación de los excedentes— sigue vigente. La última oración («El sistema
+  MUST compensar equilibrando el resto del equipo únicamente cuando exista un único
+  titular elegido para el arco…») la reemplaza
+  [`009-ventaja-sin-arquero`](../009-ventaja-sin-arquero/spec.md) (§ *Enmiendas a
+  specs vigentes*): la compensación dejó de ser un invariante y pasó a ser un
+  parámetro configurable. Sólo existe si la ventaja es mayor que cero, y su monto es
+  el configurado, no el puntaje del único arquero. **Por defecto vale 0, así que hoy
+  no se compensa.**
 - **FR-006**: El sistema MUST excluir a los jugadores sin puntaje del cálculo de puntaje total del equipo, distribuyéndolos de la forma más equilibrada posible.
 - **FR-007**: El sistema MUST mostrar, dentro de cada equipo, a los jugadores ordenados por posición ascendente (Arquero, Defensor, Volante, Delantero).
 - **FR-008**: El sistema MUST generar, después de cada ejecución, una explicación en lenguaje claro de las decisiones relevantes tomadas, reflejando únicamente decisiones que ocurrieron efectivamente.
@@ -232,6 +269,14 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-010**: El sistema MUST permitir visualizar, reordenar por prioridad, habilitar, deshabilitar y parametrizar las reglas configurables (Balancear posiciones con `usarSecundarias`, Balancear jugadores sin puntaje, y Emparejar también cada línea con su margen de total — esta última solo visible y no deshabilitable con la Estrategia 4, ver FR-025), y MUST permitir ajustar el parámetro `diferenciaMaxima` del invariante de balancear puntaje, sin exponer ninguno de los dos invariantes (arqueros, puntaje) como regla que se pueda deshabilitar.
 - **FR-011**: El sistema MUST permitir elegir una estrategia por defecto global, aplicada al crear partidos nuevos, sin impedir elegir una estrategia distinta por partido. Esa estrategia por defecto MUST actualizarse sola con la última que el administrador elija en el selector de un partido, y MUST persistir entre sesiones. Cambiarla MUST NOT marcar como desactualizados los equipos ya generados de otros partidos: cada partido guarda su propia estrategia y se compara contra esa.
 - **FR-012**: Cuando la diferencia de puntaje entre equipos supere el `diferenciaMaxima` configurado, el sistema MUST resaltar esa métrica en el resumen y MUST agregar una explicación automática sugiriendo acciones correctivas, sin bloquear ninguna acción sobre el partido.
+  **Reemplazado en su disparador (2026-09-23).** Lo que se resalta y la explicación
+  que se agrega siguen igual; lo que cambió es *cuándo*. El aviso ya no se dispara
+  con «la diferencia de puntaje entre equipos» sino con el **desvío respecto del
+  objetivo**, por la misma razón que `FR-004`(b)
+  ([`009-ventaja-sin-arquero`](../009-ventaja-sin-arquero/spec.md), `FR-010`). A
+  diferencia de `FR-004`, `FR-005`, `FR-019`, `FR-020` y `FR-021`, **ninguna spec
+  había declarado este reemplazo**: lo encontró la auditoría de conformidad del
+  2026-09-23 y se anota acá.
 - **FR-013**: El sistema MUST avisar cuando la configuración del motor cambie después de haber generado los equipos de un partido, ofreciendo regenerarlos.
 - **FR-014**: El sistema MUST permitir mover jugadores entre equipos manualmente, por arrastre, después de una generación. El requisito no distingue plataforma: se verificó que el arrastre funciona también en dispositivos táctiles (ver Assumptions).
 - **FR-015**: El sistema MUST permitir bloquear y desbloquear jugadores en su equipo, y MUST garantizar que un jugador bloqueado nunca cambie de equipo en ninguna regeneración.
@@ -239,8 +284,31 @@ Cuando cambia la lista de jugadores convocados, el sistema regenera los equipos 
 - **FR-017**: La arquitectura del motor MUST permitir incorporar nuevas estrategias y reglas sin modificar el funcionamiento de las existentes.
 - **FR-018**: El sistema MUST ofrecer la Estrategia 3 (formación fija), que, después de asignar arqueros con las mismas reglas que la Estrategia 2 (FR-005), MUST intentar completar en cada equipo una formación de posiciones fija determinada por el tamaño de cancha del partido: 3 defensores, 3 volantes y 1 delantero para cancha de 8; 3 defensores, 4 volantes y 1 delantero para cancha de 9. Cumplir esa formación MUST ser un invariante no configurable, con esta prioridad fija entre reglas: (1) arqueros, (2) formación, (3) diferencia de puntaje entre equipos (best effort).
 - **FR-019**: Para cubrir cada lugar de la formación, el sistema MUST buscar candidatos en este orden: (a) titulares con esa posición como principal, priorizando al de mejor puntaje en esa posición; (b) si no hay más naturales disponibles, titulares con esa posición como secundaria, priorizando al de mejor puntaje en esa posición aunque sea menor al de otro candidato disponible para otro lugar — la formación MUST tener prioridad sobre el puntaje individual; (c) si ningún titular tiene esa posición ni como principal ni como secundaria, cualquier otro titular disponible, elegido priorizando no alejarse del `diferenciaMaxima` configurado. Dentro de cada nivel (a) o (b), los titulares sin puntaje cargado en esa posición MUST considerarse con la prioridad más baja de ese nivel: solo se los elige cuando no queda ningún candidato con puntaje disponible para ese mismo nivel y lugar. El sistema MUST resolver ambos equipos en simultáneo, lugar por lugar: para cada posición de la formación (ej. el primer lugar de Defensor), MUST decidir el candidato de ambos equipos antes de pasar al siguiente lugar de esa u otra posición, tomando siempre candidatos de un pool global de titulares aún no asignados (nunca completa un equipo entero antes de empezar el otro). Cuando varios lugares requieran simultáneamente el nivel (c), el sistema MUST resolverlos en orden de posición ascendente (Defensor, Volante, Delantero), el mismo orden de FR-007.
+  **Reemplazado en su procedimiento, no en su resultado (2026-09-23).** Lo reemplaza
+  [`011-encaje-optimo-formacion`](../011-encaje-optimo-formacion/spec.md) (§ *Enmiendas
+  a specs vigentes*): este requisito describe un procedimiento —resolver ambos equipos
+  en simultáneo, lugar por lugar, con niveles (a)/(b)/(c)— y `011` lo reemplaza por el
+  **resultado exigido**: el mejor encaje posible, con la prioridad de sus `FR-001` y
+  `FR-002`. El motor no recorre lugares: resuelve la asignación completa con
+  programación dinámica sobre el cupo global. La jerarquía gruesa (principal antes que
+  secundaria, y ambas antes que «cualquier otro») se conserva; el orden de recorrido y
+  los criterios de desempate por puntaje dentro de cada nivel, no.
 - **FR-020**: El sistema MUST reubicar a los titulares naturales excedentes de una posición (aquellos para los que no queda lugar en la formación) en su mejor posición secundaria que coincida con un lugar vacante de esa formación; si ninguna de sus posiciones secundarias coincide con un lugar vacante, se les aplica el criterio de FR-019(c).
+  **Reemplazado en su procedimiento (2026-09-23).** Igual que `FR-019`, y por la misma
+  enmienda de [`011-encaje-optimo-formacion`](../011-encaje-optimo-formacion/spec.md):
+  que un excedente termine en un lugar vacante que cubra sigue siendo cierto, pero ya
+  no se elige por «su mejor posición secundaria» —el encaje es ciego al puntaje
+  (`FR-003` de `011`)— sino como parte de la asignación óptima global.
 - **FR-021**: Con Estrategia 3, el sistema MUST tratar la diferencia de puntaje entre equipos como objetivo de mejor esfuerzo (best effort) subordinado a la formación: si, agotadas las opciones de FR-019 y FR-020, la diferencia sigue superando el `diferenciaMaxima` configurado, MUST completar la generación igual y mostrar el warning correspondiente (mismo mecanismo que FR-012), sin bloquear ninguna acción sobre el partido.
+  **Reemplazado por dos features (2026-09-23).** El umbral contra el que se compara
+  dejó de ser la diferencia y pasó a ser el desvío respecto del objetivo
+  ([`010-refinamiento-objetivo`](../010-refinamiento-objetivo/spec.md), § *Enmiendas a
+  specs vigentes*), y la referencia al procedimiento de `FR-019`/`FR-020` hay que
+  leerla contra el resultado que
+  [`011-encaje-optimo-formacion`](../011-encaje-optimo-formacion/spec.md) puso en su
+  lugar. **Lo que no cambia, y es lo que este requisito existe para fijar:** que el
+  puntaje está subordinado a la formación, que la generación se completa igual, y que
+  se avisa sin bloquear nada.
 - **FR-022**: El sistema MUST ofrecer la Estrategia 4 (formación fija pareja), que MUST resolver arqueros, posiciones, encaje y formación fija exactamente con las mismas reglas que la Estrategia 3 (FR-005, FR-018 a FR-020) y MUST diferir de ella únicamente en cómo elige el reparto de los titulares entre los dos equipos. La Estrategia 3 MUST seguir disponible y sin cambios de comportamiento: la elección entre las dos es del administrador, por partido.
 - **FR-023**: Con Estrategia 4, el sistema MUST elegir el reparto entre equipos evaluando TODOS los repartos posibles y quedándose con el mejor según este orden de criterios, de más a menos importante: (1) misma cantidad de unidades de armado en cada equipo; (2) que la diferencia de puntaje total no se aleje de la buscada más que el margen configurado (FR-025); (3) reparto parejo de los titulares sin puntaje entre ambos equipos, cuando esa regla está activa; (4) mínima suma de los CUADRADOS de la diferencia de puntaje de cada línea de campo (defensa, mediocampo, ataque); (5) menor desvío de la diferencia de puntaje total respecto de la buscada; (6) menor cantidad de jugadores que cambian de equipo respecto de la generación anterior. El cupo de duplas de rotación por equipo MUST tratarse como restricción dura del reparto y nunca como criterio a optimizar. El sistema MUST usar la suma de cuadrados y no la suma de valores absolutos, porque con el total fijo los cuadrados reparten el desbalance inevitable entre las líneas en vez de concentrarlo en una.
 - **FR-024**: El sistema MUST excluir la línea del arco del cálculo del balance por línea de FR-023(4), porque se resuelve antes del reparto (FR-005) y su diferencia es idéntica en todos los repartos posibles; MUST incluirla igualmente en la diferencia de puntaje total y en el resumen (FR-026).
