@@ -6467,8 +6467,13 @@
     // Utilidad SOLO para probar el prototipo — no forma parte de la spec.
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
-    const req = titularesRequeridos(m);
-    const faltan = req - m.convocados.length;
+    /* Cuántas VACANTES de titular quedan, no cuántos ids faltan: una dupla de rotación ocupa una
+       sola vacante con sus dos integrantes (FR-004b/FR-005), así que `req - convocados.length` se
+       queda corto en uno por cada dupla y el botón dejaba el partido incompleto — o no hacía nada,
+       cuando las duplas alcanzaban para que la cuenta de ids ya llegara a `req`. Es el MISMO
+       número que decide si el botón se muestra (`vacantes` en `renderMatchDetail`): antes eran dos
+       cuentas distintas y por eso el botón podía verse y no tener nada que hacer al tocarlo. */
+    const faltan = contarTitularesSuplentes(m).vacantes;
     if(faltan <= 0) return;
 
     let added = 0;

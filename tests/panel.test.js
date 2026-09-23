@@ -78,6 +78,14 @@ const DECLARACIONES = [
   'estrategiaValida',
   'estrategiaVigente',
   'renderPorQueQuedaronAsi',
+  /* El conteo de vacantes de titular y el botón de prueba que lo consume. `CANCHAS`,
+     `titularesRequeridos` y `getDuplaPartner` ya están más arriba. */
+  'blankScores',
+  'uid',
+  'normalize',
+  'getUnidadesConvocatoria',
+  'contarTitularesSuplentes',
+  'loadTestTitulares',
 ];
 
 /* Las declaraciones que necesita `explicacionesDelArmado`, que se carga aparte para poder
@@ -104,9 +112,19 @@ function cargarPanel() {
     function __setReceiptAbiertoDe(v){ receiptAbiertoDe = v; }
     const ESTRATEGIAS = { estrategia1:{}, estrategia2:{}, estrategia4:{} };
     const ESTRATEGIAS_RETIRADAS = { estrategia3: 'estrategia4' };
+    /* Lo que necesita loadTestTitulares y que no es una decisión suya: el padrón, la persistencia
+       y el repintado. Se stubean porque son efectos, no reglas — lo que el test mide es a cuántos
+       jugadores agrega, no que los guarde. */
+    let matches = [];
+    function __setMatches(ms){ matches = ms; }
+    function isAdmin(){ return true; }
+    function savePlayers(){}
+    function saveMatches(){}
+    function renderPlayersTab(){}
+    function renderMatchesTab(){}
   `;
   try {
-    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setMotorConfig, __setReceiptAbiertoDe, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
+    return new Function(`${prelude}${cuerpo}\nreturn { __setPlayers, __setMotorConfig, __setReceiptAbiertoDe, __setMatches, ESTRATEGIAS, ${DECLARACIONES.join(', ')} };`)();
   } catch (e) {
     throw new Error(`El código extraído de index.html no evaluó: ${e.message}`);
   }
@@ -722,6 +740,106 @@ prueba('"panel/S-02a" cada estrategia del catálogo tiene su propio resumen, no 
   eq(resumenes.length, 3, 'las tres estrategias del catálogo traen resumen');
   ok(resumenes.every(r => r.trim().length > 10), 'ninguno está vacío ni es un placeholder');
   eq(new Set(resumenes).size, 3, 'y los tres son distintos entre sí');
+});
+
+console.log('');
+console.log('\x1b[1mCOMPLETAR TITULARES (PRUEBA)\x1b[0m — una dupla ocupa UNA vacante, no dos\n');
+
+/* El botón "+ Completar titulares (prueba)" no es parte de ninguna Spec (es una utilidad del
+   prototipo), pero la regla que hacía mal SÍ lo es: una dupla de rotación ocupa una sola vacante
+   de titular con sus dos integrantes — `FR-004b`/`FR-005` de `docs/008-duplas-rotacion`. El botón
+   llevaba su propia cuenta (`titularesRequeridos(m) - m.convocados.length`), que cuenta ids y no
+   vacantes, así que con una dupla se quedaba corto en uno. Con exactamente una dupla y el resto
+   de las vacantes llenas, esa cuenta daba 0 y el botón no hacía NADA: se veía habilitado —su
+   visibilidad sí miraba `vacantes`— y al tocarlo no pasaba nada.
+
+   Los tests arman el padrón a mano porque `loadTestTitulares` inventa jugadores cuando el padrón
+   no alcanza, y ese camino tapa el error: el partido termina completo igual aunque la cuenta esté
+   mal. Hay un caso para cada rama. */
+
+function padron(n, desde = 0) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: 'p' + (desde + i), nombre: 'N' + (desde + i), apellido: 'A' + (desde + i),
+    estado: 'Activo', principal: 'Volante',
+    scores: { Arquero: null, Defensor: null, Volante: 5, Delantero: null },
+  }));
+}
+
+/* Un fútbol 8 (16 vacantes) al que le falta UNA, con una dupla entre los convocados: 16 ids que
+   ocupan 15 vacantes. Es el caso exacto que reportó el propietario. */
+function partidoConDuplaYUnaVacante() {
+  const jugadores = padron(20);
+  P.__setPlayers(jugadores);
+  const m = {
+    id: 'm1', cancha: 'futbol8', convocados: jugadores.slice(0, 16).map(p => p.id),
+    duplas: [['p0', 'p1']], estado: 'Inscripción abierta', inscripcionCerrada: false,
+  };
+  P.__setMatches([m]);
+  return m;
+}
+
+prueba('completar titulares con una dupla llena la vacante que la dupla deja libre', () => {
+  const m = partidoConDuplaYUnaVacante();
+  eq(P.contarTitularesSuplentes(m).vacantes, 1, 'punto de partida: 16 convocados, 15 vacantes ocupadas');
+  P.loadTestTitulares(m.id);
+  eq(P.contarTitularesSuplentes(m).vacantes, 0, 'después de completar no queda ninguna vacante');
+  eq(m.convocados.length, 17, 'se agregó exactamente un jugador: la dupla no necesitaba dos');
+});
+
+prueba('completar titulares sin duplas sigue agregando los que faltan y ni uno más', () => {
+  const jugadores = padron(20);
+  P.__setPlayers(jugadores);
+  const m = {
+    id: 'm2', cancha: 'futbol8', convocados: jugadores.slice(0, 13).map(p => p.id),
+    duplas: [], estado: 'Inscripción abierta', inscripcionCerrada: false,
+  };
+  P.__setMatches([m]);
+  P.loadTestTitulares(m.id);
+  eq(m.convocados.length, 16, 'sin duplas, ids y vacantes coinciden: se agregan los 3 que faltan');
+  eq(P.contarTitularesSuplentes(m).vacantes, 0, 'y el partido queda completo');
+});
+
+prueba('completar titulares con dos duplas llena las dos vacantes que liberan', () => {
+  const jugadores = padron(20);
+  P.__setPlayers(jugadores);
+  const m = {
+    id: 'm3', cancha: 'futbol8', convocados: jugadores.slice(0, 16).map(p => p.id),
+    duplas: [['p0', 'p1'], ['p2', 'p3']], estado: 'Inscripción abierta', inscripcionCerrada: false,
+  };
+  P.__setMatches([m]);
+  eq(P.contarTitularesSuplentes(m).vacantes, 2, '16 ids en 14 vacantes: faltan 2');
+  P.loadTestTitulares(m.id);
+  eq(P.contarTitularesSuplentes(m).vacantes, 0, 'se llenan las dos, no una');
+  eq(m.convocados.length, 18, 'dos jugadores nuevos, uno por vacante');
+});
+
+/* La otra rama: cuando el padrón no alcanza, inventa jugadores. Antes del arreglo este caso
+   quedaba completo IGUAL —los inventados tapaban la cuenta mal—, así que no basta con mirar el
+   resultado final: se cuenta cuántos se inventaron. */
+prueba('completar titulares inventa exactamente los jugadores que faltan, contando la dupla', () => {
+  const jugadores = padron(16);
+  P.__setPlayers(jugadores);
+  const m = {
+    id: 'm4', cancha: 'futbol8', convocados: jugadores.map(p => p.id),
+    duplas: [['p0', 'p1']], estado: 'Inscripción abierta', inscripcionCerrada: false,
+  };
+  P.__setMatches([m]);
+  P.loadTestTitulares(m.id);
+  eq(m.convocados.length, 17, 'el padrón estaba agotado, así que el que entró es inventado');
+  eq(P.contarTitularesSuplentes(m).vacantes, 0, 'y alcanza para completar el partido');
+});
+
+prueba('completar titulares no hace nada cuando no queda ninguna vacante', () => {
+  const jugadores = padron(20);
+  P.__setPlayers(jugadores);
+  const m = {
+    id: 'm5', cancha: 'futbol8', convocados: jugadores.slice(0, 17).map(p => p.id),
+    duplas: [['p0', 'p1']], estado: 'Inscripción abierta', inscripcionCerrada: false,
+  };
+  P.__setMatches([m]);
+  eq(P.contarTitularesSuplentes(m).vacantes, 0, '17 ids, una dupla: las 16 vacantes están ocupadas');
+  P.loadTestTitulares(m.id);
+  eq(m.convocados.length, 17, 'no se agrega a nadie');
 });
 
 console.log('');
