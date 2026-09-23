@@ -1,5 +1,24 @@
 # resultados-partido Specification
 
+> **Reemplazo parcial por la rebanada 6 de "Equipos en el campo" (2026-09-23).**
+> La pantalla de carga de resultado que este documento describe —una grilla con un
+> control numérico por jugador— **ya no existe**: `D-12` del Concept Note de
+> [`equipos-en-el-campo`](../equipos-en-el-campo/EQUIPOS_EN_EL_CAMPO_CONCEPT.md) la
+> reemplazó por la cancha, y la rebanada 6
+> ([`CARGA_POR_TOQUE_SPEC.md`](../equipos-en-el-campo/rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md))
+> la reemplazó por un selector de tipo de evento más un toque sobre la camiseta.
+> Quedan reemplazados dos requisitos y un escenario, marcados abajo en el lugar.
+>
+> **Lo que NO cambia, y es la mayor parte de este documento:** que un gol de penal
+> cuente como gol, que los penales no puedan superar los goles del jugador, cómo se
+> muestran los penales y los goles en contra en la ficha del partido, que el gol en
+> contra sume al rival y no al historial propio, y que la pantalla "jugadores" no
+> desglose penales. Todo eso sigue vigente tal cual, y la auditoría de conformidad
+> del 2026-09-23 lo verificó contra el código.
+>
+> Este documento viene de OpenSpec y no tiene identificadores estables, así que
+> las partes reemplazadas se citan por su nombre.
+
 ## Purpose
 
 Define cómo se registran, validan y muestran las estadísticas de gol por jugador dentro del resultado de un partido, incluyendo la distinción entre goles de penal y goles de juego.
@@ -32,11 +51,24 @@ El sistema SHALL impedir que la cantidad de goles de penal de un jugador en un p
 - **THEN** el sistema rechaza el valor o lo ajusta para que los penales no superen los goles, y no persiste un estado inconsistente
 
 #### Scenario: Equipo sin goles no puede tener penales
-- **WHEN** un jugador de un equipo que no convirtió ningún gol intenta registrar goles de penal
-- **THEN** el sistema no permite ingresar penales para ese jugador (el input de penales está deshabilitado o limitado a 0), igual que ocurre hoy con las asistencias cuando el equipo no tiene goles
+~~- **WHEN** un jugador de un equipo que no convirtió ningún gol intenta registrar goles de penal~~
+~~- **THEN** el sistema no permite ingresar penales para ese jugador (el input de penales está deshabilitado o limitado a 0), igual que ocurre hoy con las asistencias cuando el equipo no tiene goles~~
+
+**Reemplazado (2026-09-23).** Lo reemplaza `FR-033` de la rebanada 6: bajo el modelo
+de eventos un `golPenal` **es en sí mismo un gol**, así que la situación que este
+escenario describe —tener penales sin goles— es estructuralmente imposible, y no hay
+nada que deshabilitar. La analogía con las asistencias ya no se sostiene: esa regla
+sí sigue vigente (`FR-032` de la rebanada 6).
 
 ### Requirement: Carga de penales en la pantalla de resultado
-La pantalla de carga/edición del resultado del partido SHALL ofrecer, para cada jugador, un control numérico para los goles de penal con la misma interacción (input numérico, habilitación condicionada a tener goles) que el control existente para goles.
+~~La pantalla de carga/edición del resultado del partido SHALL ofrecer, para cada jugador, un control numérico para los goles de penal con la misma interacción (input numérico, habilitación condicionada a tener goles) que el control existente para goles.~~
+
+**Reemplazado (2026-09-23).** No hay control numérico por jugador para ninguna
+estadística: la grilla entera se borró (`D-12`). Los penales se cargan eligiendo
+"Penal" en el selector de tipo de evento y tocando la camiseta (§7.2 y §7.3 de la
+rebanada 6). La cláusula «habilitación condicionada a tener goles» la reemplaza
+además `FR-033`, por la razón del escenario de más arriba. El escenario que sigue
+("Control de penales visible junto al de goles") queda reemplazado con él.
 
 #### Scenario: Control de penales visible junto al de goles
 - **WHEN** un administrador abre la carga de resultado de un partido con registro no cerrado
@@ -101,7 +133,14 @@ A diferencia del gol de penal, la cantidad de goles en contra de un jugador SHAL
 - **THEN** el sistema permite cargarlo sin restricción
 
 ### Requirement: Carga de goles en contra en la pantalla de resultado
-La pantalla de carga/edición del resultado del partido SHALL ofrecer, para cada jugador, un control numérico para los goles en contra, con el mismo ícono de gol existente pero de color rojo, siempre habilitado mientras la fila sea editable.
+~~La pantalla de carga/edición del resultado del partido SHALL ofrecer, para cada jugador, un control numérico para los goles en contra, con el mismo ícono de gol existente pero de color rojo, siempre habilitado mientras la fila sea editable.~~
+
+**Reemplazado en su mecanismo (2026-09-23).** Igual que el requisito de penales: no
+hay control numérico ni filas: se elige "Gol en contra" en el selector y se toca la
+camiseta. **Lo que sí se conserva** es el ícono — el mismo gol en rojo
+(`assets/goal-icon-red.png`) — y que la carga esté siempre habilitada mientras la
+pantalla sea editable, sin condicionarla a los goles del jugador. El escenario que
+sigue ("Control de gol en contra visible junto a los demás") queda reemplazado con él.
 
 #### Scenario: Control de gol en contra visible junto a los demás
 - **WHEN** un administrador abre la carga de resultado de un partido con registro no cerrado

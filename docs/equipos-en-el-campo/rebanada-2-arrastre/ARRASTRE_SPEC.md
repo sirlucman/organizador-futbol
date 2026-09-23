@@ -481,9 +481,18 @@ esta rebanada:
 
 - **FR-040** — Mientras la inscripción del partido esté cerrada, el partido esté
   finalizado, o se esté editando el resultado de un partido finalizado, el sistema
-  no mostrará ningún selector ni ofrecerá ningún arrastre: esas tres pantallas
+  no ofrecerá ningún arrastre. ~~Ni mostrará ningún selector: esas tres pantallas
   siguen mostrando la lista de filas, exactamente como quedaron tras la rebanada
-  1 (`FR-042` de la Spec de la rebanada 1).
+  1 (`FR-042` de la Spec de la rebanada 1).~~
+  **Reemplazado en parte (2026-09-23).** De las tres cláusulas, **la primera sigue
+  vigente**: en esas pantallas `esFilaEditable` es falso, así que no se emite
+  ningún origen ni destino de arrastre, y la rebanada 6 es toque, no arrastre. Las
+  otras dos las reemplaza la rebanada 6
+  ([`CARGA_POR_TOQUE_SPEC.md`](../rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md),
+  ver su Declaración de reemplazo): el selector de equipo pasa a ser parte del modo
+  de carga (`FR-020`), y la lista de filas deja de existir en toda la aplicación
+  (`FR-001`/`FR-002`, sobre `D-12` del Concept Note). El `FR-042` que esta cláusula
+  citaba quedó a su vez sin ningún estado en el que aplique.
 - **FR-041** — Donde el rol de la sesión sea `jugador`, el sistema no marcará
   ninguna camiseta como arrastrable.
 - **FR-041b** — Donde el rol de la sesión sea `jugador`, el sistema no expondrá
@@ -1036,6 +1045,7 @@ esa Spec.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marca `FR-040` como reemplazado **en parte** por la rebanada 6. Su primera cláusula —que en esas tres pantallas no se ofrece arrastre— sigue vigente; las otras dos (ningún selector, y la lista de filas) las reemplazan `FR-020` y `FR-001`/`FR-002` de `CARGA_POR_TOQUE_SPEC.md`. Lo detectó la auditoría de conformidad del 2026-09-23. Se marcó cláusula por cláusula a propósito: tachar el requisito entero habría borrado una restricción que sigue rigiendo. |
 | 2026-09-02 | Lucas Manoukian | `S-01a` se ajusta a la enmienda de `FR-012` en `CANCHA_SPEC.md` §18 (rebanada 1, no ésta): la línea de origen que queda sin nadie ahora se sigue dibujando, vacía, en vez de omitirse — el comportamiento viejo era justo lo que generaba la confusión reportada (una unidad movida se veía en el lugar de la línea que desapareció). Self-critique: no corresponde (enmienda desde otra rebanada). |
 | 2026-08-31 | Lucas Manoukian | Se disuelve §3.4: las cuatro decisiones que esta Spec había tomado pasan al Concept Note como `D-18` a `D-21` y acá quedan como heredadas en §3.3, que es lo que la separación de tres documentos (`MD-01`) pide. El relato de la premisa falsa que dio origen a `D-18` y `D-21` pasa al §17 del Concept Note. Cierra `OPEN-Q-07`. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
 | 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las cuatro decisiones tomadas con el propietario el mismo día, en una §3.4 propia que la enmienda posterior disolvió. El borrador se reescribió dos veces antes de guardarse. Primera: la premisa de que el arrastre nativo no funciona con el dedo resultó falsa contra `003-motor-generacion-equipos` § Assumptions, lo que cambió la decisión 1 de "construir un gesto propio" a "reponer el nativo"; y la declaración de reemplazo apuntaba a `005-mover-jugador-manual`, carpeta que no existe. Segunda: la decisión 4 pasó de "las pestañas se deciden en la rebanada 3" a "el selector entra en esta rebanada", porque el apilado dejaba el gesto dependiendo de una verificación en teléfono que este entorno no puede hacer; eso incorporó §7.4, `TC-015`, `TC-035`, `NFR-008`, `S-04`, la enmienda al `FR-054` de la rebanada 1, y `R-02` (el intercambio no existe en una columna). Self-critique: passed (1🔴 / 7🟡 / 2🔵). El 🔴 —`FR-033` fuera de los cinco patrones EARS (`MD-03`)— reescrito como event-driven. De los 🟡 se resolvieron seis: dos citas a `index.html` desalineadas por una línea (la guarda de rol estaba en 4024, no 4023; el subtítulo en 4351, no 4350); seis `FR-*` compuestos partidos con sufijo `b` conservando los identificadores estables; "objetivo cuantificado" definido como lista cerrada en el preámbulo de §8, porque `T-N.D9` y `T-N.D16` se construyen sobre ese conjunto y la Spec lo dejaba a interpretación; tres métricas de §12 convertidas de ausencia-de-queja a conteo; y la fila de glosario que definía dos términos, partida en dos. El 🟡 restante —§3.4 y §9.4 son secciones fuera de la plantilla, y registrar decisiones de producto es trabajo del Concept Note (`MD-01`)— se elevó a `OPEN-Q-07` en vez de resolverse acá: enmendar el Concept Note es una rama propia. El 🟡 de §4.5 (`[UNVERIFIED]` del CWE Top 25 por estar sin conexión) queda sin acción disponible en este entorno; la rúbrica lo gradúa 🟡 y no 🔴 por estar declarado. Los 🔵: el diagrama de §9.4 se conserva pese a ser subsección agregada, porque `MD-24` ubica los diagramas de escenario en §9; y el bloque mermaid se validó renderizándolo con el Chromium de Playwright (6 estados, tope 15). |

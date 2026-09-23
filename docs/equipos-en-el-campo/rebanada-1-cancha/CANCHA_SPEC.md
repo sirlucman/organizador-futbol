@@ -384,10 +384,22 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
   agrupadas por línea.
 - **FR-041** — En ese estado el sistema no mostrará la lista de filas, ni ofrecerá
   ninguna forma de volver a ella (`D-12`).
-- **FR-042** — Mientras el partido tenga la inscripción cerrada, esté finalizado, o
+- **FR-042** — ~~Mientras el partido tenga la inscripción cerrada, esté finalizado, o
   se esté editando el resultado de un partido finalizado, el sistema seguirá
   mostrando la lista de filas actual, sin ningún cambio de comportamiento ni de
-  apariencia.
+  apariencia.~~
+  **Reemplazado, y sin ningún estado en el que aplique (2026-09-23).** Este
+  requisito difería los tres estados que esta rebanada no tomaba; las rebanadas
+  que sí los tomaron los fueron cerrando, hasta agotarlos. El estado *finalizado
+  sin editar* lo reemplazó la rebanada 4 (`FR-020` de
+  [`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md));
+  los otros dos —*inscripción cerrada sin finalizar* y *edición del resultado de
+  un partido finalizado*— los reemplaza la rebanada 6 (`FR-001` y `FR-002` de
+  [`CARGA_POR_TOQUE_SPEC.md`](../rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md),
+  ver su Declaración de reemplazo). La lista de filas ya no existe en ninguna
+  pantalla: `D-12` del Concept Note la reemplaza por completo. Arrastra con él a
+  los escenarios que lo ejercitan (`S-10`, `S-10a`, `S-10b`) y a `AC-03`, que
+  quedan igualmente sin estado que describir.
 - **FR-043** — El sistema no modificará ningún otro elemento de la tarjeta de
   equipos: encabezado, subtítulo, aviso de equipos desactualizados, resúmenes de
   diferencia y de posiciones, bloque "Por qué quedaron así" y botonera quedan como
@@ -805,6 +817,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marca `FR-042` como reemplazado —y ya sin ningún estado en el que aplique— por `FR-001`/`FR-002` de la rebanada 6, que es la que cierra los dos estados que quedaban (la rebanada 4 había cerrado el tercero). Arrastra a `S-10`, `S-10a`, `S-10b` y `AC-03`. Lo detectó la auditoría de conformidad del 2026-09-23: la declaración existía de un solo lado. No cambia ningún otro requisito ni el comportamiento de la aplicación. |
 | 2026-09-02 | Lucas Manoukian | `FR-012` se invierte: una línea del catálogo sin unidades ahora se dibuja igual, vacía, en vez de omitirse. Reportado desde la rebanada 2 (el arrastre): mover a mano un jugador entre equipos puede dejar a uno sin nadie en una línea (p. ej. sin Ataque), y con el comportamiento original la línea de al lado subía a ocupar ese lugar — un volante terminaba viéndose donde antes estaba el delantero, dando la impresión de que jugaba ahí. Se ajustan `S-01b`, `S-02` y `S-02c`, que describían el comportamiento viejo como el correcto. `S-01a` de `ARRASTRE_SPEC.md` (rebanada 2) queda igual de afectado; se anota ahí también. Self-critique: no corresponde (enmienda posterior a la implementación, a pedido explícito de una corrección puntual). |
 | 2026-08-31 | Lucas Manoukian | `FR-054` y el último *Then* de `S-06` quedan reemplazados por la rebanada 2: en una sola columna los equipos dejan de apilarse y pasan al selector segmentado. Cierra además la `OPEN-Q-01` de esta Spec, cuyo *target stage* era la Spec de la rebanada 2 o la 3. Self-critique: no corresponde (enmienda desde otra rebanada). |
 | 2026-08-31 | Lucas Manoukian | `FR-053` queda sin efecto: la premisa de `D-03` —que la cancha de 9 desborda a 360 px— no se sostiene contra la implementación, porque las columnas son flexibles y se encogen. Se usan los escalones del handoff en todo el rango. Descubierto al ejecutar el gate del Principio V: el escenario nuevo **pasaba** con el escalón revertido, que es exactamente lo que ese gate existe para detectar. Self-critique: no corresponde (enmienda posterior a la implementación). |

@@ -510,16 +510,26 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   ejecutará la edición del resultado, aunque se la invoque directamente
   (heredado de `TC-040`, sin cambios de código: la guarda ya existe en
   `__editarResultadoFinalizado`).
-- **FR-063** — Mientras se esté editando el resultado de un partido
+- **FR-063** — ~~Mientras se esté editando el resultado de un partido
   finalizado (`editandoResultadoFinalizado === m.id`), el sistema mostrará la
   tarjeta exactamente como la rebanada 3 la dejó: lista de filas, sin cancha,
   sin chips, sin fila de resultado ni filas de detalle (heredado de
   `FR-083`/`FR-083b`, con el alcance recortado por la declaración de
-  reemplazo de arriba).
-- **FR-064** — Mientras la inscripción esté cerrada y el partido **no** esté
+  reemplazo de arriba).~~
+  **Reemplazado (2026-09-23).** Lo reemplaza `FR-002` de la rebanada 6
+  ([`CARGA_POR_TOQUE_SPEC.md`](../rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md),
+  ver su Declaración de reemplazo) junto con sus controles de carga: editar el
+  resultado de un partido finalizado abre hoy **la misma cancha en modo de carga
+  por toque**, con las pastillas en vivo, la fila de resultado y las filas de
+  detalle editables — es decir, las cuatro cosas que este requisito excluía.
+- **FR-064** — ~~Mientras la inscripción esté cerrada y el partido **no** esté
   finalizado, el sistema mostrará la tarjeta exactamente como la rebanada 3 la
   dejó (sin cambios: esa combinación de estados queda fuera de esta
-  rebanada).
+  rebanada).~~
+  **Reemplazado (2026-09-23).** Lo reemplaza `FR-001` de la rebanada 6: esa
+  combinación de estados, que este requisito difería explícitamente («queda fuera
+  de esta rebanada»), es exactamente la que la rebanada 6 toma, y en ella la
+  tarjeta muestra la cancha en modo de carga por toque.
 
 ## 8. Non-functional requirements
 
@@ -924,6 +934,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marcan `FR-063` y `FR-064` como reemplazados por `FR-002` y `FR-001` de la rebanada 6. Los dos diferían explícitamente estados que esa rebanada toma, y en los dos la tarjeta muestra hoy la cancha en modo de carga por toque en vez de la lista de filas. Lo detectó la auditoría de conformidad del 2026-09-23. |
 | 2026-09-04 | Lucas Manoukian | Enmienda para implementar el turno 12 del documento de diseño (`12c`, "Partido finalizado — el mismo layout, de lectura"), pedido explícito del propietario. **(1)** El encabezado de la tarjeta pasa a titularse "Resultado": `FR-001` se enmienda y `FR-002`, `FR-004` quedan sin efecto (la fecha y el tamaño de cancha ya viven en el encabezado de la pantalla, arriba de las dos columnas). **(2)** La línea con la estrategia aplicada se retira: `FR-003`, `FR-005`, `FR-005b` y `FR-005c` quedan sin efecto. Cierra la inconsistencia que `DELTA.md` §B ya declaraba desde el 2026-09-02 ("la estrategia aplicada ya no se nombra en ninguna parte") y que esta pantalla contradecía. Se retira `lineaEstrategiaPartidoFinalizado` y su entrada en `DECLARACIONES` de `finalizado.test.js`. **(3)** El nombre y el puntaje de armado vuelven a la fila de resultado en dos columnas (`FR-041`) y desaparecen del encabezado de cada campo en ese ancho (`FR-042b`, ahora acotado a una columna): es el reparto que dibuja `12c`. Se reescribe `S-04` y se agrega su variante de una columna. Self-critique: no corresponde (enmienda para alinear con un diseño ya aprobado, verificada con la suite de tests). |
 | 2026-09-03 | Lucas Manoukian | Enmienda pedida por el propietario: se deroga `FR-055` — un equipo sin goleadores ya no muestra el texto "Sin goleadores" debajo de su campo, no muestra nada en su lugar. Mismo criterio que se aplicó el mismo día a `FR-043` de `CARGA_POR_TOQUE_SPEC.md` (rebanada 6) para el estado análogo "sin eventos cargados". Se ajusta la variante `S-05a`. Ningún otro requisito cambia. Self-critique: no corresponde (derogación acotada, sin requisitos nuevos que auditar). |
 | 2026-09-02 | Lucas Manoukian | Actualización pendiente desde una corrección ya implementada y mergeada (avisado en su momento, quedó para una pasada aparte). Dos cambios, a pedido del usuario. **(1)** El nombre/puntaje de la fila de resultado se muda al encabezado de cada panel de equipo: `FR-041` queda invertido (la fila ya no muestra nombre ni puntaje de armado, en ningún ancho — sólo el marcador de `FR-040`, con cada número ahora centrado bajo la mitad de la zona de su equipo); `FR-042` queda sin efecto, absorbido por el `FR-041` nuevo; `FR-042b` se invierte en sentido contrario al que tenía (antes prohibía repetir el puntaje en el encabezado del panel porque la fila de resultado ya lo mostraba; ahora que la fila dejó de mostrarlo, el encabezado lo muestra él solo — reemplaza al nombre en una columna, se agrega a su derecha en dos). Se reescriben `S-04` y `AC-05` en consecuencia. **(2)** La línea de estrategia del encabezado (`FR-003`, `FR-005`, `FR-005b`, `FR-005c`) pasa de mostrar el campo `resumen` (la explicación larga de qué hace la estrategia) al `label` (su nombre corto): la explicación resultó más ruido que información en esta pantalla, mismo diagnóstico que ya había sacado el subtítulo completo el 2026-09-01 en `PANEL_ARMADO_SPEC.md`. Se ajustan `S-01`, `S-01a`, `S-10`, `S-10a` y `AC-07`. Self-critique: no corresponde (corrección puntual a pedido explícito, verificada con la suite de tests, incluida la actualización tardía del punto 1 que debí haber hecho el mismo día que el código). |
