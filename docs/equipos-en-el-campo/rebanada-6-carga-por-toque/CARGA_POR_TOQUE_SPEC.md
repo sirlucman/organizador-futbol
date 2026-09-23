@@ -37,6 +37,75 @@
 > 2025, la vigente a esa fecha), a diferencia de las Specs de las rebanadas 4
 > y 5, que quedaron `[UNVERIFIED — sin conexión]` en ese punto.
 
+> **Declaración de reemplazo (gobernanza vigente en
+> [`AGENTS.md`](../../../AGENTS.md)).** Esta Spec enmienda, cada una en su
+> parte, cuatro Specs vigentes de esta misma feature y una de otra feature.
+>
+> El origen es `D-12` del Concept Note —heredado, no nuevo (§5)—: «la cancha
+> reemplaza por completo la lista actual de equipos: no conviven, y no queda
+> un camino para volver a la lista». Las rebanadas 1 a 4 fueron dejando esa
+> lista en pie **en los estados que cada una no tomaba**, y esta rebanada es
+> la que toma los dos que faltaban: es acá donde la lista deja de existir.
+> Los requisitos de abajo no estaban equivocados — eran diferimientos con
+> alcance, y éste es el documento que los cierra.
+>
+> Los dos estados que esta rebanada toma son **inscripción cerrada con el
+> partido no finalizado** (`FR-001`) y **edición del resultado de un partido
+> finalizado** (`FR-002`). El tercero —finalizado sin editar— ya lo había
+> reemplazado la rebanada 4 con su `FR-020`, y no se vuelve a declarar acá.
+>
+> - [`CANCHA_SPEC.md`](../rebanada-1-cancha/CANCHA_SPEC.md), `FR-042` — fijaba
+>   que en esos tres estados «el sistema seguirá mostrando la lista de filas
+>   actual, sin ningún cambio de comportamiento ni de apariencia». Queda
+>   reemplazado, en los dos estados de arriba, por `FR-001`/`FR-002` de esta
+>   Spec. Sumado al reemplazo que ya había hecho la rebanada 4, `FR-042` no
+>   conserva ningún estado en el que aplique. Arrastra con él a los escenarios
+>   que lo ejercitan (`S-10`, `S-10a`, `S-10b`) y a `AC-03`.
+>
+> - [`ARRASTRE_SPEC.md`](../rebanada-2-arrastre/ARRASTRE_SPEC.md), `FR-040` —
+>   tiene tres cláusulas y **sólo dos quedan reemplazadas**. Sigue vigente «no
+>   ofrecerá ningún arrastre»: en el modo de carga `esFilaEditable` es falso,
+>   así que no se emite ningún origen ni destino de arrastre, y esta rebanada
+>   es toque, no arrastre. Se reemplazan «no mostrará ningún selector», por
+>   `FR-020` de esta Spec —el selector de equipo es parte del modo de carga—,
+>   y «siguen mostrando la lista de filas», por `FR-001`/`FR-002`.
+>
+> - [`PANEL_ARMADO_SPEC.md`](../rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md),
+>   `FR-083` y `FR-083b` — `FR-083` («seguirá mostrando los equipos como lista
+>   de filas y no como cancha») queda reemplazado por `FR-001`/`FR-002`.
+>   `FR-083b` no se contradice pero queda **vacío**: su guarda es «mientras
+>   los equipos se muestren como lista de filas», un estado que ya no puede
+>   darse. Los cuatro bloques que enumera se siguen mostrando; lo que se cae
+>   es la condición, no el contenido.
+>
+> - [`PARTIDO_FINALIZADO_SPEC.md`](../rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md),
+>   `FR-063` y `FR-064` — `FR-063` («editando… lista de filas, sin cancha, sin
+>   chips, sin fila de resultado ni filas de detalle») queda reemplazado por
+>   `FR-002` y por los controles de carga de §7.2 a §7.6: esa pantalla muestra
+>   hoy la cancha, las pastillas en vivo, la fila de resultado y las filas de
+>   detalle editables. `FR-064` («inscripción cerrada y no finalizado… esa
+>   combinación de estados queda fuera de esta rebanada») queda reemplazado
+>   por `FR-001`: es exactamente la combinación que esta rebanada toma.
+>
+> - [`docs/resultados-partido/spec.md`](../../resultados-partido/spec.md) —
+>   dos requisitos y un escenario, citados por nombre porque ese documento
+>   viene de OpenSpec y no tiene identificadores estables. «Carga de penales
+>   en la pantalla de resultado» y «Carga de goles en contra en la pantalla de
+>   resultado» describen un control numérico por jugador dentro de la grilla
+>   que `D-12` borra; quedan reemplazados por el selector de tipo de evento y
+>   el toque sobre la camiseta (§7.2, §7.3). El escenario «Equipo sin goles no
+>   puede tener penales» queda reemplazado por `FR-033`: bajo el modelo de
+>   eventos un `golPenal` es en sí mismo un gol, así que esa restricción ya no
+>   tiene nada que restringir.
+>
+> Ningún otro `FR-*`/`NFR-*`/`TC-*` de las rebanadas 1 a 5 queda tocado: la
+> geometría de la cancha, el arrastre entre equipos, los roles y el resto del
+> comportamiento de lectura siguen exactamente como esas Specs los dejaron.
+> La **anotación recíproca** en los cinco documentos —que `AGENTS.md` pide
+> además de esta declaración— todavía no está hecha; hasta que lo esté, los
+> requisitos de arriba siguen leyéndose como vigentes en su documento de
+> origen.
+
 ## 1. Purpose
 
 Esta Spec define cómo un administrador **carga** el resultado de un partido
@@ -798,6 +867,7 @@ que registrar.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-09-23 | Lucas Manoukian (claude-opus-5) | Se agrega la **Declaración de reemplazo** que faltaba. La auditoría de conformidad del 2026-09-23 encontró que esta Spec era la única de las seis rebanadas sin el bloque, y que por eso cinco documentos vigentes seguían describiendo la lista de filas que `D-12` ya había reemplazado: `CANCHA_SPEC` `FR-042`, `ARRASTRE_SPEC` `FR-040` (dos de sus tres cláusulas), `PANEL_ARMADO_SPEC` `FR-083`/`FR-083b`, `PARTIDO_FINALIZADO_SPEC` `FR-063`/`FR-064` y dos requisitos más un escenario de `docs/resultados-partido/spec.md`. No cambia ningún requisito de esta Spec: sólo declara lo que ya había reemplazado. Self-critique: no corresponde (no hay requisitos nuevos que auditar). Falta la anotación recíproca en los cinco documentos. |
 | 2026-09-03 | Lucas Manoukian | Enmienda pedida por el propietario tras ver `feature/carga-por-toque` ya en uso: `FR-043` hacía que "Sin eventos cargados para este equipo" apareciera para `admin` apenas se cerraba la inscripción, antes de tocar la cancha una sola vez — se leía como un error, no como un aviso útil. Se deroga `FR-043`: sin eventos, el sistema no shall mostrar nada (para ningún rol), ni en el estado inicial ni al vaciarse la última fila con "−" (se ajusta `FR-053` y la variante `S-04a` en consecuencia). No hay ningún requisito nuevo, sólo la eliminación de uno. Self-critique: no corresponde (derogación acotada, sin requisitos nuevos que auditar). |
 | 2026-09-01 | Lucas Manoukian | Enmienda pedida por el propietario tras usar `feature/carga-por-toque`: mantener presionado el mismo destino de toque de `FR-030`/`FR-030b` (≥550ms) también saca un evento de la familia activa, sin bajar hasta la fila de detalle a tocar "−". Se agregan `FR-054`/`FR-054b` (§7.6b) y las variantes `S-04d`/`S-04e`. Reutiliza `quitarUltimoDeFamilia`/`__quitarUltimoDeFamiliaCarga`, ya existentes (`FR-051`): no hay ninguna regla de negocio nueva, sólo un segundo gatillo para la misma acción. Self-critique: no corresponde (adición acotada, con el código y el test ya verificados contra el repositorio real). |
 | 2026-09-01 | Lucas Manoukian | Enmienda encontrada al probar `feature/carga-por-toque` ya mergeada en un teléfono real: el nombre del jugador (`.camiseta-nombre`) resultó un blanco de toque demasiado chico en la práctica. Se ajusta `FR-030` para que, sobre una unidad INDIVIDUAL, el toque abarque toda la camiseta (silueta y nombre); sobre una dupla sigue acotado al nombre de cada integrante, sin cambios (`FR-030b` sigue vigente tal cual). Se agrega la variante `S-01f`. Ninguna otra decisión, requisito ni pregunta abierta cambia. Self-critique: no corresponde (enmienda acotada, con el código y el test ya verificados contra el repositorio real). |
