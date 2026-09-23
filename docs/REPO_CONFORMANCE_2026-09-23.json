@@ -1,0 +1,341 @@
+{
+  "schema": "spec-conformance/1",
+  "generated": "2026-09-23",
+  "provenance": {
+    "docs": {
+      "repo": "organizador-futbol",
+      "sha": "cd300175377063f0adf3531afc4cecf4229b10f3",
+      "branch": "main",
+      "state": "clean"
+    },
+    "code": {
+      "repo": "organizador-futbol",
+      "sha": "cd300175377063f0adf3531afc4cecf4229b10f3",
+      "branch": "main",
+      "state": "clean (untracked archive-nFTQ3q/ = a zip, outside the frontier)"
+    },
+    "read_in_place": true,
+    "worktree_created": false,
+    "feature_executed": false,
+    "tests_run": false
+  },
+  "denominator": {
+    "defined_ids": 1293,
+    "raw_grep_ids": 1351,
+    "phantoms_excluded": 58,
+    "phantom_reason": "citation-only IDs from range references such as 'FR-030 a FR-037'; denominator rebuilt from definition shapes (bullet / table-row / scenario-heading / variant-bullet), fence-aware",
+    "specs": 26,
+    "excluded_documents": [
+      {
+        "path": "docs/resultados-partido/spec.md",
+        "reason": "OpenSpec format, no stable IDs of any family",
+        "audited_anyway": true,
+        "units": 33,
+        "verdicts": {
+          "IMPLEMENTED": 23,
+          "PARTIAL": 4,
+          "DIVERGENT": 6,
+          "ABSENT": 0,
+          "UNVERIFIABLE": 0
+        }
+      }
+    ]
+  },
+  "binding_convention": {
+    "variant": "variant-a",
+    "note": "IDs as canonical hyphenated strings inside string literals (AGENTS.md). Every gate was scoped per feature by namespace prefix before being trusted.",
+    "namespaces": [
+      "cancha/",
+      "arrastre/",
+      "panel/",
+      "finalizado/",
+      "eventos/",
+      "toque/",
+      "rol/",
+      "partido/"
+    ],
+    "unscoped_collision_risk": "S-01 and NFR-001 are each defined in 7+ specs; an unscoped gate reports other features' bindings as coverage.",
+    "manual_procedure_features": [
+      "goles-en-contra",
+      "orden-jugadores"
+    ]
+  },
+  "totals": {
+    "IMPLEMENTED": 938,
+    "PARTIAL": 104,
+    "DIVERGENT": 114,
+    "UNVERIFIABLE": 70,
+    "ABSENT": 7,
+    "DEFERRED_TO_GATES": 60
+  },
+  "assertions": {
+    "row_count_equals_denominator": true,
+    "rows": 1293,
+    "verdicts": 1293
+  },
+  "clusters": [
+    {
+      "cluster": "cancha-A",
+      "ids": 50,
+      "IMPL": 41,
+      "PART": 2,
+      "DIV": 4,
+      "UNVER": 2,
+      "ABS": 1,
+      "DEFER": 0
+    },
+    {
+      "cluster": "cancha-B",
+      "ids": 67,
+      "IMPL": 35,
+      "PART": 10,
+      "DIV": 6,
+      "UNVER": 10,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "arrastre-A",
+      "ids": 64,
+      "IMPL": 59,
+      "PART": 2,
+      "DIV": 3,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "arrastre-B",
+      "ids": 87,
+      "IMPL": 58,
+      "PART": 10,
+      "DIV": 7,
+      "UNVER": 6,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "panel-C",
+      "ids": 63,
+      "IMPL": 55,
+      "PART": 1,
+      "DIV": 7,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "eventos-A",
+      "ids": 32,
+      "IMPL": 25,
+      "PART": 1,
+      "DIV": 6,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "eventos-B",
+      "ids": 40,
+      "IMPL": 26,
+      "PART": 4,
+      "DIV": 3,
+      "UNVER": 1,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "rol-B",
+      "ids": 60,
+      "IMPL": 37,
+      "PART": 3,
+      "DIV": 0,
+      "UNVER": 14,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "toque-B",
+      "ids": 54,
+      "IMPL": 36,
+      "PART": 6,
+      "DIV": 2,
+      "UNVER": 4,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "orden-B",
+      "ids": 43,
+      "IMPL": 32,
+      "PART": 2,
+      "DIV": 1,
+      "UNVER": 2,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "goles-contra",
+      "ids": 56,
+      "IMPL": 33,
+      "PART": 7,
+      "DIV": 10,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "panel-A",
+      "ids": 69,
+      "IMPL": 57,
+      "PART": 6,
+      "DIV": 6,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "orden-A",
+      "ids": 48,
+      "IMPL": 39,
+      "PART": 4,
+      "DIV": 5,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "G1",
+      "ids": 45,
+      "IMPL": 36,
+      "PART": 4,
+      "DIV": 5,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "finalizado-A",
+      "ids": 56,
+      "IMPL": 50,
+      "PART": 3,
+      "DIV": 3,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "toque-A",
+      "ids": 50,
+      "IMPL": 45,
+      "PART": 1,
+      "DIV": 4,
+      "UNVER": 0,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "finalizado-B",
+      "ids": 64,
+      "IMPL": 40,
+      "PART": 6,
+      "DIV": 7,
+      "UNVER": 5,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "rol-A",
+      "ids": 52,
+      "IMPL": 39,
+      "PART": 1,
+      "DIV": 0,
+      "UNVER": 12,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "navegacion",
+      "ids": 65,
+      "IMPL": 43,
+      "PART": 9,
+      "DIV": 6,
+      "UNVER": 1,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "panel-B",
+      "ids": 73,
+      "IMPL": 35,
+      "PART": 14,
+      "DIV": 9,
+      "UNVER": 9,
+      "ABS": 0,
+      "DEFER": 6
+    },
+    {
+      "cluster": "G2",
+      "ids": 36,
+      "IMPL": 17,
+      "PART": 5,
+      "DIV": 10,
+      "UNVER": 0,
+      "ABS": 4,
+      "DEFER": 0
+    },
+    {
+      "cluster": "G5",
+      "ids": 46,
+      "IMPL": 38,
+      "PART": 1,
+      "DIV": 4,
+      "UNVER": 2,
+      "ABS": 1,
+      "DEFER": 0
+    },
+    {
+      "cluster": "G3",
+      "ids": 35,
+      "IMPL": 28,
+      "PART": 0,
+      "DIV": 5,
+      "UNVER": 2,
+      "ABS": 0,
+      "DEFER": 0
+    },
+    {
+      "cluster": "G4",
+      "ids": 38,
+      "IMPL": 34,
+      "PART": 2,
+      "DIV": 1,
+      "UNVER": 0,
+      "ABS": 1,
+      "DEFER": 0
+    }
+  ],
+  "root_causes": [
+    {
+      "id": "undeclared-supersession",
+      "affects": "most of the 114 DIVERGENT",
+      "rule": "AGENTS.md: a document changing behaviour already described in an existing spec MUST declare which spec and which part it replaces, and that part MUST be marked as replaced in the old spec.",
+      "instances": [
+        "carga-por-toque has no Declaracion de reemplazo block at all (rebanadas 1-5 each have one)",
+        "003 was never marked for FR-004/FR-005/FR-012/FR-019/FR-020/FR-021 although 009/010/011 each declared the replacement correctly",
+        "004-estadisticas has no declaration of any kind vs 002/FR-014",
+        "PANEL_ARMADO's careful declaration block names 003, 007, 009 and rebanada-2 but omits 006-copiar-formacion, whose FR-007 it inverts",
+        "005-login-basico carries no banner although 007 assumes multi-account",
+        "013 declares it amends 008/FR-008, which is about score, not about the even split"
+      ]
+    },
+    {
+      "id": "stale-bindings-enforcing-the-negation",
+      "detail": "tests/layout.test.js:661 carries cancha/S-10, arrastre/S-10, panel/S-11, panel/S-11b, finalizado/S-02c on an assertion that FAILS if the pitch is absent - the inverse of all five scenarios. Every comm-based gate passes."
+    },
+    {
+      "id": "tests-exercise-an-unreachable-path",
+      "detail": "tests/motor.test.js armar() falls through to generarEquiposEstrategia3, which no user can select since cd30017 retired estrategia3 from the catalogue; 7 explicit estrategia:3 calls vs 22 estrategia:4. The Status lines of 009/010/011 cite this suite as their verification."
+    }
+  ]
+}
