@@ -207,6 +207,7 @@ node tests/panel.test.js                  # el panel de armado: números, regla 
 node tests/finalizado.test.js             # el partido finalizado: chips, fila de resultado, filas de detalle
 node tests/eventos.test.js                # el modelo de eventos: síntesis, derivación, recálculo mixto
 node tests/toque.test.js                  # la carga por toque: validación, borrador, detalle, deshacer
+node tests/escapado.test.js               # el escapado del texto de jugador (AGENTS.md → Estilo)
 node tests/layout.test.js                 # el layout responsive (Principio V)
 LAYOUT_STRICT=1 node tests/layout.test.js # en CI: la ausencia de Playwright falla
 node tests/sesion.test.js                 # el rol desde el claim del token: fail-closed, refresco acotado
