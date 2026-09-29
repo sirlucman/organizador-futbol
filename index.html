@@ -794,6 +794,11 @@
   .panel-icono:active{ transform: scale(0.97); }
   .panel-icono-copiar{ color: var(--muted); }
   .panel-icono-copiar:hover{ color: var(--ink); }
+  /* Intercambiar colores pesa lo mismo que Copiar; la mitad rellena de la camiseta toma el color
+     del trazo, así que no agrega ningún color (intercambiar-colores FR-043, TC-030). */
+  .panel-icono-intercambiar{ color: var(--muted); }
+  .panel-icono-intercambiar:hover{ color: var(--ink); }
+  .panel-icono-intercambiar svg path.relleno{ fill: currentColor; stroke: none; }
   .panel-icono-copiar.copiado svg{ stroke: var(--pitch); stroke-width: 2.4; }
   /* Regenerar es la acción principal del encabezado y el único verde: el ícono lleva el trazo
      de primary aunque el botón herede el color de texto (§ Botones de ícono del header). */
@@ -5147,6 +5152,45 @@
     if(parB) moverUnJugadorDeEquipo(m, parB, equipoA);
   }
 
+  /* Intercambia los colores de los dos equipos: el grupo del Blanco pasa a ser el Negro y
+     viceversa, sin que nadie cambie de compañeros (intercambiar-colores FR-010, FR-011,
+     FR-011b). El color no es un campo sino la clave bajo la que se guarda cada equipo, así que
+     se invierte TODO lo que la generación guardó por color —las listas, las sumas, cada línea
+     del balance, la formación y el equipo compensado por falta de arquero (FR-012 a FR-015)—
+     y nada de lo que se guarda por jugador (FR-016, FR-017). Sin esto el receipt se dividiría
+     como si alguien hubiera tocado el reparto, y la explicación nombraría al equipo equivocado.
+
+     `diferencia` de cada línea es `blanco - negro` (`balanceLineasDe`), así que cambia de
+     signo. Se escribe `0` y no `-0`: aplicar esto dos veces tiene que dejar el partido idéntico
+     (FR-018), y `-0` no es idéntico a `0` para `Object.is`.
+
+     Un partido guardado por una versión vieja puede no tener alguno de estos campos. El
+     intercambio respeta la ausencia: una clave que no estaba no aparece (NFR-004). */
+  function intercambiarClaves(obj, a, b){
+    const tieneA = Object.prototype.hasOwnProperty.call(obj, a);
+    const tieneB = Object.prototype.hasOwnProperty.call(obj, b);
+    const valorA = obj[a], valorB = obj[b];
+    if(tieneB) obj[a] = valorB; else delete obj[a];
+    if(tieneA) obj[b] = valorA; else delete obj[b];
+  }
+  function invertirColoresDelPartido(m){
+    const eq = m && m.equipos;
+    if(!eq) return;
+    intercambiarClaves(eq, 'blanco', 'negro');
+    intercambiarClaves(eq, 'sumaBlanco', 'sumaNegro');
+    if(eq.balanceLineas){
+      Object.values(eq.balanceLineas).forEach(l => {
+        if(!l) return;
+        intercambiarClaves(l, 'blanco', 'negro');
+        if(typeof l.diferencia === 'number') l.diferencia = l.diferencia === 0 ? 0 : -l.diferencia;
+      });
+    }
+    if(eq.formacion) intercambiarClaves(eq.formacion, 'blanco', 'negro');
+    if(eq.arquerosInfo && (eq.arquerosInfo.equipoCompensado === 'blanco' || eq.arquerosInfo.equipoCompensado === 'negro')){
+      eq.arquerosInfo.equipoCompensado = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco';
+    }
+  }
+
   /* --- Realce de la zona bajo el puntero ---
      `dragover` hay que CANCELARLO para que el navegador acepte el drop; es la parte
      contraintuitiva de esta API y sin eso el drop nunca llega.
@@ -5248,6 +5292,28 @@
     // El otro integrante de una dupla se mueve junto, al mismo equipo (FR-011).
     const partnerId = getDuplaPartner(m, playerId);
     if(partnerId) moverUnJugadorDeEquipo(m, partnerId, targetTeam);
+    saveMatches();
+    renderMatchesTab();
+  };
+
+  /* El botón de intercambiar colores y su manejador deciden con la MISMA condición, para que no
+     puedan divergir: sólo `admin`, con equipos generados y la inscripción abierta
+     (intercambiar-colores FR-001 a FR-006). Es el `locked` con el que Regenerar sale del
+     encabezado, y `Finalizado` cubre también la edición de un resultado finalizado. */
+  function sePuedenIntercambiarColores(m){
+    return isAdmin() && !!(m && m.equipos) && !m.inscripcionCerrada && m.estado !== 'Finalizado';
+  }
+
+  /* La guarda va DENTRO del manejador y no sólo al dibujar el botón: invocarlo directamente, sin
+     el botón en pantalla, tampoco puede cambiar nada (TC-040, CWE-862). En una columna el equipo
+     visible se da vuelta con los colores, así siguen a la vista los mismos jugadores (FR-035);
+     en dos columnas no se usa para pintar y darlo vuelta no se ve. Es estado de pantalla: no se
+     guarda (TC-035 de la rebanada 2). */
+  window.__intercambiarColores = function(matchId){
+    const m = matches.find(mm => mm.id === matchId);
+    if(!sePuedenIntercambiarColores(m)) return;
+    invertirColoresDelPartido(m);
+    if(partidoDelEquipoVisible === m.id) equipoVisibleCancha = equipoVisibleCancha === 'blanco' ? 'negro' : 'blanco';
     saveMatches();
     renderMatchesTab();
   };
@@ -5782,6 +5848,12 @@
   const ICON_COPIAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/></svg>';
   const ICON_TILDE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>';
   const ICON_REGENERAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>';
+  /* La camiseta (`shirt` de Lucide 0.544.0, el segundo trazo, sin cambios) con la mitad derecha
+     rellena: blanco a la izquierda y negro a la derecha, en el orden en que la pantalla muestra
+     los equipos. Es la excepción al design system que documenta intercambiar-colores TC-030. La
+     mitad va como figura propia y no con un `clipPath`, que necesitaría un `id` y se rompe si el
+     ícono aparece dos veces en el DOM (Implementation Plan, TD-07). */
+  const ICON_INTERCAMBIAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><path class="relleno" d="M12 6A4 4 0 0 0 16 2L20.38 3.46A2 2 0 0 1 21.72 5.69L21.14 9.16A1 1 0 0 1 20.15 10H18V20A2 2 0 0 1 16 22H12Z"/><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>';
   const ICON_ATENCION = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>';
   const ICON_CHEVRON = '<svg class="chip-estrategia-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
   /* El mismo trazo del chevron del combo de estrategia, con su propia clase: el del combo está
@@ -5818,6 +5890,13 @@
     const copiado = copiadoDelPartido === m.id;
     const accionCopiar = copiado ? 'Equipos copiados' : 'Copiar equipos';
     const botones = [];
+    /* Intercambiar colores va primero y con el peso de Copiar: Regenerar sigue siendo la acción
+       principal (intercambiar-colores FR-042, FR-043, que reemplaza el FR-002b de la rebanada 3). */
+    if(sePuedenIntercambiarColores(m)){
+      botones.push('<button type="button" class="panel-icono panel-icono-intercambiar"'
+        + ' aria-label="Intercambiar colores" title="Intercambiar colores"'
+        + ' onclick="window.__intercambiarColores(\'' + m.id + '\')">' + ICON_INTERCAMBIAR + '</button>');
+    }
     /* Copiar NO es exclusivo de admin: el rol jugador ya lo tenía y el texto que copia son
        nombres, sin puntajes ni estrategia, así que no revela nada que 007-permisos-por-usuario
        le prohíba ver. Regenerar sí es sólo de admin (FR-001, FR-002). */

@@ -275,7 +275,7 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
    y los tres <script> del CDN de Firebase se bloquean con page.route. Tiene que
    ser una función serializable —nada de closures sobre el módulo— y recibir un
    único argumento, que es lo que admite addInitScript. */
-function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion, lecturaDemora }) {
+function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion, lecturaDemora, escrituraFalla }) {
   const docs = datos;
   /* Registro de escrituras. La cancha es presentación pura y no debe agregar ni un campo nuevo a
      lo que se persiste (Spec de la cancha, NFR-006): con esto un escenario puede abrir la
@@ -300,6 +300,11 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
       return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
     },
     set: async (obj) => {
+      /* `escrituraFalla` hace que TODA escritura tire, como una red caída o un permiso negado. La
+         pide el intercambio de colores (S-07c): la Spec fija que ante un guardado fallido la
+         aplicación se comporte como con cualquier otra edición, y eso sólo se puede ver si el
+         doble sabe fallar. No se registra la escritura, porque no ocurrió. */
+      if (escrituraFalla) throw new Error('no se pudo guardar');
       window.__escrituras.push(key);
       /* Además de la clave, el CONTENIDO. La rebanada 2 necesita comprobar no sólo que se
          escribió, sino QUÉ: que el conjunto de campos del partido no creció y que
