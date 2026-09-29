@@ -997,7 +997,10 @@ const ESCENARIOS = [
           pildoraEnFila: !!sec.querySelector('.panel-pildora-fila .panel-pildora'),
           copiar: !!sec.querySelector('.panel-icono-copiar'),
           regenerar: !!sec.querySelector('.panel-icono-regenerar'),
-          ordenIconos: [...sec.querySelectorAll('.panel-icono')].map(b => b.className.includes('copiar') ? 'copiar' : 'regenerar'),
+          /* Tres ramas y no un ternario: con dos, cualquier clase no reconocida caía en 'regenerar',
+             y el botón de intercambiar colores se contaba como un segundo Regenerar. */
+          ordenIconos: [...sec.querySelectorAll('.panel-icono')].map(b => b.classList.contains('panel-icono-intercambiar') ? 'intercambiar'
+            : b.classList.contains('panel-icono-copiar') ? 'copiar' : b.classList.contains('panel-icono-regenerar') ? 'regenerar' : 'otro'),
           combo: !!sec.querySelector('#selectEstrategia'),
           interrogacion: !!sec.querySelector('.info-icon'),
           celdas: [...sec.querySelectorAll('.panel-celda')].map(c => c.querySelector('.panel-celda-linea').textContent.trim()),
@@ -1015,7 +1018,8 @@ const ESCENARIOS = [
       });
       if (estructura.titulo !== 'Alineaciones') problemas.push(`el encabezado dice "${estructura.titulo}" y debería decir "Alineaciones" (FR-001)`);
       if (!estructura.copiar || !estructura.regenerar) problemas.push('faltan los botones de ícono del encabezado (FR-001, FR-002)');
-      if (estructura.ordenIconos.join(',') !== 'copiar,regenerar') problemas.push(`los íconos van Copiar primero y quedaron ${estructura.ordenIconos.join(',')} (FR-002b)`);
+      /* FR-002b fijaba Copiar, Regenerar; lo reemplaza FR-042 de intercambiar-colores. */
+      if (estructura.ordenIconos.join(',') !== 'intercambiar,copiar,regenerar') problemas.push(`los íconos van Intercambiar, Copiar, Regenerar y quedaron ${estructura.ordenIconos.join(',')} (intercambiar-colores FR-042)`);
       if (estructura.copiarEnPie) problemas.push('Copiar sigue al pie: subió al encabezado (FR-063)');
       if (estructura.cajitas) problemas.push(`quedaron ${estructura.cajitas} .conv-summary en la tarjeta: los tres resúmenes se retiraron (D-23, AC-07)`);
       if (!estructura.combo) problemas.push('no se dibujó el combo de estrategia (FR-010)');
@@ -2001,6 +2005,36 @@ const ESCENARIOS = [
       await page.evaluate(() => window.__showToast && window.__showToast('No se pudo copiar la formación al portapapeles', 'error'));
       await page.waitForTimeout(150);
     } },
+
+  /* --- intercambiar colores (docs/intercambiar-colores) --- */
+
+  { clave: 'colores-encabezado', rol: 'admin', nombre: 'el encabezado con el botón de intercambiar colores',
+    /* Layout, así que corre en los diecisiete anchos: el encabezado pasa de dos a tres botones y
+       tiene que seguir entrando desde 360px (NFR-002). El desborde lo mide MEDIR en cada ancho;
+       el piso de 44px y el nombre accesible, INVARIANTE_PANEL (NFR-003). El invariante propio
+       mira lo que es de esta feature: que el botón esté, en su lugar y con el peso de Copiar. */
+    spec: ['colores/S-05', 'colores/S-05a', 'colores/S-05b', 'colores/S-05c', 'colores/NFR-002', 'colores/NFR-003'],
+    invariantes: [INVARIANTE_PANEL, () => {
+      const problemas = [];
+      const header = document.querySelector('#teamsSection .panel-header');
+      if (!header) return ['no se encontró el encabezado de la tarjeta de equipos'];
+      const btn = header.querySelector('.panel-icono-intercambiar');
+      if (!btn) return ['falta el botón de intercambiar colores en el encabezado (FR-001)'];
+      const orden = [...header.querySelectorAll('.panel-icono')].map(b =>
+        b.classList.contains('panel-icono-intercambiar') ? 'intercambiar'
+          : b.classList.contains('panel-icono-copiar') ? 'copiar'
+            : b.classList.contains('panel-icono-regenerar') ? 'regenerar' : 'otro');
+      if (orden.join(',') !== 'intercambiar,copiar,regenerar') problemas.push(`los íconos quedaron ${orden.join(',')} y van intercambiar, copiar, regenerar (FR-042)`);
+      if (btn.getAttribute('aria-label') !== 'Intercambiar colores') problemas.push(`el botón se llama "${btn.getAttribute('aria-label')}" y tiene que llamarse "Intercambiar colores" (FR-041)`);
+      if (btn.getAttribute('title') !== 'Intercambiar colores') problemas.push('el botón no tiene el título "Intercambiar colores" (FR-041)');
+      const copiar = header.querySelector('.panel-icono-copiar');
+      if (copiar && getComputedStyle(btn).color !== getComputedStyle(copiar).color) problemas.push('el botón de intercambiar no tiene el color de Copiar (FR-043)');
+      const relleno = btn.querySelector('path.relleno');
+      if (!relleno) problemas.push('el ícono no tiene la mitad rellena de la camiseta (FR-040)');
+      else if (getComputedStyle(relleno).fill !== getComputedStyle(btn).color) problemas.push('la mitad rellena no usa el color del trazo (FR-040, TC-030)');
+      return problemas;
+    }],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); await mostrarEquiposMobile(page); } },
 ];
 
 async function irAPestania(page, texto) {
