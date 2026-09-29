@@ -115,20 +115,20 @@ Restatean los non-goals del Concept Note §4 como límites verificables.
 
 - **TC-001** — El intercambio se persistirá a través del mismo guardado que usan las
   demás acciones sobre un partido (`saveMatches()`,
-  [index.html:2150-2179](../../index.html#L2150-L2179)), que a su vez pasa por la
+  [index.html:2160-2184](../../index.html#L2160-L2184)), que a su vez pasa por la
   interfaz `window.storage`; no se escribirá en Firestore por otro camino (principio de
   Arquitectura desacoplada de `AGENTS.md`).
 - **TC-002** — La feature no agregará ninguna dependencia. El ícono se incrustará como
   SVG en línea, igual que `ICON_COPIAR` e `ICON_REGENERAR`
-  ([index.html:5782-5784](../../index.html#L5782-L5784)).
+  ([index.html:5848-5850](../../index.html#L5848-L5850)).
 
 ### 4.2 Architectural / integration constraints
 
 - **TC-010** — Las funciones del motor de generación (`generarEquiposEstrategia1` a `4`,
   `resolverArqueros`, `window.__generarEquipos`) no se modificarán (`D-09`).
 - **TC-011** — El botón vivirá en el encabezado de tarjeta que ya existe
-  (`renderEncabezadoTarjeta`, [index.html:5815-5838](../../index.html#L5815-L5838)), con
-  el patrón `.panel-icono` ([index.html:792-806](../../index.html#L792-L806)), y no en un
+  (`renderEncabezadoTarjeta`, [index.html:5887-5918](../../index.html#L5887-L5918)), con
+  el patrón `.panel-icono` ([index.html:792-811](../../index.html#L792-L811)), y no en un
   contenedor nuevo.
 - **TC-012** — No se persistirá ningún campo que registre que los colores fueron
   intercambiados (`D-07`; alternativa rechazada en Concept Note §9.1).
@@ -153,13 +153,15 @@ Restatean los non-goals del Concept Note §4 como límites verificables.
   que no introduce ningún color, radio ni trazo nuevo. La mitad clara a la izquierda y la
   oscura a la derecha repiten el orden en que la app muestra los equipos (Blanco a la
   izquierda, Negro a la derecha) en el panel del partido activo
-  (`renderTeamsSectionImpl`, [index.html:6098-6135](../../index.html#L6098-L6135)) y en el
-  orden de las pestañas en una columna ([index.html:5032](../../index.html#L5032)). Elegida
+  (`renderTeamsSectionImpl`, [index.html:6209-6216](../../index.html#L6209-L6216)) y en el
+  orden de las pestañas en una columna ([index.html:5037](../../index.html#L5037)). Elegida
   por el owner el 2026-09-29 entre cinco alternativas.
-- **TC-031** — Todo test que verifique un `FR-*`/`NFR-*`/`TC-*`/`S-*` de esta Spec
-  embeberá su identificador en forma canónica dentro de un literal de cadena, con el
-  prefijo de feature `colores/` en los escenarios de `tests/layout.test.js`
-  (`AGENTS.md` § Tests).
+- **TC-031** — Todo test que satisfaga un `S-*`, `NFR-*` o `TC-*` de esta Spec lo
+  declarará embebiendo su identificador en forma canónica dentro de un literal de cadena,
+  con el prefijo de feature `colores/`: el título del caso en `tests/colores.test.js` y el
+  campo `spec:` de cada escenario de `tests/layout.test.js` (`AGENTS.md` § Tests). Los
+  `FR-*` no llevan binding propio —`AGENTS.md` no lo pide— y se cubren a través de los
+  escenarios que los citan; un ID mencionado en el mensaje de una aserción no es un binding.
 - **TC-032** — El escenario responsive del encabezado con tres botones se agregará a
   `tests/layout.test.js` y se verá fallar al menos una vez antes de darlo por bueno
   (`AGENTS.md`, principio Responsive).
@@ -172,20 +174,22 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 - **TC-040** — La acción comprobará dentro de su propio manejador que el rol de la sesión
   sea `admin` y que el partido esté en un estado que la admite (`FR-001`), antes de
   modificar nada, y no sólo al decidir si dibuja el botón — mismo patrón que `aplicarDrop`
-  ([index.html:5185-5187](../../index.html#L5185-L5187)) y `TC-040` de `PANEL_ARMADO_SPEC.md`,
+  ([index.html:5229-5231](../../index.html#L5229-L5231)) y `TC-040` de `PANEL_ARMADO_SPEC.md`,
   **defends `CWE-862` *Missing Authorization***.
 - **TC-041** — Los campos de armado invertidos (`sumaBlanco`, `sumaNegro`,
   `balanceLineas`, `formacion`, `arquerosInfo`) se persistirán sólo en el documento de
   armado de escritura y lectura exclusiva de `admin`, nunca en el documento público
-  (`CAMPOS_EQUIPOS_ARMADO`, [index.html:2154](../../index.html#L2154)),
+  (`CAMPOS_EQUIPOS_ARMADO`, [index.html:2159](../../index.html#L2159)),
   **defends `CWE-200` *Exposure of Sensitive Information to an Unauthorized Actor***.
 - **`CWE-284` / `CWE-863`** — ruling, no commitment: que `jugador` pueda escribir
   `data/partidos` según las reglas es una condición preexistente
   ([`firestore-rules.md:65-75`](../rol-en-el-token/contracts/firestore-rules.md)), no
   introducida ni agravada por esta feature, que no toca las reglas (Concept Note §5.2).
-- **`CWE-79` *XSS*** — no aplica: el botón sólo inserta literales fijos (ícono y nombre
-  accesible); no inserta texto de jugador nuevo. El texto de jugador que se repinta ya
-  pasa por el escapado existente (`AGENTS.md` § Estilo).
+- **`CWE-79` *XSS*** — no aplica: el botón inserta literales fijos (ícono y nombre
+  accesible) y el id del partido en su `onclick`, que genera la propia aplicación
+  (`uid()`, [index.html:1716](../../index.html#L1716)) y nunca viene de un jugador —el
+  mismo patrón que Copiar y Regenerar—; no inserta texto de jugador nuevo. El texto de
+  jugador que se repinta ya pasa por el escapado existente (`AGENTS.md` § Estilo).
 - **`CWE-352` *CSRF*** — no aplica: no hay endpoint propio con sesión por cookie; la
   escritura va por el SDK de Firestore con el token del usuario.
 - **`CWE-20` *Improper Input Validation*** — no aplica: la acción no recibe entrada más
@@ -219,11 +223,11 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 | Term | Definition |
 |---|---|
 | Intercambio de colores | La acción de esta Spec: el grupo de jugadores del Equipo Blanco pasa a ser el Equipo Negro y viceversa, sin que nadie cambie de compañeros. |
-| Campo indexado por color | Dato de la generación guardado por separado para `blanco` y `negro`: las dos listas, `sumaBlanco`/`sumaNegro`, cada línea de `balanceLineas`, `formacion.blanco`/`negro`, y el valor de `arquerosInfo.equipoCompensado`. |
+| Campo indexado por color | Dato de la generación guardado por separado para `blanco` y `negro`, o que depende de cuál es cuál: las dos listas, `sumaBlanco`/`sumaNegro`, cada línea de `balanceLineas` (sus valores `blanco` y `negro` y su `diferencia`, que es `blanco − negro`), `formacion.blanco`/`negro`, y el valor de `arquerosInfo.equipoCompensado`. |
 | Campo indexado por jugador | Dato guardado por id de jugador, que viaja con él: `posicionAsignada`, `posicionOverride`, `swaps`, `bloqueados`, la convocatoria y los eventos del resultado. |
 | Receipt dividido | El bloque "Por qué quedaron así" separado en lo que se mide sobre el reparto en pantalla y lo que narra la última generación, que aparece sólo si el reparto se apartó de lo generado (`FR-072b` de `PANEL_ARMADO_SPEC.md`). |
 | Equipo visible | En una columna, el equipo que muestra el selector de pestañas; es estado de pantalla (`TC-035` de `ARRASTRE_SPEC.md`). |
-| Inscripción abierta | El partido tiene equipos generados, no tiene `inscripcionCerrada` y no está `Finalizado` (la negación del `locked` de [index.html:5817](../../index.html#L5817)). |
+| Inscripción abierta | El partido no tiene `inscripcionCerrada` y no está `Finalizado` —la negación del `locked` de [index.html:5889](../../index.html#L5889)—. Es una condición, no el valor `'Inscripción abierta'` del campo `estado`, que también tienen los partidos sin equipos. Donde un requisito exige además equipos generados, lo dice aparte. |
 
 ## 7. Functional requirements
 
@@ -257,7 +261,8 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 - **FR-012** — Cuando el sistema intercambie colores, invertirá `sumaBlanco` y
   `sumaNegro`.
 - **FR-013** — Cuando el sistema intercambie colores y la generación tenga balance por
-  línea, invertirá los valores de `blanco` y `negro` de cada línea.
+  línea, invertirá los valores de `blanco` y `negro` de cada línea y cambiará el signo de
+  su `diferencia` (que es `blanco − negro`), escribiendo `0` y no `-0` cuando vale cero.
 - **FR-014** — Cuando el sistema intercambie colores y la generación tenga formación por
   equipo, invertirá `formacion.blanco` y `formacion.negro`.
 - **FR-015** — Cuando el sistema intercambie colores y la generación tenga un equipo
@@ -267,9 +272,12 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
   por jugador.
 - **FR-017** — El sistema no modificará, al intercambiar colores, ningún otro campo de la
   generación: estrategia, snapshots, `configHash`, `cambios`, `esPrimeraGeneracion`,
-  arqueros excedentes o por secundaria, y `enumeracionTruncada` quedan como estaban.
+  arqueros excedentes o por secundaria, y `enumeracionTruncada` quedan como estaban. Los
+  únicos valores que cambian son los que nombran `FR-010` a `FR-015`.
 - **FR-018** — Cuando el administrador intercambie colores dos veces seguidas, el sistema
-  dejará el partido idéntico a como estaba antes del primer intercambio.
+  dejará el partido idéntico a como estaba antes del primer intercambio: igual campo a
+  campo tal como se guarda (su forma JSON). Un `-0` que el motor haya dejado en memoria
+  puede volver como `0`, que se guarda igual.
 - **FR-019** — El sistema aplicará el intercambio sin pedir confirmación.
 
 ### 7.3 Guardado y repintado
@@ -292,12 +300,14 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
   con su color nuevo.
 - **FR-034** — El sistema no mostrará ningún aviso, nota ni frase que diga que los colores
   fueron intercambiados.
-- **FR-035** — Mientras la pantalla esté en una columna, cuando el administrador
-  intercambie colores, el sistema cambiará el equipo visible al otro color, de modo que
-  sigan a la vista los mismos jugadores, ahora con el color nuevo. El equipo visible no se
+- **FR-035** — Cuando el administrador intercambie colores, el sistema cambiará el equipo
+  visible al otro color, a cualquier ancho, de modo que en una columna sigan a la vista los
+  mismos jugadores, ahora con el color nuevo. En dos columnas el cambio no se ve; si la
+  pantalla pasa después a una columna, muestra a ese mismo grupo. El equipo visible no se
   persistirá (`TC-035` de `ARRASTRE_SPEC.md`).
-- **FR-036** — Cuando un jugador abra el partido después de un intercambio ya guardado,
-  el sistema le mostrará los colores nuevos.
+- **FR-036** — Cuando un jugador cargue la aplicación después de un intercambio ya
+  guardado, el sistema le mostrará los colores nuevos. Una sesión que ya estaba abierta los
+  ve al recargar: la aplicación no sincroniza en vivo.
 
 ### 7.5 El botón
 
@@ -318,7 +328,7 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 - **FR-050** — Cuando el administrador regenere los equipos después de un intercambio, el
   sistema mantendrá a cada jugador bloqueado en el color que tenía después del
   intercambio (comportamiento vigente del motor sobre `prevTeamOf`,
-  [index.html:2783-2786](../../index.html#L2783-L2786)).
+  [index.html:2788-2791](../../index.html#L2788-L2791)).
 
 ## 8. Non-functional requirements
 
@@ -327,7 +337,7 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 | NFR-001 | Performance | Aplicar el intercambio —invertir, pedir el guardado y repintar— con un plantel de 18 titulares no supera los 150 ms medidos con `performance.now()` en el Chromium que `tests/layout.test.js` ya usa vía Playwright. Mismo techo que `NFR-004` de `ARRASTRE_SPEC.md`. |
 | NFR-002 | Responsive | Con el botón nuevo en el encabezado, en 360 px, en cada breakpoint de CSS medido de los dos lados y en la franja de tablet, a la vez: (1) `scrollWidth === clientWidth` y (2) ningún elemento con el borde derecho fuera del viewport. |
 | NFR-003 | Accessibility | El botón mide al menos 44 × 44 px de objetivo táctil —el tamaño de `.panel-icono`— y tiene un nombre accesible no vacío (WCAG 2.1, criterio 4.1.2). |
-| NFR-004 | Compatibilidad de datos | El conjunto de campos escritos en el partido por un intercambio es exactamente `equipos.blanco`, `equipos.negro`, `equipos.sumaBlanco`, `equipos.sumaNegro`, `equipos.balanceLineas`, `equipos.formacion` y `equipos.arquerosInfo`, sin campos nuevos. |
+| NFR-004 | Compatibilidad de datos | Los campos del partido cuyo valor cambia con un intercambio están todos dentro de `equipos.blanco`, `equipos.negro`, `equipos.sumaBlanco`, `equipos.sumaNegro`, `equipos.balanceLineas`, `equipos.formacion` y `equipos.arquerosInfo` —a lo sumo esos siete; los que el partido no tenga, no aparecen—, sin campos nuevos. Que el guardado reescriba los documentos completos, como en cualquier edición (`TC-001`), no cuenta como campo escrito. |
 
 ## 9. System behaviour & scenarios
 
@@ -335,7 +345,7 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 
 #### Scenario S-01 — El administrador intercambia los colores (covers FR-001, FR-010, FR-011, FR-011b, FR-012, FR-013, FR-014, FR-016, FR-017, FR-019, FR-020, FR-021, FR-030)
 
-- **Given** un partido de fútbol 8 con equipos generados por "Formación fija pareja" y la
+- **Given** un partido de fútbol 8 con equipos generados por "Formación fija" y la
   inscripción abierta
 - **And** una sesión con rol `admin` en un viewport de 1200 px
 - **When** el administrador toca el botón de intercambiar colores
@@ -353,8 +363,8 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
   compañeros antes del intercambio siguen siéndolo después (`FR-011b`)
 - `S-01b [property]` — para cualquier partido generado, intercambiar dos veces deja
   `m.equipos` y el resto del partido idénticos al original (`FR-018`)
-- `S-01c [boundary]` — número impar de titulares: el grupo con un jugador más, que era el
-  Blanco, pasa a ser el Negro
+- `S-01c [boundary]` — número impar de titulares: el grupo con un jugador más, sea el
+  color que sea, pasa al otro color
 - `S-01d [boundary]` — un solo arquero en el partido: `arquerosInfo.equipoCompensado`
   pasa al otro color, y la frase "el Equipo X quedó sin arquero fijo" nombra al grupo que
   efectivamente no tiene arquero (`FR-015`, `FR-032`)
@@ -370,10 +380,12 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 #### Scenario S-02 — Los números y la explicación siguen siendo correctos (covers FR-031, FR-032, FR-034)
 
 - **Given** un partido generado cuyo receipt no está dividido
-- **And** la píldora dice "Diferencia N pts" a favor del Equipo Blanco
+- **And** la píldora dice "Diferencia N pts" —su texto no nombra equipos; su detalle nombra
+  al equipo compensado por falta de arquero, cuando lo hay—
 - **When** el administrador intercambia los colores
 - **Then** el receipt sigue sin dividirse
-- **And** la píldora dice la misma diferencia a favor del Equipo Negro
+- **And** la píldora dice la misma diferencia y, si su detalle nombraba al Equipo Blanco,
+  ahora nombra al Negro
 - **And** ninguna parte de la pantalla dice que los colores se intercambiaron
 
 **Variants:**
@@ -405,8 +417,9 @@ Variants: none — single-path scenario.
 **Variants:**
 
 - `S-04a [boundary]` — el equipo visible era el Negro: pasa a ser el Blanco
-- `S-04b [boundary]` — viewport en dos columnas: se ven los dos equipos y no hay equipo
-  visible que cambiar
+- `S-04b [boundary]` — viewport en dos columnas: se ven los dos equipos; el equipo
+  visible cambia igual, sin efecto en pantalla, y si la vista pasa después a una columna
+  muestra al mismo grupo (`FR-035`)
 - `S-04c [boundary]` — se recarga la pantalla después del intercambio: el equipo visible
   vuelve al de siempre, sin haber guardado nada sobre él (`TC-035` de `ARRASTRE_SPEC.md`)
 
@@ -436,8 +449,10 @@ Variants: none — single-path scenario.
 
 **Variants:**
 
-- `S-06a [boundary]` — sin jugadores bloqueados: la regeneración se comporta igual que sin
-  intercambio previo
+- `S-06a [boundary]` — sin jugadores bloqueados: la regeneración sigue el mismo camino que
+  sin intercambio previo —el motor no tiene ninguna regla propia del intercambio (`D-09`)—,
+  y parte de las listas vigentes, así que el reparto resultante puede no coincidir con el
+  de una regeneración sin intercambio
 
 #### Scenario S-07 — El intercambio queda guardado para todos (covers FR-020, FR-036, NFR-004)
 
@@ -453,8 +468,8 @@ Variants: none — single-path scenario.
 - `S-07b [boundary]` — los campos de armado invertidos se escriben en el documento de
   armado y no aparecen en el público (`TC-041`)
 - `S-07c [failure]` — el guardado falla: el sistema se comporta como con cualquier otra
-  edición del partido hoy (el error queda registrado y la pantalla muestra lo aplicado),
-  sin manejo propio
+  edición del partido hoy (el error queda registrado en la consola del navegador y la
+  pantalla muestra lo aplicado), sin manejo propio
 
 ### 9.2 Edge cases
 
@@ -494,7 +509,7 @@ Sin escenarios independientes: los casos borde viven como variantes de §9.1.
 ## 10. Data model & external contracts
 
 No hay entidades nuevas: el intercambio reescribe campos existentes de `m.equipos`
-([index.html:4251-4269](../../index.html#L4251-L4269)). Se omite el `erDiagram` de
+([index.html:4256-4274](../../index.html#L4256-L4274)). Se omite el `erDiagram` de
 §10.1.1 por criterio de `MD-24` (sólo es obligatorio con una entidad nueva o más).
 
 ### 10.2 External APIs / events the feature consumes
@@ -519,7 +534,8 @@ Ninguno.
 
 ### 11.2 Non-functional acceptance
 
-- **AC-10** — `NFR-001` verificado por una medición con `performance.now()` en Chromium.
+- **AC-10** — `NFR-001` verificado por una medición con `performance.now()` en Chromium,
+  sobre un partido de 18 titulares.
 - **AC-11** — `NFR-002` verificado por un escenario de `tests/layout.test.js` que se vio
   fallar antes del arreglo (`TC-032`).
 - **AC-12** — `NFR-003` verificado midiendo el botón y su nombre accesible en el mismo
@@ -597,6 +613,8 @@ Ninguno.
 | Se olvida un campo indexado por color | Med | Med | `S-01b` como propiedad sobre todas las estrategias (`AC-02`) y `S-02` sobre el receipt |
 | Algún texto nombra un color fijo en vez de leerlo del dato | Med | Low | `S-02`, `S-02c`, `S-01d` cubren cada superficie que nombra un color; `OPEN-Q-03` en el Plan |
 | El encabezado no entra a 360 px con tres botones | Med | Low | `NFR-002`, `S-05a`, `TC-032` |
+| El guardado escribe primero el documento público y después el de armado; si falla sólo el segundo, quedan guardadas las listas invertidas con las sumas, el balance, la formación y el equipo compensado sin invertir, y al recargar la explicación nombra al grupo equivocado | Med | Low | Sin mitigación propia (`S-07c`: la falla se trata como en cualquier edición). Se corrige desde la pantalla volviendo a intercambiar o regenerando. El arreglo de fondo —guardar los dos documentos en una sola operación— es del guardado general y vive en `Roadmap.md` |
+| Una sesión de jugador que cargó antes del intercambio y guarda cualquier otra acción sobre partidos (p. ej. darse de baja) reescribe el documento público con los colores viejos y deshace el intercambio sin aviso | Med | Low | Condición preexistente del guardado ("gana el último que guarda"), no introducida por esta feature. Se corrige volviendo a intercambiar. Cubierta por la idea de sincronización en vivo de `Roadmap.md` |
 
 ## 16. Open questions
 
@@ -626,6 +644,7 @@ colores") y `OPEN-Q-04` (Declaración de reemplazo al inicio).
 |---|---|---|
 | 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Self-critique: pending. |
 | 2026-09-29 | Lucas Manoukian (claude-sonnet-5) | Corregidos los 4 hallazgos de `INTERCAMBIAR_COLORES_SPEC_CRITIQUE_2026-09-29_claude-sonnet-5.md`: `AC-20` renumerado a `AC-23` (coincidía en rango con `AC-19`/`AC-21` de otra sección); `NFR-005` eliminado por duplicar `TC-031` sin agregar una obligación propia (y su referencia en el §17 Handoff ajustada de `NFR-001 a NFR-005` a `NFR-001 a NFR-004`); la cita de `TC-030` que justificaba el orden del ícono reemplazada de `renderFilaResultado` (pantalla del partido finalizado, donde el botón no existe) a `renderTeamsSectionImpl` y el orden de pestañas (pantallas donde el botón sí vive); `FR-011` partido en `FR-011` (orden de las listas) y `FR-011b` (composición de cada grupo), con sus citas en §3.3, §5.2, `S-01`, `S-01a` y `S-01e` actualizadas. |
+| 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la auditoría `INTERCAMBIAR_COLORES_CONFORMANCE_2026-09-29_claude-opus-5-5.md`, sin cambios de código ni de IDs. Decisiones del owner: `FR-013` nombra el cambio de signo de `diferencia` (el código ya lo hacía, Plan `TD-03`); `FR-035` y `S-04b` sancionan el cambio del equipo visible a cualquier ancho (Plan `TD-06`); `FR-036` se acota a "al cargar la aplicación"; dos riesgos nuevos en §15 (guardado a medias entre los dos documentos, y sesión de jugador vieja que deshace el intercambio), con su arreglo de fondo en `Roadmap.md`. Aclaraciones de redacción: "idéntico" en `FR-018` es igualdad tal como se guarda; `FR-017` dice que sólo cambian los valores de `FR-010`–`FR-015`; `NFR-004` pasa de "exactamente" a "a lo sumo" y excluye la reescritura completa del guardado; `TC-031` acota el binding a `S-*`/`NFR-*`/`TC-*` declarados, como `AGENTS.md`; `S-02` deja de suponer que la píldora nombra al equipo que va ganando; `S-06a` pasa a "mismo camino" en vez de "mismo resultado"; `S-01c` deja de suponer que el grupo más grande es el Blanco; `S-07c` dice dónde queda registrado el error; `AC-10` repite los 18 titulares; `S-01` usa el nombre vigente "Formación fija"; el Glosario corrige "Inscripción abierta" y amplía "Campo indexado por color" con `diferencia`; el ruling `CWE-79` nombra el id del partido en el `onclick`; anclas de línea de `index.html` actualizadas a `d9296f8`. Self-critique: skipped (enmienda acotada desde una auditoría ya hecha). |
 
 ---
 
