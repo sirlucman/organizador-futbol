@@ -159,8 +159,8 @@ Custom arc: 2 branches — AGENTS.md § Ramas (D-11 de equipos-en-el-campo) fija
 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `docs/intercambiar-colores` | `main` | In progress | — | — | Concept Note, Spec y crítica ya commiteados (`941b3d6`, `9429986`, `79899fa`); falta este Plan y la anotación recíproca en `PANEL_ARMADO_SPEC.md` |
-| 2 | `feature/intercambiar-colores` | `main` | Not started | — | — | Se crea desde `main` después de mergear la rama 1 |
+| 1 | `docs/intercambiar-colores` | `main` | Merged (`a131d84`) | — (merge directo a pedido del owner) | — | Los tres documentos, las dos críticas y la anotación recíproca en `PANEL_ARMADO_SPEC.md` |
+| 2 | `feature/intercambiar-colores` | `main` | In progress | — | `colores.test.js` 15/15; escenarios `colores-*` 7/7 | Creada desde `main` en `907b3ae` (v2.0.24) |
 
 ```mermaid
 flowchart LR
@@ -285,7 +285,7 @@ File: `tests/fixtures-app.js`
 | `tests/colores.test.js` | `'colores/S-06: …'`, `'colores/S-06a: …'` | Regenerar con `cargarMotor` pasando `prevTeamOf` y `bloqueados` ya invertidos: el bloqueado sigue en el color nuevo |
 | `tests/colores.test.js` | `'colores/NFR-004: …'` | Diff campo a campo de `m` antes/después: sólo cambian los siete campos de `NFR-004`, sin claves nuevas (`TC-012`) |
 | `tests/layout.test.js` | `clave: 'colores-intercambio'`, admin, `anchos: [1200]`, `spec: ['colores/S-01', 'colores/S-01h', 'colores/S-02', 'colores/S-02b', 'colores/S-02c', 'colores/S-07', 'colores/S-07a', 'colores/S-07b', 'colores/NFR-001']` | Clic real sobre `.panel-icono-intercambiar` en `m-abierto`: DOM repintado, píldora y celdas del lado nuevo, receipt sin dividir, `window.__escrituras` = `partidos` + `partidosArmado`, `docsDesde()` con los campos de armado sólo en `partidosArmado`, tiempo de `performance.now()` hasta el siguiente `requestAnimationFrame` ≤ 150 ms; doble clic vuelve al original en pantalla y en `docsDesde()` |
-| `tests/layout.test.js` | `clave: 'colores-receipt-dividido'`, admin, `anchos: [1200]`, `spec: ['colores/S-02a']` | Sobre el fixture que ya llega dividido (el de `panel/S-06`): sigue dividido, con los colores invertidos |
+| `tests/colores.test.js` | `'colores/S-02: …'`, `'colores/S-02a: …'`, `'colores/S-02b: …'`, `'colores/S-02c: …'` | **Cambio durante la implementación:** van sin navegador, sobre las funciones reales del panel (`resumenDiferenciaEquipos`, `celdasDiferenciaPorLinea`, `repartoDivergeDeLaGeneracion`), en lugar de `colores-intercambio` y de un escenario `colores-receipt-dividido` que no se escribió. El fixture de layout llega con el receipt ya dividido y ninguno tiene equipos parejos, así que en pantalla `S-02` y `S-02b` dependían de que el azar de una regeneración cayera en el caso; sobre las funciones, cada caso se construye exacto |
 | `tests/layout.test.js` | `clave: 'colores-copiar'`, admin, `spec: ['colores/S-03']` | Intercambiar y copiar: el texto capturado pone a cada grupo bajo su color nuevo (mismo mecanismo de captura que el escenario de Copiar existente, [tests/layout.test.js:1055](../../tests/layout.test.js#L1055)) |
 | `tests/layout.test.js` | `clave: 'colores-pestana'`, admin, `anchos: [360, 1200]`, `spec: ['colores/S-04', 'colores/S-04a', 'colores/S-04b', 'colores/S-04c']` | A 360: `.equipo-tabs[data-visible]` cambia y los ids de la cancha visible son los mismos; a 1200: dos canchas, sin cambio de layout; recarga: vuelve a Blanco y ninguna escritura menciona el equipo visible |
 | `tests/layout.test.js` | `clave: 'colores-encabezado'`, admin, `anchos: ANCHOS` (los diecisiete), `invariantes` con `INVARIANTE_PANEL`, `spec: ['colores/S-05', 'colores/S-05a', 'colores/S-05b', 'colores/S-05c', 'colores/NFR-002', 'colores/NFR-003']` | Orden intercambiar, copiar, regenerar; nombre accesible; mismo `color` computado que Copiar; sin scroll horizontal ni bordes fuera del viewport; 44 × 44 px |
@@ -321,34 +321,34 @@ AGENTS.md
 
 Implementation tasks (grouped into atomic commits):
 
-- [ ] T-2.1 Declarar `invertirColoresDelPartido(m)` después de `intercambiarUnidades` (`TD-02` a `TD-04`)
-- [ ] T-2.C1 Commit — `feat(intercambiar-colores): invierte los colores de un partido (FR-010, FR-013)`
+- [x] T-2.1 Declarar `invertirColoresDelPartido(m)` después de `intercambiarUnidades` (`TD-02` a `TD-04`)
+- [x] T-2.C1 Commit — `feat(intercambiar-colores): invierte los colores de un partido (FR-010, FR-013)`
 
-- [ ] T-2.2 Crear `tests/colores.test.js` con los casos unitarios y de propiedad de §7.3.6 (`S-01`, `S-01a` a `S-01g`, `S-06`, `S-06a`, `NFR-004`)
-- [ ] T-2.3 [P] Sumar `node tests/colores.test.js` a `tests/README.md` y a la lista de `AGENTS.md` § Tests
-- [ ] T-2.C2 Commit — `test(intercambiar-colores): cubre la inversión y sus propiedades (S-01, S-06)`
+- [x] T-2.2 Crear `tests/colores.test.js` con los casos unitarios y de propiedad de §7.3.6 (`S-01`, `S-01a` a `S-01g`, `S-06`, `S-06a`, `NFR-004`)
+- [x] T-2.3 [P] Sumar `node tests/colores.test.js` a `tests/README.md` y a la lista de `AGENTS.md` § Tests
+- [x] T-2.C2 Commit — `test(intercambiar-colores): cubre la inversión y sus propiedades (S-01, S-06)`
 
-- [ ] T-2.4 Agregar la opción `escrituraFalla` a `fakeFirebase` en `tests/fixtures-app.js`
-- [ ] T-2.C3 Commit — `test(tests): agrega la falla de escritura al firebase falso`
+- [x] T-2.4 Agregar la opción `escrituraFalla` a `fakeFirebase` en `tests/fixtures-app.js`
+- [x] T-2.C3 Commit — `test(tests): agrega la falla de escritura al firebase falso`
 
-- [ ] T-2.5 Escribir el escenario `colores-encabezado` en `tests/layout.test.js` y **correrlo sin el botón**: tiene que fallar por "falta el botón de intercambiar". Guardar la salida para el PR (`TC-032`). No se commitea todavía
-- [ ] T-2.6 Declarar `sePuedenIntercambiarColores` y `window.__intercambiarColores` (`TD-05`, `TD-06`)
-- [ ] T-2.7 Agregar `ICON_INTERCAMBIAR`, la clase `.panel-icono-intercambiar` y el botón en `renderEncabezadoTarjeta` (`TD-07`, `TD-08`)
-- [ ] T-2.8 En el escenario `panel-armado`, cambiar el clasificador `ordenIconos` de un
+- [x] T-2.5 Escribir el escenario `colores-encabezado` en `tests/layout.test.js` y **correrlo sin el botón**: tiene que fallar por "falta el botón de intercambiar". Guardar la salida para el PR (`TC-032`). No se commitea todavía
+- [x] T-2.6 Declarar `sePuedenIntercambiarColores` y `window.__intercambiarColores` (`TD-05`, `TD-06`)
+- [x] T-2.7 Agregar `ICON_INTERCAMBIAR`, la clase `.panel-icono-intercambiar` y el botón en `renderEncabezadoTarjeta` (`TD-07`, `TD-08`)
+- [x] T-2.8 En el escenario `panel-armado`, cambiar el clasificador `ordenIconos` de un
   ternario binario (`b.className.includes('copiar') ? 'copiar' : 'regenerar'`, que manda
   cualquier clase no reconocida a `'regenerar'`) a uno de tres ramas que reconozca
   `panel-icono-intercambiar`, y actualizar la expectativa a `intercambiar,copiar,regenerar`
   (sin el cambio al clasificador, el botón nuevo se clasifica como `'regenerar'` y el test
   sigue fallando aunque se actualice sólo la expectativa)
-- [ ] T-2.C4 Commit — `feat(intercambiar-colores): agrega el botón al encabezado (FR-001, FR-042)`, incluye `T-2.5` a `T-2.8`
+- [x] T-2.C4 Commit — `feat(intercambiar-colores): agrega el botón al encabezado (FR-001, FR-042)`, incluye `T-2.5` a `T-2.8`
 
-- [ ] T-2.9 Escribir los escenarios `colores-intercambio`, `colores-receipt-dividido`, `colores-copiar`, `colores-pestana`, `colores-guardado-falla`, `colores-no-disponible` y `colores-jugador` de §7.3.6
-- [ ] T-2.C5 Commit — `test(intercambiar-colores): escenarios de pantalla (S-01..S-07, S-20, S-21)`
+- [x] T-2.9 Escribir los escenarios `colores-intercambio`, `colores-copiar`, `colores-pestana`, `colores-guardado-falla`, `colores-no-disponible` y `colores-jugador` de §7.3.6
+- [x] T-2.C5 Commit — `test(intercambiar-colores): escenarios de pantalla (S-01..S-07, S-20, S-21)`
 
-- [ ] T-2.10 Correr el gate de binding (`T-2.D8`) y cerrar cualquier hueco antes de seguir
-- [ ] T-2.11 Abrir `index.html` localmente contra staging como admin: intercambiar en un partido abierto, recargar y confirmar que persiste; entrar como jugador y confirmar los colores nuevos y la ausencia del botón (credenciales de staging fuera del repositorio)
-- [ ] T-2.12 [P] Mirar el ícono a 360 y 1200 px y compararlo contra la maqueta D1 aprobada
-- [ ] T-2.13 Doble toque rápido sobre el botón contra staging, recarga inmediata: el partido vuelve al estado original en pantalla y en los dos documentos. Si no, abrir `R-03` y proponer resguardo antes de mergear (`A-01`)
+- [x] T-2.10 Correr el gate de binding (`T-2.D8`) y cerrar cualquier hueco antes de seguir
+- [x] T-2.11 Abrir `index.html` localmente contra staging como admin: intercambiar en un partido abierto, recargar y confirmar que persiste; entrar como jugador y confirmar los colores nuevos y la ausencia del botón (credenciales de staging fuera del repositorio)
+- [x] T-2.12 [P] Mirar el ícono a 360 y 1200 px y compararlo contra la maqueta D1 aprobada
+- [x] T-2.13 Doble toque rápido sobre el botón contra staging, recarga inmediata: el partido vuelve al estado original en pantalla y en los dos documentos. Si no, abrir `R-03` y proponer resguardo antes de mergear (`A-01`)
 
 DoD verification (§6). Todo arreglo hecho durante la verificación va en un commit propio
 (`T-2.C6` en adelante, `fix(...)`):
@@ -421,10 +421,10 @@ No aplica — `TD-01`.
 | S-01f `[boundary]` | `tests/colores.test.js` `'colores/S-01f: …'` | unit | Branch 2 |
 | S-01g `[boundary]` | `tests/colores.test.js` `'colores/S-01g: …'` | unit | Branch 2 |
 | S-01h `[concurrency]` | `tests/layout.test.js` `colores-intercambio` (doble clic) + `T-2.13` contra staging | e2e | Branch 2 |
-| S-02 | `tests/layout.test.js` `colores-intercambio` | e2e | Branch 2 |
-| S-02a `[boundary]` | `tests/layout.test.js` `colores-receipt-dividido` | e2e | Branch 2 |
-| S-02b `[boundary]` | `tests/layout.test.js` `colores-intercambio` | e2e | Branch 2 |
-| S-02c `[boundary]` | `tests/layout.test.js` `colores-intercambio` | e2e | Branch 2 |
+| S-02 | `tests/colores.test.js` `'colores/S-02: …'` | unit | Branch 2 |
+| S-02a `[boundary]` | `tests/colores.test.js` `'colores/S-02a: …'` | unit | Branch 2 |
+| S-02b `[boundary]` | `tests/colores.test.js` `'colores/S-02b: …'` | unit | Branch 2 |
+| S-02c `[boundary]` | `tests/colores.test.js` `'colores/S-02c: …'` | unit | Branch 2 |
 | S-03 | `tests/layout.test.js` `colores-copiar` | e2e | Branch 2 |
 | S-04 | `tests/layout.test.js` `colores-pestana` | e2e | Branch 2 |
 | S-04a `[boundary]` | `tests/layout.test.js` `colores-pestana` | e2e | Branch 2 |
@@ -531,12 +531,13 @@ integrante se pierde, porque ninguno se toca.
 |---|---|---|---|---|
 | OPEN-Q-03 | ¿Hay algún texto de la pantalla que nombre un color fijo en vez de leerlo del dato? | Lucas Manoukian | Resuelta en este Plan | **No.** Cada texto con "Blanco"/"Negro" de la interfaz sale de un dato: las etiquetas de panel y pestaña van emparejadas con su lista ([index.html:5032](../../index.html#L5032), [:6098-6101](../../index.html#L6098-L6101)); la grilla por línea y el recuento de formación y de duplas se recalculan sobre el reparto vigente ([:5319-5335](../../index.html#L5319-L5335), [:5622-5635](../../index.html#L5622-L5635), [:5699-5722](../../index.html#L5699-L5722)); la píldora y la frase del arquero leen `equipoCompensado` ([:5489](../../index.html#L5489), [:5676](../../index.html#L5676)), que `TD-04` invierte |
 | OPEN-Q-05 | ¿El owner confirma `trunk-based` como modelo de ramas (§7.0)? | Lucas Manoukian | Resuelta en este Plan | **Sí, por evidencia.** El owner no conocía el nombre del modelo; `git log --merges main` muestra que todo se entregó con ramas cortas que salen de `main` y vuelven a `main`, sin `develop` ni ramas de release. Eso es `trunk-based`, y coincide con `AGENTS.md` § Ramas |
+| OPEN-Q-06 | A 360 px, con tres botones el encabezado no entra en una línea: ¿se acepta que los íconos bajen a una segunda fila? | Lucas Manoukian | Resuelta en este Plan | **Sí.** Medido el 2026-09-29 sobre el fixture: a 360 px faltan 16 px (título 144 + separación 10 + íconos 148, en un encabezado de 286), y los íconos pasan a su propia fila, alineados a la derecha; desde 390 px entran en la misma línea que el título, como con dos botones. No hay desborde (`NFR-002` se cumple). Juntar los íconos (`gap: 0`) no alcanza. El owner eligió dejarlo así en vez de achicar otras medidas del encabezado |
 
 ### 15.2 Assumptions
 
 | ID | Assumption | Owner | If false |
 |---|---|---|---|
-| A-01 | Dos escrituras sucesivas del mismo cliente al mismo documento se aplican en el orden pedido (heredado de la Spec). `[UNVERIFIED — la documentación consultada el 2026-09-29 no lo afirma para el SDK web; se verifica a mano en T-2.13]` | Lucas Manoukian | `R-03`: agregar un resguardo (p. ej. ignorar un segundo toque mientras el primer guardado no terminó) con su propio FR |
+| A-01 | Dos escrituras sucesivas del mismo cliente al mismo documento se aplican en el orden pedido (heredado de la Spec). La documentación consultada el 2026-09-29 no lo afirma para el SDK web. **Verificado a mano el 2026-09-29 contra staging (`T-2.13`):** doble toque sin esperar, recarga, y la pantalla, la píldora, la grilla y el receipt quedaron como antes del par de toques, o sea con los dos documentos coherentes. Es una observación, no una garantía del SDK | Lucas Manoukian | `R-03`: agregar un resguardo (p. ej. ignorar un segundo toque mientras el primer guardado no terminó) con su propio FR |
 | A-02 | El gris de Copiar alcanza el contraste 3:1 de WCAG 2.1 1.4.11 (heredado de la Spec). **Verificado el 2026-09-29:** `--muted` `#6b7280` da 4,83:1 sobre la tarjeta blanca (`#ffffff`) y 4,41:1 sobre `--paper` (`#f1f5f9`), fórmula de luminancia relativa de WCAG | Lucas Manoukian | — |
 
 ## 16. Acceptance criteria coverage
@@ -572,6 +573,7 @@ integrante se pierde, porque ninguno se toca.
 | 2026-09-29 | Lucas Manoukian (claude-sonnet-5, crítico) | Crítica corrida, guardada en `INTERCAMBIAR_COLORES_PLAN_CRITIQUE_2026-09-29_claude-sonnet-5.md`: 1🔴 (`T-1.D18b`/`T-2.D18b` citan `scripts/id-uniqueness.sh`, que no existe en el repo ni en el skill), 2🟡 (cita de `index.html:4081` para el signo de `diferencia` apunta a un call site y no a `balanceLineasDe`; `T-2.8` no dice que el clasificador `ordenIconos` del escenario `panel-armado` necesita una tercera rama). |
 | 2026-09-29 | Lucas Manoukian (claude-sonnet-5) | Resueltos los 3 hallazgos de la crítica: cita de `diferencia` repuntada a `index.html:3451-3463` (definición de `balanceLineasDe`); `T-1.D18b`/`T-2.D18b` reemplazan `scripts/id-uniqueness.sh` (inexistente) por un comando `grep`/`sort` corrido y verificado por documento; `T-2.8` ahora nombra explícitamente el cambio al clasificador `ordenIconos`. |
 | 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Resuelta `OPEN-Q-05` (modelo de ramas) con el historial de merges de `main`. Self-critique: skipped (crítica cross-family ya corrida, filas anteriores). |
+| 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Durante la implementación: `S-02`/`S-02a`/`S-02b`/`S-02c` pasan a `tests/colores.test.js` sobre las funciones reales del panel y se retira el escenario `colores-receipt-dividido` (§7.3.6, §12.1); se agrega `intercambiarClaves`, ayudante de `invertirColoresDelPartido` que respeta los campos ausentes de partidos viejos (`NFR-004`); `A-01` verificado a mano contra staging con un partido temporal borrado al final; nueva `OPEN-Q-06` (el encabezado a 360 px), resuelta por el owner. Rama 1 mergeada. Self-critique: skipped (actualización de estado). |
 
 ---
 
