@@ -239,6 +239,85 @@ prueba('colores/NFR-004: sólo cambian los siete campos por color, sin claves nu
   }
 });
 
+console.log('\nLo que el panel dice después de intercambiar');
+
+/* El panel real, recortado: la píldora, la grilla por línea y la decisión de dividir el receipt.
+   Son funciones puras sobre el partido y el plantel, así que se prueban sin navegador, con el
+   mismo recorte que usa tests/panel.test.js. Que el DOM las pinte lo mira tests/layout.test.js. */
+const DECLARACIONES_PANEL = [
+  'POSITIONS', 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'ORDEN_FORMACION',
+  'FORMACION_KEY_POR_POSICION', 'ORDEN_LINEAS', 'LABEL_LINEA', 'lineaDeUnSoloLugar',
+  'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
+  'valorDePuntaje', 'ORDEN_POSICION_LECTURA', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo',
+  'sumasPorLinea', 'balanceLineasDe', 'colapsarDuplasParaLinea', 'balanceLineasVigente',
+  'celdasDiferenciaPorLinea', 'sumaVigenteDeEquipo', 'sumasVigentes', 'COSTO_DESCUBIERTA',
+  'costoEncaje', 'faltantesDeFormacionVigente', 'repartoDivergeDeLaGeneracion',
+  'resumenDiferenciaEquipos', ...DECLARACIONES,
+];
+const PANEL = new Function(`let players = [];\nfunction __setPlayers(p){ players = p; }\n${DECLARACIONES_PANEL.map(n => extraer(src, n)).join('\n\n')}\nreturn { __setPlayers, ${DECLARACIONES_PANEL.join(', ')} };`)();
+
+/* Un partido de fútbol 5 recién generado: su balance guardado ES el de su reparto, así que el
+   receipt no está dividido. `blanco`/`negro` son listas de [id, posición, puntaje]. */
+function partidoDelPanel(blanco, negro, extra = {}) {
+  const J = (id, pos, v) => ({ id, nombre: id, apellido: '', principal: pos, secundarias: [], scores: { [pos]: v } });
+  const plantel = [...blanco, ...negro].map(x => J(...x));
+  PANEL.__setPlayers(plantel);
+  const porId = Object.fromEntries(plantel.map(p => [p.id, p]));
+  const posicionAsignada = Object.fromEntries([...blanco, ...negro].map(([id, pos]) => [id, pos]));
+  const suma = l => l.reduce((t, [, , v]) => t + v, 0);
+  const m = {
+    id: 'm-panel', convocados: plantel.map(p => p.id), duplas: [], bloqueados: [],
+    equipos: {
+      blanco: blanco.map(([id]) => id), negro: negro.map(([id]) => id),
+      sumaBlanco: suma(blanco), sumaNegro: suma(negro), posicionAsignada, estrategiaKey: 'estrategia4',
+      formacion: { objetivo: { defensores: 1, volantes: 1, delanteros: 1 },
+        blanco: { cumplida: true, faltantes: [] }, negro: { cumplida: true, faltantes: [] } },
+      arquerosInfo: extra.arquerosInfo || null,
+    },
+  };
+  m.equipos.balanceLineas = PANEL.balanceLineasDe(m.equipos.blanco, m.equipos.negro, posicionAsignada, porId);
+  return { m, porId };
+}
+const BLANCO_FUERTE = [['b1', 'Arquero', 9], ['b2', 'Defensor', 8], ['b3', 'Volante', 6], ['b4', 'Delantero', 7]];
+const NEGRO_FLOJO = [['n1', 'Arquero', 5], ['n2', 'Defensor', 6], ['n3', 'Volante', 6], ['n4', 'Delantero', 7]];
+
+prueba('colores/S-02: el receipt sigue sin dividirse, la píldora dice lo mismo y el "a favor" cambia de equipo', () => {
+  const { m, porId } = partidoDelPanel(BLANCO_FUERTE, NEGRO_FLOJO,
+    { arquerosInfo: { total: 1, compensado: true, equipoCompensado: 'blanco', compensacion: 2 } });
+  eq(PANEL.repartoDivergeDeLaGeneracion(m, porId), false, 'punto de partida: recién generado, el receipt no está dividido');
+  const antes = PANEL.resumenDiferenciaEquipos(m, null);
+  C.invertirColoresDelPartido(m);
+  eq(PANEL.repartoDivergeDeLaGeneracion(m, porId), false, 'el intercambio solo no puede dividir el receipt (FR-031)');
+  const despues = PANEL.resumenDiferenciaEquipos(m, null);
+  eq(despues.texto, antes.texto, 'la píldora dice la misma diferencia (FR-032)');
+  eq([antes.aFavorDe, despues.aFavorDe], ['Blanco', 'Negro'], 'la diferencia buscada pasa a estar a favor del otro equipo (FR-032)');
+});
+
+prueba('colores/S-02a: un receipt que ya estaba dividido sigue dividido', () => {
+  const { m, porId } = partidoDelPanel(BLANCO_FUERTE, NEGRO_FLOJO);
+  m.equipos.balanceLineas.Defensor = { blanco: 1, negro: 1, diferencia: 0 };   // guardado que no es el del reparto
+  eq(PANEL.repartoDivergeDeLaGeneracion(m, porId), true, 'punto de partida: el reparto se apartó de la generación');
+  C.invertirColoresDelPartido(m);
+  eq(PANEL.repartoDivergeDeLaGeneracion(m, porId), true, 'el intercambio no lo junta: sigue dividido (FR-031)');
+});
+
+prueba('colores/S-02b: con equipos parejos la píldora sigue diciendo "Equipos parejos"', () => {
+  const PAR = [['x1', 'Arquero', 6], ['x2', 'Defensor', 6], ['x3', 'Volante', 6], ['x4', 'Delantero', 6]];
+  const PAR_N = PAR.map(([id, pos, v]) => [id.replace('x', 'y'), pos, v]);
+  const { m } = partidoDelPanel(PAR, PAR_N);
+  eq(PANEL.resumenDiferenciaEquipos(m, null).texto, 'Equipos parejos', 'punto de partida: equipos parejos');
+  C.invertirColoresDelPartido(m);
+  eq(PANEL.resumenDiferenciaEquipos(m, null).texto, 'Equipos parejos', 'sigue diciendo "Equipos parejos" (FR-032)');
+});
+
+prueba('colores/S-02c: el desglose por línea nombra al color nuevo de cada grupo', () => {
+  const { m, porId } = partidoDelPanel(BLANCO_FUERTE, NEGRO_FLOJO);
+  const textos = () => PANEL.celdasDiferenciaPorLinea(m, porId, null).map(c => `${c.pos}:${c.texto}`);
+  eq(textos(), ['Arquero:+4 Blanco', 'Defensor:+2 Blanco', 'Volante:Parejo', 'Delantero:Parejo'], 'punto de partida');
+  C.invertirColoresDelPartido(m);
+  eq(textos(), ['Arquero:+4 Negro', 'Defensor:+2 Negro', 'Volante:Parejo', 'Delantero:Parejo'], 'cada ventaja pasa al color nuevo del grupo que la tiene (FR-032)');
+});
+
 console.log('\nRegenerar después de intercambiar');
 
 /* `__generarEquipos` arma `prevTeamOf` leyendo las listas del partido (index.html) y le pasa los
