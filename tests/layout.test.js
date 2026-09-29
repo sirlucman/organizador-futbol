@@ -2035,6 +2035,224 @@ const ESCENARIOS = [
       return problemas;
     }],
     async preparar(page) { await abrirPartido(page, '2026-09-03'); await mostrarEquiposMobile(page); } },
+
+  { clave: 'colores-intercambio', rol: 'admin', nombre: 'tocar intercambiar colores: pantalla, guardado y doble toque',
+    /* Comportamiento, no layout: un ancho. Lo que el panel DICE después (píldora, grilla, receipt)
+       lo prueba tests/colores.test.js sobre las funciones reales; acá se mira el cableado de
+       punta a punta: el clic, el repintado, qué se escribe y en qué documento. */
+    anchos: [1200],
+    spec: ['colores/S-01', 'colores/S-01h', 'colores/S-07', 'colores/S-07a', 'colores/S-07b', 'colores/NFR-001'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const leer = () => page.evaluate(() => {
+        const nombres = sel => [...document.querySelectorAll(sel)].map(c => c.getAttribute('aria-label') || c.textContent.trim()).sort();
+        return { blanco: nombres('.camiseta.blanco-eq'), negro: nombres('.camiseta.negro-eq') };
+      });
+      const antes = await leer();
+      if (!antes.blanco.length || !antes.negro.length) return ['el fixture tendría que dibujar las dos canchas'];
+      const r = await page.evaluate(async () => {
+        window.__escrituras_base = window.__escrituras.length;
+        const t0 = performance.now();
+        document.querySelector('.panel-icono-intercambiar').click();
+        await new Promise(res => requestAnimationFrame(res));
+        return { ms: performance.now() - t0 };
+      });
+      await page.waitForTimeout(300);
+      const despues = await leer();
+      if (JSON.stringify(despues.blanco) !== JSON.stringify(antes.negro) || JSON.stringify(despues.negro) !== JSON.stringify(antes.blanco)) {
+        problemas.push('las camisetas no se repintaron con los grupos intercambiados (FR-010, FR-021, FR-030)');
+      }
+      if (r.ms > 150) problemas.push(`intercambiar tardó ${Math.round(r.ms)} ms y el techo es 150 (NFR-001)`);
+      const guardado = await page.evaluate(() => ({
+        escrituras: window.__escrituras.slice(window.__escrituras_base),
+        docs: window.__ultimosDocs || {},
+      }));
+      if (guardado.escrituras.join(',') !== 'partidos,partidosArmado') {
+        problemas.push(`se escribió [${guardado.escrituras.join(', ')}] y se esperaba partidos y partidosArmado, una vez cada uno (FR-020)`);
+      }
+      const publico = JSON.parse(guardado.docs.partidos || '[]').find(x => x.id === 'm-abierto');
+      const armado = JSON.parse(guardado.docs.partidosArmado || '{}')['m-abierto'];
+      if (!publico || !armado) return problemas.concat(['no quedó guardado el partido en los dos documentos (FR-020)']);
+      const PUBLICOS = ['blanco', 'negro', 'posicionAsignada', 'posicionOverride'];
+      const ARMADO = ['sumaBlanco', 'sumaNegro', 'balanceLineas', 'formacion', 'arquerosInfo'];
+      const fugados = ARMADO.filter(k => k in publico.equipos);
+      if (fugados.length) problemas.push(`campos de armado en el documento público: ${fugados.join(', ')} (TC-041, CWE-200)`);
+      const faltan = ARMADO.filter(k => k !== 'arquerosInfo' && !(k in armado.equipos));
+      if (faltan.length) problemas.push(`faltan en el documento de armado: ${faltan.join(', ')} (TC-041)`);
+      const extra = Object.keys(publico.equipos).filter(k => !PUBLICOS.includes(k) && !['estrategiaKey', 'estrategia', 'titularesSnapshot', 'duplasSnapshot', 'configHash', 'cambios', 'esPrimeraGeneracion', 'swaps', 'arquerosExcedentes', 'arquerosPorSecundaria', 'enumeracionTruncada', 'resultado'].includes(k));
+      if (extra.length) problemas.push(`campos nuevos en el partido guardado: ${extra.join(', ')} (NFR-004, TC-012)`);
+      if (!publico.equipos.blanco || publico.equipos.blanco.length === 0) problemas.push('el documento público perdió la lista del Blanco');
+
+      /* S-01h: dos toques seguidos, sin esperar el guardado del primero. La pantalla y lo último
+         guardado tienen que terminar donde estaban antes de ESTE par de toques. */
+      const previo = JSON.stringify(publico.equipos.blanco);
+      await page.evaluate(() => {
+        window.__escrituras_base = window.__escrituras.length;
+        const b = () => document.querySelector('.panel-icono-intercambiar');
+        b().click(); b().click();
+      });
+      await page.waitForTimeout(400);
+      const tras2 = await leer();
+      if (JSON.stringify(tras2) !== JSON.stringify(despues)) problemas.push('dos toques seguidos no dejaron la pantalla como estaba (FR-018, S-01h)');
+      const ultimo = await page.evaluate(() => JSON.parse(window.__ultimosDocs.partidos).find(x => x.id === 'm-abierto').equipos.blanco);
+      if (JSON.stringify(ultimo) !== previo) problemas.push('dos toques seguidos no dejaron guardado lo mismo que había (FR-018, S-01h)');
+      const n = await page.evaluate(() => window.__escrituras.length - window.__escrituras_base);
+      if (n !== 4) problemas.push(`dos toques escribieron ${n} veces y se esperaban 4 (dos documentos por toque)`);
+      return problemas;
+    } },
+
+  { clave: 'colores-copiar', rol: 'admin', nombre: 'copiar los equipos después de intercambiar',
+    anchos: [1200], spec: ['colores/S-03'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      const r = await page.evaluate(async () => {
+        const nombres = sel => [...document.querySelectorAll(sel)].map(c => c.getAttribute('aria-label') || '');
+        const leerTexto = async () => { document.querySelector('.panel-icono-copiar').click(); await new Promise(res => setTimeout(res, 300)); return navigator.clipboard.readText(); };
+        const antes = await leerTexto();
+        document.querySelector('.panel-icono-intercambiar').click();
+        await new Promise(res => setTimeout(res, 300));
+        const despues = await leerTexto();
+        return { antes, despues, blancoAhora: nombres('.camiseta.blanco-eq') };
+      });
+      const bloque = (texto, color) => {
+        const i = texto.indexOf(`*${color}*`);
+        if (i < 0) return null;
+        const resto = texto.slice(i + 1);
+        const j = resto.search(/\*(Blanco|Negro)\*/);
+        return resto.slice(0, j < 0 ? undefined : j);
+      };
+      const problemas = [];
+      const blancoAntes = bloque(r.antes, 'Blanco'), negroAntes = bloque(r.antes, 'Negro');
+      const blancoDespues = bloque(r.despues, 'Blanco'), negroDespues = bloque(r.despues, 'Negro');
+      if (!blancoAntes || !negroAntes || !blancoDespues || !negroDespues) return ['el texto copiado no trae los dos encabezados *Blanco* y *Negro*'];
+      const cuerpo = s => s.split('\n').slice(1).join('\n').trim();
+      if (cuerpo(blancoDespues) !== cuerpo(negroAntes)) problemas.push('bajo *Blanco* no quedaron los jugadores que eran del Negro (FR-033)');
+      if (cuerpo(negroDespues) !== cuerpo(blancoAntes)) problemas.push('bajo *Negro* no quedaron los jugadores que eran del Blanco (FR-033)');
+      return problemas;
+    } },
+
+  { clave: 'colores-pestana', rol: 'admin', nombre: 'el equipo visible sigue a los mismos jugadores',
+    anchos: [360, 1200],
+    spec: ['colores/S-04', 'colores/S-04a', 'colores/S-04b', 'colores/S-04c'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); await mostrarEquiposMobile(page); },
+    /* `comprobar` corre en el primer ancho (360); el de 1200 lo mide el invariante. */
+    invariantes: [() => {
+      if (window.innerWidth < 900) return [];
+      const canchas = document.querySelectorAll('#teamsSection .cancha').length;
+      return canchas === 2 ? [] : [`en dos columnas se ven ${canchas} canchas y tienen que verse las dos (S-04b)`];
+    }],
+    async comprobar(page) {
+      const problemas = [];
+      const estado = () => page.evaluate(() => {
+        const tabs = document.querySelector('.equipo-tabs');
+        const visibles = [...document.querySelectorAll('.camiseta')].filter(c => c.offsetParent !== null);
+        return {
+          visible: tabs ? tabs.dataset.visible : null,
+          nombres: visibles.map(c => c.getAttribute('aria-label')).sort(),
+          colores: [...new Set(visibles.map(c => c.classList.contains('blanco-eq') ? 'blanco' : 'negro'))],
+        };
+      });
+      const tocar = async () => { await page.evaluate(() => document.querySelector('.panel-icono-intercambiar').click()); await page.waitForTimeout(300); };
+      const a = await estado();
+      if (a.visible !== 'blanco') return [`se esperaba arrancar viendo el Blanco y se ve ${a.visible} (FR-033 de la rebanada 2)`];
+      await tocar();
+      const b = await estado();
+      if (b.visible !== 'negro') problemas.push(`viendo el Blanco, después de intercambiar el equipo visible es ${b.visible} y tenía que ser el Negro (FR-035)`);
+      if (JSON.stringify(b.nombres) !== JSON.stringify(a.nombres)) problemas.push('después de intercambiar se ven otros jugadores: tenían que seguir a la vista los mismos (FR-035)');
+      if (b.colores.join() !== 'negro') problemas.push(`los jugadores que se ven tenían que tener camiseta negra y tienen ${b.colores.join('/')} (S-04)`);
+      await tocar();
+      const c = await estado();
+      if (c.visible !== 'blanco' || JSON.stringify(c.nombres) !== JSON.stringify(a.nombres)) problemas.push('viendo el Negro, intercambiar no volvió al Blanco con los mismos jugadores (S-04a)');
+      await tocar();                                                            // queda en el Negro
+      const escrito = await page.evaluate(() => JSON.stringify(window.__ultimosDocs || {}));
+      if (/equipoVisible|visibleCancha/.test(escrito)) problemas.push('el equipo visible se guardó: es estado de pantalla (TC-035 de la rebanada 2, S-04c)');
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(600);
+      await abrirPartido(page, '2026-09-03');
+      await mostrarEquiposMobile(page);
+      const d = await estado();
+      if (d.visible !== 'blanco') problemas.push(`después de recargar el equipo visible es ${d.visible} y vuelve a ser el Blanco (S-04c)`);
+      return problemas;
+    } },
+
+  { clave: 'colores-guardado-falla', rol: 'admin', nombre: 'intercambiar con el guardado fallando',
+    anchos: [1200], spec: ['colores/S-07c'],
+    doble: { escrituraFalla: true },
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const errores = [];
+      page.on('pageerror', e => errores.push(e.message));
+      const r = await page.evaluate(async () => {
+        const blanco = () => [...document.querySelectorAll('.camiseta.blanco-eq')].map(c => c.getAttribute('aria-label')).sort();
+        const negroAntes = [...document.querySelectorAll('.camiseta.negro-eq')].map(c => c.getAttribute('aria-label')).sort();
+        document.querySelector('.panel-icono-intercambiar').click();
+        await new Promise(res => setTimeout(res, 300));
+        return { aplicado: JSON.stringify(blanco()) === JSON.stringify(negroAntes), escrituras: window.__escrituras.length };
+      });
+      const problemas = [];
+      if (!r.aplicado) problemas.push('con el guardado fallando, la pantalla no muestra lo aplicado (S-07c)');
+      if (errores.length) problemas.push(`el guardado fallido dejó una excepción sin capturar: ${errores[0]} (S-07c)`);
+      if (r.escrituras !== 0) problemas.push('el doble registró escrituras que fallaron');
+      return problemas;
+    } },
+
+  { clave: 'colores-no-disponible', rol: 'admin', nombre: 'sin intercambiar fuera de la inscripción abierta',
+    anchos: [1200],
+    spec: ['colores/S-20', 'colores/S-20a', 'colores/S-20b', 'colores/S-20c', 'colores/S-20d'],
+    async preparar(page) { await irAPestania(page, 'Partidos'); },
+    async comprobar(page) {
+      const problemas = [];
+      /* Abre el partido, confirma que no hay botón, y lo invoca directo: ni el documento ni el
+         contador de escrituras pueden moverse (TC-040). */
+      const probar = async (fecha, id, etiqueta, antesDeMirar) => {
+        await abrirPartido(page, fecha);
+        if (antesDeMirar) { await page.evaluate(antesDeMirar); await page.waitForTimeout(300); }
+        const r = await page.evaluate((mid) => {
+          const hayBoton = !!document.querySelector('.panel-icono-intercambiar');
+          const base = window.__escrituras.length;
+          const antes = JSON.stringify(window.__ultimosDocs || {});
+          window.__intercambiarColores(mid);
+          return { hayBoton, escrituras: window.__escrituras.length - base, cambio: JSON.stringify(window.__ultimosDocs || {}) !== antes };
+        }, id);
+        if (r.hayBoton) problemas.push(`${etiqueta}: se ve el botón de intercambiar colores`);
+        if (r.escrituras || r.cambio) problemas.push(`${etiqueta}: invocar el manejador directo cambió o guardó el partido (TC-040)`);
+        await page.click('#btnVolverPartidos');
+        await page.waitForTimeout(300);
+      };
+      await probar('2026-08-27', 'm-cerrado', 'inscripción cerrada (S-20)');
+      await probar('2026-08-20', 'm-finalizado', 'partido finalizado (S-20a)');
+      await probar('2026-08-20', 'm-finalizado', 'editando el resultado finalizado (S-20b)', () => window.__editarResultadoFinalizado('m-finalizado'));
+      await probar('2026-09-17', 'm-sin-equipos', 'sin equipos generados (S-20c)');
+      /* S-20d: reabrir la inscripción del partido cerrado lo vuelve a habilitar. */
+      await abrirPartido(page, '2026-08-27');
+      await page.evaluate(() => window.__toggleInscripcion('m-cerrado'));
+      await page.waitForTimeout(300);
+      if (!await page.evaluate(() => !!document.querySelector('.panel-icono-intercambiar'))) problemas.push('al reabrir la inscripción el botón no volvió (S-20d)');
+      return problemas;
+    } },
+
+  { clave: 'colores-jugador', rol: 'jugador', nombre: 'el rol jugador no puede intercambiar colores',
+    anchos: [1200], spec: ['colores/S-21', 'colores/S-21a'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const r = await page.evaluate(() => {
+        const hayBoton = !!document.querySelector('.panel-icono-intercambiar');
+        const hayCancha = !!document.querySelector('.cancha');
+        const base = window.__escrituras.length;
+        const antes = [...document.querySelectorAll('.camiseta.blanco-eq')].map(c => c.getAttribute('aria-label'));
+        window.__intercambiarColores('m-abierto');
+        const despues = [...document.querySelectorAll('.camiseta.blanco-eq')].map(c => c.getAttribute('aria-label'));
+        return { hayBoton, hayCancha, escrituras: window.__escrituras.length - base, igual: JSON.stringify(antes) === JSON.stringify(despues) };
+      });
+      const problemas = [];
+      if (!r.hayCancha) problemas.push('el jugador tendría que ver la cancha del partido abierto');
+      if (r.hayBoton) problemas.push('el rol jugador ve el botón de intercambiar colores (FR-004)');
+      if (r.escrituras) problemas.push('invocar el manejador como jugador pidió un guardado (FR-005, TC-040)');
+      if (!r.igual) problemas.push('invocar el manejador como jugador cambió los equipos (FR-005, TC-040)');
+      return problemas;
+    } },
 ];
 
 async function irAPestania(page, texto) {
