@@ -5147,6 +5147,45 @@
     if(parB) moverUnJugadorDeEquipo(m, parB, equipoA);
   }
 
+  /* Intercambia los colores de los dos equipos: el grupo del Blanco pasa a ser el Negro y
+     viceversa, sin que nadie cambie de compañeros (intercambiar-colores FR-010, FR-011,
+     FR-011b). El color no es un campo sino la clave bajo la que se guarda cada equipo, así que
+     se invierte TODO lo que la generación guardó por color —las listas, las sumas, cada línea
+     del balance, la formación y el equipo compensado por falta de arquero (FR-012 a FR-015)—
+     y nada de lo que se guarda por jugador (FR-016, FR-017). Sin esto el receipt se dividiría
+     como si alguien hubiera tocado el reparto, y la explicación nombraría al equipo equivocado.
+
+     `diferencia` de cada línea es `blanco - negro` (`balanceLineasDe`), así que cambia de
+     signo. Se escribe `0` y no `-0`: aplicar esto dos veces tiene que dejar el partido idéntico
+     (FR-018), y `-0` no es idéntico a `0` para `Object.is`.
+
+     Un partido guardado por una versión vieja puede no tener alguno de estos campos. El
+     intercambio respeta la ausencia: una clave que no estaba no aparece (NFR-004). */
+  function intercambiarClaves(obj, a, b){
+    const tieneA = Object.prototype.hasOwnProperty.call(obj, a);
+    const tieneB = Object.prototype.hasOwnProperty.call(obj, b);
+    const valorA = obj[a], valorB = obj[b];
+    if(tieneB) obj[a] = valorB; else delete obj[a];
+    if(tieneA) obj[b] = valorA; else delete obj[b];
+  }
+  function invertirColoresDelPartido(m){
+    const eq = m && m.equipos;
+    if(!eq) return;
+    intercambiarClaves(eq, 'blanco', 'negro');
+    intercambiarClaves(eq, 'sumaBlanco', 'sumaNegro');
+    if(eq.balanceLineas){
+      Object.values(eq.balanceLineas).forEach(l => {
+        if(!l) return;
+        intercambiarClaves(l, 'blanco', 'negro');
+        if(typeof l.diferencia === 'number') l.diferencia = l.diferencia === 0 ? 0 : -l.diferencia;
+      });
+    }
+    if(eq.formacion) intercambiarClaves(eq.formacion, 'blanco', 'negro');
+    if(eq.arquerosInfo && (eq.arquerosInfo.equipoCompensado === 'blanco' || eq.arquerosInfo.equipoCompensado === 'negro')){
+      eq.arquerosInfo.equipoCompensado = eq.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco';
+    }
+  }
+
   /* --- Realce de la zona bajo el puntero ---
      `dragover` hay que CANCELARLO para que el navegador acepte el drop; es la parte
      contraintuitiva de esta API y sin eso el drop nunca llega.
