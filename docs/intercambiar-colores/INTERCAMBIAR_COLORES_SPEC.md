@@ -6,7 +6,7 @@
 >
 > **Concept note:** [INTERCAMBIAR_COLORES_CONCEPT.md](./INTERCAMBIAR_COLORES_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [INTERCAMBIAR_COLORES_IMPLEMENTATION_PLAN.md](./INTERCAMBIAR_COLORES_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5 *Sources &
 > Origins* del Concept Note. Donde un `FR-*`/`NFR-*`/`TC-*` se apoya en una ubicación de

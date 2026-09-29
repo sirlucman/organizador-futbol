@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** [INTERCAMBIAR_COLORES_SPEC.md](./INTERCAMBIAR_COLORES_SPEC.md) · **Implementation plan:** *not yet written*
+> **Spec:** [INTERCAMBIAR_COLORES_SPEC.md](./INTERCAMBIAR_COLORES_SPEC.md) · **Implementation plan:** [INTERCAMBIAR_COLORES_IMPLEMENTATION_PLAN.md](./INTERCAMBIAR_COLORES_IMPLEMENTATION_PLAN.md)
 
 ## 1. TL;DR
 
