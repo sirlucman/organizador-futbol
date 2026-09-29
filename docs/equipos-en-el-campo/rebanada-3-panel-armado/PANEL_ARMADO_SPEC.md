@@ -226,8 +226,11 @@ límites propios de esta rebanada:
   cierra su `OPEN-Q-07`. Ver `FR-034`.
 - **D-23** (se retiran los tres resúmenes en cajitas; el receipt desglosa los
   titulares sin puntaje por equipo) — heredada. Ver `FR-050` a `FR-054`.
-- **D-24** (sólo Copiar y Regenerar suben al encabezado; los botones de ciclo de
+- **D-24** (~~sólo Copiar y Regenerar suben al encabezado~~; los botones de ciclo de
   vida siguen al pie, restilados) — heredada. Ver `FR-060` a `FR-064`.
+  **Reemplazada en parte el 2026-09-29 por [`INTERCAMBIAR_COLORES_SPEC.md`](../../intercambiar-colores/INTERCAMBIAR_COLORES_SPEC.md)** (Declaración de
+  reemplazo): al encabezado suben Intercambiar colores, Copiar y Regenerar. La otra
+  mitad —los botones de ciclo de vida siguen al pie— sigue vigente.
 - **D-25** (tras un movimiento manual los números se recalculan y el texto no) —
   heredada; cierra la `OPEN-Q-03` de la rebanada 2. Ver `FR-070` a `FR-073`.
 - **D-08** (siete rebanadas, en orden) — heredada; fija §3.1 y §3.2.
@@ -424,8 +427,9 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **FR-002** — Donde el rol de la sesión sea `admin`, el partido tenga equipos
   generados y la inscripción no esté cerrada, el sistema mostrará en el
   encabezado de la tarjeta un botón de sólo ícono para regenerar los equipos.
-- **FR-002b** — El sistema ordenará los dos botones de ícono con Copiar primero y
-  Regenerar después.
+- **FR-002b** — ~~El sistema ordenará los dos botones de ícono con Copiar primero y
+  Regenerar después.~~ **Reemplazado el 2026-09-29 por `FR-042` de [`INTERCAMBIAR_COLORES_SPEC.md`](../../intercambiar-colores/INTERCAMBIAR_COLORES_SPEC.md)**: el orden
+  es Intercambiar colores, Copiar y Regenerar.
 - **FR-002c** — El sistema distinguirá visualmente a Regenerar como la acción
   principal del encabezado.
 - **FR-003** — El sistema mostrará en la tarjeta una píldora con la diferencia de
@@ -704,7 +708,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **Given** un partido de fútbol 8 con la inscripción abierta y los equipos ya generados
 - **And** una sesión con rol `admin` en un viewport de 1200 px
 - **When** se abre el detalle del partido
-- **Then** el encabezado de la tarjeta contiene la píldora de diferencia, un botón de copiar y un botón de regenerar, en ese orden
+- **Then** ~~el encabezado de la tarjeta contiene la píldora de diferencia, un botón de copiar y un botón de regenerar, en ese orden~~ **Reemplazado el 2026-09-29 por `S-05` de [`INTERCAMBIAR_COLORES_SPEC.md`](../../intercambiar-colores/INTERCAMBIAR_COLORES_SPEC.md)**: el encabezado contiene la píldora de diferencia, un botón de intercambiar colores, un botón de copiar y un botón de regenerar, en ese orden
 - **And** cada botón expone un nombre accesible no vacío que describe su acción
 - **And** la píldora dice "Equipos parejos" si la diferencia es 0, y "Diferencia N pts" en cualquier otro caso
 
@@ -1203,6 +1207,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 | 2026-08-31 | Lucas Manoukian | Initial draft. Incorpora las seis decisiones tomadas con el propietario el mismo día, que por `MD-01` se registraron como `D-22` a `D-25` en el Concept Note y como diferido de su §14 (el texto de Copiar), y no dentro de esta Spec. Cierra la `OPEN-Q-05` de la rebanada 2 (el selector se conserva donde está) y hereda la `OPEN-Q-03` de aquella Spec ya resuelta por `D-25`. Declara el reemplazo del `FR-009` de `003-motor-generacion-equipos` y de la superficie de lectura de `012-puntajes-coherentes-panel`. Self-critique: passed (2🔴 / 2🟡 / 1🔵), los cinco resueltos. Los 🔴: `TC-020` no tenía criterio de cumplimiento en §11.3 pese a que la rúbrica lo exige para todo `TC-*` (se agregó `AC-29b`), y la §9.4 usaba un `flowchart`, tipo que `MD-24` no admite en la §9 de una Spec (se reemplazó por una tabla, con la razón declarada). Los 🟡: tres `FR-*` compuestos partidos conservando los identificadores estables (`FR-002b`, `FR-006b`, `FR-083`), y `D-03` heredada de hecho por `NFR-001` pero ausente de §3.3. El 🔵: `FR-003` llevaba dos casos de contenido en una línea, partido en `FR-003b` y `FR-003c`. |
 | 2026-08-31 | Lucas Manoukian | Corrección durante la implementación: `FR-046` y `FR-081` decían que el rol `jugador` ve la píldora, la diferencia por línea y el receipt. **Es falso y contradice una spec vigente**: `007-permisos-por-usuario` `FR-005` y su escenario 2 declaran que ese rol no ve puntajes, estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del armado, y la aplicación ya lo implementaba así. Los dos requisitos quedan invertidos, se agrega la declaración de que esa spec **no** se reemplaza, y `AC-09`, `US-07` y `S-01d` se corrigen en consecuencia; `S-04g` y `S-05e` se agregan para cubrir los dos bloques nuevos con ese rol. El error fue inventar un requisito que ninguna decisión respaldaba, en vez de leer el modelo de permisos vigente. En la misma pasada se corrigió `FR-001`, que hacía a Copiar exclusivo de `admin`: el rol `jugador` ya lo tenía y el texto que copia son nombres, así que quitárselo habría sido una pérdida de función que ninguna decisión pidió. Self-critique: no corresponde (corrección acotada, verificada con las pasadas de consistencia). |
 | 2026-09-01 | Lucas Manoukian | Decisión tomada a la vista de la pantalla real: el subtítulo de la tarjeta se retira entero. `FR-084` y `FR-085` quedan invertidos —de "conservar la estrategia aplicada y la ayuda del arrastre" a "retirar las dos"—, se declara el reemplazo del `FR-043` de la Spec de la rebanada 2, y la pérdida de información queda registrada en `OPEN-Q-05` en vez de disimulada. El motivo: entre el combo y la cancha quedaban cuatro renglones grises que, en el caso mayoritario, repetían el nombre que el combo ya muestra. |
+| 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo parcial declarado por `INTERCAMBIAR_COLORES_SPEC.md`: `D-24` heredada (sólo la mitad del encabezado), `FR-002b` y la línea *Then* de `S-01` quedan marcados como reemplazados, con enlace. No cambia ningún otro requisito de esta Spec. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). |
 
 ---
 
