@@ -15,8 +15,8 @@ El spec de cada feature es la fuente de verdad (ver [`README.md`](README.md) par
 - Administración de jugadores (crear, editar, buscar, activar/desactivar, eliminar permanente).
 - Búsqueda de jugadores por texto + filtro por posición + filtro por estado, combinables entre sí.
 - Validaciones con mensaje claro en alta/edición de jugador y de partido (campos obligatorios, rango de puntaje, duplicados).
-- Posiciones fijas (Arquero, Defensor, Volante, Delantero) con color asignado.
-- Puntajes por posición + puntaje promedio automático.
+- Ocho puestos (ARQ, LI, DC, LD, MI, MC, MD, DEL) agrupados en cuatro líneas (Arco, Defensa, Medio, Ataque), con un color por línea; reclasificación de los jugadores con posiciones viejas y bloqueo de la generación mientras falte (desglose-posiciones).
+- Puntajes por puesto + puntaje promedio automático.
 - Administración de partidos (crear, eliminar, cancha con nombre simplificado en el combo, cierre/reapertura de inscripción).
 - Convocatoria con buscador autocompletado (+ TAB) y alta de jugador sin salir del flujo.
 - Titulares/suplentes automáticos según cupo de cancha, con reemplazo automático al bajarse un titular.
