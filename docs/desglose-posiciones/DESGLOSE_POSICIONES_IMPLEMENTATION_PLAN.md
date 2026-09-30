@@ -205,8 +205,8 @@ Custom arc: 2 branches — AGENTS.md § Ramas fija dos ramas por entrega (docs/<
 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `docs/desglose-posiciones` | `main` | In progress | — | — | Concept Note, Spec, dos críticas, las marcas de reemplazo en las Specs de origen (`82d3d4f`), este Plan y la marca de `PANEL_ARMADO_SPEC.md` |
-| 2 | `feature/desglose-posiciones` | `main` | Not started | — | — | Se crea desde `main` una vez mergeada la rama 1 |
+| 1 | `docs/desglose-posiciones` | `main` | Merged (`133145f`) | — (merge directo a pedido del owner) | — | Concept Note, Spec, dos críticas, las marcas de reemplazo en las Specs de origen (`82d3d4f`), este Plan y la marca de `PANEL_ARMADO_SPEC.md` |
+| 2 | `feature/desglose-posiciones` | `main` | In progress | — | `puestos.test.js` 55/55; escenarios `puestos-*` 8/8; suites existentes sin cambios de números | Creada desde `main` en `854d673` (v2.0.27). Falta `T-2.30` y la sincronización de `T-2.28` |
 
 ```mermaid
 flowchart LR
@@ -485,107 +485,107 @@ verde; los dos primeros grupos no cambian nada que se vea.
 
 **Grupo A — el catálogo como datos, sin cambio de comportamiento**
 
-- [ ] T-2.1 Agregar `LINEAS`, `PUESTOS` (las cuatro posiciones de hoy), `POSICIONES_VIEJAS` vacía, `VALORES_PUESTO`, `ORDEN_LINEAS` nuevo y las derivadas de catálogo de §7.3.5; reescribir `posTextColor`, `posBadgeStyle`, `blankScores`, `computeAvg` (firma nueva, `TD-04`) y sus llamadores; borrar `POSITIONS`, `ORDEN_POSICION`, `POS_COLOR`, `LABEL_LINEA`, `ORDEN_POSICION_LECTURA`
-- [ ] T-2.2 `sumasPorLinea`/`balanceLineasDe` por `lineaDe`; `balanceGuardadoPorLinea` en `repartoDivergeDeLaGeneracion`; `celdasDiferenciaPorLinea`, `explicacionesDelArmado`, `jugadoresDeEquipoOrdenados` y `agruparEnLineasDeCancha` sobre las claves nuevas
-- [ ] T-2.3 Actualizar las listas `DECLARACIONES` de `tests/harness.js`, `cancha.test.js`, `panel.test.js`, `finalizado.test.js` y `colores.test.js`, y las claves de línea esperadas (`Defensor` → `Defensa`, `Volante` → `Medio`, `Delantero` → `Ataque`, `Arquero` → `Arco`) en `motor.test.js`, `panel.test.js`, `colores.test.js` y `fixtures-app.js` (`TC-032`)
-- [ ] T-2.C1 Commit — `refactor(motor): las líneas salen de un catálogo (TC-010, TC-011)`
+- [x] T-2.1 Agregar `LINEAS`, `PUESTOS` (las cuatro posiciones de hoy), `POSICIONES_VIEJAS` vacía, `VALORES_PUESTO`, `ORDEN_LINEAS` nuevo y las derivadas de catálogo de §7.3.5; reescribir `posTextColor`, `posBadgeStyle`, `blankScores`, `computeAvg` (firma nueva, `TD-04`) y sus llamadores; borrar `POSITIONS`, `ORDEN_POSICION`, `POS_COLOR`, `LABEL_LINEA`, `ORDEN_POSICION_LECTURA`
+- [x] T-2.2 `sumasPorLinea`/`balanceLineasDe` por `lineaDe`; `balanceGuardadoPorLinea` en `repartoDivergeDeLaGeneracion`; `celdasDiferenciaPorLinea`, `explicacionesDelArmado`, `jugadoresDeEquipoOrdenados` y `agruparEnLineasDeCancha` sobre las claves nuevas
+- [x] T-2.3 Actualizar las listas `DECLARACIONES` de `tests/harness.js`, `cancha.test.js`, `panel.test.js`, `finalizado.test.js` y `colores.test.js`, y las claves de línea esperadas (`Defensor` → `Defensa`, `Volante` → `Medio`, `Delantero` → `Ataque`, `Arquero` → `Arco`) en `motor.test.js`, `panel.test.js`, `colores.test.js` y `fixtures-app.js` (`TC-032`)
+- [x] T-2.C1 Commit — `refactor(motor): las líneas salen de un catálogo (TC-010, TC-011)`
 
-- [ ] T-2.4 `CANCHAS[*].formacion` a lugares por puesto en vocabulario viejo; `formacionPorPuesto`, `puestosDeFormacion`, `lugaresPorLinea`, `etiquetaFormacion`, `formacionTexto`; generalizar `asignarPosicionesOptimo`, `enumerarAsignacionesOptimas`, `repartirPorLineasParejo`, `generarEquiposEstrategia3` y `lineaDeUnSoloLugar` (`TD-05`, `TD-06`, `TD-07`); `faltantesDeFormacionVigente` con `formacionPorPuesto` y `cubrePosicionGuardada`; `formacion` de cada fixture a la forma nueva. Correr la suite: **ningún número esperado cambia**. Si alguno cambia, el refactor está mal —no se ajusta el test
-- [ ] T-2.C2 Commit — `refactor(motor): la formación llega como lugares por puesto (TC-012, TC-013)`
+- [x] T-2.4 `CANCHAS[*].formacion` a lugares por puesto en vocabulario viejo; `formacionPorPuesto`, `puestosDeFormacion`, `lugaresPorLinea`, `etiquetaFormacion`, `formacionTexto`; generalizar `asignarPosicionesOptimo`, `enumerarAsignacionesOptimas`, `repartirPorLineasParejo`, `generarEquiposEstrategia3` y `lineaDeUnSoloLugar` (`TD-05`, `TD-06`, `TD-07`); `faltantesDeFormacionVigente` con `formacionPorPuesto` y `cubrePosicionGuardada`; `formacion` de cada fixture a la forma nueva. Correr la suite: **ningún número esperado cambia**. Si alguno cambia, el refactor está mal —no se ajusta el test
+- [x] T-2.C2 Commit — `refactor(motor): la formación llega como lugares por puesto (TC-012, TC-013)`
 
-- [ ] T-2.5 Estrategia 2: grupos por puesto presente en orden `ordenDePuesto` y grupo final sin puesto reconocible (`TD-05`); Paso 2 y Paso 4 sobre los mismos puestos. Correr la suite: ningún número cambia
-- [ ] T-2.C3 Commit — `refactor(motor): la estrategia por posición agrupa por puesto presente (FR-060)`
+- [x] T-2.5 Estrategia 2: grupos por puesto presente en orden `ordenDePuesto` y grupo final sin puesto reconocible (`TD-05`); Paso 2 y Paso 4 sobre los mismos puestos. Correr la suite: ningún número cambia
+- [x] T-2.C3 Commit — `refactor(motor): la estrategia por posición agrupa por puesto presente (FR-060)`
 
 **Grupo B — los ocho puestos**
 
-- [ ] T-2.6 Cambiar el contenido del catálogo a los ocho puestos y las tres posiciones viejas (§7.3.2); `CANCHAS` a las formaciones de §7.3.3; `mejorPosicionAlternativa` a DEL; `construirUnidadDupla` sobre puestos y posiciones viejas; `loadTestPlayers` (las dos copias) ciclando `VALORES_PUESTO`; insignias, etiquetas de convocados, autocompletado y secundarias de la lista con `siglaDe` escapada (`FR-005`, `TC-040`)
-- [ ] T-2.7 En la red de regresión, cambiar a `'DEL'` sólo las expectativas de arquero desplazado sin secundarias (`FR-065`) y listar cada una en el PR
-- [ ] T-2.8 `tests/fixtures.js`: `aPuestos(plantel)` (Defensa → DC, LI, LD en rueda; Medio → MC, MI, MD; Ataque → DEL; las secundarias de la misma línea se agregan; los puntajes de línea se copian a cada puesto nuevo y los viejos se conservan), `PLANTEL_F8_PUESTOS`, `PLANTEL_F9_PUESTOS`; `tests/fixtures-app.js`: `docsDesde(…, { reclasificados })` (`TD-15`)
-- [ ] T-2.C4 Commit — `feat(puestos): catálogo de ocho puestos y cuatro líneas (FR-001, FR-004)`
+- [x] T-2.6 Cambiar el contenido del catálogo a los ocho puestos y las tres posiciones viejas (§7.3.2); `CANCHAS` a las formaciones de §7.3.3; `mejorPosicionAlternativa` a DEL; `construirUnidadDupla` sobre puestos y posiciones viejas; `loadTestPlayers` (las dos copias) ciclando `VALORES_PUESTO`; insignias, etiquetas de convocados, autocompletado y secundarias de la lista con `siglaDe` escapada (`FR-005`, `TC-040`)
+- [x] T-2.7 En la red de regresión, cambiar a `'DEL'` sólo las expectativas de arquero desplazado sin secundarias (`FR-065`) y listar cada una en el PR
+- [x] T-2.8 `tests/fixtures.js`: `aPuestos(plantel)` (Defensa → DC, LI, LD en rueda; Medio → MC, MI, MD; Ataque → DEL; las secundarias de la misma línea se agregan; los puntajes de línea se copian a cada puesto nuevo y los viejos se conservan), `PLANTEL_F8_PUESTOS`, `PLANTEL_F9_PUESTOS`; `tests/fixtures-app.js`: `docsDesde(…, { reclasificados })` (`TD-15`)
+- [x] T-2.C4 Commit — `feat(puestos): catálogo de ocho puestos y cuatro líneas (FR-001, FR-004)`
 
-- [ ] T-2.9 Crear `tests/puestos.test.js` con los casos de motor de §7.3.6: `S-05`…`S-05d`, `S-06e`, `S-07`…`S-07c` (sin el texto de `FR-063`, que llega en `T-2.21`), `S-08`, `S-06c`, `S-06d`, `S-11`, `S-20b` (parte del motor), `TC-013`, `FR-067` (único requisito de la Spec sin escenario propio en §9; ver §7.3.6)
-- [ ] T-2.10 [P] Sumar `node tests/puestos.test.js` a `tests/README.md` y a la lista de `AGENTS.md` § Tests
-- [ ] T-2.C5 Commit — `test(puestos): el motor con los ocho puestos (S-05, S-06, S-07, S-08)`
+- [x] T-2.9 Crear `tests/puestos.test.js` con los casos de motor de §7.3.6: `S-05`…`S-05d`, `S-06e`, `S-07`…`S-07c` (sin el texto de `FR-063`, que llega en `T-2.21`), `S-08`, `S-06c`, `S-06d`, `S-11`, `S-20b` (parte del motor), `TC-013`, `FR-067` (único requisito de la Spec sin escenario propio en §9; ver §7.3.6)
+- [x] T-2.10 [P] Sumar `node tests/puestos.test.js` a `tests/README.md` y a la lista de `AGENTS.md` § Tests
+- [x] T-2.C5 Commit — `test(puestos): el motor con los ocho puestos (S-05, S-06, S-07, S-08)`
 
 **Grupo C — la cancha y lo guardado**
 
-- [ ] T-2.11 `agruparEnLineasDeCancha` con orden por lado; `renderCamiseta` con `nombreDe` en el `title` (`TD-11`, `FR-076`)
-- [ ] T-2.12 Casos `S-09`…`S-09d`, `S-10`…`S-10d`, `S-20a` en `tests/puestos.test.js`
-- [ ] T-2.C6 Commit — `feat(puestos): cada camiseta en su lado de la cancha (FR-071, FR-074)`
+- [x] T-2.11 `agruparEnLineasDeCancha` con orden por lado; `renderCamiseta` con `nombreDe` en el `title` (`TD-11`, `FR-076`)
+- [x] T-2.12 Casos `S-09`…`S-09d`, `S-10`…`S-10d`, `S-20a` en `tests/puestos.test.js`
+- [x] T-2.C6 Commit — `feat(puestos): cada camiseta en su lado de la cancha (FR-071, FR-074)`
 
-- [ ] T-2.13 Escenarios `puestos-cancha` y `puestos-valor-desconocido` en `tests/layout.test.js`
-- [ ] T-2.C7 Commit — `test(puestos): la cancha por lados y el valor desconocido (S-09, S-20)`
+- [x] T-2.13 Escenarios `puestos-cancha` y `puestos-valor-desconocido` en `tests/layout.test.js`
+- [x] T-2.C7 Commit — `test(puestos): la cancha por lados y el valor desconocido (S-09, S-20)`
 
 **Grupo D — ficha, reclasificación y lista**
 
-- [ ] T-2.14 Escribir `puestos-ficha` y **correrlo con la ficha de hoy**: tiene que fallar por "el selector no ofrece los ocho puestos". Guardar la salida para el PR (`TC-033`). No se commitea todavía
-- [ ] T-2.15 Generar las opciones de `#fPrincipal` y `#filters` del catálogo; `renderSecBadges`, `renderScoresGrid`, `refreshScoresSection` (con `scoresAlGuardar`) y `validatePlayerForm` sobre `PUESTOS`; `estadoInicialDeFicha`, `precargaDePuesto`, `renderAntesDeReclasificar`, `puntajesViejosDe`; `openForm` y `validateAndSave` con esos estados (`TD-12`)
-- [ ] T-2.16 `pasaFiltroPuesto`, opción "A revisar", `sortRoster` por `ordenDePuesto`, marca `.status-chip.a-revisar` en la fila
-- [ ] T-2.17 Casos `S-01a`…`S-01d`, `S-01f`, `S-02b`, `S-03`…`S-03b` en `tests/puestos.test.js`
-- [ ] T-2.C8 Commit — `feat(puestos): ficha con ocho puestos y reclasificación (FR-010, FR-023)`, incluye `T-2.14` a `T-2.17`
+- [x] T-2.14 Escribir `puestos-ficha` y **correrlo con la ficha de hoy**: tiene que fallar por "el selector no ofrece los ocho puestos". Guardar la salida para el PR (`TC-033`). No se commitea todavía
+- [x] T-2.15 Generar las opciones de `#fPrincipal` y `#filters` del catálogo; `renderSecBadges`, `renderScoresGrid`, `refreshScoresSection` (con `scoresAlGuardar`) y `validatePlayerForm` sobre `PUESTOS`; `estadoInicialDeFicha`, `precargaDePuesto`, `renderAntesDeReclasificar`, `puntajesViejosDe`; `openForm` y `validateAndSave` con esos estados (`TD-12`)
+- [x] T-2.16 `pasaFiltroPuesto`, opción "A revisar", `sortRoster` por `ordenDePuesto`, marca `.status-chip.a-revisar` en la fila
+- [x] T-2.17 Casos `S-01a`…`S-01d`, `S-01f`, `S-02b`, `S-03`…`S-03b` en `tests/puestos.test.js`
+- [x] T-2.C8 Commit — `feat(puestos): ficha con ocho puestos y reclasificación (FR-010, FR-023)`, incluye `T-2.14` a `T-2.17`
 
-- [ ] T-2.18 Escenarios `puestos-reclasificar` y `puestos-jugador`; ajustar el escenario existente `ficha` a los ocho toggles
-- [ ] T-2.C9 Commit — `test(puestos): la reclasificación en pantalla (S-01, S-21)`
+- [x] T-2.18 Escenarios `puestos-reclasificar` y `puestos-jugador`; ajustar el escenario existente `ficha` a los ocho toggles
+- [x] T-2.C9 Commit — `test(puestos): la reclasificación en pantalla (S-01, S-21)`
 
 **Grupo E — el bloqueo**
 
-- [ ] T-2.19 Escribir `puestos-bloqueo` y **correrlo sin la guarda**: tiene que fallar por "hubo escrituras al tocar Generar". Guardar la salida para el PR (`TC-033`). No se commitea todavía
-- [ ] T-2.20 `titularesARevisar`, `posicionesPreviasVigentes`, la guarda en `window.__generarEquipos` y `renderAvisoBloqueo` en las dos ramas de la tarjeta (sin y con equipos, `TD-08`, `TD-09`); casos `S-04a`…`S-04c`, `S-11a`
-- [ ] T-2.C10 Commit — `feat(puestos): no se genera con titulares a revisar (FR-040, FR-042)`, incluye `T-2.19` y `T-2.20`
+- [x] T-2.19 Escribir `puestos-bloqueo` y **correrlo sin la guarda**: tiene que fallar por "hubo escrituras al tocar Generar". Guardar la salida para el PR (`TC-033`). No se commitea todavía
+- [x] T-2.20 `titularesARevisar`, `posicionesPreviasVigentes`, la guarda en `window.__generarEquipos` y `renderAvisoBloqueo` en las dos ramas de la tarjeta (sin y con equipos, `TD-08`, `TD-09`); casos `S-04a`…`S-04c`, `S-11a`
+- [x] T-2.C10 Commit — `feat(puestos): no se genera con titulares a revisar (FR-040, FR-042)`, incluye `T-2.19` y `T-2.20`
 
 **Grupo F — los textos**
 
-- [ ] T-2.21 Frases de `TD-13` en `explicacionesDelArmado`, con `balancePorPuestoTexto`; casos de texto de `S-05b`, `S-05c`, `S-07`, `S-07a`, `S-08`, `S-06a`, `S-06b`
-- [ ] T-2.22 Textos de `ESTRATEGIAS`, `REGLAS_CATALOGO` y `REGLAS_INVARIANTES` con `textoFormacionesDeCancha` (`FR-090`); la cuenta de repartos de `repartoExhaustivo` pasa a "unos cientos por escenario" (128 en F8, 384 en F9); caso `S-12`
-- [ ] T-2.23 Caso `'puestos/NFR-006: …'`; correrlo y dejarlo verde (si encuentra un literal, sacarlo del código, no del test)
-- [ ] T-2.C11 Commit — `feat(puestos): el resumen y la configuración nombran los puestos (FR-057, FR-090)`
+- [x] T-2.21 Frases de `TD-13` en `explicacionesDelArmado`, con `balancePorPuestoTexto`; casos de texto de `S-05b`, `S-05c`, `S-07`, `S-07a`, `S-08`, `S-06a`, `S-06b`
+- [x] T-2.22 Textos de `ESTRATEGIAS`, `REGLAS_CATALOGO` y `REGLAS_INVARIANTES` con `textoFormacionesDeCancha` (`FR-090`); la cuenta de repartos de `repartoExhaustivo` pasa a "unos cientos por escenario" (128 en F8, 384 en F9); caso `S-12`
+- [x] T-2.23 Caso `'puestos/NFR-006: …'`; correrlo y dejarlo verde (si encuentra un literal, sacarlo del código, no del test)
+- [x] T-2.C11 Commit — `feat(puestos): el resumen y la configuración nombran los puestos (FR-057, FR-090)`
 
 **Grupo G — medir y verificar**
 
-- [ ] T-2.24 `tools/medir-motor.js`: `CAMPO` a los siete puestos, sorteo de principales por línea y de secundarias con sesgo a la misma línea (el generador de la simulación de §15.1), formaciones de `CANCHAS`, referencias traducidas con `aPuestos`, e impresión de la etiqueta `puestos/NFR-002` con el peor tiempo y la tasa de truncado
-- [ ] T-2.25 Caso `'puestos/NFR-001: …'` en `tests/puestos.test.js`
-- [ ] T-2.C12 Commit — `test(tools): el medidor del motor con siete puestos (NFR-001, NFR-002)`
+- [x] T-2.24 `tools/medir-motor.js`: `CAMPO` a los siete puestos, sorteo de principales por línea y de secundarias con sesgo a la misma línea (el generador de la simulación de §15.1), formaciones de `CANCHAS`, referencias traducidas con `aPuestos`, e impresión de la etiqueta `puestos/NFR-002` con el peor tiempo y la tasa de truncado
+- [x] T-2.25 Caso `'puestos/NFR-001: …'` en `tests/puestos.test.js`
+- [x] T-2.C12 Commit — `test(tools): el medidor del motor con siete puestos (NFR-001, NFR-002)`
 
-- [ ] T-2.26 `tools/revisar-historial.js` (`TD-16`): credenciales `ROL_TEST_ADMIN_USER`/`ROL_TEST_ADMIN_PASS` del entorno, sólo `GET`; sin credenciales avisa y devuelve 0
-- [ ] T-2.C13 Commit — `feat(tools): revisa el historial de staging sin escribir (NFR-005)`
+- [x] T-2.26 `tools/revisar-historial.js` (`TD-16`): credenciales `ROL_TEST_ADMIN_USER`/`ROL_TEST_ADMIN_PASS` del entorno, sólo `GET`; sin credenciales avisa y devuelve 0
+- [x] T-2.C13 Commit — `feat(tools): revisa el historial de staging sin escribir (NFR-005)`
 
-- [ ] T-2.27 Correr `perf` en F8 y F9 y aplicar la regla de `TD-17`; anotar los números en el PR y en la fila de cierre del Change log. Si la regla pide subir el tope, commit propio `perf(motor): …`
+- [x] T-2.27 Correr `perf` en F8 y F9 y aplicar la regla de `TD-17`; anotar los números en el PR y en la fila de cierre del Change log. Si la regla pide subir el tope, commit propio `perf(motor): …`
 - [ ] T-2.28 Sincronizar staging desde producción (`tools/sync-staging-data.html`) y correr `node tools/revisar-historial.js`. Si hay camisetas sin puesto, `A-01` es falsa: parar y abrir el caso en la Spec antes de seguir
-- [ ] T-2.29 Correr el gate de binding (`T-2.D8`, `T-2.D9`) y cerrar cualquier hueco antes de seguir
+- [x] T-2.29 Correr el gate de binding (`T-2.D8`, `T-2.D9`) y cerrar cualquier hueco antes de seguir
 
 **Grupo H — prueba real y documentos**
 
 - [ ] T-2.30 Abrir `index.html` localmente contra staging como admin: reclasificar a dos jugadores de un partido abierto; con uno a revisar, ver el aviso y que Generar no hace nada; con los dos, generar con Formación Fija y mirar la cancha a 360 y 1200 px; abrir un partido finalizado viejo y compararlo con producción. Entrar como jugador y ver siglas y cancha (credenciales de staging fuera del repositorio)
-- [ ] T-2.31 [P] Actualizar `Roadmap.md:18` ("Posiciones fijas…") a los ocho puestos y cuatro líneas (Spec §17)
-- [ ] T-2.32 [P] En este Plan, pasar el tracker de §7.1 al estado real y agregar la fila de cierre del Change log con los números de `T-2.27` y `T-2.28`
-- [ ] T-2.C14 Commit — `docs(desglose-posiciones): registra la implementación en el plan`
+- [x] T-2.31 [P] Actualizar `Roadmap.md:18` ("Posiciones fijas…") a los ocho puestos y cuatro líneas (Spec §17)
+- [x] T-2.32 [P] En este Plan, pasar el tracker de §7.1 al estado real y agregar la fila de cierre del Change log con los números de `T-2.27` y `T-2.28`
+- [x] T-2.C14 Commit — `docs(desglose-posiciones): registra la implementación en el plan`
 
 DoD verification (§6). Todo arreglo hecho durante la verificación va en un commit propio
 (un `T-2.C*` más por arreglo, numerado a continuación del último, con asunto `fix(...)`):
 
-- [ ] T-2.D1 Tests nuevos pasan — `node tests/puestos.test.js && LAYOUT_STRICT=1 node tests/layout.test.js`
-- [ ] T-2.D2 Tests existentes pasan — `node tests/motor.test.js && node tests/cancha.test.js && node tests/panel.test.js && node tests/finalizado.test.js && node tests/eventos.test.js && node tests/toque.test.js && node tests/escapado.test.js && node tests/colores.test.js && node tests/sesion.test.js && node tests/rol-script.test.js`
-- [ ] T-2.D3 Linter: no aplica (§5), declarado
-- [ ] T-2.D4 Type-checker: no aplica (§5), declarado
-- [ ] T-2.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- tests/puestos.test.js tools/revisar-historial.js` vacío, y `git diff main -- index.html tests tools | grep -E "^\+.*(TODO|FIXME|HACK)"` vacío
-- [ ] T-2.D6 Implementación revisada contra §5
-- [ ] T-2.D7 Cada FR/NFR/TC de la Spec está implementado — revisar las tablas de §7.3.5 contra Spec §7, §8 y §4
-- [ ] T-2.D8 Binding de escenarios y variantes — `comm -23 <(sed -n '/^## 9\./,/^## 10\./p' docs/desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md | grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "puestos/S-[0-9]+[a-z]*" tests/ | sed 's#puestos/##' | sort -u)` vacío
-- [ ] T-2.D8b Bloques `Variants:` presentes — mismo `awk` que `T-1.D8b`, vacío
-- [ ] T-2.D9 Binding de NFRs — `comm -23 <(sed -n '/^## 8\./,/^## 9\./p' docs/desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md | grep -oE "NFR-[0-9]+" | sort -u) <(grep -rEho "puestos/NFR-[0-9]+" tests/ tools/medir-motor.js tools/revisar-historial.js | sed 's#puestos/##' | sort -u)` vacío
-- [ ] T-2.D10 Mismo comando que `T-1.D10`, vacío
-- [ ] T-2.D10b Mismo comando que `T-1.D10b`, vacío
-- [ ] T-2.D11 Historial limpio — `git log --oneline main..HEAD`, cada commit con formato §5
+- [x] T-2.D1 Tests nuevos pasan — `node tests/puestos.test.js && LAYOUT_STRICT=1 node tests/layout.test.js`
+- [x] T-2.D2 Tests existentes pasan — `node tests/motor.test.js && node tests/cancha.test.js && node tests/panel.test.js && node tests/finalizado.test.js && node tests/eventos.test.js && node tests/toque.test.js && node tests/escapado.test.js && node tests/colores.test.js && node tests/sesion.test.js && node tests/rol-script.test.js`
+- [x] T-2.D3 Linter: no aplica (§5), declarado
+- [x] T-2.D4 Type-checker: no aplica (§5), declarado
+- [x] T-2.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- tests/puestos.test.js tools/revisar-historial.js` vacío, y `git diff main -- index.html tests tools | grep -E "^\+.*(TODO|FIXME|HACK)"` vacío
+- [x] T-2.D6 Implementación revisada contra §5
+- [x] T-2.D7 Cada FR/NFR/TC de la Spec está implementado — revisar las tablas de §7.3.5 contra Spec §7, §8 y §4
+- [x] T-2.D8 Binding de escenarios y variantes — `comm -23 <(sed -n '/^## 9\./,/^## 10\./p' docs/desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md | grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "puestos/S-[0-9]+[a-z]*" tests/ | sed 's#puestos/##' | sort -u)` vacío
+- [x] T-2.D8b Bloques `Variants:` presentes — mismo `awk` que `T-1.D8b`, vacío
+- [x] T-2.D9 Binding de NFRs — `comm -23 <(sed -n '/^## 8\./,/^## 9\./p' docs/desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md | grep -oE "NFR-[0-9]+" | sort -u) <(grep -rEho "puestos/NFR-[0-9]+" tests/ tools/medir-motor.js tools/revisar-historial.js | sed 's#puestos/##' | sort -u)` vacío
+- [x] T-2.D10 Mismo comando que `T-1.D10`, vacío
+- [x] T-2.D10b Mismo comando que `T-1.D10b`, vacío
+- [x] T-2.D11 Historial limpio — `git log --oneline main..HEAD`, cada commit con formato §5
 - [ ] T-2.D12 Descripción del PR: resumen, IDs de la Spec, `TD-*` tomadas, salidas rojas de `T-2.14` y `T-2.19`, expectativas cambiadas en `T-2.7`, números de `T-2.27` y `T-2.28`
 - [ ] T-2.D13 Gate propio: `T-2.30` hecho
 - [ ] T-2.D14 PR abierto contra `main`
-- [ ] T-2.D15 Mismo comando que `T-1.D15`, ≥ 1
-- [ ] T-2.D16 Mismo comando que `T-1.D16`, vacío
-- [ ] T-2.D17 Mismo comando que `T-1.D17`, vacío
-- [ ] T-2.D18 Auto-consistencia del Plan, Pass 1
-- [ ] T-2.D18b Unicidad de definiciones — mismo comando que `T-1.D18b`, vacío en los tres documentos
-- [ ] T-2.D19 Consistencia cruzada, Pass 2
-- [ ] T-2.D20 Supply-chain: `none` declarado en §5, pasa de forma vacua
+- [x] T-2.D15 Mismo comando que `T-1.D15`, ≥ 1
+- [x] T-2.D16 Mismo comando que `T-1.D16`, vacío
+- [x] T-2.D17 Mismo comando que `T-1.D17`, vacío
+- [x] T-2.D18 Auto-consistencia del Plan, Pass 1
+- [x] T-2.D18b Unicidad de definiciones — mismo comando que `T-1.D18b`, vacío en los tres documentos
+- [x] T-2.D19 Consistencia cruzada, Pass 2
+- [x] T-2.D20 Supply-chain: `none` declarado en §5, pasa de forma vacua
 
 ## 8. Data model & migrations
 
@@ -846,8 +846,8 @@ reclasificar a sus titulares. Los partidos ya generados y el historial se siguen
 
 | ID | Assumption | Owner | If false |
 |---|---|---|---|
-| A-01 | Los partidos guardados tienen en su posición asignada sólo posiciones viejas o ninguna (heredada de la Spec, confirmada por el owner). **Falta verificarla con datos:** `T-2.28` | Lucas Manoukian | Cada valor ajeno cae en la fila aparte (`FR-075`); se decide caso por caso en la Spec antes de mergear |
-| A-02 | Con siete puestos el encaje óptimo sigue siendo instantáneo con ~18 unidades (heredada de la Spec). **Verificada en simulación el 2026-09-30:** la programación dinámica tiene a lo sumo 3⁶·5 = 3.645 estados por capa en F9 y la enumeración de empates tardó ≤ 11 ms en el peor de 2.400 planteles. La medición con el motor real es `OBS-01`/`OBS-02` | Lucas Manoukian | `TD-17` |
+| A-01 | Los partidos guardados tienen en su posición asignada sólo posiciones viejas o ninguna (heredada de la Spec, confirmada por el owner). **Verificada el 2026-09-30 sobre los datos que staging tiene hoy** (sin sincronizar desde producción, `T-2.28`): 8 partidos con equipos, 128 camisetas, ninguna en la fila sin puesto; 7 de 7 finalizados con posiciones dan los mismos totales antes y después de reclasificar. Falta repetirlo después de sincronizar | Lucas Manoukian | Cada valor ajeno cae en la fila aparte (`FR-075`); se decide caso por caso en la Spec antes de mergear |
+| A-02 | Con siete puestos el encaje óptimo sigue siendo instantáneo con ~18 unidades (heredada de la Spec). **Verificada en simulación el 2026-09-30:** la programación dinámica tiene a lo sumo 3⁶·5 = 3.645 estados por capa en F9 y la enumeración de empates tardó ≤ 11 ms en el peor de 2.400 planteles. **Medida con el motor real el 2026-09-30 (`T-2.27`):** referencias de 5,1 a 36,9 ms en F8 y de 8,1 a 44,8 ms en F9; peor caso de 300 planteles, 99,4 ms (F8) y 518,1 ms (F9) | Lucas Manoukian | `TD-17` |
 | A-03 | El administrador reclasifica a los titulares antes de generar (heredada de la Spec) | Lucas Manoukian | `R-02` |
 | A-04 | Un plantel real se parece al de la simulación de `OPEN-Q-01` (muchos defensores y volantes, pocos delanteros, secundarias sobre todo de la misma línea) | Lucas Manoukian | La tasa de truncado real puede ser otra: `OBS-07` la mide con el generador actualizado, y `T-2.28` con los datos de staging |
 | A-05 | Un literal `'Arquero'` usado como comparación no es una enumeración en el sentido de `TC-010` (`TD-18`) | Lucas Manoukian | Reemplazar los 24 por una constante en un commit propio, sin cambio de comportamiento |
@@ -894,6 +894,7 @@ reclasificar a sus titulares. Los partidos ya generados y el historial se siguen
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Resuelve `OPEN-Q-01` (simulación de escenarios empatados; los topes no cambian, `TD-17`) y `OPEN-Q-02` (lectura línea por línea; suma cinco lectores y dos superficies sin escapar que el barrido del Concept Note no nombraba) de la Spec, y verifica `A-02` en simulación; `A-01` queda para `T-2.28`. Surgieron dos contradicciones con el código, resueltas por el owner y aplicadas a la Spec en la rama 1 (`OPEN-Q-03`, `OPEN-Q-04`). Self-critique: skipped (se propone una crítica cross-family en otra sesión). |
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Resuelve los 3 hallazgos de la crítica independiente ([DESGLOSE_POSICIONES_PLAN_CRITIQUE_2026-09-30_claude-sonnet-5.md](./DESGLOSE_POSICIONES_PLAN_CRITIQUE_2026-09-30_claude-sonnet-5.md)): 🔴 las celdas `Risk`/`OBS` de §12.2 (y `Binds to` de `OBS-08` en §11) pasan a llevar backticks, porque una celda de un solo valor sin ellos era indistinguible, para el `grep` de `T-N.D18b`, de la fila que define ese mismo `OBS-*`/`R-*` — verificado corriendo el comando tal cual está escrito, ahora vacío en los tres documentos; 🟡 `FR-067` (el único FR de la Spec sin escenario propio en su §9) suma un caso mecánico propio, `'puestos/FR-067: …'`, citado en `T-2.9` y en la fila `AC-03` de §16; 🔵 `TD-01` deja de citar `D-08`/`D-09` como Spec ref (no justificaban "sin feature flag") y explica en la rationale, en cambio, por qué esas dos decisiones son coherentes con no tener flag. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Corrige la nota de §12.2 que agregó la fila anterior: el hallazgo 🔴 de la crítica no se reproduce con el comando de `T-N.D18b` tal como está escrito, que está anclado al comienzo de la fila y siempre dio vacío (corrido en la sesión de autoría antes de la crítica, y de nuevo sobre una copia sin backticks). La evidencia del informe muestra el mismo comando sin el `^`. Los backticks se conservan como estilo. El informe de crítica no se edita (`AGENTS.md`). Las correcciones de `FR-067` y `TD-01` se revisaron y quedan como están. Todos los gates de la rama 1 corridos de nuevo: vacíos. Self-critique: skipped (se hace aparte, a pedido del owner). |
+| 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Implementación de la rama 2, `feature/desglose-posiciones` (15 commits sobre `854d673`). **Mediciones (`T-2.27`):** referencias de 5,1 a 36,9 ms en F8 y de 8,1 a 44,8 ms en F9 (`NFR-001`, límite 50); peor caso de 300 planteles con mezcla 0,95, 99,4 ms en F8 y 518,1 ms en F9 (`NFR-002`, límite 1.000); enumeración truncada en 0 de 300 (F8) y 2 de 300 (F9, 0,7 %), por debajo del 5 % de `TD-17`: los topes no cambian. **Layout:** `LAYOUT_STRICT=1 node tests/layout.test.js` completo sobre el estado final, 57 de 57 escenarios. **Historial (`T-2.28`):** `tools/revisar-historial.js` sobre staging tal cual, sin sincronizar desde producción (la sincronización sobrescribe staging y queda a decisión del owner): 0 de 128 camisetas en la fila sin puesto y 7 de 7 totales iguales. **Desvíos del Plan:** (1) la red de regresión pasó con la salida de `motor.test.js` idéntica en cada commit, incluido el catálogo de ocho puestos, así que `T-2.7` no cambió ninguna expectativa (ningún caso viejo afirmaba el puesto del arquero desplazado) y `T-2.4` no cambió la forma de `formacion` en los fixtures (`formacionPorPuesto` lee las dos); (2) `siglaDe` de una posición vieja devuelve sus tres primeras letras (DEF, VOL, DEL), como la insignia de antes, y no su nombre, que no entraba en la insignia; (3) se agregó `juegaFueraDePuesto`: contra una posición vieja el "2º" de la camiseta se decide por línea, porque comparando valores todo jugador reclasificado de un partido viejo aparecía fuera de puesto (`FR-077`, `S-10`), un caso que el Plan no había nombrado; (4) `DECLARACIONES_CATALOGO` se exporta desde `tests/harness.js` y la usan todas las listas, para que una derivada nueva no obligue a tocar cada archivo (`TC-032`); (5) el escenario `puestos-bloqueo` se partió en `puestos-bloqueo-aviso` (todos los anchos, `NFR-003`) y `puestos-bloqueo-flujo` (un ancho, comportamiento), y `puestos-valor-desconocido` suma un principal malicioso en la insignia del convocado, que es la superficie que este cambio arregló; (6) `puestos-cancha` sólo se pudo ver fallar contra el código anterior al catálogo: con los puestos nuevos, el orden de `FR-003` ya es izquierda a derecha y el orden por lado sólo cambia dónde va una posición vieja; (7) los toggles de secundarios dicen "LD · Lateral Derecho" (`FR-006`); (8) los asuntos de ocho commits se acortaron a 72 caracteres antes del push (`AGENTS.md` § Commits), así que difieren de los que proponía `T-2.C*`. Quedan `T-2.28` (sincronizar y repetir), `T-2.30` (prueba en navegador contra staging), `T-2.D12` a `T-2.D14`. Self-critique: skipped (registro de implementación). |
 
 ---
 

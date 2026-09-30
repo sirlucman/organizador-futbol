@@ -20,7 +20,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { extraer } = require('./harness');
+const { extraer, DECLARACIONES_CATALOGO } = require('./harness');
 
 const SPEC = 'docs/equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md';
 const INDEX = path.join(__dirname, '..', 'index.html');
@@ -29,14 +29,10 @@ const src = fs.readFileSync(INDEX, 'utf8');
 /* En orden de dependencia. `players` y `motorConfig` los declara el prelude con setters, con el
    mismo criterio con el que harness.js declara reglaEnabled/reglaParam para el motor. */
 const DECLARACIONES = [
-  'POSITIONS',
+  ...DECLARACIONES_CATALOGO,
   'computeAvg',
   'valorGeneralDe',
   'puntajeEnPosicion',
-  'ORDEN_FORMACION',
-  'FORMACION_KEY_POR_POSICION',
-  'ORDEN_LINEAS',
-  'LABEL_LINEA',
   'lineaDeUnSoloLugar',
   'escaparHtml',
   'fullName',
@@ -46,11 +42,11 @@ const DECLARACIONES = [
   'posicionAsignadaDe',
   'construirUnidadDupla',
   'valorDePuntaje',
-  'ORDEN_POSICION_LECTURA',
   'jugadoresDeEquipoOrdenados',
   'agruparFilasDeEquipo',
   'sumasPorLinea',
   'balanceLineasDe',
+  'balanceGuardadoPorLinea',
   'colapsarDuplasParaLinea',
   'canonicalDuplas',
   'CANCHAS',
@@ -67,6 +63,7 @@ const DECLARACIONES = [
   // El recuento de formación sobre el reparto en pantalla y lo que necesita.
   'COSTO_DESCUBIERTA',
   'costoEncaje',
+  'cubrePosicionGuardada',
   'faltantesDeFormacionVigente',
   'repartoDivergeDeLaGeneracion',
   'ICON_CHEVRON_RECEIPT',
@@ -137,8 +134,16 @@ const P = cargarPanel();
    (Hasta el 2026-09-10 sostenía a `NFR-007`, "el receipt dice exactamente lo mismo que decía", que
    `FR-072b` invirtió: el mecanismo sirve igual, cambió lo que se le pregunta.)
    Mismo mecanismo que `tools/medir-motor.js` usa para comparar motores entre commits. */
+/* Una versión de index.html anterior al catálogo de puestos (desglose-posiciones) declara sus
+   posiciones y líneas con estos nombres, y en este orden de dependencia. */
+const DECLARACIONES_SIN_CATALOGO = ['POSITIONS', 'ORDEN_FORMACION', 'FORMACION_KEY_POR_POSICION',
+  'ORDEN_LINEAS', 'LABEL_LINEA', 'ORDEN_POSICION_LECTURA'];
+
 function cargarReceipt(fuente) {
-  const nombres = [...DECLARACIONES, ...DECLARACIONES_RECEIPT]
+  const conCatalogo = /\n[ \t]*const LINEAS\b/.test(fuente);
+  const base = conCatalogo ? DECLARACIONES
+    : [...DECLARACIONES_SIN_CATALOGO, ...DECLARACIONES.filter(n => !DECLARACIONES_SIN_CATALOGO.includes(n))];
+  const nombres = [...base, ...DECLARACIONES_RECEIPT]
     .filter(n => new RegExp(`\\n[ \\t]*(function|const|let)[ \\t]+${n}\\b`).test(fuente));
   const cuerpo = nombres.map(n => extraer(fuente, n)).join('\n\n');
   const prelude = `
@@ -232,27 +237,27 @@ console.log('\x1b[1mLÍNEA DE UN SOLO LUGAR\x1b[0m — qué línea tiene un solo
 prueba('"panel/S-04e" el arco y, cuando la formación le da un solo cupo, el ataque son líneas de un solo lugar', () => {
   const combinaciones = [FORMACION_8, FORMACION_9, { defensores: 4, volantes: 4, delanteros: 1 }];
   combinaciones.forEach(formacion => {
-    ['Arquero', 'Defensor', 'Volante', 'Delantero'].forEach(pos => {
+    P.ORDEN_LINEAS.forEach(pos => {
       const unico = P.lineaDeUnSoloLugar(pos, { objetivo: formacion });
       if (unico) {
         ok(unico === true, `${pos} con ${JSON.stringify(formacion)} debería ser línea de un solo lugar`);
       }
     });
-    ok(P.lineaDeUnSoloLugar('Arquero', { objetivo: formacion }) === true, 'el arco siempre es de un solo lugar');
-    ok(P.lineaDeUnSoloLugar('Delantero', { objetivo: formacion }) === true, 'con un delantero, el ataque es de un solo lugar');
+    ok(P.lineaDeUnSoloLugar('Arco', { objetivo: formacion }) === true, 'el arco siempre es de un solo lugar');
+    ok(P.lineaDeUnSoloLugar('Ataque', { objetivo: formacion }) === true, 'con un delantero, el ataque es de un solo lugar');
   });
 });
 
 prueba('"panel/S-04d" en fútbol 9 el Medio tiene cuatro lugares y no es de un solo lugar; Arco y Ataque sí', () => {
   const f = { objetivo: FORMACION_9 };
-  eq(P.lineaDeUnSoloLugar('Volante', f), false, 'el medio de la cancha de 9 no es de un solo lugar');
-  eq(P.lineaDeUnSoloLugar('Arquero', f), true, 'el arco sí');
-  eq(P.lineaDeUnSoloLugar('Delantero', f), true, 'el ataque sí');
+  eq(P.lineaDeUnSoloLugar('Medio', f), false, 'el medio de la cancha de 9 no es de un solo lugar');
+  eq(P.lineaDeUnSoloLugar('Arco', f), true, 'el arco sí');
+  eq(P.lineaDeUnSoloLugar('Ataque', f), true, 'el ataque sí');
 });
 
 prueba('"panel/S-04" sin formación guardada, ninguna línea de campo se toma como de un solo lugar', () => {
-  eq(P.lineaDeUnSoloLugar('Delantero', null), false, 'sin formación no se puede afirmar el cupo');
-  eq(P.lineaDeUnSoloLugar('Arquero', null), true, 'el arco no depende de la formación');
+  eq(P.lineaDeUnSoloLugar('Ataque', null), false, 'sin formación no se puede afirmar el cupo');
+  eq(P.lineaDeUnSoloLugar('Arco', null), true, 'el arco no depende de la formación');
 });
 
 console.log('');
@@ -269,24 +274,24 @@ prueba('"panel/S-04" con umbral, cualquier línea que lo supere se marca, sea o 
   const m = ARMADO_8();
   const celdas = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1);
   const porPos = Object.fromEntries(celdas.map(c => [c.pos, c]));
-  eq(porPos.Defensor.diferencia, 3, 'la defensa se lleva 3 puntos');
-  eq(porPos.Defensor.excedida, true, 'la defensa supera el desvío y podía repartirse: va marcada');
-  eq(porPos.Arquero.diferencia, 4, 'el arco se lleva 4 puntos');
-  eq(porPos.Arquero.excedida, true, 'el arco supera el desvío: se marca igual que defensa y medio');
-  eq(porPos.Delantero.excedida, false, 'el ataque quedó parejo (0 de diferencia): no hay nada que marcar');
+  eq(porPos.Defensa.diferencia, 3, 'la defensa se lleva 3 puntos');
+  eq(porPos.Defensa.excedida, true, 'la defensa supera el desvío y podía repartirse: va marcada');
+  eq(porPos.Arco.diferencia, 4, 'el arco se lleva 4 puntos');
+  eq(porPos.Arco.excedida, true, 'el arco supera el desvío: se marca igual que defensa y medio');
+  eq(porPos.Ataque.excedida, false, 'el ataque quedó parejo (0 de diferencia): no hay nada que marcar');
 });
 
 prueba('"panel/S-04a" una diferencia igual al desvío no se marca: la regla es "supera", no "alcanza"', () => {
   const m = ARMADO_8();
   const celdas = P.celdasDiferenciaPorLinea(m, porIdDe(m), 3);
-  const defensa = celdas.find(c => c.pos === 'Defensor');
+  const defensa = celdas.find(c => c.pos === 'Defensa');
   eq(defensa.diferencia, 3, 'la defensa se lleva exactamente 3');
   eq(defensa.excedida, false, 'con el desvío en 3, una diferencia de 3 entra');
 });
 
 prueba('"panel/S-04b" una línea pareja dice "Parejo" y no "+0"', () => {
   const m = ARMADO_8();
-  const celda = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Volante');
+  const celda = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Medio');
   eq(celda.diferencia, 0, 'el medio quedó igual');
   eq(celda.texto, 'Parejo', 'una diferencia de cero se dice en palabras');
   eq(celda.aFavor, null, 'y no favorece a nadie');
@@ -310,8 +315,8 @@ prueba('"panel/S-04f" un armado sin balance por línea guardado no produce grill
 prueba('"panel/S-04" el texto de cada celda nombra al equipo favorecido', () => {
   const m = ARMADO_8();
   const celdas = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1);
-  eq(celdas.find(c => c.pos === 'Defensor').texto, '+3 Blanco', 'la defensa favorece al Blanco');
-  eq(celdas.find(c => c.pos === 'Arquero').texto, '+4 Blanco', 'el arco también');
+  eq(celdas.find(c => c.pos === 'Defensa').texto, '+3 Blanco', 'la defensa favorece al Blanco');
+  eq(celdas.find(c => c.pos === 'Arco').texto, '+4 Blanco', 'el arco también');
   eq(celdas.map(c => c.etiqueta), ['Arco','Defensa','Medio','Ataque'], 'las etiquetas son las del resto de la aplicación');
 });
 
@@ -320,11 +325,11 @@ console.log('\x1b[1mEL RECÁLCULO\x1b[0m — los números siguen al reparto en p
 
 prueba('"panel/S-06" mover una unidad al otro equipo cambia la grilla', () => {
   const m = ARMADO_8();
-  const antes = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Defensor');
+  const antes = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Defensa');
   // El movimiento manual: b2 (Defensor, 8) pasa al Negro. No toca posicionAsignada (D-20).
   m.equipos.blanco = m.equipos.blanco.filter(id => id !== 'b2');
   m.equipos.negro = [...m.equipos.negro, 'b2'];
-  const despues = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Defensor');
+  const despues = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Defensa');
   eq(antes.diferencia, 3, 'antes del movimiento la defensa se llevaba 3');
   eq(despues.blanco, 13, 'el Blanco pierde los 8 de b2');
   eq(despues.negro, 26, 'y el Negro los gana');
@@ -403,7 +408,7 @@ prueba('"panel/S-06d" una línea que queda vacía para un equipo muestra 0 y la 
     m.equipos.blanco = m.equipos.blanco.filter(x => x !== id);
     m.equipos.negro = [...m.equipos.negro, id];
   });
-  const medio = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Volante');
+  const medio = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Medio');
   eq(medio.blanco, 0, 'el Blanco se quedó sin medio');
   eq(medio.negro, 36, 'el Negro se llevó los seis');
   eq(medio.texto, '+36 Negro', 'y la celda lo dice');
@@ -420,7 +425,7 @@ prueba('"panel/S-06c" una dupla entra en su línea como el promedio de sus dos i
     [['b1','Arquero',9],['b2','Volante',8],['b3','Volante',4]],
     [['n1','Arquero',9],['n2','Volante',6],['n3','Volante',6]],
     { duplas: [['b2','b3']] });
-  const medio = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Volante');
+  const medio = P.celdasDiferenciaPorLinea(m, porIdDe(m), 1).find(c => c.pos === 'Medio');
   eq(medio.blanco, 6, 'la dupla entra una sola vez, con el promedio de sus dos integrantes (FR-036), no la suma');
   eq(medio.negro, 12, 'sin dupla, cada volante del Negro suma su propio puntaje');
   eq(medio.texto, '+6 Negro', 'el promedio de la dupla (6) queda por debajo de los dos volantes sueltos del Negro (12)');
@@ -918,7 +923,13 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
     Object.fromEntries(jugadores.map(p => [p.id, p])));
   receiptAntes.__setPlayers(jugadores);
   receiptAhora.__setPlayers(jugadores);
-  const antes = receiptAntes.explicacionesDelArmado(m, m.equipos, jugadores);
+  /* La versión anterior al catálogo de puestos guardaba y leía el balance por POSICIÓN; la de hoy,
+     por línea (desglose-posiciones FR-053). Cada una recibe el mismo balance con las claves que
+     sabe leer: si no, la anterior no encontraría ninguna línea y la comparación mediría eso. */
+  const POSICION_DE_LINEA = { Arco: 'Arquero', Defensa: 'Defensor', Medio: 'Volante', Ataque: 'Delantero' };
+  const mAntes = { ...m, equipos: { ...m.equipos, balanceLineas: Object.fromEntries(
+    Object.entries(m.equipos.balanceLineas).map(([linea, v]) => [POSICION_DE_LINEA[linea] || linea, v])) } };
+  const antes = receiptAntes.explicacionesDelArmado(mAntes, mAntes.equipos, jugadores);
   const ahoraDos = receiptAhora.explicacionesDelArmado(m, m.equipos, jugadores);
   ok(Array.isArray(antes), 'antes devolvía una lista plana');
   ok(Array.isArray(ahoraDos.vigentes) && Array.isArray(ahoraDos.generacion), 'ahora devuelve los dos grupos');
@@ -927,7 +938,7 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
   ok(antes.length > 6, `el armado de prueba tiene que disparar muchas líneas, disparó ${antes.length}`);
   eq(ahora.length, antes.length, 'la unión de los dos grupos tiene la misma cantidad de líneas');
 
-  /* La ÚNICA cadena que cambió de texto, declarada por su prefijo exacto: la del bloqueado. Decía
+  /* Las cadenas que cambiaron de texto, declaradas por su texto exacto. La del bloqueado decía
      "permaneció en el Equipo X porque estaba bloqueado", y eso era falso en cuanto se arrastraba a
      un jugador bloqueado —nombraba el equipo nuevo afirmando que no se había movido—. Se lista una
      sola, y por texto exacto, con el mismo criterio con el que S-05d listaba sus excepciones: una
@@ -935,6 +946,10 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
   const REESCRITAS = {
     'b-def1 permaneció en el Equipo Blanco porque estaba bloqueado.':
       'b-def1 está bloqueado en el Equipo Blanco: la próxima generación no lo va a mover de ahí.',
+    /* La segunda, desde desglose-posiciones (FR-058): el puesto secundario usado se nombra con su
+       sigla ("de LI, su puesto secundario"). Con una posición vieja, como acá, con su nombre. */
+    'Se utilizó la posición secundaria de n-vol1 (Defensor) para completar la formación fija.':
+      'Se usó a n-vol1 de Defensor, su puesto secundario.',
   };
   const normalizar = l => REESCRITAS[l] || l;
   ok(antes.some(l => REESCRITAS[l]), 'el armado de prueba tiene que disparar la línea del bloqueado, que es la única reescrita');
@@ -942,7 +957,7 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
      'ninguna explicación se perdió ni se inventó al partir la lista en dos grupos');
 
   // Y el reparto entre grupos es el declarado: lo que narra al motor va aparte.
-  ok(ahoraDos.generacion.some(l => l.includes('posición secundaria de')), 'los swaps van al grupo de la generación');
+  ok(ahoraDos.generacion.some(l => l.includes('su puesto secundario')), 'los swaps van al grupo de la generación');
   ok(ahoraDos.generacion.some(l => l.includes('demasiadas combinaciones')), 'la enumeración truncada también');
   ok(ahoraDos.generacion.some(l => l.includes('generación anterior')), 'y la comparación entre generaciones');
   ok(ahoraDos.vigentes.some(l => l.includes('dupla de rotación quedó en el Equipo')), 'el reparto de duplas describe lo que se ve');

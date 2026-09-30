@@ -46,6 +46,8 @@ function optimoConjunto(a, pin = {}, tope = Infinity) {
   }));
 
   const cupo = {}, cupoGlobal = {}, duplas = { blanco: 0, negro: 0 };
+  // Los puestos del espacio salen del armado real (sus cupos), en el orden de FR-003.
+  const puestosDelArmado = () => Object.keys(cupoGlobal).sort((x, y) => motor.ordenDePuesto(x) - motor.ordenDePuesto(y));
   campo.forEach(id => {
     const pos = res.posicionAsignada[id];
     cupo[pos] = cupo[pos] || { blanco: 0, negro: 0 };
@@ -65,13 +67,15 @@ function optimoConjunto(a, pin = {}, tope = Infinity) {
       const pos = posDe[id], e = equipoDe[id], v = valor(id, pos);
       if (e === 'blanco') sumaB += v; else sumaN += v;
       if (!motor.tieneScoreEnPosicion(porId[id], pos)) { if (e === 'blanco') spB++; else spN++; }
-      lineas[pos] = lineas[pos] || { blanco: 0, negro: 0 };
-      lineas[pos][e] += v;
+      // Cada unidad suma en la LÍNEA de su puesto, como en el motor (desglose-posiciones FR-053).
+      const linea = motor.lineaDe(pos) || pos;
+      lineas[linea] = lineas[linea] || { blanco: 0, negro: 0 };
+      lineas[linea][e] += v;
     });
     const desvio = Math.abs(r4(sumaB - sumaN - objetivo));
-    const costoLineas = motor.ORDEN_FORMACION.reduce((acc, pos) => {
-      if (!lineas[pos]) return acc;
-      const d = r4(lineas[pos].blanco - lineas[pos].negro);
+    const costoLineas = motor.LINEAS_DE_CAMPO.reduce((acc, linea) => {
+      if (!lineas[linea]) return acc;
+      const d = r4(lineas[linea].blanco - lineas[linea].negro);
       return acc + d * d;
     }, 0);
     return [Math.max(0, r4(desvio - banda)), Math.abs(spB - spN), r4(costoLineas), desvio];
@@ -98,7 +102,7 @@ function optimoConjunto(a, pin = {}, tope = Infinity) {
         }
         return;
       }
-      motor.ORDEN_FORMACION.forEach(pos => {
+      puestosDelArmado().forEach(pos => {
         if (restante[pos] <= 0) return;
         restante[pos]--;
         actual[campo[i]] = pos;
@@ -110,7 +114,7 @@ function optimoConjunto(a, pin = {}, tope = Infinity) {
 
   // Y por cada partición, todos los repartos válidos.
   let mejorCosto = null, mejorDetalle = null, repartos = 0;
-  const posiciones = motor.ORDEN_FORMACION.filter(pos => cupoGlobal[pos] > 0);
+  const posiciones = puestosDelArmado().filter(pos => cupoGlobal[pos] > 0);
   particiones.forEach(posDe => {
     const porPos = posiciones.map(pos => campo.filter(id => posDe[id] === pos));
     const opciones = posiciones.map((pos, k) => motor.combinacionesDeIndices(porPos[k].length, cupo[pos].blanco));

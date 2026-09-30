@@ -52,9 +52,21 @@ function extraer(src, nombre) {
   return src.slice(desde, hasta) + (m[1] === 'function' ? '' : ';');
 }
 
+/* El catálogo de puestos y líneas y sus derivadas (desglose-posiciones TD-03). Va primero en cada
+   lista que recorta de index.html porque casi todo lo demás pregunta a estas funciones; se exporta
+   como una sola lista para que agregar una derivada no obligue a tocar cada archivo de tests. */
+const DECLARACIONES_CATALOGO = [
+  'LINEAS', 'PUESTOS', 'POSICIONES_VIEJAS', 'PUESTO_DE_ARQUERO_DESPLAZADO', 'FORMACION_VIEJA',
+  'VALORES_PUESTO', 'ORDEN_LINEAS',
+  'LINEAS_DE_CAMPO', 'VALORES_RECONOCIDOS', 'puestoDe', 'esPosicionVieja', 'lineaDe', 'ladoDe',
+  'ordenDePuesto', 'siglaDe', 'nombreDe', 'textoDePosicion', 'colorDeLinea', 'posTextColor', 'posBadgeStyle',
+  'RANGO_LADO', 'juegaFueraDePuesto', 'estaARevisar', 'posicionesDe', 'formacionPorPuesto', 'puestosDeFormacion', 'lugaresPorLinea',
+  'etiquetaFormacion', 'textoFormacionesDeCancha', 'puestosDeCupo', 'puestosParaLugaresExtra',
+];
+
 /* Todo lo que el motor necesita para correr, en orden de dependencia. */
 const DECLARACIONES = [
-  'POSITIONS',
+  ...DECLARACIONES_CATALOGO,
   'CANCHAS',
   'computeAvg',
   'valorGeneralDe',
@@ -67,21 +79,19 @@ const DECLARACIONES = [
   'esDupla',
   'cupoDuplasPorEquipo',
   'repartirBucketBalanceado',
-  'ORDEN_FORMACION',
-  'FORMACION_KEY_POR_POSICION',
   'tieneScoreEnPosicion',
   'COSTO_DESCUBIERTA',
   'costoEncaje',
+  'cubrePosicionGuardada',
   'asignarPosicionesOptimo',
   'enumerarAsignacionesOptimas',
-  'ORDEN_LINEAS',
-  'LABEL_LINEA',
   'MAX_COMBINACIONES_LINEAS',
   'MAX_ASIGNACIONES_ENCAJE',
   'MAX_REPARTOS_EVALUADOS',
   'combinacionesDeIndices',
   'sumasPorLinea',
   'balanceLineasDe',
+  'balanceGuardadoPorLinea',
   'mejorCostoLex',
   'margenTotalPorLinea',
   'r4',
@@ -136,4 +146,4 @@ function cargarMotor(config = {}, opciones = {}) {
   }
 }
 
-module.exports = { cargarMotor, extraer, DECLARACIONES };
+module.exports = { cargarMotor, extraer, DECLARACIONES, DECLARACIONES_CATALOGO };
