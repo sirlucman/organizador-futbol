@@ -764,6 +764,143 @@ const ESCENARIOS = [
       });
     } },
 
+  /* Dos escenarios: el aviso en todos los anchos (es layout, NFR-003) y el flujo del bloqueo en uno
+     solo (es comportamiento, y navega entre partidos). */
+  { clave: 'puestos-bloqueo-aviso', rol: 'admin', nombre: 'el aviso de titulares a revisar',
+    spec: ['puestos/S-04', 'puestos/NFR-003'],
+    fixture: { aRevisar: ['anibal', 'gonzalo'] },
+    async preparar(page) {
+      await abrirPartido(page, '2026-09-17');
+      await mostrarEquiposMobile(page);
+      await page.waitForSelector('.panel-aviso-bloqueo', { timeout: 5000 });
+    },
+    async comprobar(page) {
+      const texto = await page.textContent('.panel-aviso-bloqueo');
+      return (/Anibal Leal/.test(texto) && /Gonzalo Zanotto/.test(texto)) ? []
+        : [`el aviso tiene que nombrar a los dos titulares a revisar y dice "${texto.trim()}" (FR-042)`];
+    } },
+
+  { clave: 'puestos-bloqueo-flujo', rol: 'admin', nombre: 'el bloqueo de la generación, de punta a punta',
+    spec: ['puestos/S-04', 'puestos/S-04d'],
+    fixture: { aRevisar: ['anibal', 'gonzalo'] },
+    anchos: [1200],
+    async preparar(page) {
+      await abrirPartido(page, '2026-09-17');
+      await page.waitForSelector('.panel-aviso-bloqueo', { timeout: 5000 });
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const texto = await page.textContent('.panel-aviso-bloqueo');
+      if (!/Anibal Leal/.test(texto) || !/Gonzalo Zanotto/.test(texto)) problemas.push(`el aviso tiene que nombrar a los dos titulares a revisar y dice "${texto.trim()}" (FR-042)`);
+      // S-04: tocar Generar no genera ni escribe.
+      await page.evaluate(() => { window.__escrituras_base = window.__escrituras.length; });
+      await page.locator('button:has-text("Generar equipos"):visible').first().click();
+      await page.waitForTimeout(300);
+      let nuevas = await page.evaluate(() => window.__escrituras.slice(window.__escrituras_base));
+      if (nuevas.length) problemas.push(`tocar Generar con titulares a revisar escribió ${[...new Set(nuevas)].join(', ')} (FR-040)`);
+      if (await page.$('.cancha')) problemas.push('se generaron equipos con titulares a revisar (FR-040)');
+      // S-04d: un partido ya generado sigue igual y Regenerar no hace nada.
+      await page.click('#btnVolverPartidos');
+      await abrirPartido(page, '2026-09-03');
+      if (!await page.$('.panel-aviso-bloqueo')) problemas.push('el partido con equipos también tiene que mostrar el aviso (FR-042)');
+      if (!await page.$('.cancha')) problemas.push('los equipos ya generados tienen que seguir a la vista (FR-045)');
+      const antes = await page.evaluate(() => [...document.querySelectorAll('.camiseta')].map(c => c.getAttribute('title')).join('|'));
+      await page.evaluate(() => { window.__escrituras_base = window.__escrituras.length; });
+      const regenerar = page.locator('.panel-icono-regenerar:visible').first();
+      if (await regenerar.count()) await regenerar.click();
+      else problemas.push('no se encontró el botón de Regenerar a la vista');
+      await page.waitForTimeout(300);
+      nuevas = await page.evaluate(() => window.__escrituras.slice(window.__escrituras_base));
+      if (nuevas.length) problemas.push(`Regenerar con titulares a revisar escribió ${[...new Set(nuevas)].join(', ')} (FR-041)`);
+      const despues = await page.evaluate(() => [...document.querySelectorAll('.camiseta')].map(c => c.getAttribute('title')).join('|'));
+      if (antes !== despues) problemas.push('Regenerar con titulares a revisar cambió los equipos (FR-045, AC-30)');
+      // S-04: reclasificados los dos, se genera.
+      await page.click('#btnVolverPartidos');
+      await irAPestania(page, 'Jugadores');
+      for (const id of ['anibal', 'gonzalo']) {
+        await page.evaluate(i => window.__editPlayer(i), id);
+        await page.waitForSelector('.card-pin-wrap.open');
+        await page.selectOption('#fPrincipal', 'DC');
+        await page.click('#btnGuardar');
+        await page.waitForTimeout(200);
+      }
+      await abrirPartido(page, '2026-09-17');
+      if (await page.$('.panel-aviso-bloqueo')) problemas.push('reclasificados los dos, el aviso tendría que irse (FR-026)');
+      await page.locator('button:has-text("Generar equipos"):visible').first().click();
+      await page.waitForTimeout(500);
+      if (!await page.$('.cancha')) problemas.push('reclasificados los dos, Generar tendría que generar (S-04)');
+      return problemas;
+    } },
+
+  { clave: 'puestos-cancha', rol: 'admin', nombre: 'la cancha por lados, en un partido viejo y en uno recién generado',
+    spec: ['puestos/S-09', 'puestos/S-10', 'puestos/NFR-003'],
+    anchos: [360, 1200],
+    async preparar(page) {
+      await abrirPartido(page, '2026-09-03');
+      await mostrarEquiposMobile(page);
+    },
+    async comprobar(page) {
+      const problemas = [];
+      // S-10: el partido viejo, con el plantel ya reclasificado, se dibuja en las cuatro líneas.
+      const filasViejo = await page.$$eval('.cancha', cs => cs.map(c => c.querySelectorAll('.cancha-linea').length));
+      if (!filasViejo.length || filasViejo.some(n => n !== 4)) problemas.push(`el partido viejo tendría que dibujar cuatro filas por cancha y dibuja ${JSON.stringify(filasViejo)} (FR-074, S-10)`);
+      // S-09: regenerado con los puestos nuevos, cada fila de izquierda a derecha.
+      await page.locator('.panel-icono-regenerar:visible').first().click();
+      await page.waitForTimeout(500);
+      await mostrarEquiposMobile(page);
+      const filas = await page.$$eval('.cancha', cs => cs.map(c => [...c.querySelectorAll('.cancha-linea')].map(l =>
+        [...l.querySelectorAll('.camiseta')].map(cam => cam.getAttribute('title')))));
+      /* El puesto de cada camiseta se lee de su title, que lo nombra (FR-076). Fútbol 8 con los puestos
+         cubiertos: cada Defensa es LI, DC, LD y cada Medio MI, MC, MD, en ese orden. */
+      const PUESTOS = ['Lateral Izquierdo', 'Defensor Central', 'Lateral Derecho', 'Mediocampista Izquierdo',
+        'Mediocampista Central', 'Mediocampista Derecho', 'Delantero Central', 'Arquero'];
+      // El puesto asignado es el que el title nombra PRIMERO; el principal, si difiere, va después.
+      const puesto = t => PUESTOS.filter(n => t.includes(n)).sort((x, y) => t.indexOf(x) - t.indexOf(y))[0] || '?';
+      filas.forEach((cancha, i) => {
+        const [ataque, medio, defensa] = cancha.map(fila => fila.map(puesto));
+        if (JSON.stringify(defensa) !== JSON.stringify(['Lateral Izquierdo', 'Defensor Central', 'Lateral Derecho'])) problemas.push(`cancha ${i + 1}: la Defensa se ve ${JSON.stringify(defensa)} (FR-071)`);
+        if (JSON.stringify(medio) !== JSON.stringify(['Mediocampista Izquierdo', 'Mediocampista Central', 'Mediocampista Derecho'])) problemas.push(`cancha ${i + 1}: el Medio se ve ${JSON.stringify(medio)} (FR-071)`);
+        if (JSON.stringify(ataque) !== JSON.stringify(['Delantero Central'])) problemas.push(`cancha ${i + 1}: el Ataque se ve ${JSON.stringify(ataque)} (FR-070)`);
+      });
+      if (!filas.length) problemas.push('regenerar no dibujó ninguna cancha');
+      return problemas;
+    } },
+
+  { clave: 'puestos-valor-desconocido', rol: 'admin', nombre: 'un partido guardado con un puesto que no es del catálogo',
+    spec: ['puestos/S-20'],
+    anchos: [1200],
+    transformarDatos(datos) {
+      const partidos = JSON.parse(datos.partidos);
+      const m = partidos.find(x => x.id === 'm-abierto');
+      m.equipos.posicionAsignada[m.equipos.blanco[0]] = '<img src=x onerror="window.__xss=1">';
+      datos.partidos = JSON.stringify(partidos);
+      // Y un principal que no es un puesto, en un jugador convocado: la insignia lo muestra (TC-040).
+      const jugadores = JSON.parse(datos.players);
+      jugadores.find(p => p.id === 'esteban').principal = '<b>x</b>';
+      datos.players = JSON.stringify(jugadores);
+    },
+    async preparar(page) {
+      await abrirPartido(page, '2026-09-03');
+      await mostrarEquiposMobile(page);
+    },
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        if (window.__xss) problemas.push('el valor guardado ejecutó un script (TC-040, AC-31)');
+        if (document.querySelector('.cancha img, .panel-receipt img')) problemas.push('el valor guardado se insertó como HTML (TC-040)');
+        const canchas = [...document.querySelectorAll('.cancha')];
+        if (!canchas.length) problemas.push('la pantalla no se dibujó');
+        const conFilaAparte = canchas.filter(c => c.querySelectorAll('.cancha-linea').length === 5);
+        if (conFilaAparte.length !== 1) problemas.push(`el jugador con el valor desconocido tendría que estar en una fila aparte, en una sola cancha: ${canchas.map(c => c.querySelectorAll('.cancha-linea').length)} (FR-075)`);
+        const conTexto = [...document.querySelectorAll('.camiseta')].some(c => (c.getAttribute('title') || '').includes('<img src=x'));
+        if (!conTexto) problemas.push('el valor tendría que aparecer como texto en el title de su camiseta (TC-040)');
+        const insignias = [...document.querySelectorAll('.conv-pos-badge')];
+        if (insignias.some(b => b.children.length)) problemas.push('una insignia de convocado insertó el principal como HTML en vez de como texto (TC-040)');
+        if (!insignias.some(b => b.textContent.includes('<b>x</b>'))) problemas.push('la insignia del principal desconocido tendría que mostrarlo como texto (TC-040)');
+        return problemas;
+      });
+    } },
+
   /* El tooltip de ayuda es el caso que motivó medir esto: .info-tip tiene
      width:250px con max-width:70vw, posicionado left:50% translateX(-50%) sobre
      un ícono que puede estar pegado al borde derecho. Se lo fuerza visible con la
@@ -2516,7 +2653,11 @@ async function main() {
          un refresco que demora o que falla) como escenarios y no como prosa. */
       /* `fixture` deja a un escenario pedir los datos de otra forma: los de desglose-posiciones
          piden el plantel SIN reclasificar para tener jugadores "a revisar" (fixtures-app.js). */
-      await page.addInitScript(fakeFirebase, Object.assign({ datos: docsDesde(undefined, caso.fixture), rol: caso.rol }, caso.doble || {}));
+      /* `transformarDatos` deja a un escenario sembrar un dato que el fixture no trae (un valor
+         guardado que no es un puesto, en `puestos-valor-desconocido`). */
+      const datos = docsDesde(undefined, caso.fixture);
+      if (caso.transformarDatos) caso.transformarDatos(datos);
+      await page.addInitScript(fakeFirebase, Object.assign({ datos, rol: caso.rol }, caso.doble || {}));
       /* Registrador del PRIMER PINTADO. Se instala antes de que corra la aplicación y muestrea en
          cada frame qué solapas están visibles y si `#appRoot` ya se reveló. Es la única forma de
          verificar FR-002 —que la barra tenga su composición final en su primer pintado— porque
