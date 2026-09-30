@@ -634,6 +634,58 @@ prueba('puestos/S-03b: el filtro DC muestra los dos DC y no al "Defensor"', () =
   eq(plantelDeLista().filter(p => FICHA.pasaFiltroPuesto(p, 'DC')).map(p => p.id).sort(), ['dc1', 'dc2'], 'sólo los DC');
 });
 
+/* ================================================================= EL BLOQUEO */
+const DECLARACIONES_BLOQUEO = [
+  ...DECLARACIONES_CATALOGO, 'CANCHAS', 'titularesRequeridos', 'getDuplaPartner', 'getUnidadesConvocatoria',
+  'getTitularIds', 'titularesARevisar', 'posicionesPreviasVigentes',
+];
+const BLOQUEO = new Function(`let players = [];\nfunction __setPlayers(p){ players = p; }\n${DECLARACIONES_BLOQUEO.map(n => extraer(src, n)).join('\n\n')}\nreturn { __setPlayers, ${DECLARACIONES_BLOQUEO.join(', ')} };`)();
+// Un partido de Fútbol 8 con 16 titulares al día y los `extra` que se le agreguen al final de la cola.
+function partidoCon({ aRevisar = [], extra = [], duplas = [] } = {}) {
+  const alDia = plantelNatural(DOS_DE_CADA);
+  const jugadores = alDia.map(p => aRevisar.includes(p.id) ? { ...p, principal: 'Defensor', scores: { Defensor: 6 } } : p).concat(extra);
+  BLOQUEO.__setPlayers(jugadores);
+  return { id: 'm', cancha: 'futbol8', convocados: jugadores.map(p => p.id), duplas, bloqueados: [] };
+}
+const nombresARevisar = m => BLOQUEO.titularesARevisar(m).map(p => p.id);
+
+console.log('\n\x1b[1mEL BLOQUEO\x1b[0m — no se genera con titulares a revisar\n');
+
+prueba('puestos/S-04a: el único a revisar es suplente: el partido no se bloquea', () => {
+  const m = partidoCon({ extra: [J('suplente', 'Volante', [], { Volante: 6 })] });
+  eq(nombresARevisar(m), [], 'nadie bloquea');
+});
+
+prueba('puestos/S-04b: se baja un titular y entra un suplente a revisar: el partido queda bloqueado', () => {
+  const m = partidoCon({ extra: [J('suplente', 'Volante', [], { Volante: 6 })] });
+  m.convocados = m.convocados.filter(id => id !== 'li1');
+  eq(nombresARevisar(m), ['suplente'], 'el que entró es titular y bloquea');
+});
+
+prueba('puestos/S-04c: una dupla titular con un integrante a revisar nombra a ese integrante', () => {
+  const m = partidoCon({ aRevisar: ['mc2'] });
+  m.duplas = [['mc1', 'mc2']];
+  eq(nombresARevisar(m), ['mc2'], 'el integrante a revisar, no la dupla entera');
+});
+
+prueba('puestos/S-11a: Juan todavía está a revisar: el partido no se regenera', () => {
+  const m = partidoCon({ aRevisar: ['ld1'] });
+  eq(nombresARevisar(m), ['ld1'], 'bloquea');
+});
+
+prueba('puestos/S-11: regenerar un partido viejo con un bloqueado guardado como "Defensor", ya reclasificado a LD', () => {
+  const jugadores = plantelNatural(DOS_DE_CADA);
+  const primera = generar4(motor, jugadores, FORMACION_8);
+  const prevTeamOf = Object.fromEntries([...primera.blanco.map(id => [id, 'blanco']), ...primera.negro.map(id => [id, 'negro'])]);
+  // Lo guardado antes del cambio: ld1 figuraba como "Defensor".
+  const guardado = { ...primera.posicionAsignada, ld1: 'Defensor' };
+  const prev = BLOQUEO.posicionesPreviasVigentes(guardado);
+  ok(!('ld1' in prev), 'la posición vieja no se reusa');
+  const res = generar4(motor, jugadores, FORMACION_8, { bloqueados: ['ld1'], prevTeamOf, prevPos: prev });
+  eq(equipoDe(res, 'ld1'), prevTeamOf.ld1, 'sigue en su equipo');
+  ok(!!motor.puestoDe(res.posicionAsignada.ld1), `y juega un puesto del catálogo (${res.posicionAsignada.ld1})`);
+});
+
 /* ---------- resumen ---------- */
 console.log(`\nPasaron: ${pasaron}/${pasaron + fallos.length}`);
 if (fallos.length) {

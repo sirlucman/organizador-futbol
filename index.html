@@ -2906,6 +2906,24 @@
     return getUnidadesConvocatoria(m).slice(0, titularesRequeridos(m)).flatMap(u => u.ids);
   }
 
+  /* --- BLOQUEO POR RECLASIFICACIÓN (desglose-posiciones TD-08) ---
+     Los titulares que todavía tienen posiciones del catálogo anterior. Mientras haya alguno, el
+     partido no se genera ni se regenera (FR-040, FR-041). Cuentan los de las unidades titulares:
+     un suplente no bloquea (FR-043), y de una dupla titular bloquea el integrante que esté a
+     revisar (FR-044). */
+  function titularesARevisar(m){
+    return getTitularIds(m)
+      .map(id => players.find(p => p.id === id))
+      .filter(p => p && estaARevisar(p));
+  }
+  /* La posición anterior de cada titular, sin las que son posiciones viejas: un bloqueado de un
+     partido armado antes del cambio se queda en su equipo, pero su puesto lo decide el motor como
+     el de cualquier titular no bloqueado (FR-066). */
+  function posicionesPreviasVigentes(prev){
+    if(!prev) return prev;
+    return Object.fromEntries(Object.entries(prev).filter(([, pos]) => !esPosicionVieja(pos)));
+  }
+
   // Conteo de titulares/suplentes para los resúmenes de la interfaz: una dupla titular aporta
   // sus DOS ids al conteo de titulares aunque ocupe una sola vacante (FR-004b/FR-005). `vacantes`
   // es la cantidad de VACANTES (no de ids) todavía sin ocupar, para no confundir "faltan jugadores"
@@ -4467,6 +4485,9 @@
     if(!isAdmin()) return; // FR-008
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
+    // Con titulares a revisar no se genera ni se regenera, y lo que ya hubiera queda como está:
+    // el aviso de la tarjeta dice a quién falta reclasificar (desglose-posiciones FR-040 a FR-045).
+    if(titularesARevisar(m).length > 0){ renderMatchesTab(); return; }
     const titularIds = getTitularIds(m);
     const unidadesArmado = getUnidadesDeArmado(m);
     const unidadPorId = {};
@@ -4484,7 +4505,7 @@
       m.equipos.blanco.forEach(id => { prevTeamOf[id] = 'blanco'; });
       m.equipos.negro.forEach(id => { prevTeamOf[id] = 'negro'; });
     }
-    const prevPosicionAsignada = (m.equipos && m.equipos.posicionAsignada) || null;
+    const prevPosicionAsignada = posicionesPreviasVigentes((m.equipos && m.equipos.posicionAsignada) || null);
     // solo se respetan bloqueados que efectivamente estaban en la generación anterior
     const bloqueadosEfectivos = (m.bloqueados || []).filter(id => titularIds.includes(id) && prevTeamOf[id]);
 
@@ -6243,6 +6264,25 @@
       + '</div>';
   }
 
+  /* El aviso de bloqueo (desglose-posiciones TD-09, FR-042): nombra a cada titular a revisar. Tiene
+     la forma del aviso de desactualizado y, mientras se muestra, lo reemplaza: ese ofrece un
+     Regenerar que no haría nada. Sin botón propio: lo que destraba es reclasificar en Jugadores. */
+  function renderAvisoBloqueo(m){
+    const locked = m.inscripcionCerrada || m.estado === 'Finalizado';
+    if(!isAdmin() || locked) return '';
+    const aRevisar = titularesARevisar(m);
+    if(aRevisar.length === 0) return '';
+    const nombres = aRevisar.map(p => escaparHtml(fullName(p)));
+    const lista = nombres.length === 1 ? nombres[0] : nombres.slice(0, -1).join(', ') + ' y ' + nombres[nombres.length - 1];
+    const uno = nombres.length === 1;
+    return '<div class="panel-aviso panel-aviso-bloqueo">'
+      + '<span class="panel-aviso-cuerpo">' + ICON_ATENCION
+      + '<span class="panel-aviso-texto">No se pueden generar los equipos: ' + lista
+      + (uno ? ' todavía tiene' : ' todavía tienen') + ' posiciones del catálogo anterior. '
+      + (uno ? 'Reclasificalo' : 'Reclasificalos') + ' en Jugadores.</span>'
+      + '</span></div>';
+  }
+
   /* La grilla de diferencia por línea. El umbral se declara en palabras y no sólo por color, que
      es lo que NFR-003 pide; las celdas excedidas llevan además su número con signo (FR-030 a
      FR-037). */
@@ -6390,6 +6430,7 @@
             <button class="btn-primary admin-only" onclick="window.__generarEquipos('${m.id}')">Generar equipos</button>
           </div>` : ''}
         </div>
+        ${renderAvisoBloqueo(m)}
         ${selectorEstrategia}
         <div class="empty-state-ds">
           <h4>Todavía no generaste los equipos</h4>
@@ -6492,7 +6533,7 @@
     section.innerHTML = `
       ${renderEncabezadoTarjeta(m, resumenDif)}
       ${enModoCarga(m) ? renderFilaResultado(m) : ''}
-      ${renderAvisoDesactualizado(m)}
+      ${renderAvisoBloqueo(m) || renderAvisoDesactualizado(m)}
       ${enUnaColumna() ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
       ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {

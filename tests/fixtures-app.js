@@ -23,8 +23,17 @@ const { PARTIDO_TESTIGO, aPuestos } = require('./fixtures.js');
    conservados) y los PARTIDOS quedan tal cual, con sus posiciones viejas guardadas. Es el estado
    de la base después de que el administrador reclasificó a todos: cada escenario que lo usa
    ejercita, sin decirlo, la lectura de un partido viejo (desglose-posiciones S-10, TD-15). */
-function docsDesde(fixture = PARTIDO_TESTIGO, { reclasificados = true } = {}) {
-  if (reclasificados) fixture = aPuestos(fixture);
+/* `aRevisar`: ids que, aun con el plantel reclasificado, se dejan con sus posiciones viejas. Es el
+   día del cambio para unos pocos, que es lo que necesita el escenario del bloqueo (S-04). */
+function docsDesde(fixture = PARTIDO_TESTIGO, { reclasificados = true, aRevisar = [] } = {}) {
+  if (reclasificados) {
+    const original = fixture;
+    const deOriginal = p => original.individuales.concat((original.duplas || []).flat()).find(x => x.id === p.id);
+    const traducido = aPuestos(fixture);
+    const volver = p => (aRevisar.includes(p.id) ? deOriginal(p) : p);
+    fixture = { ...traducido, individuales: traducido.individuales.map(volver),
+      duplas: (traducido.duplas || []).map(par => par.map(volver)) };
+  }
   const duplas = fixture.duplas || [];
   /* Las duplas van PRIMERO para que sus cuatro integrantes entren en el cupo de titulares.
      Con ellas al final sólo la primera llegaba a un equipo, y el resumen de generación caía
