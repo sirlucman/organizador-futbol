@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** *not yet written* · **Implementation plan:** *not yet written*
+> **Spec:** [DESGLOSE_POSICIONES_SPEC.md](./DESGLOSE_POSICIONES_SPEC.md) · **Implementation plan:** *not yet written*
 
 ## 1. TL;DR
 
@@ -545,6 +545,7 @@ de cada jugador muestra la sigla de su puesto.
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Resuelve el hallazgo 🔴 de la autocrítica: §4 y §16 decían que elegir la formación por partido no se agrega nunca, mientras §14 la trataba como postergada; ahora §4 y §16 dicen "postergado, no descartado — ver §14", igual que §14. |
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Resuelve los dos hallazgos 🟡 de la autocrítica: la cita a WCAG 2.1 §1.4.1 (§6.5, §7.2) ahora lleva el link a la página del W3C, verificada contra ella y sin la marca `[UNVERIFIED]`; §16 suma la advertencia sobre el barrido de código de §6.5 que todavía necesita confirmarse línea por línea. |
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Resuelve las dos sugerencias 🔵 de la autocrítica: §5 ahora abre con un párrafo único de visión y marca el resto como "Recorrido ilustrativo"; §8.1 aclara que el orden del mediocampo de F9 en la cancha (MI, MC, MC, MD) es el orden de dibujo izquierda→derecha, distinto del orden de formación de D-03 (MD, MC, MC, MI). |
+| 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | `OPEN-Q-01` resuelta en la Spec (`FR-002` de [DESGLOSE_POSICIONES_SPEC.md](./DESGLOSE_POSICIONES_SPEC.md)): las líneas se siguen llamando Arco, Defensa, Medio y Ataque, como hoy. Donde esta nota dice "Mediocampo" y "Delantera" (§8.1, §8.2, `D-01`, `D-10`) describe las líneas; sus nombres en pantalla son los de `FR-002`. |
 
 ---
 
