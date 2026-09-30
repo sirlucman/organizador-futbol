@@ -15,3 +15,7 @@ package-lock.json
 *serviceAccount*.json
 *firebase-adminsdk*.json
 llaves/
+
+# Descargas temporales de la CLI de GitKraken (`gk_*.zip`) que el plugin deja en la raíz al
+# arrancar una sesión y no limpia. No son parte del proyecto.
+archive-*/

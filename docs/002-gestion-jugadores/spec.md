@@ -109,7 +109,9 @@ El administrador asigna posición principal, posiciones secundarias y un puntaje
 - **FR-008**: El sistema MUST permitir eliminar manualmente el puntaje de una posición asignada en cualquier momento, sin afectar los puntajes de otras posiciones.
 - **FR-009**: El sistema MUST calcular automáticamente el puntaje promedio del jugador usando únicamente los puntajes existentes, sin permitir su edición manual.
 - **FR-010**: El sistema MUST ofrecer, como posiciones disponibles, Arquero, Defensor, Volante y Delantero, cada una con un color fijo y consistente en toda la interfaz.
+  **Reemplazado el 2026-09-30 por `FR-001` y `FR-004` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** las posiciones pasan a ser ocho puestos (ARQ, LI, DC, LD, MI, MC, MD, DEL) agrupados en cuatro líneas, y cada puesto lleva el color de su línea (Arco rojo, Defensa naranja, Medio amarillo, Ataque verde).
 - **FR-011**: El sistema MUST permitir buscar jugadores por texto libre sobre nombre y/o apellido, y filtrar por posición principal y por estado, combinando los tres criterios simultáneamente.
+  **Reemplazado en parte el 2026-09-30 por `FR-030` y `FR-031` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** el filtro por posición ofrece los ocho puestos y además "A revisar". La búsqueda por texto y el filtro por estado no cambian.
 - **FR-012**: El sistema MUST permitir activar y desactivar un jugador; un jugador inactivo no MUST estar disponible para convocarse a nuevos partidos, pero MUST conservar todo su historial.
 - **FR-013**: El sistema MUST permitir eliminar un jugador de forma permanente del plantel, solicitando confirmación explícita, sin limpiar ni corregir sus referencias en partidos ya existentes.
 - **FR-014**: El sistema MUST acumular en el jugador la cantidad total de goles y asistencias sumados a través de los partidos en los que participó (alimentada por la carga de resultado de la feature "Gestión de partidos"), sin mostrar este dato en la pantalla de gestión de jugadores — queda reservado para una futura sección de Estadísticas.
@@ -118,6 +120,7 @@ El administrador asigna posición principal, posiciones secundarias y un puntaje
 
 - **Jugador**: nombre, apellido (opcional), estado (Activo/Inactivo), posición principal, posiciones secundarias, puntajes por posición, puntaje promedio (calculado), goles y asistencias acumulados a través de los partidos (no visibles en esta feature, reservados para Estadísticas).
 - **Posición**: Arquero, Defensor, Volante o Delantero, con un color fijo asociado para uso consistente en toda la interfaz.
+  **Reemplazada el 2026-09-30 por el Glosario de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)** ("Puesto" y "Línea").
 
 ## Success Criteria *(mandatory)*
 
