@@ -175,6 +175,7 @@ Sirve como criterio de aceptación concreto de las tres historias. Formación 3-
 
 - `009-ventaja-sin-arquero` y `010-refinamiento-objetivo` están implementadas: existe un objetivo de diferencia único que el reparto persigue.
 - La cantidad de titulares por partido es acotada (hasta ~18 unidades de armado) y las posiciones de campo son tres, por lo que calcular la mejor asignación es instantáneo y no requiere aproximaciones.
+  **Reemplazada el 2026-09-30 por `A-02` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** las posiciones de campo pasan a ser siete puestos; que el cálculo siga siendo instantáneo lo mide `NFR-001` de esa Spec.
 - Las posiciones declaradas de cada jugador (principal y secundarias) están cargadas con la intención de indicar dónde puede jugar; el motor las toma como verdad y no las cuestiona con los puntajes.
 - El puntaje de un jugador en una posición que no tiene cargada sigue valiendo lo que vale hoy. Esta feature no lo cambia porque ya no necesita que el puntaje exprese encaje.
 - La formación objetivo la sigue determinando el tamaño de cancha del partido (`003`, FR-018).

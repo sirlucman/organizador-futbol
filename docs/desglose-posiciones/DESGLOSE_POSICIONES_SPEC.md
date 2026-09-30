@@ -922,8 +922,9 @@ Declaración de reemplazo; `OPEN-Q-08` → `FR-066`.
   nombres), cómo se representa el catálogo, cómo se adapta el cálculo del encaje a siete
   contadores, en qué archivos de `tests/` viven los tests, y el orden de commits.
 - **Plan must resolve:** `OPEN-Q-01`, `OPEN-Q-02`; verificar `A-01` y `A-02`.
-- **Plan must also:** marcar cada parte reemplazada en su Spec de origen, como exige
-  `AGENTS.md`, y actualizar `Roadmap.md:18` ("Posiciones fijas…") al entregar.
+- **Plan must also:** actualizar `Roadmap.md:18` ("Posiciones fijas…") al entregar. Las
+  partes reemplazadas ya quedaron marcadas en sus Specs de origen el 2026-09-30, en la
+  rama de documentos, como exige `AGENTS.md`; si el Plan encuentra otra, la marca igual.
 - **Unverified markers heredados:** `A-01` [UNVERIFIED — confirmada por el owner, falta
   comprobarla con los datos de staging, ver AC-13]; el barrido de código del Concept
   Note §6.5 [UNVERIFIED — pendiente de confirmar función por función, ver OPEN-Q-02].
@@ -937,6 +938,7 @@ Declaración de reemplazo; `OPEN-Q-08` → `FR-066`.
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Self-critique: passed (0🔴 / 3🟡 / 2🔵) — see [DESGLOSE_POSICIONES_SPEC_CRITIQUE_2026-09-30_claude-sonnet-5.md](./DESGLOSE_POSICIONES_SPEC_CRITIQUE_2026-09-30_claude-sonnet-5.md). |
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Resuelve los 5 hallazgos de la autocrítica: `FR-077` corrige su cita a `index.html:4820-4832`; `FR-054` se separa en `FR-054` (intercambio entre equipos) y `FR-059`, nuevo, sin escenario propio todavía (intra-equipo, §17 lo deja pendiente para el Plan); `FR-022b` se escribe explícito en los rangos que antes eran ambiguos (`US-02`, `S-01`, `AC-01`); `A-01` y el aviso de §17 llevan ahora la marca `[UNVERIFIED — …]` en vez de solo prosa; el `erDiagram` de §10.1.1 suma `orden` a `PUESTO` (re-renderizado, sin errores); §3.2 declara explícitamente que las condiciones de carrera entre administradores editando al mismo jugador quedan fuera de alcance. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Revisión de las correcciones de la autocrítica: `FR-059` pasa a tener escenario propio en la Spec (`S-06e`) en vez de dejarlo al Plan, y se suma a `D-05` en §3.3; las marcas `[UNVERIFIED — …]` de `A-01` y §17 dejan de ir entre comillas invertidas anidadas, que rompían el formato. |
+| 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Las partes reemplazadas quedan marcadas en sus Specs de origen (`002`, `003` y su `data-model.md`, `011`, `ORDEN_JUGADORES_SPEC.md`, `CANCHA_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`); §17 deja de pedírselo al Plan. |
 
 ---
 

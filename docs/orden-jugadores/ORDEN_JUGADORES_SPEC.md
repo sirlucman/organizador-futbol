@@ -129,6 +129,7 @@ None — no Concept Note exists for this feature (§6.5).
   sequence already defined for the equipos screen's `ordenarPorPosicion`
   (`index.html:3638`: `{ Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 }`),
   so the two screens agree on what "ascending by position" means.
+  **Reemplazado en la secuencia el 2026-09-30 por `FR-003` y `FR-032` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** la secuencia es ARQ, LI, DC, LD, MI, MC, MD, DEL, y una posición vieja va al final del grupo de su línea. Que las dos pantallas compartan la misma secuencia sigue vigente.
 - **TC-013** — Unlike `motorConfig`, which is deliberately readable only by
   admin sessions (`index.html:1148`: `admin ? leerJson('motorConfig', ...) :
   defaultMotorConfig()`), the `playersSortMode` value shall be stored in a
@@ -440,6 +441,7 @@ constraints beyond what's already cited above).
   system shall sort the visible list by each player's `principal` position
   using the fixed sequence Arquero, Defensor, Volante, Delantero (ascending)
   or its reverse (descending).
+  **Reemplazado en la secuencia el 2026-09-30 por `FR-003` y `FR-032` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** ARQ, LI, DC, LD, MI, MC, MD, DEL; una posición vieja va al final del grupo de su línea.
 - **FR-031** — If two players share the same `principal` position, then the
   system shall break the tie using the existing alphabetical order
   (apellido+nombre).
@@ -577,12 +579,14 @@ applicable for that reason.
 - **Given** un admin o un jugador viendo el listado de Jugadores con jugadores de distintas posiciones principales
 - **When** el usuario selecciona "Posición ascendente" en el modo de orden
 - **Then** el sistema muestra el listado agrupado Arquero, luego Defensor, luego Volante, luego Delantero
+  **Reemplazado el 2026-09-30 por `FR-003` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** los grupos siguen la secuencia ARQ, LI, DC, LD, MI, MC, MD, DEL.
 - **And** dentro de cada posición, los jugadores aparecen en el orden alfabético existente (FR-031)
 
 **Variants:**
 
 - `S-03a [boundary]` — todos los jugadores visibles comparten la misma posición principal → el orden resultante es puramente el alfabético existente.
 - `S-03b [property]` — "Posición descendente" produce exactamente el orden inverso de grupos de posición respecto de "Posición ascendente" (Delantero, Volante, Defensor, Arquero), preservando el orden alfabético dentro de cada grupo.
+  **Reemplazado en el ejemplo el 2026-09-30:** el orden inverso sigue la secuencia de `FR-003` de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md).
 
 #### Scenario S-04 — Cambiar el modo de orden deshabilita el drag and drop (covers FR-012, FR-003)
 
@@ -872,6 +876,7 @@ infrastructure (consistent with every other feature in this app).
 |---|---|---|
 | 2026-08-28 | Lucas Manoukian | Initial draft. Self-critique: passed (0🔴 / 5🟡 / 1🔵) — fixed EARS pattern misuse in FR-013/FR-022/FR-031/FR-060 (changed "Where" to "If…then" for conditional-consequence FRs), added TC-013 to make explicit that `playersSortMode` must be readable by non-admin sessions (unlike `motorConfig`, which is deliberately admin-only) since FR-052 depends on it, tagged the inferred half of A-04 with `[INFERRED]`, added a qualitative-NFR disclaimer to §8 matching the goles-en-contra precedent, clarified §10.1.1's reasoning for why `playersSortMode` doesn't need an ER diagram, and softened §13's claim about `docs/002-gestion-jugadores`/`007-permisos-por-usuario` (cited for context, not verified as active dependencies). |
 | 2026-08-28 | Lucas Manoukian | Expanded scope per user request: added §7.8 (drag-and-drop reordering of the match convocatoria's titulares/suplentes queue, available to admin in every match state, including `Finalizado`, unlike the existing locked add/quitar/dupla controls). Added FR-070–FR-075, TC-014/TC-015/TC-042, Scenario S-08 with 5 variants, A-06/A-07, two new risks, two new open questions (OPEN-Q-04/05), and updated §3.1/§3.2 scope (the prior non-goal claiming drag-and-drop was exclusive to Jugadores is now corrected). Self-critique: skipped for this iteration — the added content mirrors the already-reviewed §7.1–§7.7 shape closely (same TC-040/TC-041 authorization pattern, same GWT/Variants discipline), and the user is present to review directly. |
+| 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo parcial declarado por [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md): se marcan las partes que pasan a leerse con los ocho puestos. |
 
 ---
 

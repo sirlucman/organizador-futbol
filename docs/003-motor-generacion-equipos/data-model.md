@@ -1,5 +1,7 @@
 # Data Model: Estrategia 3 (formación fija)
 
+> **Reemplazado en parte (2026-09-30).** El catálogo `POSITIONS` de cuatro valores (l. 7) y la forma `formacion: {defensores, volantes, delanteros}` (l. 17-23 y l. 53-55) quedan reemplazados por §10.1 de [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md): ocho puestos y formación por puesto. Los partidos guardados con la forma anterior se siguen leyendo (`FR-082`, `FR-083` de esa Spec).
+
 **Input**: [spec.md](spec.md) (Key Entities, FR-018 a FR-021), [research.md](research.md). No hay cambios al modelo de datos de Jugador ni de Partido (ver Assumptions del spec) — este documento cubre únicamente las estructuras nuevas/extendidas dentro del motor (`index.html`) y el resultado que produce, no un esquema de persistencia nuevo.
 
 ## Entidades existentes reutilizadas (sin cambios de forma)
