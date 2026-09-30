@@ -33,8 +33,6 @@ const DECLARACIONES = [
   'computeAvg',
   'valorGeneralDe',
   'puntajeEnPosicion',
-  'ORDEN_FORMACION',
-  'FORMACION_KEY_POR_POSICION',
   'lineaDeUnSoloLugar',
   'escaparHtml',
   'fullName',
@@ -65,6 +63,7 @@ const DECLARACIONES = [
   // El recuento de formación sobre el reparto en pantalla y lo que necesita.
   'COSTO_DESCUBIERTA',
   'costoEncaje',
+  'cubrePosicionGuardada',
   'faltantesDeFormacionVigente',
   'repartoDivergeDeLaGeneracion',
   'ICON_CHEVRON_RECEIPT',

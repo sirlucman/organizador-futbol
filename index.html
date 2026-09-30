@@ -1571,8 +1571,9 @@
   // Orden de listado de jugadores (FR-001): modos de orden disponibles para el listado de Jugadores.
   const ORDEN_MODOS = ['manual', 'puntaje_asc', 'puntaje_desc', 'posicion_asc', 'posicion_desc'];
   const CANCHAS = {
-    futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { defensores: 3, volantes: 3, delanteros: 1 } },
-    futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9, formacion: { defensores: 3, volantes: 4, delanteros: 1 } }
+    // Lugares por puesto de cada equipo (desglose-posiciones TD-06).
+    futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { Defensor: 3, Volante: 3, Delantero: 1 } },
+    futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9, formacion: { Defensor: 3, Volante: 4, Delantero: 1 } }
   };
   /* Una formación es una cantidad de lugares por puesto. Un partido armado antes del cambio la
      guardó por línea (`{defensores, volantes, delanteros}`): esta función es el único lugar que
@@ -3261,10 +3262,20 @@
      (asignarArquerosPorNiveles). Después, completa en cada equipo la formación de campo del
      `formacionObjetivo` recibido (según el tamaño de cancha del partido), lugar por lugar y en
      simultáneo para ambos equipos — nunca arma un equipo entero antes que el otro (Clarifications
-     del spec, sesión 2026-08-18). Orden de posiciones: Defensor, Volante, Delantero (FR-007), el
-     mismo orden que decide qué lugar se resuelve primero cuando varios necesitan el nivel (c). */
-  const ORDEN_FORMACION = ['Defensor', 'Volante', 'Delantero'];
-  const FORMACION_KEY_POR_POSICION = { Defensor: 'defensores', Volante: 'volantes', Delantero: 'delanteros' };
+     del spec, sesión 2026-08-18). Los puestos a completar son los de la formación recibida, en el
+     orden del catálogo (desglose-posiciones FR-003, TC-012): el motor no sabe qué puestos existen
+     hasta que se los pasan. */
+  // Los puestos de un cupo por puesto, en el orden del catálogo. A diferencia de
+  // `puestosDeFormacion`, conserva los que tienen cupo 0: un cupo gastado sigue siendo un puesto.
+  function puestosDeCupo(cupo){
+    return Object.keys(cupo || {}).sort((a, b) => ordenDePuesto(a) - ordenDePuesto(b));
+  }
+  /* Adónde van los lugares de más del equipo corto: a los puestos centrales de la formación, en
+     orden, y a cualquier puesto de ella si no tiene ninguno central (desglose-posiciones TD-07). */
+  function puestosParaLugaresExtra(puestos){
+    const centrales = puestos.filter(pos => ladoDe(pos) === 'central');
+    return centrales.length ? centrales : puestos;
+  }
 
   /* Una línea que la formación llena con UN solo jugador por equipo. Su diferencia existe en
      cualquier armado posible y no se puede repartir: sólo cruzarla de equipo para que compense
@@ -3304,6 +3315,21 @@
     return cubren === 2 ? 0 : (cubren === 1 ? 1 : COSTO_DESCUBIERTA);
   }
 
+  /* El encaje contra un lugar de una formación GUARDADA. Un partido armado antes del cambio pidió
+     posiciones viejas, que son líneas: un titular la cubre si juega algún puesto de esa línea, de
+     principal o de secundaria. Así un partido viejo sigue cumpliendo su formación después de
+     reclasificar a sus jugadores (desglose-posiciones TD-10, FR-082). */
+  function cubrePosicionGuardada(u, pos){
+    if(!esPosicionVieja(pos)) return costoEncaje(u, pos);
+    const linea = lineaDe(pos);
+    const cubre = j => lineaDe(j.principal) === linea ? 0
+      : ((j.secundarias || []).some(s => lineaDe(s) === linea) ? 1 : COSTO_DESCUBIERTA);
+    const miembros = u._duplaMiembros;
+    if(!miembros) return cubre(u);
+    const cubren = miembros.filter(m => cubre(m) < COSTO_DESCUBIERTA).length;
+    return cubren === 2 ? 0 : (cubren === 1 ? 1 : COSTO_DESCUBIERTA);
+  }
+
   /* Decide qué titular juega en cada lugar de la formación con GARANTÍA de mejor encaje posible:
      primero la mínima cantidad de lugares que no cubre nadie (los domina COSTO_DESCUBIERTA) y,
      entre esas, la mayor cantidad de titulares en su posición principal (FR-001/FR-002).
@@ -3325,25 +3351,27 @@
      Devuelve { [id]: posición } y `null` para los titulares que sobran de lo que pide la
      formación (remanente): esos siguen jugando su posición natural, igual que antes. */
   function asignarPosicionesOptimo(unidades, cupoPorPosicion){
+    const puestos = puestosDeCupo(cupoPorPosicion);
     const cupo = {};
-    ORDEN_FORMACION.forEach(pos => { cupo[pos] = cupoPorPosicion[pos] || 0; });
-    const totalLugares = ORDEN_FORMACION.reduce((a, pos) => a + cupo[pos], 0);
+    puestos.forEach(pos => { cupo[pos] = cupoPorPosicion[pos] || 0; });
+    const totalLugares = puestos.reduce((a, pos) => a + cupo[pos], 0);
     const maxRemanente = Math.max(0, unidades.length - totalLugares);
-    const destinos = [...ORDEN_FORMACION, null]; // null = remanente (juega su posición natural)
+    const destinos = [...puestos, null]; // null = remanente (juega su posición natural)
+    const suma = usados => usados.reduce((a, b) => a + b, 0);
 
-    // Una capa por titular procesado: clave "usadosDef,usadosVol,usadosDel" -> mejor costo.
-    let capa = new Map([['0,0,0', 0]]);
+    // Una capa por titular procesado: clave "usados del 1er puesto,usados del 2º,…" -> mejor costo.
+    let capa = new Map([[puestos.map(() => 0).join(','), 0]]);
     const decisiones = [];
     unidades.forEach((u, i) => {
       const siguiente = new Map(), origen = new Map();
       capa.forEach((costo, clave) => {
         const usados = clave.split(',').map(Number);
         destinos.forEach(pos => {
-          const idx = ORDEN_FORMACION.indexOf(pos);
+          const idx = puestos.indexOf(pos);
           const nuevos = [...usados];
           if(idx === -1){
             // Al remanente solo pueden ir los que sobran de la formación.
-            if((i + 1) - (nuevos[0] + nuevos[1] + nuevos[2]) > maxRemanente) return;
+            if((i + 1) - suma(nuevos) > maxRemanente) return;
           }else{
             if(nuevos[idx] >= cupo[pos]) return;
             nuevos[idx]++;
@@ -3398,11 +3426,14 @@
      así que intercambiar dos titulares de la misma línea no cambia nada y el enumerador ni lo
      considera. Es lo que mantiene chica la cantidad de escenarios. */
   function enumerarAsignacionesOptimas(unidades, cupoPorPosicion, tope){
+    const puestos = puestosDeCupo(cupoPorPosicion);
     const cupo = {};
-    ORDEN_FORMACION.forEach(pos => { cupo[pos] = cupoPorPosicion[pos] || 0; });
-    const totalLugares = ORDEN_FORMACION.reduce((a, pos) => a + cupo[pos], 0);
+    puestos.forEach(pos => { cupo[pos] = cupoPorPosicion[pos] || 0; });
+    const totalLugares = puestos.reduce((a, pos) => a + cupo[pos], 0);
     const maxRemanente = Math.max(0, unidades.length - totalLugares);
-    const destinos = [...ORDEN_FORMACION, null]; // null = remanente (juega su posición natural)
+    const destinos = [...puestos, null]; // null = remanente (juega su posición natural)
+    const suma = usados => usados.reduce((a, b) => a + b, 0);
+    const ceros = puestos.map(() => 0);
     const n = unidades.length;
 
     // Las opciones válidas para la unidad `i` dado el cupo ya consumido. Mismas reglas que
@@ -3410,10 +3441,10 @@
     const opcionesDe = (i, usados) => {
       const out = [];
       destinos.forEach(pos => {
-        const idx = ORDEN_FORMACION.indexOf(pos);
+        const idx = puestos.indexOf(pos);
         const nuevos = [...usados];
         if(idx === -1){
-          if((i + 1) - (nuevos[0] + nuevos[1] + nuevos[2]) > maxRemanente) return;
+          if((i + 1) - suma(nuevos) > maxRemanente) return;
         }else{
           if(nuevos[idx] >= cupo[pos]) return;
           nuevos[idx]++;
@@ -3454,9 +3485,9 @@
         actual[unidades[i].id] = o.pos;
         rec(i + 1, o.usados);
       });
-    })(0, [0, 0, 0]);
+    })(0, ceros);
 
-    return { asignaciones, truncada, costoOptimo: minimoDesde(0, [0, 0, 0]) };
+    return { asignaciones, truncada, costoOptimo: minimoDesde(0, ceros) };
   }
 
   /* ================= BALANCE POR LÍNEA (Estrategia 4 — "Formación fija") =================
@@ -3758,10 +3789,12 @@
     const bloqueadosDeEste = restantes.filter(sonBloqueados);
     const libres = restantes.filter(p => !sonBloqueados(p));
 
-    // Cupo por equipo y posición según la formación objetivo (FR-018).
+    // Cupo por equipo y puesto según la formación objetivo (FR-018; desglose-posiciones FR-050).
+    const lugaresDeFormacion = formacionPorPuesto(formacionObjetivo);
+    const puestosFormacion = puestosDeFormacion(formacionObjetivo);
     const cupoEquipo = { blanco: {}, negro: {} };
-    ORDEN_FORMACION.forEach(pos => {
-      const cupo = formacionObjetivo[FORMACION_KEY_POR_POSICION[pos]] || 0;
+    puestosFormacion.forEach(pos => {
+      const cupo = lugaresDeFormacion[pos] || 0;
       cupoEquipo.blanco[pos] = cupo;
       cupoEquipo.negro[pos] = cupo;
     });
@@ -3773,8 +3806,9 @@
       const diferenciaEquipos = blanco.length - negro.length;
       if(diferenciaEquipos !== 0){
         const equipoCorto = diferenciaEquipos > 0 ? 'negro' : 'blanco';
+        const extra = puestosParaLugaresExtra(puestosFormacion);
         for(let i = 0; i < Math.abs(diferenciaEquipos); i++){
-          cupoEquipo[equipoCorto][ORDEN_FORMACION[i % ORDEN_FORMACION.length]]++;
+          cupoEquipo[equipoCorto][extra[i % extra.length]]++;
         }
       }
     }
@@ -3790,7 +3824,7 @@
       if(cupoEquipo[equipo][pos] !== undefined) cupoEquipo[equipo][pos] = Math.max(0, cupoEquipo[equipo][pos] - 1);
     });
     const targetGlobal = {};
-    ORDEN_FORMACION.forEach(pos => { targetGlobal[pos] = cupoEquipo.blanco[pos] + cupoEquipo.negro[pos]; });
+    puestosFormacion.forEach(pos => { targetGlobal[pos] = cupoEquipo.blanco[pos] + cupoEquipo.negro[pos]; });
 
     // Paso 2 — nivel de POSICIÓN (todavía sin mirar equipos): quién juega en cada lugar de la
     // formación, con el mejor encaje posible sobre el cupo global (la suma de ambos equipos).
@@ -3800,7 +3834,7 @@
     // exactamente el mismo encaje. Las dos decisiones son independientes y no compiten.
     const asignacion = asignarPosicionesOptimo(libres, targetGlobal);
     const buckets = {};
-    ORDEN_FORMACION.forEach(pos => { buckets[pos] = []; });
+    puestosFormacion.forEach(pos => { buckets[pos] = []; });
     let pendientes = [];
     libres.forEach(u => {
       const pos = asignacion[u.id];
@@ -3889,7 +3923,7 @@
         // titular libre va donde lo manda el escenario (o a su posición natural si es remanente).
         const posCand = { ...posicionAsignada };
         const bucketsCand = {};
-        ORDEN_FORMACION.forEach(pos => { bucketsCand[pos] = []; });
+        puestosFormacion.forEach(pos => { bucketsCand[pos] = []; });
         const pendientesCand = [];
         libres.forEach(u => {
           const pos = asignacionCandidata[u.id];
@@ -3899,7 +3933,7 @@
         });
 
         const grupos = [];
-        ORDEN_FORMACION.forEach(pos => {
+        puestosFormacion.forEach(pos => {
           if(bucketsCand[pos].length === 0) return;
           grupos.push({ opciones: opcionesDeReparto(bucketsCand[pos], () => pos, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], prevTeamOf) });
         });
@@ -3928,7 +3962,7 @@
       }
       pendientes = [];
     }else{
-    ORDEN_FORMACION.forEach(pos => {
+    puestosFormacion.forEach(pos => {
       const duplas = buckets[pos].filter(esDupla);
       if(duplas.length === 0) return;
       buckets[pos] = buckets[pos].filter(u => !esDupla(u));
@@ -3938,7 +3972,7 @@
 
     // Paso 3 — nivel de EQUIPO: ya definido quién juega en cada posición, se reparte cada grupo entre
     // los dos equipos balanceando puntaje con la misma función que usa Estrategia 2.
-    ORDEN_FORMACION.forEach(pos => {
+    puestosFormacion.forEach(pos => {
       bloqueadosDeEste.filter(p => posicionAsignada[p.id] === pos).forEach(p => {
         const equipo = prevTeamOf[p.id];
         const valor = puntajeEnPosicion(p, pos);
@@ -4014,7 +4048,7 @@
       const out = { blanco: [], negro: [] };
       ['blanco', 'negro'].forEach(equipo => {
         const ids = (equipo === 'blanco' ? blanco : negro).filter(id => !remanenteFinal.has(id));
-        ORDEN_FORMACION.forEach(pos => {
+        puestosFormacion.forEach(pos => {
           const ocupantes = ids.filter(id => posicionAsignada[id] === pos);
           // Un lugar falta si no lo ocupa nadie, o si lo ocupa alguien que no lo juega ni de principal
           // ni de secundaria (FR-020: se completa igual con quien haya, y se avisa).
@@ -5588,20 +5622,23 @@
        equipo con MENOS jugadores para que los dos terminen con la misma cantidad. Es la misma
        regla que `cupoEquipo` en el motor, y acá gana importancia: un movimiento manual puede
        dejar 9 contra 7, y sin este ajuste el equipo corto se reportaría como cumplido. */
+    // La formación guardada puede tener la forma de antes del cambio (desglose-posiciones TD-06).
+    const lugares = formacionPorPuesto(eq.formacion.objetivo);
+    const puestos = puestosDeFormacion(eq.formacion.objetivo);
     const cupo = { blanco: {}, negro: {} };
-    ORDEN_FORMACION.forEach(pos => {
-      const c = eq.formacion.objetivo[FORMACION_KEY_POR_POSICION[pos]] || 0;
-      cupo.blanco[pos] = c;
-      cupo.negro[pos] = c;
+    puestos.forEach(pos => {
+      cupo.blanco[pos] = lugares[pos] || 0;
+      cupo.negro[pos] = lugares[pos] || 0;
     });
     const dif = equipos.blanco.length - equipos.negro.length;
     if(dif !== 0){
       const corto = dif > 0 ? 'negro' : 'blanco';
-      for(let i = 0; i < Math.abs(dif); i++) cupo[corto][ORDEN_FORMACION[i % ORDEN_FORMACION.length]]++;
+      const extra = puestosParaLugaresExtra(puestos);
+      for(let i = 0; i < Math.abs(dif); i++) cupo[corto][extra[i % extra.length]]++;
     }
     const out = { blanco: [], negro: [] };
     ['blanco', 'negro'].forEach(equipo => {
-      ORDEN_FORMACION.forEach(pos => {
+      puestos.forEach(pos => {
         /* La posición se busca por el id REAL y no por el de la unidad: al colapsar una dupla, su
            entrada de `porId` es el candidato sintético, cuyo id (`a+b`) no está en
            `posicionAsignada`, y `posicionAsignadaDe` caería a la principal. El id de la lista sí
@@ -5609,7 +5646,7 @@
         const ocupantes = equipos[equipo].filter(id => posicionAsignadaDe({ ...porId[id], id }, m) === pos);
         // Los que exceden el cupo del puesto son remanente: sobran, no dejan un lugar descubierto.
         const dentro = ocupantes.slice(0, cupo[equipo][pos]);
-        const descubiertos = dentro.filter(id => costoEncaje(porId[id], pos) >= COSTO_DESCUBIERTA).length;
+        const descubiertos = dentro.filter(id => cubrePosicionGuardada(porId[id], pos) >= COSTO_DESCUBIERTA).length;
         const vacios = Math.max(0, cupo[equipo][pos] - dentro.length);
         for(let i = 0; i < descubiertos + vacios; i++) out[equipo].push(pos);
       });

@@ -60,7 +60,7 @@ const DECLARACIONES_CATALOGO = [
   'LINEAS_DE_CAMPO', 'VALORES_RECONOCIDOS', 'puestoDe', 'esPosicionVieja', 'lineaDe', 'ladoDe',
   'ordenDePuesto', 'siglaDe', 'nombreDe', 'colorDeLinea', 'posTextColor', 'posBadgeStyle',
   'estaARevisar', 'posicionesDe', 'formacionPorPuesto', 'puestosDeFormacion', 'lugaresPorLinea',
-  'etiquetaFormacion',
+  'etiquetaFormacion', 'puestosDeCupo', 'puestosParaLugaresExtra',
 ];
 
 /* Todo lo que el motor necesita para correr, en orden de dependencia. */
@@ -78,11 +78,10 @@ const DECLARACIONES = [
   'esDupla',
   'cupoDuplasPorEquipo',
   'repartirBucketBalanceado',
-  'ORDEN_FORMACION',
-  'FORMACION_KEY_POR_POSICION',
   'tieneScoreEnPosicion',
   'COSTO_DESCUBIERTA',
   'costoEncaje',
+  'cubrePosicionGuardada',
   'asignarPosicionesOptimo',
   'enumerarAsignacionesOptimas',
   'MAX_COMBINACIONES_LINEAS',

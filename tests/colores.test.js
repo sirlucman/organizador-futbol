@@ -245,13 +245,12 @@ console.log('\nLo que el panel dice después de intercambiar');
    Son funciones puras sobre el partido y el plantel, así que se prueban sin navegador, con el
    mismo recorte que usa tests/panel.test.js. Que el DOM las pinte lo mira tests/layout.test.js. */
 const DECLARACIONES_PANEL = [
-  ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'ORDEN_FORMACION',
-  'FORMACION_KEY_POR_POSICION', 'lineaDeUnSoloLugar',
+  ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'lineaDeUnSoloLugar',
   'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
   'valorDePuntaje', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo',
   'sumasPorLinea', 'balanceLineasDe', 'balanceGuardadoPorLinea', 'colapsarDuplasParaLinea', 'balanceLineasVigente',
   'celdasDiferenciaPorLinea', 'sumaVigenteDeEquipo', 'sumasVigentes', 'COSTO_DESCUBIERTA',
-  'costoEncaje', 'faltantesDeFormacionVigente', 'repartoDivergeDeLaGeneracion',
+  'costoEncaje', 'cubrePosicionGuardada', 'faltantesDeFormacionVigente', 'repartoDivergeDeLaGeneracion',
   'resumenDiferenciaEquipos', ...DECLARACIONES,
 ];
 const PANEL = new Function(`let players = [];\nfunction __setPlayers(p){ players = p; }\n${DECLARACIONES_PANEL.map(n => extraer(src, n)).join('\n\n')}\nreturn { __setPlayers, ${DECLARACIONES_PANEL.join(', ')} };`)();
