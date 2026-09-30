@@ -686,6 +686,178 @@ prueba('puestos/S-11: regenerar un partido viejo con un bloqueado guardado como 
   ok(!!motor.puestoDe(res.posicionAsignada.ld1), `y juega un puesto del catálogo (${res.posicionAsignada.ld1})`);
 });
 
+/* ================================================================= LOS TEXTOS */
+/* La explicación real del armado, recortada con lo que necesita. `reglaEnabled`/`reglaParam` los
+   declara el prelude, como en panel.test.js; `diferenciaMaxima` en 1 da el umbral del color. */
+const DECLARACIONES_RECEIPT = [...new Set([
+  ...DECLARACIONES_LECTURA, 'escaparHtml', 'fullName', 'titularesRequeridos', 'getUnidadesConvocatoria',
+  'getTitularIds', 'conteoSinPuntajePorEquipo', 'aplicaEnEstrategia', 'margenTotalPorLinea',
+  'duplasDeLaFormacion', 'explicacionesDelArmado',
+])];
+const RECEIPT = new Function(`
+  let players = [];
+  function __setPlayers(p){ players = p; }
+  let motorConfig = { reglas: [] };
+  const REGLAS_CATALOGO = {};
+  const ESTRATEGIAS = { estrategia1: {}, estrategia2: {}, estrategia4: {} };
+  const ESTRATEGIAS_RETIRADAS = { estrategia3: 'estrategia4' };
+  function reglaEnabled(){ return true; }
+  function reglaParam(key, pk){ return key === 'puntaje' && pk === 'diferenciaMaxima' ? 1 : (key === 'balanceLineas' ? 1 : null); }
+  ${DECLARACIONES_RECEIPT.map(n => extraer(src, n)).join('\n\n')}
+  return { __setPlayers, ${DECLARACIONES_RECEIPT.join(', ')} };`)();
+// Todas las frases de la explicación de un armado, en el orden en que se muestran.
+function explicacion(jugadores, m) {
+  RECEIPT.__setPlayers(jugadores);
+  const e = RECEIPT.explicacionesDelArmado(m, m.equipos, jugadores);
+  return [...(e.vigentes || []), ...(e.generacion || [])];
+}
+function partidoDe(res, jugadores, estrategiaKey, cancha = 'futbol8') {
+  return { id: 'm', cancha, convocados: jugadores.map(p => p.id), duplas: [], bloqueados: [],
+    equipos: { ...res, estrategiaKey, esPrimeraGeneracion: true, cambios: 0 } };
+}
+
+console.log('\n\x1b[1mLOS TEXTOS\x1b[0m — el resumen nombra los puestos nuevos\n');
+
+prueba('puestos/S-05: la explicación dice que la formación 3-3-1 se cumplió en ambos equipos', () => {
+  const jugadores = plantelNatural(DOS_DE_CADA);
+  const frases = explicacion(jugadores, partidoDe(generar4(motor, jugadores, FORMACION_8), jugadores, 'estrategia4'));
+  ok(frases.includes('Formación 3-3-1 cumplida en ambos equipos.'), frases.join(' | '));
+});
+
+prueba('puestos/S-05a: en Fútbol 9 la explicación dice 3-4-1', () => {
+  const jugadores = plantelNatural({ ...DOS_DE_CADA, MC: 4 });
+  const frases = explicacion(jugadores, partidoDe(generar4(motor, jugadores, FORMACION_9), jugadores, 'estrategia4', 'futbol9'));
+  ok(frases.includes('Formación 3-4-1 cumplida en ambos equipos.'), frases.join(' | '));
+});
+
+prueba('puestos/S-05b: la explicación dice "Se usó a dc3 de LI, su puesto secundario"', () => {
+  const jugadores = plantelNatural({ ...DOS_DE_CADA, LI: 1, DC: 3 });
+  Object.assign(jugadores.find(p => p.id === 'dc3'), { secundarias: ['LI'], scores: { DC: 6, LI: 6 } });
+  const frases = explicacion(jugadores, partidoDe(generar4(motor, jugadores, FORMACION_8), jugadores, 'estrategia4'));
+  ok(frases.includes('Se usó a dc3 de LI, su puesto secundario.'), frases.join(' | '));
+});
+
+prueba('puestos/S-05c: sin nadie que juegue LI, la explicación dice "No se pudo cubrir LI en el Equipo …"', () => {
+  const jugadores = plantelNatural({ ...DOS_DE_CADA, LI: 1, DC: 3 });
+  const res = generar4(motor, jugadores, FORMACION_8);
+  const sinLi = equipoDe(res, 'li1') === 'blanco' ? 'Negro' : 'Blanco';
+  const frases = explicacion(jugadores, partidoDe(res, jugadores, 'estrategia4'));
+  ok(frases.includes(`No se pudo cubrir LI en el Equipo ${sinLi}.`), frases.join(' | '));
+});
+
+// Un armado de Formación Fija con las líneas de campo a pedido, para mirar la grilla y el receipt.
+function armadoConLineas(blanco, negro) {
+  const jugadores = [...blanco, ...negro].map(([id, pos, v]) => J(id, pos, [], { [pos]: v }));
+  const porId = porIdDe(jugadores);
+  const posicionAsignada = Object.fromEntries(jugadores.map(p => [p.id, p.principal]));
+  const ids = l => l.map(([id]) => id);
+  const m = { id: 'm', cancha: 'futbol8', convocados: jugadores.map(p => p.id), duplas: [], bloqueados: [],
+    equipos: { blanco: ids(blanco), negro: ids(negro), posicionAsignada, estrategiaKey: 'estrategia4',
+      esPrimeraGeneracion: true, cambios: 0, arquerosInfo: { total: 2, compensado: false },
+      formacion: { objetivo: FORMACION_8, blanco: { cumplida: true, faltantes: [] }, negro: { cumplida: true, faltantes: [] } } } };
+  m.equipos.balanceLineas = L.balanceLineasDe(m.equipos.blanco, m.equipos.negro, posicionAsignada, porId);
+  const suma = l => l.reduce((t, [, , v]) => t + v, 0);
+  m.equipos.sumaBlanco = suma(blanco); m.equipos.sumaNegro = suma(negro);
+  return { m, jugadores, porId };
+}
+const medioYAtaque = (b, n) => [['MI', 6], ['MC', 6], ['MD', 6], ['DEL', b]].map(([pos, v]) => [`${pos}${n}`, pos, v]);
+
+prueba('puestos/S-06: LD 7, DC 6, LI 5 contra 6, 6, 6: la celda de Defensa dice 18 contra 18 y "Parejo"', () => {
+  const { m, jugadores, porId } = armadoConLineas(
+    [['arqB', 'Arquero', 7], ['ldB', 'LD', 7], ['dcB', 'DC', 6], ['liB', 'LI', 5], ...medioYAtaque(6, 'B')],
+    [['arqN', 'Arquero', 7], ['ldN', 'LD', 6], ['dcN', 'DC', 6], ['liN', 'LI', 6], ...medioYAtaque(6, 'N')]);
+  L.__setPlayers(jugadores);
+  const celdas = L.celdasDiferenciaPorLinea(m, porId, 1);
+  eq(celdas.map(c => c.etiqueta), ['Arco', 'Defensa', 'Medio', 'Ataque'], 'las celdas se llaman como hoy (FR-002)');
+  const defensa = celdas.find(c => c.etiqueta === 'Defensa');
+  eq([defensa.blanco, defensa.negro, defensa.texto], [18, 18, 'Parejo'], 'Defensa 18 contra 18');
+});
+
+prueba('puestos/S-06a: Arco y Ataque desparejas se distinguen como excedidas y la explicación dice que no se pueden repartir', () => {
+  const { m, jugadores, porId } = armadoConLineas(
+    [['arqB', 'Arquero', 9], ['ldB', 'LD', 6], ['dcB', 'DC', 6], ['liB', 'LI', 6], ...medioYAtaque(9, 'B')],
+    [['arqN', 'Arquero', 5], ['ldN', 'LD', 6], ['dcN', 'DC', 6], ['liN', 'LI', 6], ...medioYAtaque(5, 'N')]);
+  L.__setPlayers(jugadores);
+  const celdas = L.celdasDiferenciaPorLinea(m, porId, 1);
+  ok(celdas.find(c => c.etiqueta === 'Arco').excedida && celdas.find(c => c.etiqueta === 'Ataque').excedida,
+    'con la misma regla que Defensa y Medio (Declaración de reemplazo, PANEL_ARMADO FR-034)');
+  const frases = explicacion(jugadores, m);
+  ok(frases.some(f => f.startsWith('Arco y Ataque tienen un solo lugar por equipo')), frases.join(' | '));
+});
+
+prueba('puestos/S-06b: en Fútbol 9 el Medio tiene cuatro lugares y no se nombra como línea de un solo lugar', () => {
+  eq(L.lineaDeUnSoloLugar('Medio', { objetivo: FORMACION_9 }), false, 'Medio no');
+  eq(L.lineaDeUnSoloLugar('Ataque', { objetivo: FORMACION_9 }), true, 'Ataque sí');
+  eq(L.lineaDeUnSoloLugar('Defensa', { objetivo: FORMACION_8 }), false, 'Defensa no: LI, DC y LD suman tres lugares');
+});
+
+prueba('puestos/S-07: el resumen de "Por posición y puntaje" muestra el balance por puesto', () => {
+  const jugadores = plantelNatural(DOS_DE_CADA);
+  const frases = explicacion(jugadores, partidoDe(generar2(motor, jugadores), jugadores, 'estrategia2'));
+  ok(frases.includes('Balance por puesto (Blanco–Negro): LI 1–1 · DC 1–1 · LD 1–1 · MI 1–1 · MC 1–1 · MD 1–1 · DEL 1–1.'), frases.join(' | '));
+});
+
+prueba('puestos/S-07a: la explicación dice que ld3 pasó a LI, su puesto secundario', () => {
+  const jugadores = plantelTresLd();
+  const frases = explicacion(jugadores, partidoDe(generar2(motor, jugadores), jugadores, 'estrategia2'));
+  ok(frases.includes('Se usó a ld3 de LI, su puesto secundario, para emparejar los puestos.'), frases.join(' | '));
+});
+
+prueba('puestos/S-08: la explicación nombra al arquero desplazado como DEL', () => {
+  const jugadores = [
+    J('arqA', 'Arquero', ['DC'], { Arquero: 8, DC: 5 }), J('arqB', 'Arquero', [], { Arquero: 7 }), J('arqC', 'Arquero', [], { Arquero: 5 }),
+    ...plantelNatural(DOS_DE_CADA).filter(p => p.principal !== 'Arquero').slice(0, 13),
+  ];
+  const frases = explicacion(jugadores, partidoDe(generar4(motor, jugadores, FORMACION_8), jugadores, 'estrategia4'));
+  ok(frases.includes('arqC jugaba de arquero pero se ubicó como DEL porque cada equipo lleva un solo arquero.'), frases.join(' | '));
+});
+
+prueba('puestos/S-12: Configuración describe estrategias y reglas con los puestos, sin defensores, volantes ni delanteros', () => {
+  const C = new Function(`${[...DECLARACIONES_CATALOGO, 'CANCHAS', 'ESTRATEGIAS', 'REGLAS_CATALOGO', 'REGLAS_INVARIANTES']
+    .map(n => extraer(src, n)).join('\n\n')}\nreturn { ESTRATEGIAS, REGLAS_CATALOGO, REGLAS_INVARIANTES };`)();
+  const textos = [];
+  const juntar = o => Object.values(o).forEach(v => {
+    if (typeof v === 'string') textos.push(v);
+    else if (v && typeof v === 'object') juntar(v);
+  });
+  juntar(C);
+  const viejas = textos.filter(t => /\b(defensor|defensores|volante|volantes|delantero|delanteros)\b/i.test(t));
+  eq(viejas, [], 'ningún texto nombra una posición vieja');
+  const formacion = C.ESTRATEGIAS.estrategia4.descripcion;
+  ok(formacion.includes('Fútbol 8, 3-3-1: LI, DC, LD, MI, MC, MD y DEL'), `Formación Fija nombra los puestos de 3-3-1: ${formacion}`);
+  ok(formacion.includes('Fútbol 9, 3-4-1: LI, DC, LD, MI, MC, MC, MD y DEL'), 'y los de 3-4-1');
+});
+
+prueba('puestos/NFR-006: fuera del catálogo, index.html no tiene literales de posiciones viejas ni listas de siglas', () => {
+  const desde = src.indexOf('/* ================= CATÁLOGO DE PUESTOS Y LÍNEAS');
+  const hasta = src.indexOf('// Orden de listado de jugadores (FR-001)');
+  ok(desde > 0 && hasta > desde, 'se encuentra el bloque del catálogo');
+  const fuera = src.slice(0, desde) + src.slice(hasta);
+  // FORMACION_VIEJA vive en el catálogo; las siglas sueltas sólo en CANCHAS (formaciones) y en él.
+  const literales = fuera.match(/'(Defensor|Volante|Delantero)'/g) || [];
+  eq(literales, [], 'ningún literal de posición vieja');
+  const listas = fuera.match(/\[\s*'(LI|DC|LD|MI|MC|MD|DEL)'\s*,\s*'(LI|DC|LD|MI|MC|MD|DEL)'/g) || [];
+  eq(listas, [], 'ninguna lista de siglas');
+});
+
+prueba('puestos/NFR-001: cada plantel de referencia genera con Formación Fija en 50 ms o menos, en Fútbol 8 y 9', () => {
+  const referencias = [F.PARTIDO_LINEAS_DESPAREJAS, F.PARTIDO_TESTIGO, F.PARTIDO_EMPATE_ENCAJE, F.PARTIDO_CANCHA9_EMPATE,
+    F.plantelConDuplas({ duplas: 4, arqueros: 2 })];
+  referencias.forEach((ref, i) => ['futbol8', 'futbol9'].forEach(cancha => {
+    const plantel = F.aPuestos({ ...ref, cancha });
+    const unidades = F.unidadesDe(plantel, motor);
+    const tiempos = [];
+    for (let k = 0; k < 20; k++) {
+      const t0 = process.hrtime.bigint();
+      motor.generarEquiposEstrategia4(unidades, [], {}, null, plantel.formacion);
+      tiempos.push(Number(process.hrtime.bigint() - t0) / 1e6);
+    }
+    tiempos.sort((a, b) => a - b);
+    const mediana = tiempos[10];
+    ok(mediana <= 50, `referencia ${i + 1} en ${cancha}: ${mediana.toFixed(1)} ms`);
+  }));
+});
+
 /* ---------- resumen ---------- */
 console.log(`\nPasaron: ${pasaron}/${pasaron + fallos.length}`);
 if (fallos.length) {

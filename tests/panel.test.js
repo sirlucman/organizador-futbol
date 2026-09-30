@@ -938,7 +938,7 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
   ok(antes.length > 6, `el armado de prueba tiene que disparar muchas líneas, disparó ${antes.length}`);
   eq(ahora.length, antes.length, 'la unión de los dos grupos tiene la misma cantidad de líneas');
 
-  /* La ÚNICA cadena que cambió de texto, declarada por su prefijo exacto: la del bloqueado. Decía
+  /* Las cadenas que cambiaron de texto, declaradas por su texto exacto. La del bloqueado decía
      "permaneció en el Equipo X porque estaba bloqueado", y eso era falso en cuanto se arrastraba a
      un jugador bloqueado —nombraba el equipo nuevo afirmando que no se había movido—. Se lista una
      sola, y por texto exacto, con el mismo criterio con el que S-05d listaba sus excepciones: una
@@ -946,6 +946,10 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
   const REESCRITAS = {
     'b-def1 permaneció en el Equipo Blanco porque estaba bloqueado.':
       'b-def1 está bloqueado en el Equipo Blanco: la próxima generación no lo va a mover de ahí.',
+    /* La segunda, desde desglose-posiciones (FR-058): el puesto secundario usado se nombra con su
+       sigla ("de LI, su puesto secundario"). Con una posición vieja, como acá, con su nombre. */
+    'Se utilizó la posición secundaria de n-vol1 (Defensor) para completar la formación fija.':
+      'Se usó a n-vol1 de Defensor, su puesto secundario.',
   };
   const normalizar = l => REESCRITAS[l] || l;
   ok(antes.some(l => REESCRITAS[l]), 'el armado de prueba tiene que disparar la línea del bloqueado, que es la única reescrita');
@@ -953,7 +957,7 @@ prueba('"panel/S-05g" los dos grupos juntos dicen exactamente lo que decía la l
      'ninguna explicación se perdió ni se inventó al partir la lista en dos grupos');
 
   // Y el reparto entre grupos es el declarado: lo que narra al motor va aparte.
-  ok(ahoraDos.generacion.some(l => l.includes('posición secundaria de')), 'los swaps van al grupo de la generación');
+  ok(ahoraDos.generacion.some(l => l.includes('su puesto secundario')), 'los swaps van al grupo de la generación');
   ok(ahoraDos.generacion.some(l => l.includes('demasiadas combinaciones')), 'la enumeración truncada también');
   ok(ahoraDos.generacion.some(l => l.includes('generación anterior')), 'y la comparación entre generaciones');
   ok(ahoraDos.vigentes.some(l => l.includes('dupla de rotación quedó en el Equipo')), 'el reparto de duplas describe lo que se ve');

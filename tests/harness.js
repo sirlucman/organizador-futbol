@@ -61,7 +61,7 @@ const DECLARACIONES_CATALOGO = [
   'LINEAS_DE_CAMPO', 'VALORES_RECONOCIDOS', 'puestoDe', 'esPosicionVieja', 'lineaDe', 'ladoDe',
   'ordenDePuesto', 'siglaDe', 'nombreDe', 'textoDePosicion', 'colorDeLinea', 'posTextColor', 'posBadgeStyle',
   'RANGO_LADO', 'juegaFueraDePuesto', 'estaARevisar', 'posicionesDe', 'formacionPorPuesto', 'puestosDeFormacion', 'lugaresPorLinea',
-  'etiquetaFormacion', 'puestosDeCupo', 'puestosParaLugaresExtra',
+  'etiquetaFormacion', 'textoFormacionesDeCancha', 'puestosDeCupo', 'puestosParaLugaresExtra',
 ];
 
 /* Todo lo que el motor necesita para correr, en orden de dependencia. */
