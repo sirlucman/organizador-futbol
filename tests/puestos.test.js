@@ -526,6 +526,114 @@ prueba('puestos/S-20a: un valor guardado cualquiera ("Líbero") cae en la fila a
   eq(L.siglaDe('<img src=x>'), '<img src=x>', 'la etiqueta devuelve el valor tal cual: quien lo inserta lo escapa (TC-040)');
 });
 
+/* ================================================================= LA FICHA Y LA LISTA */
+const DECLARACIONES_FICHA = [
+  ...DECLARACIONES_CATALOGO, 'blankScores', 'computeAvg', 'puntajesViejosDe', 'estadoInicialDeFicha',
+  'precargaDePuesto', 'scoresAlGuardar', 'textoAntesDeReclasificar', 'FILTRO_A_REVISAR', 'pasaFiltroPuesto',
+  'alfabetico', 'sortRoster',
+];
+const FICHA = new Function(`${DECLARACIONES_FICHA.map(n => extraer(src, n)).join('\n\n')}\nreturn { ${DECLARACIONES_FICHA.join(', ')} };`)();
+// Juan, de la Spec: Defensor 7 de principal y Volante 6 de secundaria.
+const juan = () => J('juan', 'Defensor', ['Volante'], { Defensor: 7, Volante: 6 });
+// La ficha abierta, con la precarga aplicada a medida que se eligen puestos, como hace la pantalla.
+function reclasificar(p, elecciones) {
+  const inicial = FICHA.estadoInicialDeFicha(p);
+  const scores = { ...inicial.scores };
+  const elegidos = [inicial.principal, ...inicial.secundarias].filter(Boolean);
+  elecciones.forEach(pos => { scores[pos] = FICHA.precargaDePuesto(pos, inicial.puntajesViejos, scores); elegidos.push(pos); });
+  return { inicial, scores, elegidos };
+}
+
+console.log('\n\x1b[1mLA FICHA\x1b[0m — reclasificar sin perder los puntajes\n');
+
+prueba('puestos/S-01a: principal Arquero y secundaria Defensor: ARQ viene elegido con su puntaje y está a revisar por la secundaria', () => {
+  const p = J('a', 'Arquero', ['Defensor'], { Arquero: 8, Defensor: 5 });
+  ok(FICHA.estaARevisar(p), 'está a revisar');
+  const inicial = FICHA.estadoInicialDeFicha(p);
+  eq([inicial.principal, inicial.secundarias, inicial.scores.Arquero], ['Arquero', [], 8], 'ARQ elegido, con su 8; la secundaria vieja sin elegir');
+  eq(inicial.puntajesViejos, [{ posicion: 'Defensor', valor: 5 }], 'el puntaje viejo de Defensor queda para precargar');
+});
+
+prueba('puestos/S-01b: principal Arquero sin secundarias: no está a revisar y no se le pide nada', () => {
+  const p = J('a', 'Arquero', [], { Arquero: 8 });
+  ok(!FICHA.estaARevisar(p), 'no está a revisar');
+  const inicial = FICHA.estadoInicialDeFicha(p);
+  eq([inicial.principal, inicial.reclasificando, inicial.puntajesViejos], ['Arquero', false, []], 'la ficha abre como la de cualquier jugador');
+});
+
+prueba('puestos/S-01c: elegir MI sin puntaje viejo de Medio deja vacío su casillero', () => {
+  const p = J('p', 'Defensor', [], { Defensor: 7 });
+  const { scores } = reclasificar(p, ['LD', 'MI']);
+  eq([scores.LD, scores.MI], [7, null], 'LD con el 7 de Defensor, MI vacío');
+});
+
+prueba('puestos/S-01d: borrar el puntaje precargado de LD y guardar: LD sin puntaje y el jugador deja de estar a revisar', () => {
+  const { scores, elegidos } = reclasificar(juan(), ['LD', 'DC', 'MD']);
+  scores.LD = null;
+  const guardado = { ...juan(), principal: 'LD', secundarias: ['DC', 'MD'], scores: FICHA.scoresAlGuardar(scores, elegidos) };
+  eq(guardado.scores.LD, null, 'LD sin puntaje');
+  ok(!FICHA.estaARevisar(guardado), 'ya no está a revisar');
+});
+
+prueba('puestos/S-01f: para todo jugador a revisar y toda elección de puestos, los puntajes viejos quedan idénticos', () => {
+  const r = rng(11);
+  const VIEJAS = ['Defensor', 'Volante', 'Delantero'];
+  for (let i = 0; i < 500; i++) {
+    const principal = r() < 0.2 ? 'Arquero' : VIEJAS[Math.floor(r() * 3)];
+    const secundarias = VIEJAS.filter(v => v !== principal && r() < 0.4);
+    if (!secundarias.length && principal === 'Arquero') secundarias.push('Volante');
+    const scores = {};
+    [principal, ...secundarias].forEach(pos => { if (r() < 0.8) scores[pos] = 1 + Math.floor(r() * 10); });
+    const p = J(`p${i}`, principal, secundarias, scores);
+    const viejos = Object.fromEntries(Object.entries(scores).filter(([k]) => FICHA.esPosicionVieja(k)));
+    const elecciones = CAMPO.filter(() => r() < 0.4);
+    const { scores: enFicha, elegidos } = reclasificar(p, elecciones);
+    elecciones.forEach(pos => { if (r() < 0.3) enFicha[pos] = r() < 0.5 ? null : 1 + Math.floor(r() * 10); });
+    const guardados = FICHA.scoresAlGuardar(enFicha, elegidos);
+    const despues = Object.fromEntries(Object.entries(guardados).filter(([k]) => FICHA.esPosicionVieja(k)));
+    eq(despues, viejos, `jugador ${i}: los puntajes viejos no cambian`);
+  }
+});
+
+prueba('puestos/S-02b: sacar LD de los secundarios después de cargarle 6 descarta ese puntaje al guardar', () => {
+  const scores = { ...FICHA.blankScores(), DC: 8, LD: 6 };
+  const guardados = FICHA.scoresAlGuardar(scores, ['DC']);
+  eq([guardados.DC, guardados.LD], [8, null], 'DC se queda, LD se descarta');
+});
+
+prueba('puestos/S-01: Juan, Defensor 7 y Volante 6: LD y DC arrancan en 7, MD en 6; después de guardar su promedio es 6', () => {
+  const { inicial, scores, elegidos } = reclasificar(juan(), ['LD', 'DC', 'MD']);
+  eq([inicial.principal, inicial.secundarias], ['', []], 'principal y secundarios sin elegir');
+  eq(FICHA.textoAntesDeReclasificar(inicial.puntajesViejos), 'Antes: Defensor 7 · Volante 6', 'la referencia de sólo lectura');
+  eq([scores.LD, scores.DC, scores.MD], [7, 7, 6], 'la precarga por línea');
+  scores.DC = 5;
+  const guardado = { ...juan(), principal: 'LD', secundarias: ['DC', 'MD'], scores: FICHA.scoresAlGuardar(scores, elegidos) };
+  eq([guardado.scores.LD, guardado.scores.DC, guardado.scores.MD], [7, 5, 6], 'LD 7, DC 5, MD 6');
+  eq(FICHA.computeAvg(guardado.scores, FICHA.posicionesDe(guardado)), 6, 'el promedio sale sólo de los puestos nuevos');
+  eq([guardado.scores.Defensor, guardado.scores.Volante], [7, 6], 'los puntajes viejos siguen guardados');
+  eq(FICHA.computeAvg(juan().scores, FICHA.posicionesDe(juan())), 6.5, 'a revisar, el promedio sigue siendo el de sus puntajes viejos');
+});
+
+console.log('\n\x1b[1mLA LISTA\x1b[0m — encontrar a los que faltan reclasificar\n');
+
+const plantelDeLista = () => [
+  J('del', 'DEL'), J('dc2', 'DC'), J('viejo', 'Defensor'), J('li', 'LI'), J('arq', 'Arquero'), J('dc1', 'DC'),
+].map((p, i) => ({ ...p, apellido: String.fromCharCode(97 + i) }));
+const ordenar = (modo, lista = plantelDeLista()) => FICHA.sortRoster(lista, modo).map(p => p.principal);
+
+prueba('puestos/S-03: por puesto ascendente la lista queda ARQ, LI, DC, DC, "Defensor", DEL, y "A revisar" deja sólo al viejo', () => {
+  eq(ordenar('posicion_asc'), ['Arquero', 'LI', 'DC', 'DC', 'Defensor', 'DEL'], 'el viejo al final de su línea');
+  eq(plantelDeLista().filter(p => FICHA.pasaFiltroPuesto(p, FICHA.FILTRO_A_REVISAR)).map(p => p.id), ['viejo'], 'filtro "A revisar"');
+});
+
+prueba('puestos/S-03a: descendente invierte el orden', () => {
+  eq(ordenar('posicion_desc'), ['DEL', 'Defensor', 'DC', 'DC', 'LI', 'Arquero'], 'de DEL a ARQ');
+});
+
+prueba('puestos/S-03b: el filtro DC muestra los dos DC y no al "Defensor"', () => {
+  eq(plantelDeLista().filter(p => FICHA.pasaFiltroPuesto(p, 'DC')).map(p => p.id).sort(), ['dc1', 'dc2'], 'sólo los DC');
+});
+
 /* ---------- resumen ---------- */
 console.log(`\nPasaron: ${pasaron}/${pasaron + fallos.length}`);
 if (fallos.length) {

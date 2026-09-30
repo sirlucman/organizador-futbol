@@ -330,6 +330,9 @@
   .status-chip.closed{ background: var(--brick-deep); color: var(--chalk); border-color: var(--brick-deep); }
   .status-chip.teams-ready{ background: var(--mustard-light); color: var(--mustard-deep); border-color: var(--mustard-light); }
   .status-chip.finished{ background: var(--muted); color: var(--chalk); border-color: var(--muted); }
+  /* Un jugador con posiciones del catálogo anterior (desglose-posiciones FR-021): los mismos tokens
+     de atención que "Equipos generados", sin color nuevo (TC-030). */
+  .status-chip.a-revisar{ background: var(--mustard-light); color: var(--mustard-deep); border-color: var(--mustard-light); }
 
   .match-result{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
   /* A diferencia de los paneles de armado de equipos (que están directo sobre el fondo salvia
@@ -1195,6 +1198,7 @@
         <div class="field">
           <label>Puntajes por posición (1 a 10, opcional)</label>
           <div class="scores-grid" id="fScoresGrid"></div>
+          <div class="scores-hint" id="fAntes" hidden></div>
         </div>
         <div class="avg-preview">Puntaje promedio (automático): <b id="fAvgPreview">—</b></div>
         <div class="error-msg" id="formError"></div>
@@ -2364,6 +2368,59 @@
   });
 
   /* ================= FORMULARIO DE JUGADOR (compartido) ================= */
+
+  /* --- RECLASIFICACIÓN (desglose-posiciones TD-12) ---
+     Funciones puras: cómo arranca la ficha, qué puntaje viene precargado y qué se guarda. La ficha
+     las llama; los tests las recortan sin navegador. */
+
+  // Las posiciones viejas del jugador que tienen puntaje, principal primero (FR-022b, FR-023).
+  function puntajesViejosDe(p){
+    if(!p) return [];
+    return posicionesDe(p)
+      .filter(esPosicionVieja)
+      .filter(pos => { const v = p.scores && p.scores[pos]; return v !== null && v !== undefined && v !== ''; })
+      .map(pos => ({ posicion: pos, valor: Number(p.scores[pos]) }));
+  }
+  /* Cómo arranca la ficha. De un jugador a revisar se preseleccionan sólo los valores que siguen
+     siendo puestos (en la práctica, ARQ) y las posiciones viejas quedan sin elegir (FR-022). Los
+     puntajes viajan todos, viejos incluidos: no se muestran porque la grilla dibuja sólo los
+     puestos elegidos, y se guardan tal cual (FR-027). */
+  function estadoInicialDeFicha(p){
+    if(!p) return { principal: '', secundarias: [], scores: blankScores(), puntajesViejos: [], reclasificando: false };
+    const reclasificando = estaARevisar(p);
+    const esPuesto = v => !!puestoDe(v);
+    return {
+      principal: esPuesto(p.principal) ? p.principal : '',
+      secundarias: (p.secundarias || []).filter(esPuesto),
+      scores: { ...blankScores(), ...(p.scores || {}) },
+      puntajesViejos: reclasificando ? puntajesViejosDe(p) : [],
+      reclasificando
+    };
+  }
+  /* El puntaje con que arranca el casillero de un puesto recién elegido: el viejo de su misma
+     línea, venga de la principal o de una secundaria (FR-023), sólo si el casillero está vacío;
+     si no había puntaje viejo en esa línea, queda como está (FR-025). */
+  function precargaDePuesto(puesto, puntajesViejos, scores){
+    const actual = scores ? scores[puesto] : null;
+    if(actual !== null && actual !== undefined && actual !== '') return actual;
+    const viejo = (puntajesViejos || []).find(x => lineaDe(x.posicion) === lineaDe(puesto));
+    return viejo ? viejo.valor : (actual === undefined ? null : actual);
+  }
+  /* Lo que se guarda: el puntaje de un puesto que dejó de elegirse se descarta (FR-014); las claves
+     de posiciones viejas no se tocan (FR-027). */
+  function scoresAlGuardar(scores, aplicables){
+    const out = { ...(scores || {}) };
+    VALORES_PUESTO.forEach(p => { if(!(aplicables || []).includes(p)) out[p] = null; });
+    return out;
+  }
+  // La referencia de sólo lectura de la ficha de un jugador a revisar (FR-022b).
+  function textoAntesDeReclasificar(puntajesViejos){
+    if(!puntajesViejos || puntajesViejos.length === 0) return '';
+    return 'Antes: ' + puntajesViejos.map(x => nombreDe(x.posicion) + ' ' + x.valor).join(' · ');
+  }
+  // Estado de la reclasificación de la ficha abierta, y los puestos que ya estaban elegidos: la
+  // precarga se aplica sólo cuando un puesto PASA a estar elegido (FR-024: borrar no la repite).
+  const fichaReclasificacion = { main: { puntajesViejos: [], reclasificando: false, elegidos: [] } };
   function getApplicablePositions(kind){
     const ids = FORM_IDS[kind];
     const principal = el(ids.principal).value;
@@ -2385,7 +2442,7 @@
       const on = !disabled && current.includes(p);
       return `<button type="button" class="pos-toggle ${disabled ? 'disabled' : ''} ${on ? 'on' : ''}"
         style="${on ? posBadgeStyle(p) : ''}"
-        data-pos="${p}" title="${escaparHtml(nombreDe(p))}" ${disabled ? 'disabled' : ''}>${escaparHtml(siglaDe(p))}</button>`;
+        data-pos="${p}" title="${escaparHtml(nombreDe(p))}" ${disabled ? 'disabled' : ''}>${escaparHtml(siglaDe(p))} · ${escaparHtml(nombreDe(p))}</button>`;
     }).join('');
     wrap.__selected = current.filter(p => p !== principal);
     wrap.querySelectorAll('.pos-toggle').forEach(btn => {
@@ -2446,6 +2503,12 @@
     const applicable = getApplicablePositions(kind);
     const scores = scoresState[kind];
     VALORES_PUESTO.forEach(p => { if(!applicable.includes(p)) scores[p] = null; });
+    const ficha = fichaReclasificacion[kind];
+    if(ficha.reclasificando){
+      applicable.filter(p => !ficha.elegidos.includes(p))
+        .forEach(p => { scores[p] = precargaDePuesto(p, ficha.puntajesViejos, scores); });
+    }
+    ficha.elegidos = [...applicable];
     renderScoresGrid(kind);
     updateAvgPreview(kind);
   }
@@ -2461,7 +2524,7 @@
     const apellido = el('fApellido').value.trim();
     const principal = el(FORM_IDS[kind].principal).value;
     const secundarias = el(FORM_IDS[kind].secBadges).__selected || [];
-    const scores = {...scoresState[kind]};
+    const scores = scoresAlGuardar(scoresState[kind], getApplicablePositions(kind));
     const errorEl = el('formError');
 
     if(!nombre){ errorEl.textContent = 'El nombre es obligatorio.'; return null; }
@@ -2523,9 +2586,17 @@
     });
   }
 
+  // El filtro de puesto de la lista: todos, un puesto (por su principal) o los que faltan reclasificar (FR-031).
+  const FILTRO_A_REVISAR = 'a-revisar';
+  function pasaFiltroPuesto(p, filtro){
+    if(!filtro || filtro === 'todos') return true;
+    if(filtro === FILTRO_A_REVISAR) return estaARevisar(p);
+    return p.principal === filtro;
+  }
+
   function getFiltered(){
     const filtrados = players.filter(p => {
-      if(currentFilter !== 'todos' && p.principal !== currentFilter) return false;
+      if(!pasaFiltroPuesto(p, currentFilter)) return false;
       if(currentEstadoFilter !== 'todos' && p.estado !== currentEstadoFilter) return false;
       if(searchTerm){
         const full = normalize(p.nombre + ' ' + p.apellido);
@@ -2627,6 +2698,7 @@
             <div class="row-ident">
               <span class="row-name">${escaparHtml(fullName(p))}</span>
               ${tags ? `<span class="row-tags">${tags}</span>` : ''}
+              ${estaARevisar(p) ? '<span class="status-chip a-revisar">A revisar</span>' : ''}
               ${p.estado === 'Inactivo' ? '<span class="status-chip finished">Inactivo</span>' : ''}
             </div>
             <div class="row-stats">${statsText}</div>
@@ -2737,9 +2809,15 @@
     el('formTitle').textContent = player ? 'Editar jugador' : 'Nueva ficha de jugador';
     el('fNombre').value = player ? player.nombre : '';
     el('fApellido').value = player ? player.apellido : '';
-    el('fPrincipal').value = player ? player.principal : '';
-    el('fSecBadges').__selected = player ? [...player.secundarias] : [];
-    scoresState.main = player ? {...player.scores} : blankScores();
+    const inicial = estadoInicialDeFicha(player);
+    el('fPrincipal').value = inicial.principal;
+    el('fSecBadges').__selected = [...inicial.secundarias];
+    scoresState.main = inicial.scores;
+    fichaReclasificacion.main = { puntajesViejos: inicial.puntajesViejos, reclasificando: inicial.reclasificando,
+      elegidos: [inicial.principal, ...inicial.secundarias].filter(Boolean) };
+    const antes = el('fAntes');
+    antes.textContent = textoAntesDeReclasificar(inicial.puntajesViejos);
+    antes.hidden = !antes.textContent;
     renderSecBadges('main');
     refreshScoresSection('main');
     el('formError').textContent = '';
@@ -2771,7 +2849,7 @@
   function opcionesDePuesto(){
     return PUESTOS.map(p => `<option value="${escaparHtml(p.valor)}">${escaparHtml(p.nombre)} (${escaparHtml(p.sigla)})</option>`).join('');
   }
-  el('filters').insertAdjacentHTML('beforeend', opcionesDePuesto());
+  el('filters').insertAdjacentHTML('beforeend', opcionesDePuesto() + `<option value="${FILTRO_A_REVISAR}">A revisar</option>`);
   el('fPrincipal').insertAdjacentHTML('beforeend', opcionesDePuesto());
 
   el('btnNuevo').addEventListener('click', () => openForm(null));
