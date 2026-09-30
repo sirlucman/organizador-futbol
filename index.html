@@ -3114,7 +3114,8 @@
         : p.principal;
     });
 
-    const OUTFIELD = ['Defensor','Volante','Delantero'];
+    // Un valor que no es puesto ni posición vieja no es de campo: ese titular se reparte aparte (TC-042).
+    const esDeCampo = pos => pos !== 'Arquero' && lineaDe(pos) !== null;
     const sonBloqueados = p => bloqueadosSet.has(p.id) && prevTeamOf && prevTeamOf[p.id];
 
     // Paso 1: arqueros (ver asignarArquerosPorNiveles). Corre antes que la corrección de posiciones (Paso 2)
@@ -3126,6 +3127,14 @@
     const arquerosExcedentes = arqResultado.arquerosExcedentes;
     const arquerosPorSecundaria = arqResultado.arquerosPorSecundaria;
     const compensacion = arqResultado.compensacion, equipoCompensado = arqResultado.equipoCompensado;
+    /* Los puestos de campo que se reparten: los que traen los titulares —asignado, que después del
+       Paso 1 ya incluye adónde fue cada arquero excedente, o secundario—, en el orden del catálogo.
+       No es una lista fija (desglose-posiciones TD-05): el motor reparte parejo cada puesto que
+       existe en la convocatoria (FR-060). */
+    const puestosDeCampo = [...new Set(titularesPlayers.flatMap(p =>
+      [posicionAsignada[p.id], ...(p.secundarias || [])]))]
+      .filter(esDeCampo)
+      .sort((a, b) => ordenDePuesto(a) - ordenDePuesto(b));
 
     /* Paso 2: corregir posiciones (no arquero) con cantidad impar usando secundarias — sólo si la regla y el
        parámetro lo permiten, nunca a un bloqueado ni a quien ya quedó ubicado como arquero en el Paso 1.
@@ -3135,12 +3144,12 @@
        del resto. Al bloqueado lo reubica el Paso 4, que mide el desequilibrio real entre los equipos. */
     if(usaSecundarias){
       const yaArquero = new Set([...blanco, ...negro]);
-      OUTFIELD.forEach(pos => {
+      puestosDeCampo.forEach(pos => {
         let enEstaPosicion = titularesPlayers.filter(p => !yaArquero.has(p.id) && posicionAsignada[p.id] === pos);
         if(enEstaPosicion.length % 2 === 0) return;
-        const candidato = enEstaPosicion.find(p => !bloqueadosSet.has(p.id) && p.secundarias.some(s => OUTFIELD.includes(s) && s !== pos));
+        const candidato = enEstaPosicion.find(p => !bloqueadosSet.has(p.id) && p.secundarias.some(s => esDeCampo(s) && s !== pos));
         if(!candidato) return;
-        const nuevaPos = candidato.secundarias.find(s => OUTFIELD.includes(s) && s !== pos);
+        const nuevaPos = candidato.secundarias.find(s => esDeCampo(s) && s !== pos);
         posicionAsignada[candidato.id] = nuevaPos;
         swaps.push({ playerId: candidato.id, desde: pos, hacia: nuevaPos });
       });
@@ -3192,10 +3201,13 @@
 
     if(usaPosiciones){
       // separar por posición de cancha (los arqueros ya quedaron ubicados uno por equipo)
-      const posiciones = OUTFIELD;
-      const buckets = {}; posiciones.forEach(pos => buckets[pos] = []);
-      restantes.forEach(p => { const pos = posicionAsignada[p.id]; if(buckets[pos]) buckets[pos].push(p); });
-      posiciones.forEach(pos => repartir(buckets[pos]));
+      const buckets = {}; puestosDeCampo.forEach(pos => buckets[pos] = []);
+      // Sin puesto reconocible no hay con quién emparejarlo: se reparte al final, en su propio grupo.
+      // Antes quedaba afuera de todos los grupos y no entraba a ningún equipo (TC-042, S-20b).
+      const sinPuesto = [];
+      restantes.forEach(p => { const pos = posicionAsignada[p.id]; if(buckets[pos]) buckets[pos].push(p); else sinPuesto.push(p); });
+      puestosDeCampo.forEach(pos => repartir(buckets[pos]));
+      if(sinPuesto.length > 0) repartir(sinPuesto);
     } else {
       // sin balance por posición: un solo grupo, balanceando cantidad + puntaje
       repartir(restantes);
@@ -3225,9 +3237,9 @@
       // Cuánto se apartan los dos equipos de tener la misma cantidad en cada puesto.
       const desequilibrio = () => {
         const cuenta = { blanco: {}, negro: {} };
-        OUTFIELD.forEach(pos => { cuenta.blanco[pos] = 0; cuenta.negro[pos] = 0; });
-        deCampo.forEach(id => { cuenta[equipoDe[id]][posicionAsignada[id]]++; });
-        return OUTFIELD.reduce((a, pos) => a + Math.abs(cuenta.blanco[pos] - cuenta.negro[pos]), 0);
+        puestosDeCampo.forEach(pos => { cuenta.blanco[pos] = 0; cuenta.negro[pos] = 0; });
+        deCampo.forEach(id => { if(cuenta[equipoDe[id]][posicionAsignada[id]] !== undefined) cuenta[equipoDe[id]][posicionAsignada[id]]++; });
+        return puestosDeCampo.reduce((a, pos) => a + Math.abs(cuenta.blanco[pos] - cuenta.negro[pos]), 0);
       };
       const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce el desequilibrio, así que corta antes
       for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
@@ -3235,7 +3247,7 @@
         deCampo.forEach(id => {
           const desde = posicionAsignada[id];
           (porId[id].secundarias || []).forEach(hacia => {
-            if(!OUTFIELD.includes(hacia) || hacia === desde) return;
+            if(!esDeCampo(hacia) || hacia === desde) return;
             posicionAsignada[id] = hacia;
             const valor = desequilibrio();
             posicionAsignada[id] = desde;
