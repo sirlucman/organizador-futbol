@@ -345,6 +345,187 @@ prueba('puestos/S-20b: un titular con principal desconocido no está a revisar y
   eq(r4.blanco.length + r4.negro.length, 16, 'también con Formación Fija');
 });
 
+/* ================================================================= LA CANCHA Y LO GUARDADO */
+const { docsDesde } = require('./fixtures-app');
+const { execFileSync } = require('child_process');
+
+/* El panel y la cancha reales, recortados de un index.html. `players` lo declara el prelude con un
+   setter, como en panel.test.js. Sirve también para cargar la versión ANTERIOR al catálogo de
+   puestos (commit 854d673), que declara sus posiciones con otros nombres y en otro orden. */
+const DECLARACIONES_LECTURA = [
+  ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'lineaDeUnSoloLugar',
+  'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
+  'valorDePuntaje', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo', 'agruparEnLineasDeCancha',
+  'MAX_POR_SUBFILA', 'partirLineaEnSubfilas',
+  'sumasPorLinea', 'balanceLineasDe', 'balanceGuardadoPorLinea', 'colapsarDuplasParaLinea', 'balanceLineasVigente',
+  'celdasDiferenciaPorLinea', 'sumaVigenteDeEquipo', 'sumasVigentes', 'COSTO_DESCUBIERTA',
+  'costoEncaje', 'cubrePosicionGuardada', 'faltantesDeFormacionVigente', 'repartoDivergeDeLaGeneracion',
+  'CANCHAS', 'formacionTexto',
+];
+const DECLARACIONES_SIN_CATALOGO = ['POSITIONS', 'ORDEN_FORMACION', 'FORMACION_KEY_POR_POSICION',
+  'ORDEN_LINEAS', 'LABEL_LINEA', 'ORDEN_POSICION_LECTURA'];
+function cargarLectura(fuente) {
+  const conCatalogo = /\n[ \t]*const LINEAS\b/.test(fuente);
+  const base = conCatalogo ? DECLARACIONES_LECTURA
+    : [...DECLARACIONES_SIN_CATALOGO, ...DECLARACIONES_LECTURA.filter(n => !DECLARACIONES_SIN_CATALOGO.includes(n))];
+  const nombres = base.filter(n => new RegExp(`\\n[ \\t]*(function|const|let)[ \\t]+${n}\\b`).test(fuente));
+  const cuerpo = nombres.map(n => extraer(fuente, n)).join('\n\n');
+  return new Function(`let players = [];\nfunction __setPlayers(p){ players = p; }\n${cuerpo}\nreturn { __setPlayers, ${nombres.join(', ')} };`)();
+}
+const L = cargarLectura(src);
+let anterior = null;
+try {
+  anterior = cargarLectura(execFileSync('git', ['show', '854d673:index.html'],
+    { cwd: path.join(__dirname, '..'), maxBuffer: 64 * 1024 * 1024 }).toString('utf8'));
+} catch (e) { anterior = null; }
+
+// El plantel y los partidos de la app de prueba, con el puntaje de cada jugador ya adentro.
+function datosApp(opciones) {
+  const d = docsDesde(undefined, opciones);
+  const scores = JSON.parse(d.playerScores || '{}');
+  const jugadores = JSON.parse(d.players).map(p => ({ ...p, scores: scores[p.id] || {} }));
+  return { jugadores, partidos: JSON.parse(d.partidos) };
+}
+const porIdDe = jugadores => Object.fromEntries(jugadores.map(p => [p.id, p]));
+// Cómo se ve la cancha de un equipo: las filas de arriba abajo, con los ids de cada unidad.
+function cancha(P, jugadores, m, equipo) {
+  P.__setPlayers(jugadores);
+  const filas = P.agruparEnLineasDeCancha(m, P.agruparFilasDeEquipo(m, P.jugadoresDeEquipoOrdenados(m, m.equipos[equipo])));
+  return filas.map(f => ({ linea: f.linea, ids: f.unidades.map(u => u.map(j => j.id).join('+')) }));
+}
+// Lo que muestra un partido: filas de las dos canchas, totales, celdas de línea y faltantes.
+function vista(P, jugadores, m, { etiquetaDeFila = x => x } = {}) {
+  P.__setPlayers(jugadores);
+  const porId = porIdDe(jugadores);
+  const filas = ['blanco', 'negro'].map(e => {
+    const agrupadas = P.agruparEnLineasDeCancha(m, P.agruparFilasDeEquipo(m, P.jugadoresDeEquipoOrdenados(m, m.equipos[e])));
+    return agrupadas.map(f => [etiquetaDeFila(f.linea || f.pos), f.unidades.map(u => u.map(j => j.id).join('+'))]);
+  });
+  const redondear = x => Math.round(x * 10) / 10;
+  const suma = P.sumasVigentes(m);
+  const celdas = (P.celdasDiferenciaPorLinea(m, porId, 1) || []).map(c => [c.etiqueta, c.blanco, c.negro, c.texto]);
+  const faltantes = P.faltantesDeFormacionVigente(m, porId);
+  return { filas, totales: [redondear(suma.blanco), redondear(suma.negro)], celdas,
+    faltantes: faltantes && [faltantes.blanco.length, faltantes.negro.length] };
+}
+const ETIQUETA_VIEJA = { Arquero: 'Arco', Defensor: 'Defensa', Volante: 'Medio', Delantero: 'Ataque' };
+
+console.log('\n\x1b[1mLA CANCHA\x1b[0m — cada uno en su lado\n');
+
+// Un partido generado con Formación Fija, con la forma que le deja `__generarEquipos`.
+function partidoGenerado(individuales, formacion, cancha = 'futbol8') {
+  const res = generar4(motor, individuales, formacion);
+  return { id: 'm', cancha, duplas: [], bloqueados: [], equipos: { ...res, estrategiaKey: 'estrategia4' } };
+}
+const siglasDeFilas = (jugadores, m, equipo) => {
+  L.__setPlayers(jugadores);
+  return L.agruparEnLineasDeCancha(m, L.agruparFilasDeEquipo(m, L.jugadoresDeEquipoOrdenados(m, m.equipos[equipo])))
+    .map(f => f.unidades.map(u => L.siglaDe(L.posicionAsignadaDe(u[0], m))));
+};
+
+prueba('puestos/S-09: de arriba abajo Ataque, Medio, Defensa y Arco, cada fila de izquierda a derecha', () => {
+  const jugadores = plantelNatural(DOS_DE_CADA);
+  const m = partidoGenerado(jugadores, FORMACION_8);
+  ['blanco', 'negro'].forEach(e => eq(siglasDeFilas(jugadores, m, e), [['DEL'], ['MI', 'MC', 'MD'], ['LI', 'DC', 'LD'], ['ARQ']], `el ${e}`));
+});
+
+prueba('puestos/S-09a: en Fútbol 9 el Medio se ve MI, MC, MC, MD', () => {
+  const jugadores = plantelNatural({ ...DOS_DE_CADA, MC: 4 });
+  const m = partidoGenerado(jugadores, FORMACION_9, 'futbol9');
+  ['blanco', 'negro'].forEach(e => eq(siglasDeFilas(jugadores, m, e)[1], ['MI', 'MC', 'MC', 'MD'], `el Medio del ${e}`));
+});
+
+prueba('puestos/S-09b: con "Por puntaje", dos LD y un DC en la Defensa se ven DC, LD, LD', () => {
+  const jugadores = [J('ld1', 'LD'), J('dc1', 'DC'), J('ld2', 'LD')];
+  const m = { id: 'm', duplas: [], equipos: { blanco: ['ld1', 'dc1', 'ld2'], negro: [], posicionAsignada: null } };
+  eq(siglasDeFilas(jugadores, m, 'blanco')[2], ['DC', 'LD', 'LD'], 'el central antes que los dos derechos');
+});
+
+prueba('puestos/S-09c: cinco de Defensa (LI, LI, DC, LD, LD): arriba LI, LI, DC y abajo LD, LD', () => {
+  const jugadores = [J('ld1', 'LD'), J('li1', 'LI'), J('dc1', 'DC'), J('ld2', 'LD'), J('li2', 'LI')];
+  const m = { id: 'm', duplas: [], equipos: { blanco: jugadores.map(p => p.id), negro: [], posicionAsignada: null } };
+  L.__setPlayers(jugadores);
+  const defensa = L.agruparEnLineasDeCancha(m, L.agruparFilasDeEquipo(m, L.jugadoresDeEquipoOrdenados(m, m.equipos.blanco)))
+    .find(f => f.linea === 'Defensa');
+  eq(L.partirLineaEnSubfilas(defensa.unidades).map(sf => sf.map(u => u[0].principal)), [['LI', 'LI', 'DC'], ['LD', 'LD']],
+    'la sub-fila de arriba lleva los primeros de izquierda a derecha');
+});
+
+prueba('puestos/S-09d: dos repintados del mismo reparto dibujan las camisetas en el mismo orden', () => {
+  for (let semilla = 1; semilla <= 30; semilla++) {
+    const plantel = plantelAlAzar(semilla, 9);
+    const m = partidoGenerado(plantel.individuales, plantel.formacion, 'futbol9');
+    ['blanco', 'negro'].forEach(e => eq(cancha(L, plantel.individuales, m, e), cancha(L, plantel.individuales, m, e), `semilla ${semilla}, ${e}`));
+  }
+});
+
+console.log('\n\x1b[1mLOS PARTIDOS GUARDADOS\x1b[0m — se siguen viendo como se jugaron\n');
+
+prueba('puestos/S-10: un partido viejo de Formación Fija, con todos reclasificados, se ve igual que antes del cambio', () => {
+  if (!anterior) { console.log('      \x1b[33m∅ salteado\x1b[0m — no se pudo leer index.html de 854d673 con git'); return; }
+  const viejos = datosApp({ reclasificados: false });
+  const nuevos = datosApp({ reclasificados: true });
+  ['m-finalizado', 'm-finalizado-eventos', 'm-abierto'].forEach(id => {
+    const m = nuevos.partidos.find(x => x.id === id);
+    const intacto = JSON.stringify(m);
+    const antes = vista(anterior, viejos.jugadores, viejos.partidos.find(x => x.id === id), { etiquetaDeFila: x => ETIQUETA_VIEJA[x] || x });
+    const despues = vista(L, nuevos.jugadores, m);
+    eq(despues.filas, antes.filas, `${id}: cada camiseta en la misma fila y en el mismo orden`);
+    eq(despues.totales, antes.totales, `${id}: los mismos totales`);
+    eq(despues.celdas, antes.celdas, `${id}: la misma diferencia por línea`);
+    eq(despues.faltantes, antes.faltantes, `${id}: la misma formación cumplida o no`);
+    eq(JSON.stringify(m), intacto, `${id}: leerlo no lo modificó (FR-084)`);
+  });
+  const m = nuevos.partidos.find(x => x.id === 'm-finalizado');
+  eq(L.etiquetaFormacion(m.equipos.formacion.objetivo), '3-3-1', 'la etiqueta de la formación guardada');
+});
+
+prueba('puestos/S-10a: el mismo partido, antes de reclasificar a nadie, también se ve igual', () => {
+  if (!anterior) { console.log('      \x1b[33m∅ salteado\x1b[0m — no se pudo leer index.html de 854d673 con git'); return; }
+  const viejos = datosApp({ reclasificados: false });
+  ['m-finalizado', 'm-nueve'].forEach(id => {
+    const m = viejos.partidos.find(x => x.id === id);
+    eq(vista(L, viejos.jugadores, m), vista(anterior, viejos.jugadores, m, { etiquetaDeFila: x => ETIQUETA_VIEJA[x] || x }),
+      `${id}: igual que con el código de antes`);
+  });
+});
+
+prueba('puestos/S-10b: un partido viejo de Fútbol 9 se rotula 3-4-1', () => {
+  const { partidos } = datosApp();
+  const m = partidos.find(x => x.id === 'm-finalizado-nueve');
+  eq(L.etiquetaFormacion(m.equipos.formacion.objetivo), '3-4-1', 'desde la formación guardada');
+  eq(L.formacionTexto(m), '3-4-1', 'desde el tamaño de cancha');
+});
+
+prueba('puestos/S-10c: un partido viejo de "Por puntaje" dibuja a cada uno en la línea de su principal actual', () => {
+  const { jugadores, partidos } = datosApp();
+  const m = JSON.parse(JSON.stringify(partidos.find(x => x.id === 'm-finalizado')));
+  m.equipos.posicionAsignada = null;
+  m.equipos.estrategiaKey = 'estrategia1';
+  L.__setPlayers(jugadores);
+  const porId = porIdDe(jugadores);
+  L.agruparEnLineasDeCancha(m, L.agruparFilasDeEquipo(m, L.jugadoresDeEquipoOrdenados(m, m.equipos.blanco))).forEach(f => {
+    f.unidades.forEach(u => eq(L.lineaDe(porId[u[0].id].principal), f.linea, `${u[0].id} en la fila de su principal`));
+  });
+});
+
+prueba('puestos/S-10d: en ningún partido guardado cae una camiseta en la fila de "sin puesto reconocible"', () => {
+  [datosApp({ reclasificados: false }), datosApp({ reclasificados: true })].forEach(({ jugadores, partidos }) => {
+    partidos.filter(m => m.equipos).forEach(m => ['blanco', 'negro'].forEach(e => {
+      const filas = cancha(L, jugadores, m, e);
+      eq(filas.map(f => f.linea), ['Ataque', 'Medio', 'Defensa', 'Arco'], `${m.id}, ${e}: sólo las cuatro líneas`);
+    }));
+  });
+});
+
+prueba('puestos/S-20a: un valor guardado cualquiera ("Líbero") cae en la fila aparte, debajo del arco, sin error', () => {
+  const jugadores = [J('a', 'Arquero'), J('x', 'DC'), J('z', 'DC')];
+  const m = { id: 'm', duplas: [], equipos: { blanco: ['a', 'x', 'z'], negro: [], posicionAsignada: { a: 'Arquero', x: 'DC', z: 'Líbero' } } };
+  eq(cancha(L, jugadores, m, 'blanco').map(f => f.linea), ['Ataque', 'Medio', 'Defensa', 'Arco', 'Líbero'], 'la fila aparte, al final');
+  eq(L.lineaDe('Líbero'), null, 'no tiene línea');
+  eq(L.siglaDe('<img src=x>'), '<img src=x>', 'la etiqueta devuelve el valor tal cual: quien lo inserta lo escapa (TC-040)');
+});
+
 /* ---------- resumen ---------- */
 console.log(`\nPasaron: ${pasaron}/${pasaron + fallos.length}`);
 if (fallos.length) {
