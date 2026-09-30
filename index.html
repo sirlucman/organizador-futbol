@@ -163,6 +163,10 @@
   .field{ flex: 1 1 160px; }
   .field label{ display:block; font-family: var(--font-mono); font-size: 10.5px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
   .field input[type=text], .field input[type=date], .field select{ width:100%; padding: 8px 10px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--paper); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
+  /* La flecha del selector es la misma del filtro de la lista (.filter-select) y va a 12px del
+     borde, como la del combo de estrategia: la nativa quedaba pegada al borde derecho. */
+  .field select{ appearance: none; -webkit-appearance: none; padding-right: 36px; cursor: pointer;
+    background: var(--paper) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%236b7280" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>') no-repeat right 12px center/16px 16px; }
   .field input:focus, .field select:focus{ outline: 2px solid var(--pitch-light); outline-offset:1px; }
 
   .pos-badges{ display:flex; gap:6px; flex-wrap: wrap; }
@@ -173,8 +177,8 @@
   .scores-grid{ display:grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   .score-field label{ font-size: 10px; }
   .score-input-wrap{ position: relative; }
-  .score-field input{ width:100%; padding: 7px 22px 7px 8px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--paper); font-family: var(--font-mono); font-size: 14px; text-align:center; }
-  .clear-score{ position: absolute; right: 4px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); font-size: 15px; line-height:1; padding: 2px; }
+  .score-field input{ width:100%; padding: 7px 32px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--paper); font-family: var(--font-mono); font-size: 14px; text-align:center; }
+  .clear-score{ position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: none; border: none; cursor: pointer; color: var(--muted); font-size: 15px; line-height:1; padding: 2px; }
   .clear-score:hover{ color: var(--brick); }
   .scores-hint{ font-size: 12.5px; color: var(--muted); padding: 8px 0; grid-column: 1 / -1; }
 
