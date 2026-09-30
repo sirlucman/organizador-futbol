@@ -1568,6 +1568,15 @@
     const color = colorDeLinea(lineaDe(pos));
     return `background:${color || 'var(--muted)'}; color:${color ? posTextColor(pos) : 'var(--chalk)'};`;
   }
+  // Orden de dibujo dentro de una fila de la cancha: izquierda a derecha (FR-071).
+  const RANGO_LADO = { izquierdo: 0, central: 1, derecho: 2 };
+  /* ¿Juega fuera de su puesto principal? Contra una posición vieja —un partido armado antes del
+     cambio— se compara por LÍNEA: quien era "Defensor", jugó de "Defensor" y después fue
+     reclasificado a LD no jugó fuera de puesto, y su camiseta no gana el "2º" (FR-077, S-10). */
+  function juegaFueraDePuesto(j, posAsignada){
+    if(esPosicionVieja(posAsignada)) return lineaDe(j.principal) !== lineaDe(posAsignada);
+    return j.principal !== posAsignada;
+  }
   // Un jugador con alguna posición del catálogo anterior, en la principal o en una secundaria (FR-020).
   function estaARevisar(p){
     return !!p && (esPosicionVieja(p.principal) || (p.secundarias || []).some(esPosicionVieja));
@@ -4852,10 +4861,18 @@
       if(!porLinea.has(linea)) porLinea.set(linea, []);
       porLinea.get(linea).push(grupo);
     });
+    /* Dentro de cada fila, de izquierda a derecha por el lado del puesto: izquierdos, centrales,
+       derechos (FR-071). El `sort` es estable, así que los del mismo lado conservan el orden en
+       que llegaron y dos repintados dan el mismo dibujo (FR-072, CANCHA_SPEC FR-015). Una
+       posición vieja cuenta como central (FR-074); un valor sin lado, también. */
+    const rango = grupo => {
+      const lado = ladoDe(posicionAsignadaDe(grupo[0], m));
+      return RANGO_LADO[lado] !== undefined ? RANGO_LADO[lado] : RANGO_LADO.central;
+    };
     return [...porLinea.entries()]
       .filter(entrada => ORDEN_LINEAS.includes(entrada[0]) || entrada[1].length > 0)
       .sort((a, b) => ORDEN_LINEAS.indexOf(b[0]) - ORDEN_LINEAS.indexOf(a[0]))
-      .map(entrada => ({ linea: entrada[0], unidades: entrada[1] }));
+      .map(entrada => ({ linea: entrada[0], unidades: [...entrada[1]].sort((a, b) => rango(a) - rango(b)) }));
   }
 
   /* Una línea de hasta cuatro camisetas va en un renglón; de cinco en adelante se parte en dos
@@ -4918,7 +4935,7 @@
     // suma al total del equipo. No se recalcula acá (012-puntajes-coherentes-panel, FR-027).
     const valor = admin ? valorDePuntaje(grupo, m) : null;
     const completos = grupo.map(fullName).join(' / ');
-    const secundaria = grupo.some(j => j.principal !== posAsignada);
+    const secundaria = grupo.some(j => juegaFueraDePuesto(j, posAsignada));
 
     const arrastrable = esFilaEditable(m);
     // El toque abarca toda la camiseta cuando la unidad es un solo jugador (FR-030): sobre una
@@ -4930,7 +4947,10 @@
     const puedeTocarCamiseta = enCarga && admin && !esUnidadDupla;
     const partes = [completos];
     if(esUnidadDupla) partes.push('dupla de rotación');
-    partes.push(secundaria ? posAsignada + ' (posición secundaria)' : posAsignada);
+    // El puesto asignado por su nombre y, si no es el principal, también el principal (FR-076).
+    partes.push(!secundaria ? nombreDe(posAsignada)
+      : (esUnidadDupla ? nombreDe(posAsignada) + ' (posición secundaria)'
+        : nombreDe(posAsignada) + ' (su puesto es ' + nombreDe(p.principal) + ')'));
     if(admin && valor === null) partes.push('sin puntaje');
     // El `title` anuncia el gesto sin desplazar lo que ya llevaba (FR-003).
     if(arrastrable) partes.push('arrastrala al otro equipo para pasarlo');
@@ -5011,10 +5031,10 @@
     // la camiseta compartida, así que no puede distinguir a cuál de los dos corrieron — el tooltip
     // sí lo nombra.
     const secTitle = !secundaria ? '' : (esUnidadDupla
-      ? grupo.filter(j => j.principal !== posAsignada)
-          .map(j => nombreCorto(j) + ' juega de ' + posAsignada + ', su puesto es ' + j.principal)
+      ? grupo.filter(j => juegaFueraDePuesto(j, posAsignada))
+          .map(j => nombreCorto(j) + ' juega de ' + nombreDe(posAsignada) + ', su puesto es ' + nombreDe(j.principal))
           .join(' · ')
-      : 'Juega de ' + posAsignada + ', su puesto es ' + p.principal);
+      : 'Juega de ' + nombreDe(posAsignada) + ', su puesto es ' + nombreDe(p.principal));
     const secHtml = secundaria
       ? '<span class="camiseta-sec" title="' + escaparHtml(secTitle) + '">2º</span>'
       : '';

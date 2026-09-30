@@ -60,7 +60,7 @@ const DECLARACIONES_CATALOGO = [
   'VALORES_PUESTO', 'ORDEN_LINEAS',
   'LINEAS_DE_CAMPO', 'VALORES_RECONOCIDOS', 'puestoDe', 'esPosicionVieja', 'lineaDe', 'ladoDe',
   'ordenDePuesto', 'siglaDe', 'nombreDe', 'textoDePosicion', 'colorDeLinea', 'posTextColor', 'posBadgeStyle',
-  'estaARevisar', 'posicionesDe', 'formacionPorPuesto', 'puestosDeFormacion', 'lugaresPorLinea',
+  'RANGO_LADO', 'juegaFueraDePuesto', 'estaARevisar', 'posicionesDe', 'formacionPorPuesto', 'puestosDeFormacion', 'lugaresPorLinea',
   'etiquetaFormacion', 'puestosDeCupo', 'puestosParaLugaresExtra',
 ];
 
