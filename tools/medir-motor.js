@@ -66,7 +66,10 @@ const O = {
 };
 
 /* ---------------- planteles generados ---------------- */
-const CAMPO = ['Defensor', 'Volante', 'Delantero'];
+// Los siete puestos de campo (desglose-posiciones). `comparar` contra un commit anterior al catálogo
+// de puestos compara vocabularios distintos: ese motor no conoce estos puestos.
+const CAMPO = ['LI', 'DC', 'LD', 'MI', 'MC', 'MD', 'DEL'];
+const LINEA = { LI: 'D', DC: 'D', LD: 'D', MI: 'M', MC: 'M', MD: 'M', DEL: 'A' };
 
 // LCG sembrado en vez de Math.random: cada hallazgo se puede reproducir con su semilla, que es lo
 // único que hace útil a una búsqueda aleatoria (un contraejemplo que no se puede volver a generar
@@ -87,19 +90,27 @@ function plantelAlAzar(semilla, { cancha, mezcla }) {
   const rand = rng(semilla);
   const nota = () => Math.round((3 + rand() * 6) * 2) / 2; // 3 a 9 en pasos de 0.5
   const deCampo = cancha === 9 ? 16 : 14;
-  const formacion = cancha === 9
-    ? { defensores: 3, volantes: 4, delanteros: 1 }
-    : { defensores: 3, volantes: 3, delanteros: 1 };
+  const formacion = cancha === 9 ? F.FORMACION_PUESTOS.futbol9 : F.FORMACION_PUESTOS.futbol8;
   const individuales = [
     F.P('arq0', 'Arquero 0', 'Arquero', [], { Arquero: nota() }),
     F.P('arq1', 'Arquero 1', 'Arquero', [], { Arquero: nota() }),
   ];
-  // Distribución sesgada, como un plantel real: muchos defensores y volantes, pocos delanteros.
-  const sortear = () => { const x = rand(); return x < 0.42 ? 'Defensor' : x < 0.85 ? 'Volante' : 'Delantero'; };
+  /* Distribución sesgada, como un plantel real: muchos de Defensa y de Medio (más centrales que
+     laterales), pocos de Ataque. La secundaria, cuando hay, es de la misma línea siete de cada diez
+     veces. Es el generador de la simulación de OPEN-Q-01 del Implementation Plan. */
+  const sortear = () => {
+    const x = rand();
+    if (x < 0.42) return ['LI', 'DC', 'DC', 'LD'][Math.floor(rand() * 4)];
+    if (x < 0.85) return ['MI', 'MC', 'MC', 'MD'][Math.floor(rand() * 4)];
+    return 'DEL';
+  };
   for (let i = 0; i < deCampo; i++) {
     const principal = sortear();
     const otras = CAMPO.filter(p => p !== principal);
-    const secundarias = rand() < mezcla ? [otras[Math.floor(rand() * otras.length)]] : [];
+    const deSuLinea = otras.filter(p => LINEA[p] === LINEA[principal]);
+    const elegirSecundaria = () => (deSuLinea.length && rand() < 0.7)
+      ? deSuLinea[Math.floor(rand() * deSuLinea.length)] : otras[Math.floor(rand() * otras.length)];
+    const secundarias = rand() < mezcla ? [elegirSecundaria()] : [];
     const scores = { [principal]: nota() };
     secundarias.forEach(p => { scores[p] = nota(); });
     individuales.push(F.P(`j${i}`, `Jugador ${i}`, principal, secundarias, scores));
@@ -307,7 +318,7 @@ function volcar() {
   }
   console.log(`const PARTIDO_X = {`);
   console.log(`  cancha: '${plantel.cancha}',`);
-  console.log(`  formacion: { defensores: ${f.defensores}, volantes: ${f.volantes}, delanteros: ${f.delanteros} },`);
+  console.log(`  formacion: { ${Object.entries(f).map(([k, v]) => `${k}: ${v}`).join(', ')} },`);
   console.log(`  individuales: [`);
   plantel.individuales.forEach(j => {
     const sec = `[${j.secundarias.map(x => `'${x}'`).join(', ')}]`;
@@ -322,13 +333,17 @@ function volcar() {
 function perf() {
   const motor = construirMotor();
   console.log(`tiempo por generación con Estrategia 4 · margen ${O.margen}\n`);
+  /* Los cinco planteles de referencia, reclasificados a los ocho puestos con `aPuestos` y armados
+     en la cancha pedida (desglose-posiciones NFR-001: ≤ 50 ms cada uno). */
+  const cancha = O.cancha === 9 ? 'futbol9' : 'futbol8';
   const casos = [
     ['partido del 2026-08-24', F.PARTIDO_LINEAS_DESPAREJAS],
     ['partido testigo', F.PARTIDO_TESTIGO],
     ['empate de encaje (cancha de 8)', F.PARTIDO_EMPATE_ENCAJE],
     ['empate de encaje (cancha de 9)', F.PARTIDO_CANCHA9_EMPATE],
     ['4 duplas', F.plantelConDuplas({ duplas: 4, arqueros: 2 })],
-  ];
+  ].map(([nombre, plantel]) => [nombre, F.aPuestos({ ...plantel, cancha })]);
+  console.log(`  puestos/NFR-001 · planteles de referencia (cancha ${O.cancha}), límite 50 ms`);
   const medir = (plantel, vueltas) => {
     const unidades = F.unidadesDe(plantel, motor);
     const t0 = process.hrtime.bigint();
@@ -341,15 +356,19 @@ function perf() {
   // El peor caso no está en los fixtures: es un plantel donde casi todos tienen secundaria, que es
   // lo que maximiza la cantidad de escenarios empatados y por lo tanto el trabajo del reparto.
   let peor = { ms: 0, semilla: null, truncada: false };
-  for (let s = 1; s <= 300; s++) {
+  let truncadas = 0;
+  for (let s = 1; s <= O.n; s++) {
     const plantel = plantelAlAzar(s, { cancha: O.cancha, mezcla: 0.95 });
     const unidades = F.unidadesDe(plantel, motor);
     const res = motor.generarEquiposEstrategia4(unidades, [], {}, null, plantel.formacion);
+    if (res.enumeracionTruncada) truncadas++;
     const ms = medir(plantel, 10);
     if (ms > peor.ms) peor = { ms, semilla: s, truncada: !!res.enumeracionTruncada };
   }
-  console.log(`\n  peor caso de 300 planteles con mezcla 0.95 (cancha ${O.cancha}):`);
+  console.log(`\n  puestos/NFR-002 · peor caso de ${O.n} planteles con mezcla 0.95 (cancha ${O.cancha}), límite 1000 ms:`);
   console.log(`    semilla ${peor.semilla} · ${peor.ms.toFixed(1)} ms${peor.truncada ? ' · ENUMERACIÓN TRUNCADA' : ''}`);
+  // La tasa que mira la regla de TD-17 del Implementation Plan (OBS-07): más de 5 % → revisar el tope.
+  console.log(`    generaciones con la enumeración truncada: ${truncadas} de ${O.n} (${(100 * truncadas / O.n).toFixed(1)} %)`);
   console.log(`    topes del motor: ${motor.MAX_ASIGNACIONES_ENCAJE} escenarios, ${motor.MAX_REPARTOS_EVALUADOS} repartos en total`);
   return 0;
 }
