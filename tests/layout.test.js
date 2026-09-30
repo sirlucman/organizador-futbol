@@ -624,6 +624,146 @@ const ESCENARIOS = [
       await page.waitForSelector('.card-pin-wrap.open');
     } },
 
+  /* ---- desglose-posiciones ----
+     La ficha con los ocho puestos, la reclasificación, la cancha por lados, lo guardado que no es
+     un puesto y el rol jugador. Los datos por defecto traen el plantel ya reclasificado con los
+     partidos viejos intactos (fixtures-app.js, TD-15); `fixture: { reclasificados: false }` lo
+     trae como estaría el día del cambio, todos a revisar. */
+  { clave: 'puestos-ficha', rol: 'admin', nombre: 'ficha de jugador con los ocho puestos elegidos',
+    spec: ['puestos/S-02', 'puestos/S-02a', 'puestos/S-02c', 'puestos/S-03c', 'puestos/NFR-003'],
+    async preparar(page) {
+      await irAPestania(page, 'Jugadores');
+      await page.click('#btnNuevo');
+      await page.waitForSelector('.card-pin-wrap.open');
+      await page.selectOption('#fPrincipal', 'DC');
+      // Los siete restantes como secundarios: ocho casilleros, el caso más ancho de la ficha.
+      for (let i = 0; i < 7; i++) {
+        const libre = await page.$('#fSecBadges .pos-toggle:not(.on):not(.disabled)');
+        if (!libre) break;
+        await libre.click();
+      }
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const opciones = await page.$$eval('#fPrincipal option', os => os.map(o => ({ v: o.value, t: o.textContent })));
+      const puestos = opciones.filter(o => o.v);
+      if (puestos.length !== 8) problemas.push(`el selector de principal debería ofrecer los ocho puestos y ofrece ${puestos.length} (S-02)`);
+      if (puestos.some(o => ['Defensor', 'Volante', 'Delantero'].includes(o.v))) problemas.push('el selector ofrece una posición vieja (FR-013)');
+      if (puestos.some(o => !/^.+ \((ARQ|LI|DC|LD|MI|MC|MD|DEL)\)$/.test(o.t))) problemas.push(`cada opción tiene que decir nombre y sigla: ${JSON.stringify(puestos.map(o => o.t))} (FR-006)`);
+      const casilleros = await page.$$eval('#fScoresGrid input', is => is.length);
+      if (casilleros !== 8) problemas.push(`con los ocho puestos elegidos debería haber ocho casilleros y hay ${casilleros} (S-02a)`);
+      // S-02c: un puntaje fuera de rango no se guarda.
+      await page.fill('#fNombre', 'Zzz Nuevo');
+      await page.fill('#fScoresGrid input[data-pos="DC"]', '11');
+      await page.dispatchEvent('#fScoresGrid input[data-pos="DC"]', 'input');
+      await page.click('#btnGuardar');
+      const error = await page.textContent('#formError');
+      if (!/entre 1 y 10/.test(error || '')) problemas.push(`con DC en 11 tendría que aparecer el error de rango y apareció "${error}" (S-02c)`);
+      // S-02: DC 8, LD de secundario sin puntaje, y a guardar.
+      for (const pos of ['LI', 'MI', 'MC', 'MD', 'DEL', 'Arquero']) {
+        const b = await page.$(`#fSecBadges .pos-toggle.on[data-pos="${pos}"]`);
+        if (b) await b.click();
+      }
+      await page.fill('#fScoresGrid input[data-pos="DC"]', '8');
+      await page.dispatchEvent('#fScoresGrid input[data-pos="DC"]', 'input');
+      await page.click('#btnGuardar');
+      await page.waitForTimeout(300);
+      const fila = await page.evaluate(() => {
+        const row = [...document.querySelectorAll('.roster .row')].find(r => r.textContent.includes('Zzz Nuevo'));
+        if (!row) return null;
+        const badge = row.querySelector('.badge');
+        return { sigla: badge.textContent.trim(), fondo: getComputedStyle(badge).backgroundColor, aRevisar: !!row.querySelector('.status-chip.a-revisar') };
+      });
+      if (!fila) problemas.push('el jugador nuevo no aparece en la lista (S-02)');
+      else {
+        if (fila.sigla !== 'DC') problemas.push(`la insignia debería decir DC y dice ${fila.sigla} (S-02)`);
+        if (fila.fondo !== 'rgb(251, 146, 60)') problemas.push(`la insignia de DC debería ser naranja (Defensa) y es ${fila.fondo} (FR-004)`);
+        if (fila.aRevisar) problemas.push('un jugador nuevo con puestos del catálogo no está a revisar (S-02)');
+      }
+      // S-03c: con el plantel reclasificado no queda nadie a revisar.
+      await page.selectOption('#filters', 'a-revisar');
+      await page.waitForTimeout(200);
+      const vacio = await page.evaluate(() => (document.querySelector('.roster .empty-state') || {}).textContent || '');
+      if (!/No hay jugadores que coincidan/.test(vacio)) problemas.push(`"A revisar" sin nadie a revisar tendría que mostrar la lista vacía de siempre (S-03c), y muestra "${vacio.trim()}"`);
+      return problemas;
+    } },
+
+  { clave: 'puestos-reclasificar', rol: 'admin', nombre: 'reclasificar a un jugador con posiciones viejas',
+    spec: ['puestos/S-01', 'puestos/S-01e', 'puestos/NFR-004'],
+    fixture: { reclasificados: false },
+    anchos: [360, 1200],
+    async preparar(page) {
+      await irAPestania(page, 'Jugadores');
+      await page.selectOption('#filters', 'a-revisar');
+      await page.waitForTimeout(200);
+    },
+    async comprobar(page) {
+      const problemas = [];
+      // NFR-004: toda etiqueta de puesto de la lista tiene su sigla en texto, no sólo color.
+      const vacias = await page.$$eval('.roster .row .badge, .roster .row .row-tags .tag', es => es.filter(e => !e.textContent.trim()).length);
+      if (vacias) problemas.push(`${vacias} etiqueta(s) de puesto sin texto (NFR-004)`);
+      const marcadas = await page.$$eval('.roster .row', rs => rs.filter(r => r.querySelector('.status-chip.a-revisar')).length);
+      const filas = await page.$$eval('.roster .row', rs => rs.length);
+      if (!filas || marcadas !== filas) problemas.push(`el filtro "A revisar" tendría que mostrar sólo filas marcadas: ${marcadas} de ${filas} (FR-021, FR-031)`);
+      // S-01: Claudio, Defensor 6 con Volante 5 de secundaria.
+      await page.evaluate(() => window.__editPlayer('claudio'));
+      await page.waitForSelector('.card-pin-wrap.open');
+      const inicial = await page.evaluate(() => ({
+        principal: document.getElementById('fPrincipal').value,
+        on: document.querySelectorAll('#fSecBadges .pos-toggle.on').length,
+        antes: document.getElementById('fAntes').hidden ? '' : document.getElementById('fAntes').textContent,
+      }));
+      if (inicial.principal || inicial.on) problemas.push(`al abrir, principal y secundarios tienen que estar sin elegir: ${JSON.stringify(inicial)} (FR-022)`);
+      if (inicial.antes !== 'Antes: Defensor 6 · Volante 5') problemas.push(`la referencia dice "${inicial.antes}" (FR-022b)`);
+      await page.selectOption('#fPrincipal', 'LD');
+      await page.click('#fSecBadges .pos-toggle[data-pos="DC"]');
+      await page.click('#fSecBadges .pos-toggle[data-pos="MD"]');
+      const precarga = await page.$$eval('#fScoresGrid input', is => Object.fromEntries(is.map(i => [i.dataset.pos, i.value])));
+      if (JSON.stringify(precarga) !== JSON.stringify({ LD: '6', DC: '6', MD: '5' })) problemas.push(`la precarga tendría que ser LD 6, DC 6, MD 5 y es ${JSON.stringify(precarga)} (FR-023)`);
+      await page.fill('#fScoresGrid input[data-pos="DC"]', '4');
+      await page.dispatchEvent('#fScoresGrid input[data-pos="DC"]', 'input');
+      await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
+      await page.click('#btnGuardar');
+      await page.waitForTimeout(300);
+      const guardado = await page.evaluate(() => ({
+        players: JSON.parse(window.__ultimosDocs.players),
+        scores: JSON.parse(window.__ultimosDocs.playerScores),
+      }));
+      const c = guardado.players.find(p => p.id === 'claudio');
+      if (!c || c.principal !== 'LD' || JSON.stringify(c.secundarias) !== JSON.stringify(['DC', 'MD'])) problemas.push(`se guardó ${JSON.stringify(c && [c.principal, c.secundarias])} (S-01)`);
+      if (guardado.players.some(p => p.scores)) problemas.push('un puntaje quedó en el documento público de jugadores (TC-041)');
+      const sc = guardado.scores.claudio || {};
+      if (sc.LD !== 6 || sc.DC !== 4 || sc.MD !== 5) problemas.push(`los puntajes nuevos guardados son ${JSON.stringify(sc)} (S-01)`);
+      if (sc.Defensor !== 6 || sc.Volante !== 5) problemas.push(`los puntajes viejos tendrían que seguir guardados y son ${JSON.stringify(sc)} (FR-027)`);
+      // Por el nombre exacto: "Juan (Hijo de Claudio)" también contiene "Claudio" y sigue a revisar.
+      const sigue = await page.$$eval('.roster .row .row-name', ns => ns.some(n => n.textContent.trim() === 'Claudio'));
+      if (sigue) problemas.push('Claudio sigue apareciendo en el filtro "A revisar" después de reclasificarlo (FR-026)');
+      // S-01e: guardar un jugador a revisar sin elegir principal no guarda.
+      await page.evaluate(() => window.__editPlayer('anibal'));
+      await page.waitForSelector('.card-pin-wrap.open');
+      const antesDeGuardar = (await page.evaluate(() => window.__escrituras.length));
+      await page.click('#btnGuardar');
+      const error = await page.textContent('#formError');
+      if (!/posición principal/.test(error || '')) problemas.push(`sin principal tendría que aparecer el error de siempre y apareció "${error}" (S-01e)`);
+      if ((await page.evaluate(() => window.__escrituras.length)) !== antesDeGuardar) problemas.push('guardó sin principal (S-01e)');
+      return problemas;
+    } },
+
+  { clave: 'puestos-jugador', rol: 'jugador', nombre: 'la lista con los puestos nuevos, rol jugador',
+    spec: ['puestos/S-21'],
+    anchos: [360, 1200],
+    async preparar(page) { await irAPestania(page, 'Jugadores'); },
+    async comprobar(page) {
+      return page.evaluate(() => {
+        const problemas = [];
+        const ficha = document.getElementById('formWrap');
+        if (ficha && ficha.offsetParent !== null) problemas.push('el rol jugador ve la ficha de edición (S-21)');
+        if (document.querySelector('.roster .avg-chip')) problemas.push('el rol jugador ve un puntaje en la lista (S-21, TC-041)');
+        if (document.querySelector('.roster .conv-menu-btn')) problemas.push('el rol jugador ve el menú para editar jugadores (S-21)');
+        return problemas;
+      });
+    } },
+
   /* El tooltip de ayuda es el caso que motivó medir esto: .info-tip tiene
      width:250px con max-width:70vw, posicionado left:50% translateX(-50%) sobre
      un ícono que puede estar pegado al borde derecho. Se lo fuerza visible con la
@@ -2374,7 +2514,9 @@ async function main() {
       /* `doble` deja a un escenario configurar el resto del doble de Firebase además del rol:
          es lo que permite escribir el corte de la feature rol-en-el-token (un token sin claim,
          un refresco que demora o que falla) como escenarios y no como prosa. */
-      await page.addInitScript(fakeFirebase, Object.assign({ datos: docsDesde(), rol: caso.rol }, caso.doble || {}));
+      /* `fixture` deja a un escenario pedir los datos de otra forma: los de desglose-posiciones
+         piden el plantel SIN reclasificar para tener jugadores "a revisar" (fixtures-app.js). */
+      await page.addInitScript(fakeFirebase, Object.assign({ datos: docsDesde(undefined, caso.fixture), rol: caso.rol }, caso.doble || {}));
       /* Registrador del PRIMER PINTADO. Se instala antes de que corra la aplicación y muestrea en
          cada frame qué solapas están visibles y si `#appRoot` ya se reveló. Es la única forma de
          verificar FR-002 —que la barra tenga su composición final en su primer pintado— porque
