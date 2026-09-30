@@ -2453,7 +2453,7 @@
       const on = !disabled && current.includes(p);
       return `<button type="button" class="pos-toggle ${disabled ? 'disabled' : ''} ${on ? 'on' : ''}"
         style="${on ? posBadgeStyle(p) : ''}"
-        data-pos="${p}" title="${escaparHtml(nombreDe(p))}" ${disabled ? 'disabled' : ''}>${escaparHtml(siglaDe(p))} · ${escaparHtml(nombreDe(p))}</button>`;
+        data-pos="${p}" title="${escaparHtml(nombreDe(p))}" ${disabled ? 'disabled' : ''}>${escaparHtml(siglaDe(p))} - ${escaparHtml(nombreDe(p))}</button>`;
     }).join('');
     wrap.__selected = current.filter(p => p !== principal);
     wrap.querySelectorAll('.pos-toggle').forEach(btn => {
