@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** [DESGLOSE_POSICIONES_SPEC.md](./DESGLOSE_POSICIONES_SPEC.md) · **Implementation plan:** *not yet written*
+> **Spec:** [DESGLOSE_POSICIONES_SPEC.md](./DESGLOSE_POSICIONES_SPEC.md) · **Implementation plan:** [DESGLOSE_POSICIONES_IMPLEMENTATION_PLAN.md](./DESGLOSE_POSICIONES_IMPLEMENTATION_PLAN.md)
 
 ## 1. TL;DR
 
