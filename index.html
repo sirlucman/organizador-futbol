@@ -1482,19 +1482,123 @@
   }
   function isAdmin(){ return window.session.rol === 'admin'; }
 
-  const POSITIONS = ['Arquero','Defensor','Volante','Delantero'];
-  // Orden de listado de jugadores (FR-001): modos de orden disponibles para el listado de
-  // Jugadores y mapa de posición reusado por el orden "por posición" (FR-030/FR-031), igual al
-  // que ya usa `ordenarPorPosicion` en la pantalla de equipos (index.html ~3638).
+  /* ================= CATÁLOGO DE PUESTOS Y LÍNEAS (desglose-posiciones, TD-03) =================
+     El ÚNICO lugar de la aplicación que enumera puestos, líneas y posiciones viejas (TC-010,
+     TC-011). Todo lo demás —ficha, filtro, orden, colores, motor, cancha, panel— pregunta a las
+     funciones de abajo. Un puesto es un lugar concreto (`valor` es lo que se guarda en Firestore);
+     una línea agrupa puestos para medir el equilibrio y pintar. Una posición vieja es un valor del
+     catálogo anterior que ya no se puede elegir pero se sigue leyendo de lo guardado: jugadores
+     sin reclasificar y partidos armados antes del cambio. */
+  const LINEAS = [
+    { clave: 'Arco',    color: '#dc2626', arco: true },        // Rojo (negative)
+    { clave: 'Defensa', color: '#fb923c' },                    // Naranja (tertiary)
+    { clave: 'Medio',   color: '#facc15', textoOscuro: true }, // Amarillo (warning): texto oscuro para que se lea
+    { clave: 'Ataque',  color: '#16a34a' }                     // Verde (positive) — paleta del design system, no el verde de marca
+  ];
+  const PUESTOS = [
+    { valor: 'Arquero',   sigla: 'ARQ', nombre: 'Arquero',   linea: 'Arco',    lado: 'central' },
+    { valor: 'Defensor',  sigla: 'DEF', nombre: 'Defensor',  linea: 'Defensa', lado: 'central' },
+    { valor: 'Volante',   sigla: 'VOL', nombre: 'Volante',   linea: 'Medio',   lado: 'central' },
+    { valor: 'Delantero', sigla: 'DEL', nombre: 'Delantero', linea: 'Ataque',  lado: 'central' }
+  ];
+  const POSICIONES_VIEJAS = {};
+  // La forma en que se guardaba la formación antes del cambio: una cantidad por línea (FR-082).
+  const FORMACION_VIEJA = { defensores: 'Defensor', volantes: 'Volante', delanteros: 'Delantero' };
+  const VALORES_PUESTO = PUESTOS.map(p => p.valor);
+  const ORDEN_LINEAS = LINEAS.map(l => l.clave);
+  const LINEAS_DE_CAMPO = LINEAS.filter(l => !l.arco).map(l => l.clave);
+  // Todo valor que se sabe leer de lo guardado: los puestos y las posiciones viejas.
+  const VALORES_RECONOCIDOS = [...VALORES_PUESTO, ...Object.keys(POSICIONES_VIEJAS)];
+  function puestoDe(valor){ return PUESTOS.find(p => p.valor === valor) || null; }
+  function esPosicionVieja(valor){
+    return typeof valor === 'string' && Object.prototype.hasOwnProperty.call(POSICIONES_VIEJAS, valor);
+  }
+  // La línea de un valor guardado: la del puesto, o la de la posición vieja; null si no es ninguno (TC-042).
+  function lineaDe(valor){
+    const p = puestoDe(valor);
+    if(p) return p.linea;
+    return esPosicionVieja(valor) ? POSICIONES_VIEJAS[valor] : null;
+  }
+  // Una posición vieja no tiene lado: se la dibuja como central (FR-074).
+  function ladoDe(valor){
+    const p = puestoDe(valor);
+    if(p) return p.lado;
+    return esPosicionVieja(valor) ? 'central' : null;
+  }
+  // Orden de FR-003; una posición vieja va justo después del último puesto de su línea (FR-032).
+  function ordenDePuesto(valor){
+    const i = PUESTOS.findIndex(p => p.valor === valor);
+    if(i >= 0) return i;
+    if(!esPosicionVieja(valor)) return 99;
+    let ultimo = -1;
+    PUESTOS.forEach((p, j) => { if(p.linea === POSICIONES_VIEJAS[valor]) ultimo = j; });
+    return ultimo + 0.5;
+  }
+  /* Texto corto para una etiqueta (FR-005): la sigla del puesto, las tres primeras letras de una
+     posición vieja (como hasta el cambio), o el valor tal cual. Quien lo inserte lo escapa: un
+     valor desconocido viene de lo guardado y lo puede haber escrito cualquiera (TC-040). */
+  function siglaDe(valor){
+    const p = puestoDe(valor);
+    if(p) return p.sigla;
+    if(esPosicionVieja(valor)) return valor.slice(0, 3).toUpperCase();
+    return valor === null || valor === undefined ? '' : String(valor);
+  }
+  function nombreDe(valor){
+    const p = puestoDe(valor);
+    if(p) return p.nombre;
+    return valor === null || valor === undefined ? '' : String(valor);
+  }
+  function colorDeLinea(clave){
+    const l = LINEAS.find(x => x.clave === clave);
+    return l ? l.color : null;
+  }
+  function posTextColor(pos){
+    const l = LINEAS.find(x => x.clave === lineaDe(pos));
+    return l && l.textoOscuro ? 'var(--ink)' : 'var(--chalk)';
+  }
+  function posBadgeStyle(pos){
+    const color = colorDeLinea(lineaDe(pos));
+    return `background:${color || 'var(--muted)'}; color:${color ? posTextColor(pos) : 'var(--chalk)'};`;
+  }
+  // Un jugador con alguna posición del catálogo anterior, en la principal o en una secundaria (FR-020).
+  function estaARevisar(p){
+    return !!p && (esPosicionVieja(p.principal) || (p.secundarias || []).some(esPosicionVieja));
+  }
+  // Las posiciones que juega un jugador: sobre ellas se promedia su puntaje (TD-04, FR-028).
+  function posicionesDe(p){
+    return p ? [p.principal, ...(p.secundarias || [])].filter(Boolean) : [];
+  }
+  // Orden de listado de jugadores (FR-001): modos de orden disponibles para el listado de Jugadores.
   const ORDEN_MODOS = ['manual', 'puntaje_asc', 'puntaje_desc', 'posicion_asc', 'posicion_desc'];
-  const ORDEN_POSICION = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
-  const POS_COLOR = { Arquero: '#dc2626', Defensor: '#fb923c', Volante: '#facc15', Delantero: '#16a34a' }; // Rojo (negative), Naranja (tertiary), Amarillo (warning), Verde (positive) — paleta del design system, no el verde de marca
-  function posTextColor(pos){ return pos === 'Volante' ? 'var(--ink)' : 'var(--chalk)'; } // el amarillo necesita texto oscuro para que se lea
-  function posBadgeStyle(pos){ return `background:${POS_COLOR[pos] || 'var(--muted)'}; color:${POS_COLOR[pos] ? posTextColor(pos) : 'var(--chalk)'};`; }
   const CANCHAS = {
     futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { defensores: 3, volantes: 3, delanteros: 1 } },
     futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9, formacion: { defensores: 3, volantes: 4, delanteros: 1 } }
   };
+  /* Una formación es una cantidad de lugares por puesto. Un partido armado antes del cambio la
+     guardó por línea (`{defensores, volantes, delanteros}`): esta función es el único lugar que
+     conoce esa forma y la traduce a la de hoy, así que todo lo que lee una formación guardada la
+     lee igual (desglose-posiciones TD-06, FR-082). */
+  function formacionPorPuesto(objetivo){
+    if(!objetivo) return {};
+    if(!Object.keys(FORMACION_VIEJA).some(k => k in objetivo)) return { ...objetivo };
+    const out = {};
+    Object.entries(FORMACION_VIEJA).forEach(([k, pos]) => { if(objetivo[k]) out[pos] = objetivo[k]; });
+    return out;
+  }
+  // Los puestos que pide una formación, en el orden de FR-003.
+  function puestosDeFormacion(objetivo){
+    const f = formacionPorPuesto(objetivo);
+    return Object.keys(f).filter(pos => f[pos] > 0).sort((a, b) => ordenDePuesto(a) - ordenDePuesto(b));
+  }
+  // Cuántos lugares pide una formación en una línea, sumando todos sus puestos (FR-056).
+  function lugaresPorLinea(objetivo, linea){
+    const f = formacionPorPuesto(objetivo);
+    return Object.keys(f).filter(pos => lineaDe(pos) === linea).reduce((a, pos) => a + (f[pos] || 0), 0);
+  }
+  // "3-3-1": lugares por línea de campo, nunca una cadena literal (TC-013, FR-055, FR-083).
+  function etiquetaFormacion(objetivo){
+    return LINEAS_DE_CAMPO.map(linea => lugaresPorLinea(objetivo, linea)).join('-');
+  }
   const ESTRATEGIAS = {
     estrategia1: {
       label: 'Solo por puntaje',
@@ -1676,18 +1780,17 @@
   function canchaLabel(m){
     return (CANCHAS[m.cancha] || CANCHAS.futbol8).label;
   }
-  /* "3-4-1": defensores-volantes-delanteros de la formación del tamaño de cancha del partido,
-     nunca una cadena literal (rebanada 4 de "Equipos en el campo", FR-005b, FR-005c, TC-035). */
+  /* "3-4-1": lugares por línea de la formación del tamaño de cancha del partido, nunca una cadena
+     literal (rebanada 4 de "Equipos en el campo", FR-005b, FR-005c; desglose-posiciones TC-013). */
   function formacionTexto(m){
-    const f = (CANCHAS[m.cancha] || CANCHAS.futbol8).formacion;
-    return f.defensores + '-' + f.volantes + '-' + f.delanteros;
+    return etiquetaFormacion((CANCHAS[m.cancha] || CANCHAS.futbol8).formacion);
   }
 
   const FORM_IDS = {
     main: { principal:'fPrincipal', secBadges:'fSecBadges', scoresGrid:'fScoresGrid', avgPreview:'fAvgPreview' }
   };
   const scoresState = { main:{} };
-  const blankScores = () => ({ Arquero:null, Defensor:null, Volante:null, Delantero:null });
+  const blankScores = () => Object.fromEntries(VALORES_PUESTO.map(v => [v, null]));
 
   let players = [];
   let matches = [];
@@ -1878,8 +1981,11 @@
   const ICON_MAS_ACCIONES = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">'
     + '<circle cx="5" cy="12" r="1.9"></circle><circle cx="12" cy="12" r="1.9"></circle>'
     + '<circle cx="19" cy="12" r="1.9"></circle></svg>';
-  function computeAvg(scores){
-    const vals = POSITIONS.map(p => scores[p]).filter(v => v !== null && v !== undefined && v !== '');
+  /* Promedio de las posiciones que juega el jugador (`posiciones`), no de todo el catálogo: es lo
+     que deja afuera, sin un campo más, los puntajes viejos que un jugador reclasificado conserva
+     ocultos en el mismo `scores` (desglose-posiciones TD-04, FR-027, FR-028). */
+  function computeAvg(scores, posiciones){
+    const vals = (posiciones || []).map(p => scores && scores[p]).filter(v => v !== null && v !== undefined && v !== '');
     if(vals.length === 0) return null;
     const sum = vals.reduce((a,b) => a + Number(b), 0);
     return Math.round((sum / vals.length) * 10) / 10;
@@ -1891,7 +1997,7 @@
      número; el valor general viaja aparte, en `_valorGeneral`. */
   function valorGeneralDe(u){
     if(u && u._valorGeneral !== undefined) return u._valorGeneral;
-    return computeAvg(u.scores);
+    return computeAvg(u.scores, posicionesDe(u));
   }
   /* --- OBJETIVO DE DIFERENCIA (009-ventaja-sin-arquero) ---
      Cuánta diferencia de puntaje busca el motor, y a favor de qué equipo. Vale 0 salvo que un solo
@@ -2196,7 +2302,7 @@
       const apellido = 'Prueba ' + n;
       n++;
       if(players.some(p => normalize(p.nombre) === normalize(nombre) && normalize(p.apellido) === normalize(apellido))) continue;
-      const principal = POSITIONS[added % POSITIONS.length];
+      const principal = VALORES_PUESTO[added % VALORES_PUESTO.length];
       const scores = blankScores();
       scores[principal] = 4 + (added % 6); // valores variados entre 4 y 9
       players.push({ id: uid('p'), nombre, apellido, estado:'Activo', principal, secundarias: [], scores });
@@ -2256,7 +2362,7 @@
     const principal = el(ids.principal).value;
     const wrap = el(ids.secBadges);
     const current = wrap.__selected || [];
-    wrap.innerHTML = POSITIONS.map(p => {
+    wrap.innerHTML = VALORES_PUESTO.map(p => {
       const disabled = p === principal;
       const on = !disabled && current.includes(p);
       return `<button type="button" class="pos-toggle ${disabled ? 'disabled' : ''} ${on ? 'on' : ''}"
@@ -2321,14 +2427,14 @@
   function refreshScoresSection(kind){
     const applicable = getApplicablePositions(kind);
     const scores = scoresState[kind];
-    POSITIONS.forEach(p => { if(!applicable.includes(p)) scores[p] = null; });
+    VALORES_PUESTO.forEach(p => { if(!applicable.includes(p)) scores[p] = null; });
     renderScoresGrid(kind);
     updateAvgPreview(kind);
   }
 
   function updateAvgPreview(kind){
     const ids = FORM_IDS[kind];
-    const avg = computeAvg(scoresState[kind]);
+    const avg = computeAvg(scoresState[kind], getApplicablePositions(kind));
     el(ids.avgPreview).textContent = avg !== null ? avg : '—';
   }
 
@@ -2342,7 +2448,7 @@
 
     if(!nombre){ errorEl.textContent = 'El nombre es obligatorio.'; return null; }
     if(!principal){ errorEl.textContent = 'Elegí una posición principal.'; return null; }
-    for(const p of POSITIONS){
+    for(const p of VALORES_PUESTO){
       const v = scores[p];
       if(v !== null && (v < 1 || v > 10)){ errorEl.textContent = `El puntaje de ${p} debe estar entre 1 y 10.`; return null; }
     }
@@ -2375,7 +2481,7 @@
     if(mode === 'puntaje_asc' || mode === 'puntaje_desc'){
       const signo = mode === 'puntaje_asc' ? 1 : -1;
       return copia.sort((a, b) => {
-        const avgA = computeAvg(a.scores), avgB = computeAvg(b.scores);
+        const avgA = computeAvg(a.scores, posicionesDe(a)), avgB = computeAvg(b.scores, posicionesDe(b));
         if(avgA === null && avgB === null) return alfabetico(a, b);
         if(avgA === null) return 1; // sin puntaje siempre al final (FR-021)
         if(avgB === null) return -1;
@@ -2386,7 +2492,7 @@
     if(mode === 'posicion_asc' || mode === 'posicion_desc'){
       const signo = mode === 'posicion_asc' ? 1 : -1;
       return copia.sort((a, b) => {
-        const posA = ORDEN_POSICION[a.principal] ?? 99, posB = ORDEN_POSICION[b.principal] ?? 99;
+        const posA = ordenDePuesto(a.principal), posB = ordenDePuesto(b.principal);
         if(posA !== posB) return (posA - posB) * signo;
         return alfabetico(a, b);
       });
@@ -2470,7 +2576,7 @@
       </div>`;
 
     roster.innerHTML = encabezado + list.map(p => {
-      const avg = computeAvg(p.scores);
+      const avg = computeAvg(p.scores, posicionesDe(p));
       // El nombre y los puestos salen de datos cargados por un jugador: se escapan (AGENTS.md § Estilo).
       const tags = p.secundarias.map(s => `<span class="tag">${escaparHtml(s)}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
@@ -3159,10 +3265,6 @@
      mismo orden que decide qué lugar se resuelve primero cuando varios necesitan el nivel (c). */
   const ORDEN_FORMACION = ['Defensor', 'Volante', 'Delantero'];
   const FORMACION_KEY_POR_POSICION = { Defensor: 'defensores', Volante: 'volantes', Delantero: 'delanteros' };
-  // Las cuatro líneas del armado, para medir y mostrar el balance de cada una. El arco es una línea
-  // más a los efectos de mostrarla, aunque no se reparta con las mismas reglas (FR-005).
-  const ORDEN_LINEAS = ['Arquero', ...ORDEN_FORMACION];
-  const LABEL_LINEA = { Arquero: 'Arco', Defensor: 'Defensa', Volante: 'Medio', Delantero: 'Ataque' };
 
   /* Una línea que la formación llena con UN solo jugador por equipo. Su diferencia existe en
      cualquier armado posible y no se puede repartir: sólo cruzarla de equipo para que compense
@@ -3173,10 +3275,10 @@
      una cancha con dos delanteros, un literal mentiría y esto no. Lo consumen el receipt del
      motor y la regla de color de la grilla de diferencia por línea, que es lo que impide que
      el color contradiga al texto (rebanada 3, FR-034, TC-013). */
-  function lineaDeUnSoloLugar(pos, formacion){
-    if(pos === 'Arquero') return true;
+  function lineaDeUnSoloLugar(linea, formacion){
+    if(linea === lineaDe('Arquero')) return true;
     if(!formacion || !formacion.objetivo) return false;
-    return formacion.objetivo[FORMACION_KEY_POR_POSICION[pos]] === 1;
+    return lugaresPorLinea(formacion.objetivo, linea) === 1;
   }
 
   function tieneScoreEnPosicion(p, pos){
@@ -3449,7 +3551,27 @@
       const u = porId[id];
       if(!u) return;
       const pos = (posicionAsignada && posicionAsignada[id]) || u.principal;
-      out[pos] = (out[pos] || 0) + puntajeEnPosicion(u, pos);
+      // Cada unidad suma en la LÍNEA de su puesto (desglose-posiciones FR-053); un valor que no es
+      // puesto ni posición vieja queda bajo su propio nombre, como antes.
+      const linea = lineaDe(pos) || pos;
+      out[linea] = (out[linea] || 0) + puntajeEnPosicion(u, pos);
+    });
+    return out;
+  }
+  /* El balance por línea guardado con un armado. Los armados de antes del cambio lo guardaron por
+     posición (`Defensor`, `Volante`…): se lo vuelve a sumar por línea para poder compararlo con el
+     que se calcula hoy (desglose-posiciones TD-10). */
+  function balanceGuardadoPorLinea(balance){
+    if(!balance) return balance;
+    const out = {};
+    Object.entries(balance).forEach(([clave, v]) => {
+      const linea = lineaDe(clave) || clave;
+      const previo = out[linea] || { blanco: 0, negro: 0, diferencia: 0 };
+      out[linea] = {
+        blanco: previo.blanco + ((v && v.blanco) || 0),
+        negro: previo.negro + ((v && v.negro) || 0),
+        diferencia: previo.diferencia + ((v && v.diferencia) || 0)
+      };
     });
     return out;
   }
@@ -3511,9 +3633,10 @@
           const equipo = enBlanco.has(i) ? 'blanco' : 'negro';
           const pos = posDe(u);
           const valor = puntajeEnPosicion(u, pos);
+          const linea = lineaDe(pos) || pos;
           o[equipo].push(u.id);
-          if(!o.porLinea[pos]) o.porLinea[pos] = { blanco: 0, negro: 0 };
-          o.porLinea[pos][equipo] += valor;
+          if(!o.porLinea[linea]) o.porLinea[linea] = { blanco: 0, negro: 0 };
+          o.porLinea[linea][equipo] += valor;
           if(equipo === 'blanco') o.sumaBlanco += valor; else o.sumaNegro += valor;
           if(esDupla(u)) o[equipo === 'blanco' ? 'duplasBlanco' : 'duplasNegro']++;
           if(!tieneScoreEnPosicion(u, pos)) o[equipo === 'blanco' ? 'sinPuntajeBlanco' : 'sinPuntajeNegro']++;
@@ -3555,8 +3678,8 @@
       let spB = base.sinPuntajeBlanco, spN = base.sinPuntajeNegro;
       let cambios = 0;
       const lineas = {};
-      ORDEN_FORMACION.forEach(pos => {
-        lineas[pos] = { blanco: base.lineasBlanco[pos] || 0, negro: base.lineasNegro[pos] || 0 };
+      LINEAS_DE_CAMPO.forEach(linea => {
+        lineas[linea] = { blanco: base.lineasBlanco[linea] || 0, negro: base.lineasNegro[linea] || 0 };
       });
       eleccion.forEach(o => {
         cantB += o.blanco.length; cantN += o.negro.length;
@@ -3570,8 +3693,8 @@
       });
       const desvio = Math.abs(r4(sumaB - sumaN - objetivo));
       let costoLineas = 0;
-      ORDEN_FORMACION.forEach(pos => {
-        const d = r4(lineas[pos].blanco - lineas[pos].negro);
+      LINEAS_DE_CAMPO.forEach(linea => {
+        const d = r4(lineas[linea].blanco - lineas[linea].negro);
         costoLineas += d * d;
       });
       return [
@@ -3953,7 +4076,7 @@
         const lineas = balanceLineasDe(blanco, negro, posicionAsignada, porId);
         const desvio = Math.abs(r4(sumaBlanco - sumaNegro - objetivo));
         let costoLineas = 0;
-        ORDEN_FORMACION.forEach(pos => { const d = lineas[pos].diferencia; costoLineas += d * d; });
+        LINEAS_DE_CAMPO.forEach(linea => { const d = lineas[linea].diferencia; costoLineas += d * d; });
         return [
           Math.max(0, r4(desvio - banda)),
           separaSinPuntaje ? Math.abs(sinPuntajeDe(blanco) - sinPuntajeDe(negro)) : 0,
@@ -4103,8 +4226,8 @@
   // el motor evalúe a la dupla como una sola unidad de balance, sin tocar la lógica interna de
   // las estrategias ni de resolverArqueros (que siguen operando sobre "candidatos" genéricos).
   function construirUnidadDupla(pA, pB){
-    const avgA = computeAvg(pA.scores);
-    const avgB = computeAvg(pB.scores);
+    const avgA = computeAvg(pA.scores, posicionesDe(pA));
+    const avgB = computeAvg(pB.scores, posicionesDe(pB));
     const combinar = (a, b) => {
       if(a !== null && b !== null) return Math.round(((a + b) / 2) * 10) / 10;
       if(a !== null) return a;
@@ -4129,7 +4252,7 @@
       return avg; // sin nota en el puesto: se lo representa con su promedio general (null si no tiene ninguna)
     };
     const scoresUnidad = {};
-    POSITIONS.forEach(pos => {
+    VALORES_RECONOCIDOS.forEach(pos => {
       scoresUnidad[pos] = combinar(aporte(pA, avgA, pos), aporte(pB, avgB, pos));
     });
     // Candidatos de posición principal: la de cada integrante (FR-008). Si ambos son arqueros
@@ -4611,11 +4734,9 @@
 
      Vivía adentro de `renderTeamsSection`, que era el único lugar que lo necesitaba. Sube a
      ámbito de módulo porque el receipt también lo necesita (rebanada 3, TD-01b). */
-  const ORDEN_POSICION_LECTURA = { Arquero: 0, Defensor: 1, Volante: 2, Delantero: 3 };
   function jugadoresDeEquipoOrdenados(m, ids){
     const lista = (ids || []).map(id => players.find(p => p.id === id)).filter(Boolean);
-    return lista.sort((a, b) =>
-      (ORDEN_POSICION_LECTURA[posicionAsignadaDe(a, m)] ?? 99) - (ORDEN_POSICION_LECTURA[posicionAsignadaDe(b, m)] ?? 99));
+    return lista.sort((a, b) => ordenDePuesto(posicionAsignadaDe(a, m)) - ordenDePuesto(posicionAsignadaDe(b, m)));
   }
 
   function agruparFilasDeEquipo(m, playersOrdenados){
@@ -4659,16 +4780,19 @@
      porque no son una de las cuatro líneas fijas y no hay ningún hueco que reservarles.
      (Spec de la cancha, FR-010, FR-011, FR-012, FR-015.) */
   function agruparEnLineasDeCancha(m, grupos){
-    const porLinea = new Map(ORDEN_LINEAS.map(pos => [pos, []]));
+    const porLinea = new Map(ORDEN_LINEAS.map(linea => [linea, []]));
     grupos.forEach(grupo => {
       const pos = posicionAsignadaDe(grupo[0], m);
-      if(!porLinea.has(pos)) porLinea.set(pos, []);
-      porLinea.get(pos).push(grupo);
+      // La fila es la LÍNEA del puesto; un valor que no es puesto ni posición vieja arma su propia
+      // fila, debajo del arco, como antes (desglose-posiciones FR-074, FR-075).
+      const linea = lineaDe(pos) || pos;
+      if(!porLinea.has(linea)) porLinea.set(linea, []);
+      porLinea.get(linea).push(grupo);
     });
     return [...porLinea.entries()]
       .filter(entrada => ORDEN_LINEAS.includes(entrada[0]) || entrada[1].length > 0)
       .sort((a, b) => ORDEN_LINEAS.indexOf(b[0]) - ORDEN_LINEAS.indexOf(a[0]))
-      .map(entrada => ({ pos: entrada[0], unidades: entrada[1] }));
+      .map(entrada => ({ linea: entrada[0], unidades: entrada[1] }));
   }
 
   /* Una línea de hasta cuatro camisetas va en un renglón; de cinco en adelante se parte en dos
@@ -5393,7 +5517,7 @@
       const d = Math.abs(l.diferencia);
       return {
         pos,
-        etiqueta: LABEL_LINEA[pos] || pos,
+        etiqueta: pos,
         blanco: l.blanco,
         negro: l.negro,
         diferencia: d,
@@ -5518,8 +5642,10 @@
     if(r1(suma.blanco) !== r1(eq.sumaBlanco) || r1(suma.negro) !== r1(eq.sumaNegro)) return true;
     if(eq.balanceLineas){
       const vigente = balanceLineasVigente(m, porId) || {};
+      // Lo guardado puede estar por posición (armados de antes del cambio): se lo lee por línea.
+      const guardado = balanceGuardadoPorLinea(eq.balanceLineas);
       const distinta = ORDEN_LINEAS.some(pos => {
-        const a = eq.balanceLineas[pos] || {}, b = vigente[pos] || {};
+        const a = guardado[pos] || {}, b = vigente[pos] || {};
         return r1(a.blanco) !== r1(b.blanco) || r1(a.negro) !== r1(b.negro);
       });
       if(distinta) return true;
@@ -5688,8 +5814,7 @@
     });
   }
   if(esFormacionFija && eq.formacion && faltantesVigentes){
-    const obj = eq.formacion.objetivo;
-    const label = `${obj.defensores}-${obj.volantes}-${obj.delanteros}`;
+    const label = etiquetaFormacion(eq.formacion.objetivo);
     // Se recuenta sobre los equipos actuales: mover un defensor al otro equipo puede romper una
     // formación que la generación había cumplido, y el bloque tiene que decirlo.
     const cumplidaB = faltantesVigentes.blanco.length === 0;
@@ -5707,10 +5832,10 @@
     // Se mide sobre `balanceVigente` y no sobre `eq.balanceLineas`: es el mismo balance que
     // alimenta la grilla de "Diferencia por línea", así que el texto no puede señalar como más
     // despareja una línea distinta de la que la grilla muestra peor.
-    const campo = ORDEN_FORMACION.map(pos => ({ pos, d: (balanceVigente[pos] || {}).diferencia || 0 }));
+    const campo = LINEAS_DE_CAMPO.map(pos => ({ pos, d: (balanceVigente[pos] || {}).diferencia || 0 }));
     const peor = campo.reduce((a, b) => Math.abs(b.d) > Math.abs(a.d) ? b : a, campo[0]);
     explicaciones.push(Math.abs(peor.d) > 0
-      ? `Se emparejó cada línea además del total: la más despareja quedó en ${LABEL_LINEA[peor.pos]}, por ${Math.abs(peor.d)} punto${Math.abs(peor.d) === 1 ? '' : 's'}.`
+      ? `Se emparejó cada línea además del total: la más despareja quedó en ${peor.pos}, por ${Math.abs(peor.d)} punto${Math.abs(peor.d) === 1 ? '' : 's'}.`
       : 'Se emparejó cada línea además del total: las líneas de campo quedaron exactamente iguales.');
     // Líneas de UN solo lugar por equipo: su diferencia no se puede repartir, solo cruzar de
     // equipo para que se compense con otra. Es la parte del resultado que más se malinterpreta.
@@ -5719,7 +5844,7 @@
       .filter(pos => balanceVigente[pos] && balanceVigente[pos].diferencia !== 0);
     if(unSoloLugar.length >= 2){
       const compensan = new Set(unSoloLugar.map(pos => Math.sign(balanceVigente[pos].diferencia))).size > 1;
-      explicaciones.push(`${unSoloLugar.map(pos => LABEL_LINEA[pos]).join(' y ')} tienen un solo lugar por equipo: esa diferencia existe en cualquier armado posible y no se puede repartir. ${compensan ? 'Quedaron a favor de equipos distintos para que se compensen entre sí en vez de sumarse.' : 'No se pudieron cruzar sin romper el resto del armado.'}`);
+      explicaciones.push(`${unSoloLugar.join(' y ')} tienen un solo lugar por equipo: esa diferencia existe en cualquier armado posible y no se puede repartir. ${compensan ? 'Quedaron a favor de equipos distintos para que se compensen entre sí en vez de sumarse.' : 'No se pudieron cruzar sin romper el resto del armado.'}`);
     }
     const margen = margenTotalPorLinea();
     if(margen === 0 && Math.abs(peor.d) > 1){
@@ -6568,7 +6693,7 @@
       const apellido = 'Prueba ' + n;
       n++;
       if(players.some(pl => normalize(pl.nombre) === normalize(nombre) && normalize(pl.apellido) === normalize(apellido))) continue;
-      const principal = POSITIONS[added % POSITIONS.length];
+      const principal = VALORES_PUESTO[added % VALORES_PUESTO.length];
       const scores = blankScores();
       scores[principal] = 4 + (added % 6);
       const nuevo = { id: uid('p'), nombre, apellido, estado:'Activo', principal, secundarias: [], scores };
@@ -6969,7 +7094,7 @@
     }
     listEl.innerHTML = candidatos.map(p => `
       <div class="ac-item" onclick="window.__vincularDupla('${m.id}','${duplaModalPlayerId}','${p.id}')">
-        <span class="ac-pos-dot" style="background:${POS_COLOR[p.principal] || 'var(--muted)'}"></span>
+        <span class="ac-pos-dot" style="background:${colorDeLinea(lineaDe(p.principal)) || 'var(--muted)'}"></span>
         ${escaparHtml(fullName(p))}${!m.convocados.includes(p.id) ? ' <span class="tag" style="margin-left:auto;">no convocado</span>' : ''}
       </div>`).join('');
   }
@@ -7026,7 +7151,7 @@
     }else{
       html = results.map((p, i) => `
         <div class="ac-item" data-id="${p.id}" onclick="window.__addToMatch('${m.id}','${p.id}')">
-          <span class="ac-pos-dot" style="background:${POS_COLOR[p.principal] || 'var(--muted)'}"></span>
+          <span class="ac-pos-dot" style="background:${colorDeLinea(lineaDe(p.principal)) || 'var(--muted)'}"></span>
           ${escaparHtml(fullName(p))}${i === 0 ? ' <span class="tag" style="margin-left:auto;">TAB</span>' : ''}
         </div>`).join('');
     }

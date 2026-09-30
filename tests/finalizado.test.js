@@ -15,7 +15,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { extraer } = require('./harness');
+const { extraer, DECLARACIONES_CATALOGO } = require('./harness');
 
 const SPEC = 'docs/equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md';
 const INDEX = path.join(__dirname, '..', 'index.html');
@@ -24,6 +24,7 @@ const src = fs.readFileSync(INDEX, 'utf8');
 /* En orden de dependencia. `players` lo declara el prelude con un setter, con el mismo criterio
    que panel.test.js usa para `motorConfig`. */
 const DECLARACIONES = [
+  ...DECLARACIONES_CATALOGO,
   'CANCHAS',
   'ESTRATEGIAS',
   'escaparHtml',
@@ -45,7 +46,6 @@ const DECLARACIONES = [
   'golesEquipoActual',
   // El puntaje de armado que la fila muestra a cada costado se recalcula del reparto en pantalla
   // (`sumasVigentes`), no se lee del total guardado al generar.
-  'POSITIONS',
   'computeAvg',
   'valorGeneralDe',
   'puntajeEnPosicion',
@@ -53,7 +53,6 @@ const DECLARACIONES = [
   'posicionAsignadaDe',
   'construirUnidadDupla',
   'valorDePuntaje',
-  'ORDEN_POSICION_LECTURA',
   'jugadoresDeEquipoOrdenados',
   'agruparFilasDeEquipo',
   'sumaVigenteDeEquipo',

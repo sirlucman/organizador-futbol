@@ -19,7 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const assert = require('assert');
-const { extraer, cargarMotor } = require('./harness');
+const { extraer, cargarMotor, DECLARACIONES_CATALOGO } = require('./harness');
 const F = require('./fixtures');
 
 const INDEX = path.join(__dirname, '..', 'index.html');
@@ -245,11 +245,11 @@ console.log('\nLo que el panel dice después de intercambiar');
    Son funciones puras sobre el partido y el plantel, así que se prueban sin navegador, con el
    mismo recorte que usa tests/panel.test.js. Que el DOM las pinte lo mira tests/layout.test.js. */
 const DECLARACIONES_PANEL = [
-  'POSITIONS', 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'ORDEN_FORMACION',
-  'FORMACION_KEY_POR_POSICION', 'ORDEN_LINEAS', 'LABEL_LINEA', 'lineaDeUnSoloLugar',
+  ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'ORDEN_FORMACION',
+  'FORMACION_KEY_POR_POSICION', 'lineaDeUnSoloLugar',
   'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
-  'valorDePuntaje', 'ORDEN_POSICION_LECTURA', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo',
-  'sumasPorLinea', 'balanceLineasDe', 'colapsarDuplasParaLinea', 'balanceLineasVigente',
+  'valorDePuntaje', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo',
+  'sumasPorLinea', 'balanceLineasDe', 'balanceGuardadoPorLinea', 'colapsarDuplasParaLinea', 'balanceLineasVigente',
   'celdasDiferenciaPorLinea', 'sumaVigenteDeEquipo', 'sumasVigentes', 'COSTO_DESCUBIERTA',
   'costoEncaje', 'faltantesDeFormacionVigente', 'repartoDivergeDeLaGeneracion',
   'resumenDiferenciaEquipos', ...DECLARACIONES,
@@ -313,9 +313,9 @@ prueba('colores/S-02b: con equipos parejos la píldora sigue diciendo "Equipos p
 prueba('colores/S-02c: el desglose por línea nombra al color nuevo de cada grupo', () => {
   const { m, porId } = partidoDelPanel(BLANCO_FUERTE, NEGRO_FLOJO);
   const textos = () => PANEL.celdasDiferenciaPorLinea(m, porId, null).map(c => `${c.pos}:${c.texto}`);
-  eq(textos(), ['Arquero:+4 Blanco', 'Defensor:+2 Blanco', 'Volante:Parejo', 'Delantero:Parejo'], 'punto de partida');
+  eq(textos(), ['Arco:+4 Blanco', 'Defensa:+2 Blanco', 'Medio:Parejo', 'Ataque:Parejo'], 'punto de partida');
   C.invertirColoresDelPartido(m);
-  eq(textos(), ['Arquero:+4 Negro', 'Defensor:+2 Negro', 'Volante:Parejo', 'Delantero:Parejo'], 'cada ventaja pasa al color nuevo del grupo que la tiene (FR-032)');
+  eq(textos(), ['Arco:+4 Negro', 'Defensa:+2 Negro', 'Medio:Parejo', 'Ataque:Parejo'], 'cada ventaja pasa al color nuevo del grupo que la tiene (FR-032)');
 });
 
 console.log('\nRegenerar después de intercambiar');

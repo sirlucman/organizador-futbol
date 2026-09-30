@@ -70,12 +70,16 @@ function armar(plantel, config = {}, opciones = {}) {
       return res.arquerosInfo.equipoCompensado === 'blanco' ? 'negro' : 'blanco';
     },
     // Diferencia de puntaje de una línea, con signo (Blanco - Negro).
-    difLinea: pos => (res.balanceLineas && res.balanceLineas[pos] ? res.balanceLineas[pos].diferencia : 0),
+    // Recibe una posición y lee su LÍNEA: el balance se guarda por línea (desglose-posiciones FR-053).
+    difLinea: pos => {
+      const linea = motor.lineaDe(pos) || pos;
+      return res.balanceLineas && res.balanceLineas[linea] ? res.balanceLineas[linea].diferencia : 0;
+    },
     // Lo que minimiza la Estrategia 4: suma de cuadrados de la diferencia de cada línea de campo.
     // Un solo número que dice "cuán desparejas quedaron las líneas", castigando concentrar todo
     // el desbalance en una (que es exactamente el problema que motivó la estrategia).
-    costoLineas: () => r1(motor.ORDEN_FORMACION.reduce((acc, pos) => {
-      const d = res.balanceLineas[pos].diferencia;
+    costoLineas: () => r1(motor.LINEAS_DE_CAMPO.reduce((acc, linea) => {
+      const d = res.balanceLineas[linea].diferencia;
       return acc + d * d;
     }, 0)),
     duplasPorEquipo: () => {
@@ -813,13 +817,14 @@ test('E4: el reparto elegido es el óptimo (fuerza bruta independiente)', () => 
       libres.forEach((u, i) => {
         const e = asignacion[i];
         suma[e] += valor(u.id);
-        lineas[u.pos] = lineas[u.pos] || { blanco: 0, negro: 0 };
-        lineas[u.pos][e] += valor(u.id);
+        const linea = motor.lineaDe(u.pos) || u.pos;
+        lineas[linea] = lineas[linea] || { blanco: 0, negro: 0 };
+        lineas[linea][e] += valor(u.id);
       });
       const desvio = Math.abs(r4(suma.blanco - suma.negro - objetivo));
-      const costoLineas = motor.ORDEN_FORMACION.reduce((acc, pos) => {
-        if (!lineas[pos]) return acc;
-        const d = r4(lineas[pos].blanco - lineas[pos].negro);
+      const costoLineas = motor.LINEAS_DE_CAMPO.reduce((acc, linea) => {
+        if (!lineas[linea]) return acc;
+        const d = r4(lineas[linea].blanco - lineas[linea].negro);
         return acc + d * d;
       }, 0);
       return [Math.max(0, r4(desvio - banda)), r4(costoLineas), desvio];
@@ -838,7 +843,7 @@ test('E4: el reparto elegido es el óptimo (fuerza bruta independiente)', () => 
         c[u.pos][asignacion[i]]++;
         if (esDupla(u.id)) d[asignacion[i]]++;
       });
-      const respeta = motor.ORDEN_FORMACION.every(pos => !cupo[pos]
+      const respeta = Object.keys(cupo).every(pos => !cupo[pos]
         || (c[pos].blanco === cupo[pos].blanco && c[pos].negro === cupo[pos].negro));
       if (!respeta || d.blanco !== duplas.blanco || d.negro !== duplas.negro) continue;
       validos++;
@@ -907,8 +912,8 @@ test('E4: en cancha de 9 se cumple la formación 3-4-1 y nadie queda en un puest
 test('E4: en cancha de 9 el desempate deja las líneas parejas (regresión, antes 28.25)', () => {
   const a = armar(F.PARTIDO_CANCHA9_EMPATE, { params: { diferenciaMaxima: 1 } }, { estrategia: 4 });
   // Sin `a.costoLineas()`, que redondea a un decimal y convierte el 0.25 de este plantel en 0.3.
-  const costo = a.motor.ORDEN_FORMACION.reduce((acc, pos) => {
-    const d = a.res.balanceLineas[pos].diferencia;
+  const costo = a.motor.LINEAS_DE_CAMPO.reduce((acc, linea) => {
+    const d = a.res.balanceLineas[linea].diferencia;
     return acc + d * d;
   }, 0);
   ok(costo <= 0.25 + 1e-9,
@@ -958,7 +963,7 @@ test('E4: con titulares bloqueados el armado sigue siendo el óptimo del espacio
 
 test('E4: la Estrategia 3 sigue devolviendo el balance por línea, sin optimizarlo', () => {
   const a = armar(F.PARTIDO_LINEAS_DESPAREJAS, CONFIG_LINEAS, { estrategia: 3 });
-  ok(a.res.balanceLineas && typeof a.res.balanceLineas.Defensor.diferencia === 'number',
+  ok(a.res.balanceLineas && typeof a.res.balanceLineas.Defensa.diferencia === 'number',
     'la Estrategia 3 tiene que informar las líneas para poder compararla con la 4');
 });
 
