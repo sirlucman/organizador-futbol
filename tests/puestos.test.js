@@ -331,6 +331,25 @@ prueba('puestos/FR-067: con "Por puntaje" nadie recibe puesto asignado y la etiq
   eq(jugadores.map(p => motor.siglaDe(p.principal)).slice(0, 4), ['ARQ', 'ARQ', 'LI', 'LI'], 'la etiqueta informativa es la sigla del principal');
 });
 
+prueba('puestos/FR-068: una dupla vale, en cada uno de los ocho puestos, el promedio del aporte de sus integrantes', () => {
+  /* Dos jugadores ya reclasificados. `a` conserva además su puntaje viejo de Defensor (FR-027),
+     que no tiene que entrar en su promedio general (FR-028) ni en ningún puesto nuevo. */
+  const a = J('a', 'LD', ['DC'], { LD: 8, DC: 6, Defensor: 9 });
+  const b = J('b', 'LD', ['MC'], { LD: 6, MC: 7 });
+  const d = motor.construirUnidadDupla(a, b);
+  eq(Object.keys(d.scores).filter(k => motor.VALORES_PUESTO.includes(k)), motor.VALORES_PUESTO, 'tiene un valor por cada puesto del catálogo');
+  // Los dos tienen nota en LD (8 y 6).
+  eq(d.scores.LD, 7, 'LD: el promedio de las dos notas');
+  // En DC sólo `a` tiene nota (6); `b` aporta su promedio general, 6,5 (LD 6, MC 7).
+  eq(d.scores.DC, 6.3, 'DC: la nota de uno y el promedio general del otro');
+  // En MC sólo `b` tiene nota (7); `a` aporta su promedio general, 7 (LD 8, DC 6: sin el Defensor 9).
+  eq(d.scores.MC, 7, 'MC: el promedio general de `a` no cuenta su puntaje viejo');
+  // Ninguno juega MI ni ARQ: la fórmula colapsa al promedio de los promedios generales.
+  eq(d.scores.MI, 6.8, 'MI: sin notas, el valor general de siempre');
+  eq(d.scores.Arquero, 6.8, 'ARQ: ídem');
+  eq(d._valorGeneral, 6.8, 'el valor general de la unidad');
+});
+
 /* ================================================================= VALORES DESCONOCIDOS */
 console.log('\n\x1b[1mVALORES DESCONOCIDOS\x1b[0m — lo guardado que no es puesto ni posición vieja\n');
 

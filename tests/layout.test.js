@@ -835,15 +835,32 @@ const ESCENARIOS = [
   { clave: 'puestos-cancha', rol: 'admin', nombre: 'la cancha por lados, en un partido viejo y en uno recién generado',
     spec: ['puestos/S-09', 'puestos/S-10', 'puestos/NFR-003'],
     anchos: [360, 1200],
+    /* La línea de base de escrituras se toma DESPUÉS de que la aplicación cargó (que escribe sus
+       migraciones de siempre) y ANTES de abrir el partido, como en `cancha`: lo que FR-084 pide es
+       que leer un partido guardado no agregue ninguna escritura. */
     async preparar(page) {
+      await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
       await abrirPartido(page, '2026-09-03');
       await mostrarEquiposMobile(page);
     },
     async comprobar(page) {
       const problemas = [];
+      const escriturasDesdeLaBase = () => page.evaluate(() => (window.__escrituras || []).slice(window.__escrituras_base || 0));
       // S-10: el partido viejo, con el plantel ya reclasificado, se dibuja en las cuatro líneas.
       const filasViejo = await page.$$eval('.cancha', cs => cs.map(c => c.querySelectorAll('.cancha-linea').length));
       if (!filasViejo.length || filasViejo.some(n => n !== 4)) problemas.push(`el partido viejo tendría que dibujar cuatro filas por cancha y dibuja ${JSON.stringify(filasViejo)} (FR-074, S-10)`);
+      let nuevas = await escriturasDesdeLaBase();
+      if (nuevas.length) problemas.push(`abrir un partido guardado con posiciones viejas escribió ${[...new Set(nuevas)].join(', ')} (FR-084, TC-003, AC-17)`);
+      // Lo mismo con un partido viejo ya finalizado, que se dibuja por otro camino.
+      await page.click('#btnVolverPartidos');
+      await page.evaluate(() => { window.__escrituras_base = (window.__escrituras || []).length; });
+      await abrirPartido(page, '2026-08-20');
+      if (!await page.$('.cancha')) problemas.push('el partido viejo finalizado no dibujó su cancha (S-10)');
+      nuevas = await escriturasDesdeLaBase();
+      if (nuevas.length) problemas.push(`abrir un partido viejo finalizado escribió ${[...new Set(nuevas)].join(', ')} (FR-084, TC-003, AC-17)`);
+      await page.click('#btnVolverPartidos');
+      await abrirPartido(page, '2026-09-03');
+      await mostrarEquiposMobile(page);
       // S-09: regenerado con los puestos nuevos, cada fila de izquierda a derecha.
       await page.locator('.panel-icono-regenerar:visible').first().click();
       await page.waitForTimeout(500);
