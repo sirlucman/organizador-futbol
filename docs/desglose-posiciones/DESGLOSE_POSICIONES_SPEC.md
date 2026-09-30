@@ -6,7 +6,7 @@
 >
 > **Concept note:** [DESGLOSE_POSICIONES_CONCEPT.md](./DESGLOSE_POSICIONES_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [DESGLOSE_POSICIONES_IMPLEMENTATION_PLAN.md](./DESGLOSE_POSICIONES_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5 *Sources &
 > Origins* del Concept Note. Donde un `FR-*`/`NFR-*`/`TC-*` se apoya en una ubicación de
@@ -49,6 +49,7 @@
 > | [`ORDEN_JUGADORES_SPEC.md`](../orden-jugadores/ORDEN_JUGADORES_SPEC.md) | `TC-012` (l. 128), `FR-030` (l. 439), `S-03` (l. 575-580), `S-03b` (l. 585) | secuencia Arquero, Defensor, Volante, Delantero | `FR-003`, `FR-032` |
 > | [`CANCHA_SPEC.md`](../equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md) | Glosario "Línea" (l. 277) | "camisetas […] que comparten posición asignada. Son cuatro: Ataque, Medio, Defensa y Arco" | Glosario "Línea"; `FR-070` |
 > | [`PARTIDO_FINALIZADO_SPEC.md`](../equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) | `TC-035` (l. 280) y `A-02` (l. 880), en la forma del dato | la etiqueta se arma como `"{defensores}-{volantes}-{delanteros}"` | `TC-013`: la etiqueta se cuenta por línea. Lo que `TC-035` existe para fijar —que la etiqueta se deriva del dato y nunca es literal— sigue vigente |
+> | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) | `FR-034` (l. 516), la regla de color de `TC-013` (l. 274), la última línea *Then* de `S-04` y la segunda mitad de `S-04d` (l. 766, l. 773), `S-04e` (l. 774), `AC-05` en el Arco (l. 970) y `AC-26` (l. 1028) | una línea de un solo lugar por equipo nunca se distingue como excedida | `S-06a`: se distingue con la misma regla que las demás. Reconoce el cambio de código del 2026-09-02 (`09335a6`), que el propietario pidió y que la Spec del panel nunca registró (hallazgo §F de `REPO_CONFORMANCE_2026-09-23_claude-opus-5.md`). El predicado de línea de un solo lugar sigue vigente para el receipt |
 >
 > **Complementa sin reemplazar** a `FR-015` de `CANCHA_SPEC.md` (orden estable dentro de
 > una línea): `FR-071` a `FR-073` fijan *cuál* es ese orden, y el orden sigue siendo estable.
@@ -486,7 +487,7 @@ CWE Top 25 consultado en vivo el 2026-09-30: edición 2025
 | NFR-002 | Performance | Con Formación Fija, el peor caso de 300 planteles generados con mezcla 0,95 (`perf --n=300`, opción de mezcla por defecto del peor caso) genera en ≤ 1.000 ms, en cada tamaño de cancha. Línea de base 2026-09-30: 534 ms (F8) y 685 ms (F9). |
 | NFR-003 | Responsive | La lista de jugadores, la ficha con ocho puestos y ocho casilleros, el aviso de bloqueo, la cancha y el panel de armado cumplen, en 360 px, en cada breakpoint de CSS medido de los dos lados y en la franja de tablet: `scrollWidth === clientWidth` y ningún elemento con el borde derecho fuera del viewport (`node tests/layout.test.js`). |
 | NFR-004 | Accessibility | Todo puesto mostrado en una etiqueta tiene su sigla en texto (`TC-020`); el texto sobre el amarillo de Medio usa el color oscuro que ya usa `posTextColor`. |
-| NFR-005 | Compatibility | Con los datos reales de staging, el 100% de los partidos guardados se dibuja con cero camisetas en la fila de "sin puesto reconocible" (`FR-075`), y los totales por equipo que muestra cada partido finalizado son iguales antes y después de reclasificar a todos sus jugadores. |
+| NFR-005 | Compatibility | Con los datos reales de staging, el 100% de los partidos guardados se dibuja con cero camisetas en la fila de "sin puesto reconocible" (`FR-075`), y los totales por equipo que muestra cada partido finalizado cuyo armado asignó posiciones ("Por posición y puntaje", Formación Fija) son iguales antes y después de reclasificar a todos sus jugadores. Quedan afuera los números que dependen del promedio general del jugador —el total de un partido armado con "Por puntaje", y el aporte de un integrante de dupla sin nota en la posición guardada—: siguen el promedio actual, igual que hoy cuando se edita un puntaje (decisión del owner del 2026-09-30). |
 | NFR-006 | Maintainability | Fuera del catálogo (`TC-010`) y de la tabla de posiciones viejas (`TC-011`), `index.html` no contiene ningún literal `'Defensor'`, `'Volante'`, `'Delantero'`, ni lista de siglas de puestos. |
 
 ## 9. System behaviour & scenarios
@@ -611,10 +612,12 @@ CWE Top 25 consultado en vivo el 2026-09-30: edición 2025
 
 **Variants:**
 
-- `S-06a [boundary]` — Arco y Ataque desparejas por encima del desvío aceptable:
-  ninguna de las dos queda distinguida como excedida (`FR-056`).
-- `S-06b [boundary]` — Fútbol 9: Medio tiene cuatro lugares por equipo y sí puede
-  quedar distinguida como excedida.
+- `S-06a [boundary]` — Arco y Ataque desparejas por encima del desvío aceptable: las
+  dos quedan distinguidas como excedidas, con la misma regla que Defensa y Medio, y la
+  explicación las nombra como líneas de un solo lugar por equipo cuya diferencia no se
+  puede repartir (`FR-056`).
+- `S-06b [boundary]` — Fútbol 9: Medio tiene cuatro lugares por equipo, repartidos
+  entre MI, dos MC y MD, y la explicación no la nombra como línea de un solo lugar.
 - `S-06c [property]` — para todo armado, la suma de las cuatro líneas de un equipo es
   igual al total del equipo.
 - `S-06d [property]` — para todo armado, intercambiar entre equipos a dos titulares del
@@ -939,6 +942,7 @@ Declaración de reemplazo; `OPEN-Q-08` → `FR-066`.
 | 2026-09-30 | Lucas Manoukian (claude-sonnet-5) | Resuelve los 5 hallazgos de la autocrítica: `FR-077` corrige su cita a `index.html:4820-4832`; `FR-054` se separa en `FR-054` (intercambio entre equipos) y `FR-059`, nuevo, sin escenario propio todavía (intra-equipo, §17 lo deja pendiente para el Plan); `FR-022b` se escribe explícito en los rangos que antes eran ambiguos (`US-02`, `S-01`, `AC-01`); `A-01` y el aviso de §17 llevan ahora la marca `[UNVERIFIED — …]` en vez de solo prosa; el `erDiagram` de §10.1.1 suma `orden` a `PUESTO` (re-renderizado, sin errores); §3.2 declara explícitamente que las condiciones de carrera entre administradores editando al mismo jugador quedan fuera de alcance. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Revisión de las correcciones de la autocrítica: `FR-059` pasa a tener escenario propio en la Spec (`S-06e`) en vez de dejarlo al Plan, y se suma a `D-05` en §3.3; las marcas `[UNVERIFIED — …]` de `A-01` y §17 dejan de ir entre comillas invertidas anidadas, que rompían el formato. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Las partes reemplazadas quedan marcadas en sus Specs de origen (`002`, `003` y su `data-model.md`, `011`, `ORDEN_JUGADORES_SPEC.md`, `CANCHA_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`); §17 deja de pedírselo al Plan. |
+| 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Dos enmiendas que surgieron al derivar el Implementation Plan, las dos decididas por el owner: `NFR-005` deja afuera los números que dependen del promedio general del jugador (el total de un partido de "Por puntaje", el aporte de un integrante de dupla sin nota en la posición guardada), porque `FR-028` cambia ese promedio al reclasificar y `FR-029` no deja usar el viejo; `S-06a` y `S-06b` pasan a la regla de color vigente desde `09335a6` (Arco y Ataque se distinguen como excedidas igual que las demás), y la Declaración de reemplazo suma `FR-034` y sus dependientes de `PANEL_ARMADO_SPEC.md`, marcados en su origen. El enlace al Plan se completa. Self-critique: skipped (enmienda puntual; el Plan corre su propia crítica). |
 
 ---
 

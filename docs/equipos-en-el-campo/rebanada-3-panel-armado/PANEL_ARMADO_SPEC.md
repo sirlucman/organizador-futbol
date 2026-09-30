@@ -271,8 +271,10 @@ límites propios de esta rebanada:
   la de la línea de titulares sin puntaje ([`index.html:4442`](../../../index.html#L4442)),
   que gana el desglose por equipo (`FR-052`). El bloque no filtrará, reordenará ni
   reescribirá ninguna otra (`D-10`, Principio III).
-- **TC-013** — La regla de color de `FR-034` reutilizará el predicado de línea de
-  un solo lugar por equipo que el receipt ya usa
+- **TC-013** — ~~La regla de color de `FR-034` reutilizará~~ **Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)** en su
+  regla de color: desde `09335a6` (2026-09-02) las líneas de un solo lugar se
+  distinguen igual que las demás. Sigue vigente para el receipt, que usa el predicado de línea de
+  un solo lugar por equipo que ya usa
   ([`index.html:4476-4478`](../../../index.html#L4476-L4478)): la línea del arco
   siempre, más toda línea cuyo cupo en `m.equipos.formacion.objetivo` sea 1. No se
   definirá un predicado paralelo ni se codificarán "Arco" y "Ataque" como
@@ -513,9 +515,11 @@ significado y no se redefinen. Los propios de esta rebanada:
   declarará en el encabezado del bloque.
 - **FR-033** — Mientras haya un desvío aceptable configurado, el sistema
   distinguirá visualmente las celdas cuya diferencia lo supera de las que entran.
-- **FR-034** — El sistema no distinguirá como excedida ninguna celda de una línea
+- **FR-034** — ~~El sistema no distinguirá como excedida ninguna celda de una línea
   de un solo lugar por equipo, aunque su diferencia supere el desvío aceptable
-  (`D-22`).
+  (`D-22`).~~ **Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)**: las celdas de Arco y Ataque se distinguen con la misma
+  regla que las de Defensa y Medio, como hace el código desde `09335a6`
+  (2026-09-02), un cambio que el propietario pidió y que esta Spec no registró.
 - **FR-035** — Mientras no haya desvío aceptable configurado, el sistema mostrará
   el bloque sin distinguir ninguna celda y sin declarar umbral alguno.
 - **FR-036** — El sistema contará el puntaje de una dupla de rotación como el
@@ -763,15 +767,15 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **And** cada celda muestra el puntaje de cada equipo y la diferencia como "+N Blanco", "+N Negro" o "Parejo"
 - **And** el encabezado del bloque declara el desvío aceptable
 - **And** la celda de Medio queda distinguida como excedida
-- **And** la celda de Arco **no** queda distinguida, pese a superar el umbral
+- **And** ~~la celda de Arco **no** queda distinguida, pese a superar el umbral~~ **Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)**: también queda distinguida
 
 **Variants:**
 
 - `S-04a [boundary]` — la diferencia de una línea es exactamente igual al desvío aceptable: no queda distinguida, porque la regla es "supera", no "alcanza"
 - `S-04b [boundary]` — la diferencia de una línea es 0: la celda dice "Parejo"
 - `S-04c [boundary]` — no hay desvío aceptable configurado: el bloque se muestra completo, sin umbral declarado y sin ninguna celda distinguida (`FR-035`)
-- `S-04d [boundary]` — el partido es de fútbol 9: el Medio tiene cuatro lugares por equipo y sí puede quedar distinguido; Arco y Ataque siguen sin poder
-- `S-04e [property]` — para todo armado, ninguna línea cuyo cupo en la formación objetivo sea 1 queda distinguida como excedida
+- `S-04d [boundary]` — el partido es de fútbol 9: el Medio tiene cuatro lugares por equipo y sí puede quedar distinguido; ~~Arco y Ataque siguen sin poder~~ (**Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)**)
+- `S-04e [property]` — ~~para todo armado, ninguna línea cuyo cupo en la formación objetivo sea 1 queda distinguida como excedida~~ **Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)**
 - `S-04f [failure]` — el armado guardado no lleva balance por línea: el bloque no se dibuja (`TC-015`)
 - `S-04g [failure]` — la sesión es de rol `jugador`: el bloque no se dibuja aunque el armado lleve balance (`FR-081`)
 
@@ -968,8 +972,8 @@ ninguna. El modelo de datos cambia en la rebanada 5.
   emergente de estrategia, y sí contiene el resumen de la estrategia elegida como
   texto (cubre `FR-011`, `FR-012`).
 - **AC-05** — Con un desvío aceptable de 1 punto y un armado con el Arco
-  desparejo por 4 y el Medio por 3, la celda del Medio queda distinguida y la del
-  Arco no (cubre `FR-033`, `FR-034`).
+  desparejo por 4 y el Medio por 3, la celda del Medio queda distinguida ~~y la del
+  Arco no~~ (cubre `FR-033`, `FR-034`). La mitad del Arco: **Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)**, que la distingue también.
 - **AC-06** — Para un armado con titulares sin puntaje, la cuenta que declara la
   línea del receipt coincide, en total y por equipo, con la cantidad de
   **unidades de armado** sin puntaje calculable, conservando la regla de
@@ -1025,9 +1029,9 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 - **AC-25** — Revisión de código: el bloque del receipt consume el mismo arreglo
   `explicaciones`, sin filtrar ni reordenar, y la única cadena modificada es la de
   `FR-052` (`TC-012`).
-- **AC-26** — Revisión de código: la regla de color usa el predicado de línea de
+- **AC-26** — ~~Revisión de código: la regla de color usa el predicado de línea de
   un solo lugar derivado de la formación objetivo, y no una lista literal de
-  nombres de línea (`TC-013`).
+  nombres de línea (`TC-013`).~~ **Reemplazado el 2026-09-30 por `S-06a` de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)**: la regla de color ya no usa ese predicado.
 - **AC-27** — Revisión de código: los tres resúmenes retirados no existen en el
   DOM ni en el CSS (`TC-014`).
 - **AC-28** — El bloque por línea aparece exactamente en los armados que llevan
@@ -1208,6 +1212,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 | 2026-08-31 | Lucas Manoukian | Corrección durante la implementación: `FR-046` y `FR-081` decían que el rol `jugador` ve la píldora, la diferencia por línea y el receipt. **Es falso y contradice una spec vigente**: `007-permisos-por-usuario` `FR-005` y su escenario 2 declaran que ese rol no ve puntajes, estrategia, diferencias, jugadores sin puntaje, jugadores bloqueados ni la explicación del armado, y la aplicación ya lo implementaba así. Los dos requisitos quedan invertidos, se agrega la declaración de que esa spec **no** se reemplaza, y `AC-09`, `US-07` y `S-01d` se corrigen en consecuencia; `S-04g` y `S-05e` se agregan para cubrir los dos bloques nuevos con ese rol. El error fue inventar un requisito que ninguna decisión respaldaba, en vez de leer el modelo de permisos vigente. En la misma pasada se corrigió `FR-001`, que hacía a Copiar exclusivo de `admin`: el rol `jugador` ya lo tenía y el texto que copia son nombres, así que quitárselo habría sido una pérdida de función que ninguna decisión pidió. Self-critique: no corresponde (corrección acotada, verificada con las pasadas de consistencia). |
 | 2026-09-01 | Lucas Manoukian | Decisión tomada a la vista de la pantalla real: el subtítulo de la tarjeta se retira entero. `FR-084` y `FR-085` quedan invertidos —de "conservar la estrategia aplicada y la ayuda del arrastre" a "retirar las dos"—, se declara el reemplazo del `FR-043` de la Spec de la rebanada 2, y la pérdida de información queda registrada en `OPEN-Q-05` en vez de disimulada. El motivo: entre el combo y la cancha quedaban cuatro renglones grises que, en el caso mayoritario, repetían el nombre que el combo ya muestra. |
 | 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo parcial declarado por `INTERCAMBIAR_COLORES_SPEC.md`: `D-24` heredada (sólo la mitad del encabezado), `FR-002b` y la línea *Then* de `S-01` quedan marcados como reemplazados, con enlace. No cambia ningún otro requisito de esta Spec. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). |
+| 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo declarado por `DESGLOSE_POSICIONES_SPEC.md` (`S-06a`): `FR-034`, la regla de color de `TC-013`, la última línea *Then* de `S-04`, la segunda mitad de `S-04d`, `S-04e`, la mitad del Arco de `AC-05` y `AC-26` quedan marcados como reemplazados. Registra el cambio de código de `09335a6` (2026-09-02), que el propietario pidió y que esta Spec no había registrado; cierra la contradicción del hallazgo §F de `REPO_CONFORMANCE_2026-09-23_claude-opus-5.md`. |
 
 ---
 
