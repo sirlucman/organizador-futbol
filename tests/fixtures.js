@@ -227,4 +227,49 @@ function jugadoresPorUnidad(plantel, motor) {
   return out;
 }
 
-module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, PARTIDO_EMPATE_ENCAJE, PARTIDO_CANCHA9_EMPATE, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P };
+/* Un plantel de posiciones viejas, reclasificado a los ocho puestos (desglose-posiciones TD-14).
+
+   Es una traducción DETERMINISTA, no una opinión sobre dónde juega cada uno: sirve para tener
+   planteles con forma de catálogo nuevo sin inventarlos de a uno, y para reusar los casos de
+   referencia del motor (los que mide `tools/medir-motor.js perf`) con los puestos nuevos.
+
+     - El principal de cada línea se reparte en rueda entre sus puestos, empezando por el central
+       (Defensa: DC, LI, LD; Medio: MC, MI, MD; Ataque: DEL), en el orden en que aparecen.
+     - Suma como secundarios los otros puestos de su línea, y el central de la línea de cada
+       secundaria vieja. Es lo que haría un administrador que no quiere perder a nadie.
+     - Cada puesto nuevo arranca con el puntaje viejo de su línea, como la precarga de `FR-023`,
+       y los puntajes viejos se conservan en `scores` (`FR-027`).
+     - El arquero no cambia: ARQ se guarda como 'Arquero' (TD-02).
+
+   La formación del plantel pasa a la de su cancha por puesto. */
+const LINEA_VIEJA = { Defensor: ['DC', 'LI', 'LD'], Volante: ['MC', 'MI', 'MD'], Delantero: ['DEL'] };
+const FORMACION_PUESTOS = {
+  futbol8: { LI: 1, DC: 1, LD: 1, MI: 1, MC: 1, MD: 1, DEL: 1 },
+  futbol9: { LI: 1, DC: 1, LD: 1, MI: 1, MC: 2, MD: 1, DEL: 1 },
+};
+function aPuestos(plantel) {
+  const vuelta = { Defensor: 0, Volante: 0, Delantero: 0 };
+  const traducir = p => {
+    const rueda = LINEA_VIEJA[p.principal];
+    const scores = { ...(p.scores || {}) };
+    if (!rueda && !(p.secundarias || []).some(s => LINEA_VIEJA[s])) return { ...p, secundarias: [...(p.secundarias || [])], scores };
+    const principal = rueda ? rueda[vuelta[p.principal]++ % rueda.length] : p.principal;
+    const secundarias = [];
+    const sumar = pos => { if (pos !== principal && !secundarias.includes(pos)) secundarias.push(pos); };
+    if (rueda) rueda.forEach(sumar);
+    (p.secundarias || []).forEach(s => sumar(LINEA_VIEJA[s] ? LINEA_VIEJA[s][0] : s));
+    [principal, ...secundarias].forEach(pos => {
+      const vieja = Object.keys(LINEA_VIEJA).find(v => LINEA_VIEJA[v].includes(pos));
+      if (vieja && p.scores && p.scores[vieja] !== undefined && scores[pos] === undefined) scores[pos] = p.scores[vieja];
+    });
+    return { ...p, principal, secundarias, scores };
+  };
+  return {
+    ...plantel,
+    formacion: FORMACION_PUESTOS[plantel.cancha] || FORMACION_PUESTOS.futbol8,
+    individuales: plantel.individuales.map(traducir),
+    duplas: (plantel.duplas || []).map(([a, b]) => [traducir(a), traducir(b)]),
+  };
+}
+
+module.exports = { PARTIDO_TESTIGO, PARTIDO_LINEAS_DESPAREJAS, PARTIDO_EMPATE_ENCAJE, PARTIDO_CANCHA9_EMPATE, plantelConDuplas, unidadesDe, jugadoresPorUnidad, P, aPuestos, FORMACION_PUESTOS };

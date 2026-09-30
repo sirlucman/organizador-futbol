@@ -14,12 +14,17 @@
  * REAL, entera, sin red y sin credenciales — y el test mide lo que la aplicación
  * pinta, no una maqueta.
  */
-const { PARTIDO_TESTIGO } = require('./fixtures.js');
+const { PARTIDO_TESTIGO, aPuestos } = require('./fixtures.js');
 
 /* Los ids que la aplicación lee al arrancar (ver DOCS_SOLO_ADMIN y loadAll en
    index.html). Los que no se completan quedan en null, que la aplicación
    interpreta como "sin configurar" y resuelve con sus defaults. */
-function docsDesde(fixture = PARTIDO_TESTIGO) {
+/* `reclasificados`: el plantel pasa por `aPuestos` (los ocho puestos, con los puntajes viejos
+   conservados) y los PARTIDOS quedan tal cual, con sus posiciones viejas guardadas. Es el estado
+   de la base después de que el administrador reclasificó a todos: cada escenario que lo usa
+   ejercita, sin decirlo, la lectura de un partido viejo (desglose-posiciones S-10, TD-15). */
+function docsDesde(fixture = PARTIDO_TESTIGO, { reclasificados = true } = {}) {
+  if (reclasificados) fixture = aPuestos(fixture);
   const duplas = fixture.duplas || [];
   /* Las duplas van PRIMERO para que sus cuatro integrantes entren en el cupo de titulares.
      Con ellas al final sólo la primera llegaba a un equipo, y el resumen de generación caía
@@ -46,8 +51,11 @@ function docsDesde(fixture = PARTIDO_TESTIGO) {
      de convocatoria nunca tiene suplentes y la sección "Suplentes" de renderConvocadosList
      no se ejercita. Los nombres son largos a propósito, igual que los del testigo. */
   ['Maximiliano Etchegaray', 'Bartolomé Villanueva', 'Juan Cruz Ibarrola'].forEach((nombre, i) => {
+    const principal = (reclasificados ? ['MC', 'DC', 'DEL'] : ['Volante', 'Defensor', 'Delantero'])[i];
+    const scores = { Volante: 5, Defensor: 5, Delantero: 5 };
+    if (reclasificados) scores[principal] = 5;
     players.push({ id: `sup${i}`, nombre, apellido: '', estado: 'Activo',
-      principal: ['Volante', 'Defensor', 'Delantero'][i], secundarias: [], scores: { Volante: 5, Defensor: 5, Delantero: 5 },
+      principal, secundarias: [], scores,
       partidosJugados: 4, partidosGanados: 2, partidosEmpatados: 1, partidosPerdidos: 1, goles: 2, asistencias: 1 });
   });
 

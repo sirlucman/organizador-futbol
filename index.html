@@ -1163,11 +1163,7 @@
         <input type="text" id="searchInput" placeholder="Buscar por nombre o apellido...">
       </div>
       <select class="filter-select" id="filters">
-        <option value="todos">Todas las posiciones</option>
-        <option value="Arquero">Arquero</option>
-        <option value="Defensor">Defensor</option>
-        <option value="Volante">Volante</option>
-        <option value="Delantero">Delantero</option>
+        <option value="todos">Todas</option>
       </select>
       <select class="filter-select" id="filtersEstado">
         <option value="todos">Todos</option>
@@ -1192,10 +1188,6 @@
             <label>Posición principal</label>
             <select id="fPrincipal">
               <option value="">Elegir...</option>
-              <option value="Arquero">Arquero</option>
-              <option value="Defensor">Defensor</option>
-              <option value="Volante">Volante</option>
-              <option value="Delantero">Delantero</option>
             </select>
           </div>
           <div class="field"><label>Posiciones secundarias</label><div class="pos-badges" id="fSecBadges"></div></div>
@@ -1495,13 +1487,24 @@
     { clave: 'Medio',   color: '#facc15', textoOscuro: true }, // Amarillo (warning): texto oscuro para que se lea
     { clave: 'Ataque',  color: '#16a34a' }                     // Verde (positive) — paleta del design system, no el verde de marca
   ];
+  /* Los ocho puestos (FR-001), en el orden de FR-003, que dentro de cada línea es además izquierda →
+     derecha. `valor` es lo que se guarda: el arquero se sigue guardando como 'Arquero', que no es
+     una posición vieja sino el puesto ARQ, y así ningún arquero ni ningún partido guardado cambia
+     (TD-02); los otros siete se guardan por su sigla. */
   const PUESTOS = [
-    { valor: 'Arquero',   sigla: 'ARQ', nombre: 'Arquero',   linea: 'Arco',    lado: 'central' },
-    { valor: 'Defensor',  sigla: 'DEF', nombre: 'Defensor',  linea: 'Defensa', lado: 'central' },
-    { valor: 'Volante',   sigla: 'VOL', nombre: 'Volante',   linea: 'Medio',   lado: 'central' },
-    { valor: 'Delantero', sigla: 'DEL', nombre: 'Delantero', linea: 'Ataque',  lado: 'central' }
+    { valor: 'Arquero', sigla: 'ARQ', nombre: 'Arquero',                 linea: 'Arco',    lado: 'central' },
+    { valor: 'LI',      sigla: 'LI',  nombre: 'Lateral Izquierdo',       linea: 'Defensa', lado: 'izquierdo' },
+    { valor: 'DC',      sigla: 'DC',  nombre: 'Defensor Central',        linea: 'Defensa', lado: 'central' },
+    { valor: 'LD',      sigla: 'LD',  nombre: 'Lateral Derecho',         linea: 'Defensa', lado: 'derecho' },
+    { valor: 'MI',      sigla: 'MI',  nombre: 'Mediocampista Izquierdo', linea: 'Medio',   lado: 'izquierdo' },
+    { valor: 'MC',      sigla: 'MC',  nombre: 'Mediocampista Central',   linea: 'Medio',   lado: 'central' },
+    { valor: 'MD',      sigla: 'MD',  nombre: 'Mediocampista Derecho',   linea: 'Medio',   lado: 'derecho' },
+    { valor: 'DEL',     sigla: 'DEL', nombre: 'Delantero Central',       linea: 'Ataque',  lado: 'central' }
   ];
-  const POSICIONES_VIEJAS = {};
+  // La tabla única de posiciones viejas (TC-011): ya no se pueden elegir, se leen como su línea.
+  const POSICIONES_VIEJAS = { Defensor: 'Defensa', Volante: 'Medio', Delantero: 'Ataque' };
+  // Adónde va un arquero natural que no gana el arco y no tiene secundarias de campo (FR-065).
+  const PUESTO_DE_ARQUERO_DESPLAZADO = 'DEL';
   // La forma en que se guardaba la formación antes del cambio: una cantidad por línea (FR-082).
   const FORMACION_VIEJA = { defensores: 'Defensor', volantes: 'Volante', delanteros: 'Delantero' };
   const VALORES_PUESTO = PUESTOS.map(p => p.valor);
@@ -1548,6 +1551,11 @@
     if(p) return p.nombre;
     return valor === null || valor === undefined ? '' : String(valor);
   }
+  // Cómo se nombra una posición dentro de una frase del resumen: la sigla de un puesto (TC-014),
+  // el nombre de una posición vieja ("Defensor"), o el valor tal cual.
+  function textoDePosicion(valor){
+    return puestoDe(valor) ? siglaDe(valor) : nombreDe(valor);
+  }
   function colorDeLinea(clave){
     const l = LINEAS.find(x => x.clave === clave);
     return l ? l.color : null;
@@ -1572,8 +1580,8 @@
   const ORDEN_MODOS = ['manual', 'puntaje_asc', 'puntaje_desc', 'posicion_asc', 'posicion_desc'];
   const CANCHAS = {
     // Lugares por puesto de cada equipo (desglose-posiciones TD-06).
-    futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { Defensor: 3, Volante: 3, Delantero: 1 } },
-    futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9, formacion: { Defensor: 3, Volante: 4, Delantero: 1 } }
+    futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { LI: 1, DC: 1, LD: 1, MI: 1, MC: 1, MD: 1, DEL: 1 } },
+    futbol9: { label: 'Fútbol 9', jugadoresPorEquipo: 9, formacion: { LI: 1, DC: 1, LD: 1, MI: 1, MC: 2, MD: 1, DEL: 1 } }
   };
   /* Una formación es una cantidad de lugares por puesto. Un partido armado antes del cambio la
      guardó por línea (`{defensores, volantes, delanteros}`): esta función es el único lugar que
@@ -2368,7 +2376,7 @@
       const on = !disabled && current.includes(p);
       return `<button type="button" class="pos-toggle ${disabled ? 'disabled' : ''} ${on ? 'on' : ''}"
         style="${on ? posBadgeStyle(p) : ''}"
-        data-pos="${p}" ${disabled ? 'disabled' : ''}>${p}</button>`;
+        data-pos="${p}" title="${escaparHtml(nombreDe(p))}" ${disabled ? 'disabled' : ''}>${escaparHtml(siglaDe(p))}</button>`;
     }).join('');
     wrap.__selected = current.filter(p => p !== principal);
     wrap.querySelectorAll('.pos-toggle').forEach(btn => {
@@ -2397,7 +2405,7 @@
       const val = scores[p] != null ? scores[p] : '';
       return `
       <div class="score-field">
-        <label>${p}</label>
+        <label title="${escaparHtml(nombreDe(p))}">${escaparHtml(siglaDe(p))}</label>
         <div class="score-input-wrap">
           <input type="number" min="1" max="10" step="1" data-pos="${p}" value="${val}">
           <button type="button" class="clear-score" data-pos="${p}" style="${val === '' ? 'visibility:hidden' : ''}" title="Borrar puntaje">×</button>
@@ -2451,7 +2459,7 @@
     if(!principal){ errorEl.textContent = 'Elegí una posición principal.'; return null; }
     for(const p of VALORES_PUESTO){
       const v = scores[p];
-      if(v !== null && (v < 1 || v > 10)){ errorEl.textContent = `El puntaje de ${p} debe estar entre 1 y 10.`; return null; }
+      if(v !== null && (v < 1 || v > 10)){ errorEl.textContent = `El puntaje de ${siglaDe(p)} debe estar entre 1 y 10.`; return null; }
     }
     const dup = players.find(pl =>
       normalize(pl.nombre) === normalize(nombre) &&
@@ -2579,7 +2587,7 @@
     roster.innerHTML = encabezado + list.map(p => {
       const avg = computeAvg(p.scores, posicionesDe(p));
       // El nombre y los puestos salen de datos cargados por un jugador: se escapan (AGENTS.md § Estilo).
-      const tags = p.secundarias.map(s => `<span class="tag">${escaparHtml(s)}</span>`).join('');
+      const tags = p.secundarias.map(s => `<span class="tag" title="${escaparHtml(nombreDe(s))}">${escaparHtml(siglaDe(s))}</span>`).join('');
       // Campo vacío cuando el jugador nunca jugó un partido finalizado (FR-004); 0 solo si ya jugó al menos uno.
       const jugo = !!p.partidosJugados;
       // Versión apilada (16c): la que se ve abajo del corte, con la etiqueta pegada a cada dato.
@@ -2605,7 +2613,7 @@
       // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
       return `
         <div class="row ${p.estado === 'Inactivo' ? 'inactive' : ''}" ${dragAttrs}>
-          <div class="badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
+          <div class="badge" style="${posBadgeStyle(p.principal)}" title="${escaparHtml(nombreDe(p.principal))}">${escaparHtml(siglaDe(p.principal))}</div>
           <div class="row-main">
             <div class="row-ident">
               <span class="row-name">${escaparHtml(fullName(p))}</span>
@@ -2748,6 +2756,15 @@
     renderPlayersTab();
   }
 
+  /* Las opciones de puesto del filtro y de la ficha salen del catálogo: ninguna lista de puestos
+     escrita a mano en el HTML (TC-010). Cada una dice nombre y sigla (FR-006); ninguna posición
+     vieja se ofrece (FR-013). */
+  function opcionesDePuesto(){
+    return PUESTOS.map(p => `<option value="${escaparHtml(p.valor)}">${escaparHtml(p.nombre)} (${escaparHtml(p.sigla)})</option>`).join('');
+  }
+  el('filters').insertAdjacentHTML('beforeend', opcionesDePuesto());
+  el('fPrincipal').insertAdjacentHTML('beforeend', opcionesDePuesto());
+
   el('btnNuevo').addEventListener('click', () => openForm(null));
   el('btnCancelar').addEventListener('click', closeForm);
   el('btnGuardar').addEventListener('click', validateAndSave);
@@ -2857,7 +2874,7 @@
        principal habitual, sin relocación especial. */
   function mejorPosicionAlternativa(p){
     const secs = (p.secundarias || []).filter(s => s !== 'Arquero');
-    if(secs.length === 0) return 'Delantero';
+    if(secs.length === 0) return PUESTO_DE_ARQUERO_DESPLAZADO;
     return secs.reduce((best, s) => puntajeEnPosicion(p, s) > puntajeEnPosicion(p, best) ? s : best, secs[0]);
   }
 
@@ -5969,7 +5986,7 @@
   // Reubicaciones de arqueros: las decidió el paso de arqueros del motor, no se ven en el reparto.
   (eq.arquerosExcedentes || []).forEach(s => {
     const p = players.find(pl => pl.id === s.playerId);
-    if(p) generacion.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${s.pos || 'Delantero'} porque cada equipo lleva un solo arquero.`);
+    if(p) generacion.push(`${fullName(p)} jugaba de arquero pero se ubicó como ${textoDePosicion(s.pos || PUESTO_DE_ARQUERO_DESPLAZADO)} porque cada equipo lleva un solo arquero.`);
   });
   (eq.arquerosPorSecundaria || []).forEach(s => {
     const p = players.find(pl => pl.id === s.playerId);
@@ -7039,7 +7056,7 @@
           ${seccion}
           <div class="conv-row" ${dragAttrs}>
             <span class="conv-num">${idx+1}</span>
-            <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}">${p.principal.slice(0,3).toUpperCase()}</div>
+            <div class="conv-pos-badge" style="${posBadgeStyle(p.principal)}" title="${escaparHtml(nombreDe(p.principal))}">${escaparHtml(siglaDe(p.principal))}</div>
             <div class="conv-name">${escaparHtml(fullName(p))}</div>
             ${botonMenuConvocado(m, p.id)}
           </div>`;
@@ -7052,7 +7069,7 @@
         ${seccion}
         <div class="conv-row conv-row-dupla" ${dragAttrs}>
           <span class="conv-num">${idx+1}</span>
-          <div class="conv-pos-badge" style="${posBadgeStyle(pA.principal)}" title="${escaparHtml(pA.principal)}">${pA.principal.slice(0,3).toUpperCase()}</div>
+          <div class="conv-pos-badge" style="${posBadgeStyle(pA.principal)}" title="${escaparHtml(nombreDe(pA.principal))}">${escaparHtml(siglaDe(pA.principal))}</div>
           <div class="conv-dupla-members">
             <div class="conv-dupla-member">
               <div class="conv-name">${escaparHtml(fullName(pA))}</div>
@@ -7144,6 +7161,7 @@
     listEl.innerHTML = candidatos.map(p => `
       <div class="ac-item" onclick="window.__vincularDupla('${m.id}','${duplaModalPlayerId}','${p.id}')">
         <span class="ac-pos-dot" style="background:${colorDeLinea(lineaDe(p.principal)) || 'var(--muted)'}"></span>
+        <span class="tag">${escaparHtml(siglaDe(p.principal))}</span>
         ${escaparHtml(fullName(p))}${!m.convocados.includes(p.id) ? ' <span class="tag" style="margin-left:auto;">no convocado</span>' : ''}
       </div>`).join('');
   }
@@ -7201,6 +7219,7 @@
       html = results.map((p, i) => `
         <div class="ac-item" data-id="${p.id}" onclick="window.__addToMatch('${m.id}','${p.id}')">
           <span class="ac-pos-dot" style="background:${colorDeLinea(lineaDe(p.principal)) || 'var(--muted)'}"></span>
+          <span class="tag">${escaparHtml(siglaDe(p.principal))}</span>
           ${escaparHtml(fullName(p))}${i === 0 ? ' <span class="tag" style="margin-left:auto;">TAB</span>' : ''}
         </div>`).join('');
     }
