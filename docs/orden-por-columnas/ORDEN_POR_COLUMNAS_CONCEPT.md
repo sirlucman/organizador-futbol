@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** *not yet written* · **Implementation plan:** *not yet written*
+> **Spec:** [ORDEN_POR_COLUMNAS_SPEC.md](./ORDEN_POR_COLUMNAS_SPEC.md) · **Implementation plan:** *not yet written*
 
 ## 1. TL;DR
 
