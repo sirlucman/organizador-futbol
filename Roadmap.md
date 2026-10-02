@@ -55,6 +55,7 @@ Los diferidos **deliberados** del rediseño —fútbol 5/6/7/11, migrar los part
 ### Estadísticas e historial
 - Historial de resultados.
 - Ranking de jugadores.
+- Ordenar el listado de Jugadores por la columna G E P (ganados, empatados, perdidos). Quedó afuera de `docs/orden-por-columnas/` (§14) porque no se pidió y no es una sola cifra: primero hay que decidir por cuál de las tres se ordena.
 
 ### Convocatoria y jugadores
 - Disponibilidad de jugadores (marcar de antemano quién puede jugar).
