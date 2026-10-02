@@ -10,18 +10,20 @@
 
 Hoy el listado de la pestaña **Jugadores** se puede ordenar sólo por Manual, Puntaje o
 Posición, desde un menú desplegable, y el orden elegido es **uno solo para todos**. Se
-propone poder ordenar ascendente y descendente por las seis columnas que la pantalla ya
-muestra — **Posición, Jugador, PJ, Goles, Asistencias y Pts** —, tocando el título de la
+propone poder ordenar ascendente y descendente por seis de las siete columnas que la
+pantalla ya muestra — **Posición, Jugador, PJ, Goles, Asistencias y Pts**; G E P queda
+afuera (§14) —, tocando el título de la
 columna desde 760px y desde el menú desplegable abajo de ese ancho, donde los títulos no
 existen: cada ancho tiene un solo control, nunca los dos. La decisión que el lector debe conocer antes que ninguna otra:
 el orden elegido pasa a ser **de cada cuenta**, guardado en la base y no en el navegador,
 lo que **reemplaza** la persistencia compartida de `FR-051` de
 [`ORDEN_JUGADORES_SPEC.md`](../orden-jugadores/ORDEN_JUGADORES_SPEC.md) y exige un
-documento y una regla de Firestore nuevos. El orden **Manual** también pasa a ser
+documento de Firestore **por cuenta**, direccionado por el `uid` de Firebase Auth, con su
+regla nueva. El orden **Manual** también pasa a ser
 **de cada cuenta**, admin o `jugador`, y deja de ser una opción que se elige: se entra a él
 **arrastrando una fila**, cosa que cualquier cuenta puede hacer siempre, esté la lista
-ordenada como esté. Al soltar, la lista que esa cuenta ve, con la fila movida, pasa a ser
-**su** orden Manual. Nadie cambia el orden de nadie: deja de existir un orden Manual
+ordenada como esté. Al soltar, el orden de la lista tal como se ve, con la fila movida, pasa a
+ser **su** orden Manual, y reemplaza el que tenía. Nadie cambia el orden de nadie: deja de existir un orden Manual
 compartido (`FR-050`), y un `jugador` puede arrastrar (hoy no, `FR-013`).
 
 ## 2. Problem statement
@@ -43,7 +45,7 @@ Posición ↑/↓ ([`index.html:1597`](../../index.html#L1597),
   único valor compartido, `data/playersSortMode`
   ([`index.html:2883-2887`](../../index.html#L2883-L2887), `FR-051` de la Spec vigente).
   Un admin que ordena por puntaje para consultar algo deja la lista así para todos los
-  demás admins. Ordenar para consultar es un gesto personal; hoy tiene efecto global.
+  demás: admins y jugadores (lo lee cualquier sesión, [`index.html:2127`](../../index.html#L2127)). Ordenar para consultar es un gesto personal; hoy tiene efecto global.
 - **Pain 4 — una cuenta `jugador` cree que guardó su orden y no lo guardó.** La interfaz
   le deja cambiar el selector, pero la regla de Firestore rechaza su escritura y el error
   se traga en silencio: al recargar, el orden volvió al que había
@@ -53,8 +55,8 @@ Posición ↑/↓ ([`index.html:1597`](../../index.html#L1597),
 
 ## 3. Goals
 
-- Cualquier cuenta puede ordenar el listado de Jugadores por cualquiera de las seis
-  columnas visibles, en los dos sentidos, en todos los anchos desde 360px.
+- Cualquier cuenta puede ordenar el listado de Jugadores por toda columna ordenable que
+  tiene permiso de ver (D-07), en los dos sentidos, en todos los anchos desde 360px.
 - En pantalla ancha, el gesto es el que la gente ya conoce de cualquier tabla: tocar el
   título de la columna.
 - El orden que cada persona eligió la acompaña: se mantiene al recargar y en cualquier
@@ -72,6 +74,9 @@ Posición ↑/↓ ([`index.html:1597`](../../index.html#L1597),
 - No se cambia qué datos ve cada rol: Pts sigue siendo sólo de admin, y por lo tanto
   ordenar por Pts también.
 - No se toca el orden de la cola de convocatoria de un partido (§7.8 de la Spec vigente).
+- No se agrega una forma de armar el orden Manual sin arrastrar (teclado o lector de
+  pantalla). Se conserva la limitación que ya acepta la Spec vigente (`A-05`, `NFR-006`),
+  ahora extendida a la cuenta `jugador`. Ordenar por columna sí es operable con teclado (§6.5).
 
 ## 5. Vision / desired end state
 
@@ -87,6 +92,8 @@ Más tarde, el primer admin quiere armar a mano el orden de la lista. No busca n
 opción "Manual": con la lista ordenada por goles, arrastra a un jugador dos lugares más
 arriba. La flecha de Goles desaparece, porque la lista ya no está ordenada por goles, y ese
 orden — el de goles con el jugador movido — queda como **su** orden Manual. Nadie más lo ve.
+El orden que había armado a mano antes de tocar Goles se perdió con ese arrastre: no hay
+forma de volver a él (D-04, R8).
 
 Un jugador que entra a mirar las estadísticas ordena por Asistencias, y la próxima vez
 que entra la encuentra igual — algo que hoy, para su cuenta, no funciona. Si después
@@ -122,11 +129,26 @@ flowchart LR
   Manual cualquier jugador que no exista.
 - **Lo que esta feature deliberadamente NO abre** — Que un `jugador` arrastre **no** le da
   permiso de escritura sobre `data/players`. Ese documento guarda todos los datos de todos
-  los jugadores en un solo bloque ([`index.html:2285`](../../index.html#L2285)) y las
-  reglas sólo pueden conceder escribirlo entero
+  los jugadores en un solo bloque: un único campo `value` con todo el plantel serializado
+  como texto ([`index.html:2293`](../../index.html#L2293),
+  [`index.html:1399`](../../index.html#L1399)). Las reglas no pueden mirar dentro de ese
+  texto, así que se deduce que sólo pueden conceder escribirlo entero
   ([`firestore-rules.md`](../rol-en-el-token/contracts/firestore-rules.md), bloque
   `data/players`): abrirlo para guardar un orden habilitaría a cualquier `jugador` a
   editar o borrar jugadores. Por eso el orden Manual vive en el documento de cada cuenta (D-04).
+- **Forma de la regla nueva** — El documento de cada cuenta se direcciona por el `uid` del
+  token, y la regla exige `request.auth.uid` igual a ese `uid` para leer y para escribir.
+  No se resuelve con una regla comodín dentro de `data/`, aunque `window.storage` hoy sólo
+  opere sobre esa colección ([`index.html:1387-1403`](../../index.html#L1387-L1403)): el
+  contrato vigente registra como propiedad que no hay ninguna regla catch-all
+  (`firestore-rules.md` §2.3, Hallazgo B). Si la regla exige además un `rol` reconocido
+  (como las demás escrituras para una cuenta sin claim, contrato §3) lo decide `OPEN-Q-13`.
+- **Confidencialidad del orden guardado** — El orden Manual de un admin puede haberse armado
+  a partir de la lista ordenada por Pts (D-04), y entonces codifica el ranking de puntajes.
+  No son puntajes, pero sí información derivada: por eso la lectura es sólo del dueño, no
+  sólo la escritura.
+- **Valores inflados** — Una cuenta puede escribir en su propio documento un valor enorme
+  (hasta el máximo de Firestore) y alargar su propio arranque. El daño queda en esa cuenta.
 - **Data sensitivity** — Ninguna regulada. La preferencia es un dato de interfaz asociado a
   una cuenta. El único dato sensible cercano es el puntaje (Pts), que sigue sólo-admin: una
   cuenta `jugador` no recibe `playerScores`, así que no puede ordenar por Pts aunque su
@@ -137,7 +159,10 @@ flowchart LR
 
 Categorías que la Spec §4.5 debe tratar como mínimo: **falta de autorización** (que una
 cuenta lea o escriba la preferencia de otra, o que el arrastre de un `jugador` escriba
-`data/players`) y **validación de entrada** (valor desconocido en la preferencia). `[UNVERIFIED — el número y la vigencia de esas categorías
+`data/players`) y **validación de entrada** (valor desconocido en la preferencia). La
+autorización del orden cambia de lugar: hoy la pone el `isAdmin()` del cliente (`TC-040` de
+la Spec vigente); pasa a ponerla la regla de Firestore por `uid`, y el `isAdmin()` sigue
+gobernando `data/players`. `[UNVERIFIED — el número y la vigencia de esas categorías
 en el CWE Top 25 se consultan en vivo al escribir la Spec, según el protocolo de MD-31]`
 
 ## 6. Context & background
@@ -153,8 +178,9 @@ en el CWE Top 25 se consultan en vivo al escribir la Spec, según el protocolo d
   ([`index.html:223-233`](../../index.html#L223-L233),
   [`index.html:2671-2680`](../../index.html#L2671-L2680)). Cada cuenta es personal y está
   vinculada a un jugador (`D-02` de
-  [`ROL_EN_EL_TOKEN_CONCEPT.md`](../rol-en-el-token/ROL_EN_EL_TOKEN_CONCEPT.md)), así que
-  "la preferencia de cada cuenta" equivale a "la preferencia de cada persona".
+  [`ROL_EN_EL_TOKEN_CONCEPT.md`](../rol-en-el-token/ROL_EN_EL_TOKEN_CONCEPT.md)), de lo
+  que se deduce que "la preferencia de cada cuenta" equivale a "la preferencia de cada
+  persona".
 - **Related work** — [`ORDEN_JUGADORES_SPEC.md`](../orden-jugadores/ORDEN_JUGADORES_SPEC.md)
   es la Spec vigente del orden del listado (sin Concept Note). Esta feature modifica parte
   de ella; la Spec de esta feature deberá declarar el reemplazo y marcarlo allá (regla de
@@ -180,12 +206,31 @@ en el CWE Top 25 se consultan en vivo al escribir la Spec, según el protocolo d
     jugador nuevo en el orden Manual de cada cuenta lo define `OPEN-Q-11`.
   - **No** se tocan `FR-040` (filtros) ni §7.8 (convocatoria). `FR-041` se conserva, pero
     su combinación con un orden por columna queda abierta (`OPEN-Q-09`).
+
+  Además de los `FR-*`, D-03, D-04 y D-07 vuelven falsas estas piezas de la Spec vigente,
+  que la Spec nueva también reemplaza y marca:
+
+  | Pieza de la Spec vigente | Qué deja de ser cierto | Qué la reemplaza |
+  |---|---|---|
+  | `TC-040` (seguridad, defiende `CWE-862`) | Toda mutación del orden pasa por `isAdmin()` | La autorización del orden de cada cuenta la pone una regla de Firestore por `uid` (§5.2); `isAdmin()` sigue gobernando `data/players` |
+  | `TC-030` | Todo handler de arrastre y de cambio de orden empieza con `if(!isAdmin()) return;` | El arrastre y el cambio de orden son de cualquier cuenta (D-04) |
+  | `TC-013` | `playersSortMode` se lee en toda sesión porque gobierna la vista | El valor global deja de gobernar la vista (D-03; destino en `OPEN-Q-04`) |
+  | `TC-031` | Migración única del `orden` | Depende de `OPEN-Q-04`, igual que `FR-060` |
+  | §3.2, non-goal "per-user … ordering preferences" | No hay preferencias de orden por usuario | Esta feature es exactamente eso (D-03) |
+  | `A-02`, `A-03`, `A-04` | Arrastre sólo en Manual; orden compartido; arrastre sólo admin | D-04, D-03 |
+  | `US-01`, `US-04`, `US-05` | Arrastre de admin; mismo orden para todos los admins; el `jugador` ante el modo global | D-04, D-03, D-07 |
+  | `S-01`, `S-01d`, `S-04` (con `S-04a`), `S-05`, `S-05a` | Orden compartido, last-write-wins entre admins, volver a seleccionar Manual, arrastre rechazado a un no-admin | D-03, D-04 (y R8: ya no se vuelve al Manual anterior) |
+  | `AC-16`, `AC-20` | Verifican `TC-040` y `S-05a` | Los criterios de aceptación de la Spec nueva para la regla por `uid` |
+  | §10.1 (entidades `orden` y `playersSortMode`), §6 Glosario ("Modo de orden", "Orden manual") | Definiciones del modelo compartido | §8.2 de este documento |
+  | `A-05`, `NFR-006` | — se conservan | Su alcance se extiende a la cuenta `jugador` (§4) |
   - Además, la tabla de acceso del contrato de reglas cambia: `data/playersSortMode` deja
-    de usarse y aparece un documento por cuenta (ver `OPEN-Q-04`, `OPEN-Q-05`). La regla
+    de usarse y aparece un documento por cuenta, direccionado por `uid` (ver `OPEN-Q-04`,
+    `OPEN-Q-05`). La regla
     de `data/players` **no** cambia: sigue escribiéndola sólo admin.
 - **Organisational context** — Pedido directo del propietario el 2026-10-02. **No
-  figuraba en [`Roadmap.md`](../../Roadmap.md)** (buscado por "orden", "column" y "sort":
-  sin coincidencias), así que no hay idea que retirar. La idea "Ranking de jugadores" del
+  figuraba en [`Roadmap.md`](../../Roadmap.md) al empezar** (buscado por "orden",
+  "column" y "sort": sin coincidencias), así que no hay idea que retirar. La única
+  coincidencia actual es el diferido de G E P que esta misma feature agregó (§14). La idea "Ranking de jugadores" del
   Roadmap (§3, Estadísticas e historial) es vecina pero distinta — un ranking es una
   vista propia, no el orden de este listado — y queda donde está.
 
@@ -211,11 +256,16 @@ en el CWE Top 25 se consultan en vivo al escribir la Spec, según el protocolo d
   el resto (`partidosJugados` falsy): es el caso de `D-05`.
 - `index.html:223-233` — la fila de títulos existe sólo desde 760px; abajo el renglón es
   apilado. Origen de `D-02` (los títulos no alcanzan en celular).
+- `index.html:1399` y `index.html:2293` — `data/players` es un único campo `value` con el
+  plantel entero serializado: origen de la premisa de §5.2 de que su regla no puede
+  conceder escribir sólo el orden.
 - `index.html:1387-1403` — `window.storage`: la interfaz simple de guardar/leer, hoy
   sobre claves fijas de la colección `data`. Una preferencia por cuenta no entra en una
   clave fija: origen de `OPEN-Q-05`.
 - `index.html:2088-2093` — `iniciarLecturas`: todas las lecturas del arranque salen
   juntas; una lectura nueva tiene que sumarse ahí para no alargar el arranque (riesgo R3).
+  La misma lista de documentos se repite en `loadAll` (`index.html:2107`) y en
+  `tests/sesion.test.js:264-271`.
 - `index.html:2883-2887` — el selector escribe `playersSortMode` y traga el error.
 - `docs/rol-en-el-token/contracts/firestore-rules.md` §2.3 — Hallazgo C (Pain 4) y el
   precedente de un documento nuevo agregado sin su bloque en el contrato (riesgo R1).
@@ -297,17 +347,23 @@ Manual, sin error visible y sin pisar lo guardado. El valor compartido
 **Manual es un estado, no una opción, y es de cada cuenta.** Ni el menú ni los títulos
 ofrecen "Manual". Una cuenta está en Manual cuando nunca eligió una columna, o cuando su
 preferencia no se puede aplicar (D-07), o justo después de arrastrar. Cualquier cuenta,
-admin o `jugador`, puede arrastrar con cualquier orden activo. Al soltar, la lista que esa
-cuenta ve, con la fila movida, se guarda como **su** orden Manual, en su propio documento,
-y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
+admin o `jugador`, puede arrastrar con cualquier orden activo. Al soltar, el orden de la
+lista tal como se ve, con la fila movida, se guarda como **su** orden Manual, en su propio
+documento, reemplazando el que tenía, y su preferencia pasa a Manual. Qué pasa con los
+jugadores que una búsqueda o un filtro ocultan en ese momento lo define `OPEN-Q-09`. Elegir
+una columna deja el orden Manual anterior sin camino de vuelta: no hay control que lo
+ofrezca, y el siguiente arrastre lo reemplaza (R8, aceptado). Qué muestra el menú del
+celular mientras la cuenta está en Manual lo define `OPEN-Q-12`. No toca lo que ven las demás cuentas ni escribe
 `data/players`. Una cuenta que nunca arrastró parte de un orden Manual inicial que define
 `OPEN-Q-10`.
 
 ### 8.2 Information / data model sketch
 
-- **Preferencia de orden (nuevo).** Una por cuenta. Contiene el criterio y el sentido
-  elegidos, y el orden Manual propio de esa cuenta (la secuencia de jugadores que armó
-  arrastrando). Pertenece a la cuenta, no a un jugador ni al grupo. Se crea la primera vez
+- **Preferencia de orden (nuevo).** Un documento por cuenta, direccionado por el `uid` de
+  Firebase Auth. Contiene el criterio y el sentido elegidos, y el orden Manual propio de
+  esa cuenta (la secuencia de jugadores que armó arrastrando). El orden Manual sólo se
+  muestra mientras la cuenta está en Manual; elegir una columna lo deja sin uso hasta que
+  el siguiente arrastre lo reemplaza (D-04). Pertenece a la cuenta, no a un jugador ni al grupo. Se crea la primera vez
   que la cuenta cambia el orden o arrastra; no tiene vencimiento. Con ~500 jugadores, el
   orden Manual es una lista de hasta ~500 identificadores por cuenta.
 - **Modo de orden compartido (`data/playersSortMode`, existente).** Deja de usarse
@@ -330,6 +386,8 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
 ### 9.2 Alternative B — Sólo ampliar el menú desplegable
 
 - **Description:** agregar las opciones nuevas al selector actual, sin tocar los títulos.
+  Asume la misma persistencia por cuenta que A: lo único que la distingue de A son los
+  títulos interactivos. (C es la variante que conserva la persistencia compartida.)
 - **Pros:** el cambio de interfaz más chico; igual en todos los anchos.
 - **Cons:** en pantalla ancha los títulos están ahí y no responden, contra lo que la gente
   espera de una tabla.
@@ -371,27 +429,39 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
   Antes había elegido que el arrastre de un admin reemplazara el orden de todos; esa
   elección quedó reemplazada al habilitar el arrastre para `jugador`.
 
-### 9.7 Comparison summary
+### 9.7 Alternative G — "Mi orden" como opción para volver al orden Manual propio
 
-| Dimensión | A (elegida) | B | C | D | E |
-|---|---|---|---|---|---|
-| Títulos interactivos | Sí | No | Sí | Sí | Sí |
-| Orden por persona | Sí | Sí | No | Sí | Sí |
-| Se recuerda al recargar | Sí | Sí | Sí | Sí | No |
-| Sigue entre dispositivos | Sí | Sí | Sí (global) | No | No |
-| Cambia reglas de Firestore | Sí | Sí | No | No | No |
+- **Description:** además de entrar a Manual arrastrando, ofrecer "Mi orden" en el menú del
+  celular y un control en la fila de títulos, que muestren el último orden Manual que la
+  cuenta armó.
+- **Pros:** tocar una columna para consultar no hace perder el orden armado a mano.
+- **Cons:** un control más en cada ancho; vuelve a existir "Manual" como opción, que D-04
+  sacó a propósito.
+- **Decision:** Rejected — el propietario aceptó perder el orden Manual anterior
+  (2026-10-02, a partir del hallazgo 4 de la crítica del mismo día). Ver R8.
+
+### 9.8 Comparison summary
+
+| Dimensión | A (elegida) | B | C | D | E | F | G |
+|---|---|---|---|---|---|---|---|
+| Títulos interactivos | Sí | No | Sí | Sí | Sí | Sí | Sí |
+| Orden por persona | Sí | Sí | No | Sí | Sí | No (Manual común) | Sí |
+| Se recuerda al recargar | Sí | Sí | Sí | Sí | No | Sí | Sí |
+| Sigue entre dispositivos | Sí | Sí | Sí (global) | No | No | Sí (global) | Sí |
+| Se puede volver al Manual anterior | No | No | — | No | No | — | Sí |
+| Cambia reglas de Firestore | Sí | Sí | No | No | No | Sí | Sí |
 
 ## 10. Key decisions
 
 | ID | Decision | Rationale | Reversibility |
 |---|---|---|---|
 | D-01 | Los criterios que se eligen son las seis columnas visibles (Manual no se elige, ver D-04): Posición, Jugador, PJ, Goles, Asistencias y Pts; cada columna en sentido ascendente y descendente. Pts es el mismo dato que hoy se llama "Puntaje". | Es exactamente lo pedido; Pts y Puntaje son el mismo promedio (`computeAvg`, [`index.html:2683`](../../index.html#L2683)), así que no se mantienen dos nombres | Easy |
-| D-02 | El orden se cambia tocando el título de la columna **desde 760px**, y desde el menú desplegable **sólo abajo de 760px**. Nunca se muestran los dos a la vez. Los dos muestran y cambian el mismo estado. | Abajo de 760px no hay fila de títulos ([`index.html:223`](../../index.html#L223)), así que los títulos solos dejarían sin control al celular. Donde la tabla tiene títulos, el menú sería redundante (decisión del propietario, 2026-10-02). Volver a Manual no depende de ningún control: se hace arrastrando (D-04) | Easy |
-| D-03 | El orden elegido — la columna y el sentido, y también el orden Manual (D-04) — es **por cuenta** y se guarda en Firestore, en un documento que sólo esa cuenta lee y escribe. Reemplaza la persistencia compartida de `FR-051` y `FR-050`. | Elección del propietario: el orden tiene que seguir a la persona entre recargas y dispositivos sin afectar a los demás; además elimina la escritura que hoy falla para `jugador` | Hard — agrega un documento y una regla publicados en dos proyectos |
-| D-04 | El orden Manual es **de cada cuenta** y es lo que ve una cuenta sin preferencia guardada. **No es una opción** del menú ni de los títulos: se entra a él sólo arrastrando. **Cualquier cuenta**, admin o `jugador`, puede arrastrar con cualquier orden activo. Al soltar, la lista que ve, con la fila movida, pasa a ser su orden Manual, y su preferencia pasa a Manual. Ningún arrastre cambia lo que ven otras cuentas ni escribe `data/players`. | Elección del propietario (2026-10-02): reordenar a mano es una acción implícita, no un modo que haya que activar, y es para todos. Que cada cuenta tenga el suyo evita que un arrastre pise el orden de otro, y evita abrir la escritura de `data/players` a `jugador` (§5.2). Elimina además la necesidad de un camino de vuelta a Manual en pantalla ancha (D-02) | Hard — deja de existir un orden Manual común para el grupo |
+| D-02 | El orden se cambia tocando el título de la columna **desde 760px**, y desde el menú desplegable **sólo abajo de 760px**. Nunca se muestran los dos a la vez. Los dos muestran y cambian el mismo estado. | Abajo de 760px no hay fila de títulos ([`index.html:223`](../../index.html#L223)), así que los títulos solos dejarían sin control al celular. Donde la tabla tiene títulos, el menú sería redundante (decisión del propietario, 2026-10-02). Ningún control ofrece Manual: a Manual se entra arrastrando, y se entra a un orden Manual nuevo, no al anterior (D-04) | Easy |
+| D-03 | El orden elegido — la columna y el sentido, y también el orden Manual (D-04) — es **por cuenta** y se guarda en Firestore, en un documento por cuenta, direccionado por el `uid` de Firebase Auth, que sólo esa cuenta lee y escribe. Reemplaza la persistencia compartida de `FR-051` y `FR-050`. | Elección del propietario: el orden tiene que seguir a la persona entre recargas y dispositivos sin afectar a los demás; además elimina la escritura que hoy falla para `jugador` | Hard — agrega un documento y una regla publicados en dos proyectos |
+| D-04 | El orden Manual es **de cada cuenta** y es lo que ve una cuenta sin preferencia guardada. **No es una opción** del menú ni de los títulos: se entra a él sólo arrastrando. **Cualquier cuenta**, admin o `jugador`, puede arrastrar con cualquier orden activo. Al soltar, el orden de la lista tal como se ve, con la fila movida, pasa a ser su orden Manual y reemplaza el anterior; su preferencia pasa a Manual. Ningún arrastre cambia lo que ven otras cuentas ni escribe `data/players`. **Consecuencia aceptada:** elegir una columna deja el orden Manual anterior sin camino de vuelta, y el siguiente arrastre lo reemplaza (R8). No hay confirmación ni "deshacer" (R9). | Elección del propietario (2026-10-02): reordenar a mano es una acción implícita, no un modo que haya que activar, y es para todos. Que cada cuenta tenga el suyo evita que un arrastre pise el orden de otro, y evita abrir la escritura de `data/players` a `jugador` (§5.2). El propietario aceptó, además, que no haya camino de vuelta al orden Manual anterior (Alternativa G, rechazada) ni forma de deshacer un arrastre | Hard — deja de existir un orden Manual común para el grupo |
 | D-05 | Al ordenar por PJ, Goles o Asistencias, el jugador que nunca jugó un partido finalizado va **siempre al final**, en los dos sentidos. | Elección del propietario; es la misma regla que hoy rige para el jugador sin puntaje (`FR-021`) | Easy |
 | D-06 | Todo empate se desempata con el orden alfabético existente. | Ya es la regla de los modos actuales (`FR-022`, `FR-031`); un desempate fijo hace el orden estable y predecible | Easy |
-| D-07 | Cada cuenta puede ordenar por toda columna que tiene permiso de ver: un admin, por las seis; un `jugador`, por Posición, Jugador, PJ, Goles y Asistencias. Ordenar por Pts sigue siendo sólo de admin, y a un `jugador` no se le ofrece ni en el menú ni como título. Si la preferencia de una cuenta no-admin es Pts, o es un valor desconocido, esa cuenta ve Manual, sin error y sin modificar lo guardado. | Un no-admin no recibe los puntajes y no puede calcular ese orden (conserva `FR-052`); lo leído de la base no es confiable (§5.2) | Easy |
+| D-07 | Cada cuenta puede ordenar por toda columna que tiene permiso de ver: un admin, por las seis; un `jugador`, por Posición, Jugador, PJ, Goles y Asistencias. Ordenar por Pts sigue siendo sólo de admin, y a un `jugador` no se le ofrece ni en el menú ni como título. Dos casos caen a Manual, sin error y sin modificar lo guardado: (a) la preferencia es Pts y la cuenta ya no es admin — sólo pasa si a una cuenta se le baja el rol; (b) la preferencia tiene un valor desconocido — sólo pasa por una escritura que no hizo la interfaz (§5.2). | Un no-admin no recibe los puntajes y no puede calcular ese orden (conserva `FR-052`); lo leído de la base no es confiable (§5.2) | Easy |
 | D-08 | El orden se aplica sobre el resultado de la búsqueda y los filtros, como hoy. | Conserva `FR-040`; no hay motivo para cambiarlo | Easy |
 | D-09 | El título de la columna de posición es **"Pos"** (hoy esa celda está vacía), y el de asistencias pasa de "Asist." a **"Asist"**, sin punto. Las abreviaturas de la fila de títulos van sin punto: Pos, PJ, Asist, Pts. | Decisión del propietario (2026-10-02). Para ordenar tocando el título hace falta un título; "Posición" no entra en una columna de 34px. "Asist." era la única abreviatura con punto; se le saca para que quede consistente. Es el único lugar de la app con ese texto ([`index.html:2678`](../../index.html#L2678)). Si "Pos" entra junto con la flecha de sentido se mide en el Plan (R2) | Easy |
 
@@ -401,11 +471,15 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
 |---|---|---|---|
 | R1 — El documento nuevo se publica sin su bloque en el contrato de reglas, o el contrato sin publicar en las dos consolas. Ya pasó con `playersSortMode` (contrato de reglas §2.3). | High | Med | Bloque nuevo en [`firestore-rules.md`](../rol-en-el-token/contracts/firestore-rules.md) en la misma rama; fila nueva en `tests/reglas.test.js` que verifique que una cuenta no puede leer ni escribir la preferencia de otra, y que `jugador` sigue sin poder escribir `data/players`; publicar en staging y producción como paso explícito del Plan |
 | R2 — Los títulos interactivos rompen accesibilidad o el layout: hoy son `aria-hidden` y entran justos en la grilla. El caso más ajustado es "Pos" (D-09) más la flecha de sentido, en una columna de 34px. | Med | Med | Patrón WAI-ARIA APG (§6.5); escenario nuevo en `tests/layout.test.js` en 760px de los dos lados del corte, visto fallar antes del arreglo. Si "Pos" con flecha no entra, el Plan resuelve el ancho de la columna o la ubicación de la flecha |
-| R3 — La lectura de la preferencia alarga el arranque, que ya se midió como sensible (~620 ms de mediana, Roadmap §3). | Med | Low | Sumarla a las lecturas en paralelo de `iniciarLecturas`; medir el arranque antes y después en la Spec/Plan |
+| R3 — La lectura de la preferencia alarga el arranque, que ya se midió como sensible (~620 ms de mediana, Roadmap §3). | Med | Low | Sumarla a las lecturas en paralelo, en los tres lugares donde se repite la lista de documentos (`iniciarLecturas`, `loadAll`, `tests/sesion.test.js`); medir el arranque antes y después con `tools/medir-arranque.js` contra el umbral de `OPEN-Q-14` |
 | R4 — Una falla al guardar la preferencia vuelve a ser silenciosa, como hoy. | Low | Med | `OPEN-Q-07` decide si se avisa |
 | R5 — Confusión al ordenar por Jugador si el criterio es apellido y la pantalla muestra nombre primero. | Low | Med | `OPEN-Q-02` |
 | R6 — Para dar el arrastre a `jugador` se abre la escritura de `data/players`, y con ella la posibilidad de editar o borrar jugadores. | High | Low | Excluido por D-04: el orden Manual vive en el documento de cada cuenta. La regla de `data/players` no cambia, y R1 agrega la verificación |
 | R7 — El orden Manual de una cuenta queda desactualizado: jugadores nuevos que no figuran en él, o borrados que sí. | Low | High | Borrados: se ignoran (§5.2). Nuevos: `OPEN-Q-11` |
+| R8 — Una cuenta arma su orden Manual, toca una columna para consultar y pierde ese orden: no puede volver a él, y el siguiente arrastre lo reemplaza. | Med | High | **Aceptado por el propietario** (D-04, 2026-10-02; Alternativa G rechazada). La Spec lo declara como comportamiento, para que no se lo tome por un error |
+| R9 — Un arrastre sin querer cambia el orden: como toda fila es arrastrable siempre, un solo soltado descarta el orden por columna elegido y reemplaza el Manual. | Med | Med | **Aceptado por el propietario** (D-04, 2026-10-02): sin confirmación ni "deshacer" |
+| R10 — El arrastre en pantalla táctil, ahora la única entrada a Manual y también para `jugador`, que mira sobre todo desde el teléfono. | Low | Low | El arrastre nativo de equipos se verificó a mano en iOS y Android el 2026-08-27 ([`Roadmap.md`](../../Roadmap.md) §3, Mejoras de UX); la Spec vigente lo registra como limitación aceptada. `[UNVERIFIED — no se probó el arrastre del listado en un teléfono]` |
+| R11 — Una misma cuenta abierta en dos dispositivos: gana la última escritura, que reescribe la lista entera. | Low | Low | Aceptable: el daño queda en esa cuenta |
 
 ## 12. Success signals
 
@@ -416,7 +490,8 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
 - Una cuenta `jugador` recarga y encuentra el orden que eligió (hoy no pasa).
 - Una cuenta `jugador` arrastra una fila, recarga y la encuentra donde la dejó, sin que
   ninguna otra cuenta vea el cambio.
-- El arranque no se alarga de forma perceptible (medido antes y después, R3).
+- El arranque no se alarga más allá del umbral que fije `OPEN-Q-14`, medido antes y
+  después con `tools/medir-arranque.js` (línea de base: ~620 ms de mediana, Roadmap §3).
 
 ## 13. Dependencies & stakeholders
 
@@ -440,7 +515,7 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
 
 - Ordenar por la columna **G E P** (ganados, empatados, perdidos) — *diferido*: no se
   pidió, y no es una sola cifra, así que primero hay que decidir por cuál de las tres se
-  ordenaría. Vuelve si alguien lo pide; se agrega a [`Roadmap.md`](../../Roadmap.md).
+  ordenaría. Vuelve si alguien lo pide; se agregó a [`Roadmap.md`](../../Roadmap.md) §3.
 
 ## 15. Open questions
 
@@ -450,23 +525,34 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
 | OPEN-Q-02 | Ordenar por Jugador, ¿es por apellido+nombre (el alfabético existente) o por el nombre tal como se muestra (nombre+apellido)? | Lucas Manoukian | Spec | `index.html:2563` contra `index.html:1858`; el apellido es opcional |
 | OPEN-Q-03 | En pantalla ancha, ¿el menú desplegable sigue visible junto a los títulos, o sólo aparece abajo de 760px? | Lucas Manoukian | — | **Resuelta el 2026-10-02 en `D-02`:** el menú sólo aparece abajo de 760px. La consecuencia (cómo volver a Manual en pantalla ancha) pasa a `OPEN-Q-06` |
 | OPEN-Q-04 | ¿Qué pasa con `data/playersSortMode` y con el `orden` compartido de `data/players`, que ya nadie escribe? ¿Se retiran (documento, regla, lectura al arrancar, migración de `FR-060`), o alguno se usa como punto de partida? | Lucas Manoukian | Spec | Simplicidad ante todo sugiere retirarlos; depende de `OPEN-Q-10` |
-| OPEN-Q-05 | ¿Dónde vive la preferencia por cuenta y cómo entra en la interfaz simple de guardar/leer, que hoy usa claves fijas de `data`? | — | Plan | Arquitectura desacoplada: el resto del código no tiene que conocer el detalle |
-| OPEN-Q-06 | En pantalla ancha, sin menú, ¿cómo se vuelve a Manual? Por ejemplo: un tercer toque sobre el título activo (↑, ↓, Manual), o un control propio de Manual en la fila de títulos. | Lucas Manoukian | — | **Resuelta el 2026-10-02 en `D-04`:** Manual no se elige; se entra arrastrando, y el arrastre está disponible con cualquier orden. Tocar de nuevo el título activo sólo invierte el sentido. La consecuencia para la cuenta `jugador` pasa a `OPEN-Q-08` |
-| OPEN-Q-07 | Si guardar la preferencia falla, ¿se avisa a la persona o se sigue en silencio? | Lucas Manoukian | Spec | Ver R4; hoy es silencioso |
-| OPEN-Q-08 | Una cuenta `jugador` no puede arrastrar (`FR-013`). Por D-04, una vez que elige una columna ya no puede volver a ver el orden Manual. ¿Es aceptable? | Lucas Manoukian | — | **Resuelta el 2026-10-02 en `D-04`:** el `jugador` también arrastra, así que vuelve a Manual igual que un admin |
+| OPEN-Q-05 | ¿Cómo entra el documento por cuenta en la interfaz simple de guardar/leer, que hoy usa claves fijas de `data`? | — | Plan | Que es un documento por cuenta, direccionado por `uid` y sin regla comodín, ya está fijado (D-03, §5.2): eso es de seguridad y no del Plan. Al Plan le queda sólo el cómo, sin que el resto del código conozca el detalle |
+| OPEN-Q-06 | En pantalla ancha, sin menú, ¿cómo se vuelve a Manual? Por ejemplo: un tercer toque sobre el título activo (↑, ↓, Manual), o un control propio de Manual en la fila de títulos. | Lucas Manoukian | — | **Resuelta el 2026-10-02 en `D-04`:** Manual no se elige; se entra arrastrando, y el arrastre está disponible con cualquier orden. Se entra a un orden Manual nuevo, no al anterior (R8). Tocar de nuevo el título activo sólo invierte el sentido. La consecuencia para la cuenta `jugador` pasa a `OPEN-Q-08` |
+| OPEN-Q-07 | Si falla guardar el cambio de columna, ¿se avisa a la persona o se sigue en silencio? | Lucas Manoukian | Spec | Ver R4; hoy es silencioso. Sólo el cambio de columna: una falla al guardar un arrastre ya avisa y revierte (`FR-053` se conserva, §6) |
+| OPEN-Q-08 | Una cuenta `jugador` no puede arrastrar (`FR-013`). Por D-04, una vez que elige una columna ya no puede volver a ver el orden Manual. ¿Es aceptable? | Lucas Manoukian | — | **Resuelta el 2026-10-02 en `D-04`:** el `jugador` también arrastra, así que entra a Manual igual que un admin: a un orden Manual nuevo, no al anterior (R8) |
 | OPEN-Q-09 | Si una cuenta arrastra con la lista ordenada por una columna **y** con una búsqueda o un filtro activos, ¿dónde quedan, en su orden Manual, los jugadores que no se ven? `FR-041` hoy los deja en su orden relativo anterior, pero los visibles pasan a estar en el orden de la columna. | Lucas Manoukian | Spec | Combinación nueva que crea D-04 |
 | OPEN-Q-10 | Una cuenta que nunca arrastró, ¿desde qué orden Manual parte? Por ejemplo: el `orden` compartido que existe hoy, congelado; o el alfabético. | Lucas Manoukian | Spec | Es lo que ve cualquier cuenta nueva y cualquier cuenta existente el día del cambio. Ligada a `OPEN-Q-04` |
 | OPEN-Q-11 | Un jugador agregado al plantel después de que una cuenta armó su orden Manual, ¿dónde aparece en ese orden? Por ejemplo: al final, o al principio para que se note. | Lucas Manoukian | Spec | Hoy `FR-061` lo pone al final del orden compartido |
+| OPEN-Q-12 | Abajo de 760px, mientras la cuenta está en Manual, ¿qué muestra el menú desplegable, si Manual no es una de sus opciones? Por ejemplo: un texto "Orden manual" que no se puede elegir. | Lucas Manoukian | Spec | Consecuencia de D-02 y D-04 |
+| OPEN-Q-13 | La regla del documento por cuenta, ¿exige sólo que sea la propia cuenta (`uid`), o además un `rol` reconocido, como las demás escrituras? | Lucas Manoukian | Spec | Contrato de reglas §3, "Cuenta sin claim". Es la misma decisión fail-closed de `rol-en-el-token`; va a `TC-*` de §4.5 |
+| OPEN-Q-14 | ¿Cuántos milisegundos puede subir, como máximo, la mediana del arranque? | Lucas Manoukian | Spec | Línea de base ~620 ms (Roadmap §3); se mide con `tools/medir-arranque.js`. Es el número que le falta a la señal de éxito de §12 |
 
 ## 16. Handoff to the Spec
 
 - **Settled (do not relitigate):** D-01, D-02, D-03, D-04, D-05, D-06, D-07, D-08, D-09.
 - **Decide in Spec:** OPEN-Q-01, OPEN-Q-02, OPEN-Q-04, OPEN-Q-07, OPEN-Q-09, OPEN-Q-10,
-  OPEN-Q-11. OPEN-Q-03 quedó resuelta en D-02; OPEN-Q-06 y OPEN-Q-08, en D-04.
-  OPEN-Q-05 pasa al Plan.
+  OPEN-Q-11, OPEN-Q-12, OPEN-Q-13, OPEN-Q-14. OPEN-Q-03 quedó resuelta en D-02; OPEN-Q-06
+  y OPEN-Q-08, en D-04. OPEN-Q-05 pasa al Plan.
+- **Alcance de "settled" en D-04:** la Spec puede precisar la redacción de D-04 donde lo
+  requieran las respuestas a OPEN-Q-09, OPEN-Q-10 y OPEN-Q-11 (jugadores ocultos por un
+  filtro, orden Manual inicial, jugador nuevo) sin que eso cuente como relitigar la decisión.
+  Lo que no se relitiga: Manual por cuenta, entrada sólo por arrastre, arrastre para
+  cualquier cuenta, sin camino de vuelta al Manual anterior y sin "deshacer".
 - **Reemplazo obligatorio:** la Spec declara qué partes de
-  [`ORDEN_JUGADORES_SPEC.md`](../orden-jugadores/ORDEN_JUGADORES_SPEC.md) reemplaza
-  (lista de §6) y las marca como reemplazadas allá, en la misma rama.
+  [`ORDEN_JUGADORES_SPEC.md`](../orden-jugadores/ORDEN_JUGADORES_SPEC.md) reemplaza —
+  los `FR-*` y la tabla de las demás piezas de §6, incluido `TC-040` — y las marca como
+  reemplazadas allá, en la misma rama.
+- **Deuda de verificación heredada (`MD-26`):** CWE Top 25 vigente (§5.2); patrón habitual
+  de tablas ordenables (§6.5, §7.1); arrastre del listado en teléfono (R10).
 - **Responsive:** la Spec declara el comportamiento desde 360px, con el corte de 760px
   medido de los dos lados.
 - **Must remain non-goals:**
@@ -476,6 +562,9 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
   - "No se cambia qué datos ve cada rol: Pts sigue siendo sólo de admin, y por lo tanto
     ordenar por Pts también."
   - "No se toca el orden de la cola de convocatoria de un partido (§7.8 de la Spec vigente)."
+  - "No se agrega una forma de armar el orden Manual sin arrastrar (teclado o lector de
+    pantalla). Se conserva la limitación que ya acepta la Spec vigente (`A-05`, `NFR-006`),
+    ahora extendida a la cuenta `jugador`. Ordenar por columna sí es operable con teclado (§6.5)."
 
 ## 17. Appendix
 
@@ -492,6 +581,11 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
   lo que deja sin efecto el "reemplaza el orden Manual de todos" de la tercera. Sexta
   respuesta: el título de la columna de posición es "Pos" (D-09). Séptima: "Asist." pasa a
   "Asist", sin punto, para que quede consistente (D-09).
+- Respuestas del propietario del 2026-10-02 a los hallazgos de
+  [`ORDEN_POR_COLUMNAS_CONCEPT_CRITIQUE_2026-10-02_sonnet-5-5.md`](./ORDEN_POR_COLUMNAS_CONCEPT_CRITIQUE_2026-10-02_sonnet-5-5.md):
+  tocar una columna hace perder el orden Manual anterior y se acepta (hallazgo 4, R8); no
+  se agrega "deshacer" al arrastre (hallazgo 12, R9); armar el orden Manual sin arrastrar
+  queda fuera de alcance, como hoy (hallazgo 12, §4).
 
 ## 18. Change log
 
@@ -504,6 +598,7 @@ y su preferencia pasa a Manual. No toca lo que ven las demás cuentas ni escribe
 | 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | D-04 reescrita otra vez: el orden Manual pasa a ser de cada cuenta y cualquier cuenta, incluida `jugador`, arrastra; ningún arrastre escribe `data/players`. D-03 suma el orden Manual a la preferencia por cuenta. §5.2 declara que la regla de `data/players` no se abre. §6 suma `FR-013`, `FR-050`, `FR-053` y `FR-060`–`FR-061` a lo que se reemplaza. Agrega Alternativa F; R6 pasa a ser el riesgo de abrir `data/players` (excluido) y se agrega R7. Resuelve OPEN-Q-08; amplía OPEN-Q-04 y OPEN-Q-09; agrega OPEN-Q-10 y OPEN-Q-11. Ajusta §1, §3, §5, §5.1, §8, §12, §16, §17. Se corrige además la fila anterior de D-07, que había quedado fuera de la tabla. Self-critique: skipped. |
 | 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Agrega D-09: el título de la columna de posición, hoy vacío, es "Pos". §6.5 suma el ancho de la columna (34px) como evidencia; R2 suma el caso "Pos" + flecha. Self-critique: skipped. |
 | 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | D-09 suma que el título "Asist." pasa a "Asist": las abreviaturas de la fila de títulos van sin punto. Self-critique: skipped. |
+| 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Incorpora la crítica [`ORDEN_POR_COLUMNAS_CONCEPT_CRITIQUE_2026-10-02_sonnet-5-5.md`](./ORDEN_POR_COLUMNAS_CONCEPT_CRITIQUE_2026-10-02_sonnet-5-5.md) (2🔴 / 8🟡 / 6🔵). 🔴 4: D-04 declara que elegir una columna pierde el orden Manual anterior (aceptado por el propietario); se agregan R8 y la Alternativa G, y se corrigen D-02, OPEN-Q-06 y OPEN-Q-08, que decían lo contrario. 🔴 11: §6 suma la tabla de piezas no-FR que se reemplazan (`TC-040`, `TC-030`, `TC-013`, `TC-031`, non-goal §3.2, `A-02`–`A-04`, `US-01`/`04`/`05`, escenarios, `AC-16`/`AC-20`, §10.1, glosario). 🟡: 1 (Roadmap), 5 (D-04 sin "la lista que ve"; alcance de "settled" en §16), 6 (documento por cuenta direccionado por `uid`, fijado en D-03), 7 (§9.2 y tabla §9.8 con F y G), 12 (R9, R10, R11 y non-goal de teclado en §4), 13 (cuatro renglones nuevos en §5.2 y OPEN-Q-13), 14 (deuda de verificación en §16), 15 (OPEN-Q-14). 🔵: 2, 3, 8, 9 (OPEN-Q-12), 10, 16. No aplicadas: el 🔵 de §5 Vision (varios párrafos) y el de separación `MD-01`, que la propia crítica da por aceptables. R3 suma los tres lugares donde se repite la lista de lecturas. Self-critique: no corresponde (incorporación de una crítica independiente, Step 7). |
 
 ---
 
