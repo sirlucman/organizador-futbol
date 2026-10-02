@@ -349,6 +349,30 @@ prueba('orden/S-03b: la preferencia se lee sólo al arrancar: index.html no escu
   eq(apariciones('onSnapshot').length, 0, 'apariciones de onSnapshot');
 });
 
+prueba('orden/TC-044: un modo leído con texto HTML no llega a la pantalla: los títulos y el menú sólo usan rótulos fijos', () => {
+  const HOSTILES = ['<img src=x onerror=alert(1)>', 'goles_<img src=x>', '"><script>x</script>', 'puntaje_desc" onclick="x'];
+  const NOMBRES = { posicion: 'Posición', jugador: 'Jugador', pj: 'Partidos jugados', goles: 'Goles', asist: 'Asistencias', puntaje: 'Pts' };
+  HOSTILES.forEach(modo => {
+    Object.entries(NOMBRES).forEach(([criterio, nombre]) =>
+      eq(O.etiquetaTituloOrden(criterio, modo), nombre, `título de ${criterio} con modo ${JSON.stringify(modo)}`));
+    eq(O.normalizarPreferenciaOrden(JSON.stringify({ modo, ordenManual: [modo] })).modo, 'manual', `normalizado ${JSON.stringify(modo)}`);
+  });
+  /* El menú, recortado con lo mínimo alrededor: aunque el estado en memoria tuviera un modo hostil
+     (la normalización lo impide), lo insertado son sólo los rótulos de ORDEN_MODO_LABELS. */
+  ['admin', 'jugador'].forEach(rol => HOSTILES.forEach(modo => {
+    const menu = new Function(`
+      let ordenActivo = ${JSON.stringify(modo)};
+      const isAdmin = () => ${rol === 'admin'};
+      const select = { innerHTML: '' };
+      const el = () => select;
+      ${['ORDEN_MODOS', 'ORDEN_MODO_LABELS', 'effectiveSortMode', 'renderOrdenModoSelect'].map(n => extraer(src, n)).join('\n')}
+      renderOrdenModoSelect();
+      return select.innerHTML;`)();
+    ok(!/<(?!\/?option\b)/i.test(menu), `${rol}, modo ${JSON.stringify(modo)}: el menú tiene una etiqueta que no es <option>: ${menu}`);
+    ok(!menu.includes('onclick') && !menu.includes('onerror'), `${rol}, modo ${JSON.stringify(modo)}: el menú tiene un atributo de evento`);
+  }));
+});
+
 /* ---------- resumen ---------- */
 console.log(`\nPasaron: ${pasaron}/${pasaron + fallos.length}`);
 if (fallos.length) {

@@ -224,9 +224,11 @@
   .row-col{ display: none; }
 
   @media (min-width: 760px){
-    .roster{ --roster-cols: 34px minmax(0,1fr) 58px 78px 52px 52px 72px 30px; }
+    /* La primera columna era de 34px, el ancho del badge; con "Pos" y su indicador el título mide
+       35px, así que pasa a 40px en las dos grillas (orden-por-columnas TD-10, medido en T-2.10). */
+    .roster{ --roster-cols: 40px minmax(0,1fr) 58px 78px 52px 52px 72px 30px; }
     /* Con rol "jugador" no hay puntaje ni acciones (FR-003), así que sobran las dos últimas. */
-    body.role-jugador .roster{ --roster-cols: 34px minmax(0,1fr) 58px 78px 52px 52px; }
+    body.role-jugador .roster{ --roster-cols: 40px minmax(0,1fr) 58px 78px 52px 52px; }
     .roster-head, .row{ display: grid; grid-template-columns: var(--roster-cols); gap: 12px; align-items: center; }
     .roster-head{ position: sticky; top: 0; z-index: 2; padding: 10px 16px; background: var(--paper); border-bottom: 1px solid var(--paper-line); font-family: var(--font-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--slate); }
     .roster-head > div{ text-align: center; }
@@ -245,7 +247,14 @@
     .row-col-gep{ color: var(--muted); word-spacing: 2px; }
     .row-col-vacio{ color: var(--muted); font-variant-numeric: normal; }
     .row .avg-chip{ justify-self: center; width: 46px; min-width: 0; }
+    /* orden-por-columnas D-02: en la banda ancha se ordena desde los títulos, y el menú no está. */
+    #ordenModo{ display: none; }
   }
+  /* El título ordenable (orden-por-columnas TD-09/TD-10): un botón que hereda la tipografía del
+     encabezado, con el indicador de sentido a la derecha, sólo en la columna activa. */
+  .roster-orden{ display: inline-flex; align-items: center; gap: 2px; padding: 0; border: none; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; border-radius: var(--radius-control); }
+  .roster-orden:focus-visible{ outline: 2px solid var(--pitch); outline-offset: 3px; }
+  .roster-orden-icono{ flex: none; display: block; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 
   .switch{ width: 38px; height: 20px; border-radius: var(--radius-pill); background: var(--paper-line); position: relative; cursor: pointer; flex-shrink:0; transition: background .15s ease; border: none; padding: 0; }
   .switch.on{ background: var(--pitch); }
@@ -2045,6 +2054,9 @@
   // Las tres bolitas al final de cada convocado. No hay un ícono por acción: las acciones viven
   // en el menú que este botón abre, así que el renglón no tiene que explicar de antemano qué se
   // puede hacer con cada jugador.
+  // orden-por-columnas TD-10 — arrow-up y arrow-down de Lucide 0.544.0, el indicador del título activo.
+  const ICON_ORDEN_ASC = '<svg class="roster-orden-icono" viewBox="0 0 24 24" width="10" height="10" aria-hidden="true"><path d="m5 12 7-7 7 7"/><path d="M12 19V5"/></svg>';
+  const ICON_ORDEN_DESC = '<svg class="roster-orden-icono" viewBox="0 0 24 24" width="10" height="10" aria-hidden="true"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>';
   const ICON_MAS_ACCIONES = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">'
     + '<circle cx="5" cy="12" r="1.9"></circle><circle cx="12" cy="12" r="1.9"></circle>'
     + '<circle cx="19" cy="12" r="1.9"></circle></svg>';
@@ -2745,7 +2757,6 @@
 
   // orden-por-columnas TD-11 — nombre completo y flecha: ↑ ascendente, ↓ descendente.
   const ORDEN_MODO_LABELS = {
-    manual: 'Manual',
     posicion_asc: 'Posición ↑', posicion_desc: 'Posición ↓',
     jugador_asc: 'Jugador ↑', jugador_desc: 'Jugador ↓',
     pj_desc: 'Partidos jugados ↓', pj_asc: 'Partidos jugados ↑',
@@ -2769,16 +2780,33 @@
     guardarPreferenciaOrden().catch(err => console.error('No se pudo guardar el orden del listado:', err));
   }
 
-  // FR-001/FR-002 — el selector siempre muestra Manual + Posición (públicos); Puntaje solo se
-  // agrega para admin, ya que el puntaje mismo es un dato solo-admin (FR-013 en la Spec).
+  // orden-por-columnas FR-026/FR-027 — dos opciones por columna, en el orden de la pantalla y
+  // primero la del primer sentido; Pts sólo para admin (FR-002). Manual no es una opción: mientras
+  // la cuenta está en Manual la casilla dice "Ordenar por…", que no se puede elegir (A-07).
   function renderOrdenModoSelect(){
     const select = el('ordenModo');
-    const modosVisibles = isAdmin() ? ORDEN_MODOS : ORDEN_MODOS.filter(m => !m.startsWith('puntaje'));
+    const modosVisibles = ORDEN_MODOS.filter(m => m !== 'manual' && (isAdmin() || !m.startsWith('puntaje')));
     const modoActual = effectiveSortMode();
-    select.innerHTML = modosVisibles.map(m =>
+    const enManual = modoActual === 'manual' ? '<option value="" disabled selected hidden>Ordenar por…</option>' : '';
+    select.innerHTML = enManual + modosVisibles.map(m =>
       `<option value="${m}" ${m === modoActual ? 'selected' : ''}>${ORDEN_MODO_LABELS[m]}</option>`
     ).join('');
   }
+
+  // TD-12 — el toque (o Enter, o Espacio) sobre un título de la grilla. El encabezado se vuelve a
+  // construir entero al repintar, así que si el título tenía el foco se le devuelve: sin eso,
+  // quien ordena con el teclado lo pierde después de cada cambio (NFR-004).
+  window.__ordenarPorColumna = function(criterio){
+    if(!Object.prototype.hasOwnProperty.call(PRIMER_SENTIDO, criterio)) return;
+    if(criterio === 'puntaje' && !isAdmin()) return; // FR-002
+    const activo = document.activeElement;
+    const teniaFoco = !!activo && !!activo.dataset && activo.dataset.criterio === criterio;
+    aplicarOrden(modoTrasElegirColumna(criterio, effectiveSortMode()));
+    if(teniaFoco){
+      const boton = document.querySelector(`.roster-head .roster-orden[data-criterio="${criterio}"]`);
+      if(boton) boton.focus();
+    }
+  };
 
   function renderPlayersTab(){
     renderOrdenModoSelect();
@@ -2812,16 +2840,25 @@
     /* Encabezado de columnas del turno 16b. Va como primer hijo de `.roster` y pega arriba con
        `position:sticky` mientras el listado pasa por debajo; abajo de 760px el CSS lo esconde y
        el dato vuelve al renglón apilado (16c). Las dos últimas columnas —Pts y el menú— sólo
-       existen para admin, igual que su contenido. */
+       existen para admin, igual que su contenido.
+       Cada título ordenable es un botón (orden-por-columnas TD-09): su nombre accesible dice la
+       columna y, si es la activa, el sentido. G E P no se ordena (FR-021), y las celdas sin botón
+       van aria-hidden. Todos los rótulos son fijos (TC-044). */
+    const modoVisible = effectiveSortMode();
+    const tituloOrden = (criterio, texto) => {
+      const activo = modoVisible.split('_')[0] === criterio;
+      const icono = !activo ? '' : modoVisible.endsWith('_asc') ? ICON_ORDEN_ASC : ICON_ORDEN_DESC;
+      return `<button type="button" class="roster-orden" data-criterio="${criterio}" onclick="window.__ordenarPorColumna('${criterio}')" aria-label="${etiquetaTituloOrden(criterio, modoVisible)}">${texto}${icono}</button>`;
+    };
     const encabezado = `
-      <div class="roster-head" aria-hidden="true">
-        <div></div>
-        <div class="roster-head-name">Jugador</div>
-        <div>PJ</div>
-        <div class="roster-head-gep">G E P</div>
-        <div>Goles</div>
-        <div>Asist.</div>
-        ${isAdmin() ? '<div>Pts</div><div></div>' : ''}
+      <div class="roster-head">
+        <div>${tituloOrden('posicion', 'Pos')}</div>
+        <div class="roster-head-name">${tituloOrden('jugador', 'Jugador')}</div>
+        <div>${tituloOrden('pj', 'PJ')}</div>
+        <div class="roster-head-gep" aria-hidden="true">G E P</div>
+        <div>${tituloOrden('goles', 'Goles')}</div>
+        <div>${tituloOrden('asist', 'Asist')}</div>
+        ${isAdmin() ? `<div>${tituloOrden('puntaje', 'Pts')}</div><div aria-hidden="true"></div>` : ''}
       </div>`;
 
     roster.innerHTML = encabezado + list.map(p => {

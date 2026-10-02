@@ -379,6 +379,93 @@ const INVARIANTE_PARTIDO_DOS_COLUMNAS = () => {
   return problemas;
 };
 
+/* ---- orden por columnas: ayudantes de los escenarios `orden-*` ---- */
+const TITULO_ORDEN = criterio => `.roster-head button.roster-orden[data-criterio="${criterio}"]`;
+
+/* Antes del cambio de encabezado (T-2.8 del Plan) esto es lo que hace fallar a los escenarios:
+   que el título no sea un botón. Se pregunta primero en vez de dejar que `page.click` espere
+   30 segundos por un selector que no existe. */
+async function exigirTituloOrden(page, criterio) {
+  if (!(await page.$(TITULO_ORDEN(criterio)))) throw new Error(`no hay botón de título "${criterio}" en el encabezado del listado`);
+}
+
+/* El estado que miden los dos escenarios de encabezado: en la banda ancha el orden en Pos; en la
+   angosta el menú con su opción de texto más largo, "Partidos jugados ↓" (S-09b). */
+async function prepararEncabezadoOrden(page) {
+  await irAPestania(page, 'Jugadores');
+  if ((await page.evaluate(() => document.documentElement.clientWidth)) >= 760) {
+    await exigirTituloOrden(page, 'posicion');
+    await page.click(TITULO_ORDEN('posicion'));
+  } else {
+    await page.selectOption('#ordenModo', 'pj_desc');
+  }
+}
+
+/* Lo que se ve del listado en la banda ancha: por fila, el nombre, la sigla del puesto y las
+   celdas de PJ, Goles y Asist; y qué títulos llevan el indicador de sentido. */
+const LEER_LISTADO_ORDEN = () => ({
+  filas: [...document.querySelectorAll('.roster .row')].map(f => {
+    const c = [...f.querySelectorAll('.row-col')].map(x => x.textContent.trim());
+    return { nombre: f.querySelector('.row-name').textContent.trim(), sigla: f.querySelector('.badge').textContent.trim(), pj: c[0], goles: c[2], asist: c[3] };
+  }),
+  conIndicador: [...document.querySelectorAll('.roster-head .roster-orden-icono')].map(i => i.closest('button').dataset.criterio),
+});
+
+/* Que las filas estén ordenadas por una columna numérica en un sentido, con los que nunca jugaron
+   ("—" en PJ) al final (FR-007). El desempate alfabético lo cubre tests/orden.test.js. */
+function revisarOrdenNumerico(filas, campo, sentido, contexto) {
+  const problemas = [];
+  const primeraSinPartidos = filas.findIndex(f => f.pj === '—');
+  if (primeraSinPartidos >= 0 && filas.slice(primeraSinPartidos).some(f => f.pj !== '—')) problemas.push(`${contexto}: hay un jugador que jugó después de uno sin partidos`);
+  const valores = filas.filter(f => f.pj !== '—').map(f => Number(f[campo]));
+  for (let i = 1; i < valores.length; i++) {
+    if (sentido === 'desc' ? valores[i] > valores[i - 1] : valores[i] < valores[i - 1]) {
+      problemas.push(`${contexto}: ${campo} no está en sentido ${sentido} (${valores.join(', ')})`);
+      break;
+    }
+  }
+  return problemas;
+}
+
+/* S-09, S-09a, S-09b: de 760 para arriba, los títulos en orden y el indicador dentro de su celda
+   y del viewport, con el orden en Pos y —si la grilla tiene Pts— en Pts. Abajo de 760, el menú
+   con su opción más larga dentro del viewport. El desborde general lo mide MEDIR. */
+const INVARIANTE_ENCABEZADO_ORDEN = () => {
+  const problemas = [];
+  const ancho = document.documentElement.clientWidth;
+  if (ancho < 760) {
+    const menu = document.getElementById('ordenModo');
+    if (!menu || !menu.offsetParent) return ['abajo de 760px el menú de orden no se ve (orden/S-09b)'];
+    const texto = menu.options[menu.selectedIndex] && menu.options[menu.selectedIndex].text;
+    if (texto !== 'Partidos jugados ↓') problemas.push(`el menú tendría que mostrar "Partidos jugados ↓" y muestra ${JSON.stringify(texto)} (orden/S-09b)`);
+    if (menu.getBoundingClientRect().right > ancho + 0.5) problemas.push('el menú de orden se sale del viewport (orden/S-09b)');
+    return problemas;
+  }
+  const esJugador = document.body.classList.contains('role-jugador');
+  const esperados = ['Pos', 'Jugador', 'PJ', 'G E P', 'Goles', 'Asist'].concat(esJugador ? [] : ['Pts']);
+  const rotulos = [...document.querySelectorAll('.roster-head > div')].map(d => d.textContent.trim()).filter(Boolean);
+  if (JSON.stringify(rotulos) !== JSON.stringify(esperados)) problemas.push(`los títulos tendrían que ser ${esperados.join(', ')} y son ${rotulos.join(', ')} (orden/S-09)`);
+  const medir = criterio => {
+    const boton = document.querySelector(`.roster-head button.roster-orden[data-criterio="${criterio}"]`);
+    if (!boton) return [`no hay botón de título "${criterio}" en el encabezado (orden/S-09)`];
+    const icono = boton.querySelector('.roster-orden-icono');
+    if (!icono) return [`con el orden en "${criterio}" su título no muestra el indicador (orden/S-09)`];
+    const celda = boton.parentElement.getBoundingClientRect(), i = icono.getBoundingClientRect(), b = boton.getBoundingClientRect();
+    const fuera = [];
+    if (i.right > celda.right + 0.5 || i.left < celda.left - 0.5) fuera.push(`el indicador de "${criterio}" sale de su celda (${Math.round(i.left)}–${Math.round(i.right)} contra ${Math.round(celda.left)}–${Math.round(celda.right)}) (orden/S-09)`);
+    if (b.right > celda.right + 0.5) fuera.push(`el botón de "${criterio}" sale de su celda (orden/S-09)`);
+    if (i.right > ancho + 0.5) fuera.push(`el indicador de "${criterio}" sale del viewport (orden/S-09)`);
+    if (document.documentElement.scrollWidth !== ancho) fuera.push(`con el orden en "${criterio}" hay scroll horizontal (orden/NFR-005)`);
+    return fuera;
+  };
+  problemas.push(...medir('posicion'));
+  if (!esJugador) {
+    window.__ordenarPorColumna('puntaje');
+    problemas.push(...medir('puntaje'));
+  }
+  return problemas;
+};
+
 /* ----------------------------------------------------------------- escenarios */
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
@@ -2548,6 +2635,105 @@ const ESCENARIOS = [
       if (r.hayBoton) problemas.push('el rol jugador ve el botón de intercambiar colores (FR-004)');
       if (r.escrituras) problemas.push('invocar el manejador como jugador pidió un guardado (FR-005, TC-040)');
       if (!r.igual) problemas.push('invocar el manejador como jugador cambió los equipos (FR-005, TC-040)');
+      return problemas;
+    } },
+
+  /* ---- orden por columnas: el encabezado ----
+     Los escenarios de orden-por-columnas que dependen de los títulos de la grilla. Los dos de
+     encabezado son de layout y corren en los diecisiete anchos: de 760 para arriba miden que el
+     indicador quede dentro de su celda con el orden en Pos y en Pts (S-09); abajo, que el menú con
+     su opción más larga no desborde (S-09b). Los dos de comportamiento corren a 1200. */
+  { clave: 'orden-encabezado', rol: 'admin', nombre: 'el encabezado ordenable entra en todos los anchos',
+    spec: ['orden/S-09', 'orden/S-09b', 'orden/NFR-005'],
+    invariante: INVARIANTE_ENCABEZADO_ORDEN,
+    async preparar(page) { await prepararEncabezadoOrden(page); } },
+
+  { clave: 'orden-encabezado-jugador', rol: 'jugador', nombre: 'el encabezado ordenable entra en todos los anchos (rol jugador)',
+    spec: ['orden/S-09a'],
+    invariante: INVARIANTE_ENCABEZADO_ORDEN,
+    async preparar(page) { await prepararEncabezadoOrden(page); } },
+
+  { clave: 'orden-titulo', rol: 'admin', nombre: 'tocar el título de una columna ordena e invierte',
+    anchos: [1200], spec: ['orden/S-01', 'orden/S-01i', 'orden/S-01j'],
+    async preparar(page) {
+      await irAPestania(page, 'Jugadores');
+      await exigirTituloOrden(page, 'goles');
+    },
+    async comprobar(page) {
+      const problemas = [];
+      /* El arranque de admin ya escribió sus migraciones: lo que importa es lo que se escribe
+         desde el primer toque. */
+      await page.evaluate(() => { window.__escrituras_base = window.__escrituras.length; });
+      await page.click(TITULO_ORDEN('goles'));
+      let r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'desc', 'primer toque en Goles (orden/S-01)'));
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push(`el indicador tendría que estar sólo en Goles y está en ${JSON.stringify(r.conIndicador)} (orden/S-01)`);
+      await page.click(TITULO_ORDEN('goles'));
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'asc', 'segundo toque en Goles (orden/S-01)'));
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push(`después del segundo toque el indicador está en ${JSON.stringify(r.conIndicador)} (orden/S-01)`);
+      /* S-01i: con el filtro de puesto en DEL ordena sólo a los visibles. */
+      await page.selectOption('#filters', 'DEL');
+      await page.click(TITULO_ORDEN('goles'));
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      if (!r.filas.length) problemas.push('con el filtro DEL no quedó ningún jugador visible: el escenario no prueba nada (orden/S-01i)');
+      if (r.filas.some(f => f.sigla !== 'DEL')) problemas.push('con el filtro DEL se ven jugadores de otro puesto (orden/S-01i)');
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'desc', 'Goles con el filtro DEL (orden/S-01i)'));
+      /* S-01j: se escribe sólo la preferencia de la cuenta, y lo último escrito es Goles descendente. */
+      const e = await page.evaluate(() => ({ escrituras: window.__escrituras.slice(window.__escrituras_base), ultimo: (window.__ultimosDocs || {})['preferenciasOrden/u-test'] }));
+      if (e.escrituras.some(k => k !== 'preferenciasOrden/u-test')) problemas.push(`elegir una columna escribió ${JSON.stringify(e.escrituras)}: sólo tendría que escribir la preferencia de la cuenta (orden/S-01j)`);
+      if (e.escrituras.includes('playersSortMode')) problemas.push('elegir una columna escribió data/playersSortMode (orden/S-01j)');
+      let guardado = null;
+      try { guardado = JSON.parse(e.ultimo); } catch (err) { /* queda null */ }
+      if (!guardado || guardado.modo !== 'goles_desc') problemas.push(`la preferencia guardada tendría que ser goles_desc y es ${JSON.stringify(e.ultimo)} (orden/S-01j)`);
+      return problemas;
+    } },
+
+  { clave: 'orden-teclado', rol: 'admin', nombre: 'ordenar con el teclado desde los títulos',
+    anchos: [1200], spec: ['orden/S-08', 'orden/S-08b', 'orden/NFR-004'],
+    async preparar(page) {
+      await irAPestania(page, 'Jugadores');
+      await exigirTituloOrden(page, 'pj');
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const etiquetas = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.roster-head button.roster-orden')]
+        .map(b => [b.dataset.criterio, b.getAttribute('aria-label')])));
+      const enFoco = () => page.evaluate(() => (document.activeElement && document.activeElement.dataset.criterio) || null);
+      const esperadas = { posicion: 'Posición', jugador: 'Jugador', pj: 'Partidos jugados', goles: 'Goles', asist: 'Asistencias', puntaje: 'Pts' };
+      let e = await etiquetas();
+      if (JSON.stringify(e) !== JSON.stringify(esperadas)) problemas.push(`en Manual los títulos tendrían que anunciarse ${JSON.stringify(esperadas)} y se anuncian ${JSON.stringify(e)} (orden/NFR-004)`);
+      /* S-08: llega con Tab a PJ, desde el título anterior. */
+      await page.focus(TITULO_ORDEN('jugador'));
+      await page.keyboard.press('Tab');
+      if ((await enFoco()) !== 'pj') problemas.push(`Tab desde Jugador tendría que llevar a PJ y llevó a ${await enFoco()} (orden/S-08)`);
+      await page.keyboard.press('Enter');
+      let r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'pj', 'desc', 'Enter sobre PJ (orden/S-08)'));
+      e = await etiquetas();
+      if (e.pj !== 'Partidos jugados, de mayor a menor') problemas.push(`después de Enter PJ se anuncia ${JSON.stringify(e.pj)} (orden/S-08)`);
+      const otrosConSentido = Object.entries(e).filter(([c, t]) => c !== 'pj' && t.includes(', ')).map(([c]) => c);
+      if (otrosConSentido.length) problemas.push(`otros títulos anuncian un sentido: ${otrosConSentido.join(', ')} (orden/S-08)`);
+      if ((await enFoco()) !== 'pj') problemas.push(`después de Enter el foco tendría que seguir en PJ y está en ${await enFoco()} (orden/S-08)`);
+      const contorno = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+      if (contorno === 'none') problemas.push('el título con foco no muestra contorno de foco (orden/NFR-004)');
+      await page.keyboard.press('Space');
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'pj', 'asc', 'Espacio sobre PJ (orden/S-08)'));
+      e = await etiquetas();
+      if (e.pj !== 'Partidos jugados, de menor a mayor') problemas.push(`después de Espacio PJ se anuncia ${JSON.stringify(e.pj)} (orden/S-08)`);
+      /* S-08b: G E P no es un botón y Tab lo saltea: de PJ va a Goles. */
+      await page.keyboard.press('Tab');
+      if ((await enFoco()) !== 'goles') problemas.push(`Tab desde PJ tendría que llevar a Goles y llevó a ${await enFoco()} (orden/S-08b)`);
+      const gep = await page.evaluate(() => {
+        const celda = document.querySelector('.roster-head .roster-head-gep');
+        return celda ? { boton: !!celda.querySelector('button'), oculta: celda.getAttribute('aria-hidden') } : null;
+      });
+      if (!gep) problemas.push('no se encontró la celda de G E P (orden/S-08b)');
+      else {
+        if (gep.boton) problemas.push('el título de G E P es un botón (orden/S-08b)');
+        if (gep.oculta !== 'true') problemas.push('la celda de G E P no lleva aria-hidden="true" (orden/NFR-004)');
+      }
       return problemas;
     } },
 ];
