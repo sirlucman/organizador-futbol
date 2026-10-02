@@ -292,7 +292,7 @@ function docsDesde(fixture = PARTIDO_TESTIGO, { reclasificados = true, aRevisar 
    y los tres <script> del CDN de Firebase se bloquean con page.route. Tiene que
    ser una función serializable —nada de closures sobre el módulo— y recibir un
    único argumento, que es lo que admite addInitScript. */
-function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion, lecturaDemora, escrituraFalla }) {
+function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refrescoFalla, refrescoDemora, sinSesion, lecturaDemora, escrituraFalla, uid = 'u-test' }) {
   const docs = datos;
   /* Registro de escrituras. La cancha es presentación pura y no debe agregar ni un campo nuevo a
      lo que se persiste (Spec de la cancha, NFR-006): con esto un escenario puede abrir la
@@ -306,31 +306,38 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
   /* Cuántas veces se pidió un token FORZADO. TC-046 acota el refresco a uno por carga de página,
      y esa es una propiedad sobre el número de llamadas, no sobre el resultado (S-11c). */
   window.__refrescos = 0;
-  const doc = (col, key) => ({
-    get: async () => {
-      window.__lecturas[col] = (window.__lecturas[col] || 0) + 1;
-      /* `lecturaDemora` existe para poder MEDIR la pantalla de carga del arranque: contra
-         Firestore la espera dura ~620 ms de mediana, y con el doble es cero, así que sin esto un
-         escenario tendría que ganarle una carrera a su propia aplicación. */
-      if (lecturaDemora) await new Promise(r => setTimeout(r, lecturaDemora));
-      const value = docs[key];
-      return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
-    },
-    set: async (obj) => {
-      /* `escrituraFalla` hace que TODA escritura tire, como una red caída o un permiso negado. La
-         pide el intercambio de colores (S-07c): la Spec fija que ante un guardado fallido la
-         aplicación se comporte como con cualquier otra edición, y eso sólo se puede ver si el
-         doble sabe fallar. No se registra la escritura, porque no ocurrió. */
-      if (escrituraFalla) throw new Error('no se pudo guardar');
-      window.__escrituras.push(key);
-      /* Además de la clave, el CONTENIDO. La rebanada 2 necesita comprobar no sólo que se
-         escribió, sino QUÉ: que el conjunto de campos del partido no creció y que
-         `posicionAsignada` quedó igual (Spec del arrastre, NFR-005, TC-012). */
-      window.__ultimosDocs = window.__ultimosDocs || {};
-      window.__ultimosDocs[key] = obj && obj.value;
-      docs[key] = obj && obj.value;
-    },
-  });
+  /* Los documentos de `data` se guardan por su clave sola, como siempre; los de cualquier otra
+     colección, como '<colección>/<clave>' (orden-por-columnas TD-15). Así un escenario siembra la
+     preferencia de una cuenta con `datos['preferenciasOrden/u-test']` sin chocar con un documento
+     de `data` del mismo nombre, y `window.__escrituras` dice en qué colección se escribió. */
+  const doc = (col, clave) => {
+    const key = col === 'data' ? clave : `${col}/${clave}`;
+    return {
+      get: async () => {
+        window.__lecturas[col] = (window.__lecturas[col] || 0) + 1;
+        /* `lecturaDemora` existe para poder MEDIR la pantalla de carga del arranque: contra
+           Firestore la espera dura ~620 ms de mediana, y con el doble es cero, así que sin esto un
+           escenario tendría que ganarle una carrera a su propia aplicación. */
+        if (lecturaDemora) await new Promise(r => setTimeout(r, lecturaDemora));
+        const value = docs[key];
+        return value === null || value === undefined ? { exists: false, data: () => ({}) } : { exists: true, data: () => ({ value }) };
+      },
+      set: async (obj) => {
+        /* `escrituraFalla` hace que TODA escritura tire, como una red caída o un permiso negado. La
+           pide el intercambio de colores (S-07c): la Spec fija que ante un guardado fallido la
+           aplicación se comporte como con cualquier otra edición, y eso sólo se puede ver si el
+           doble sabe fallar. No se registra la escritura, porque no ocurrió. */
+        if (escrituraFalla) throw new Error('no se pudo guardar');
+        window.__escrituras.push(key);
+        /* Además de la clave, el CONTENIDO. La rebanada 2 necesita comprobar no sólo que se
+           escribió, sino QUÉ: que el conjunto de campos del partido no creció y que
+           `posicionAsignada` quedó igual (Spec del arrastre, NFR-005, TC-012). */
+        window.__ultimosDocs = window.__ultimosDocs || {};
+        window.__ultimosDocs[key] = obj && obj.value;
+        docs[key] = obj && obj.value;
+      },
+    };
+  };
   /* El punto de intercepción del rol es el TOKEN, no la colección `userRoles` (rol-en-el-token,
      TC-033/TD-07). Antes esta misma función servía un documento `userRoles` falso; ahora entrega
      un `user` con `getIdTokenResult`, que es de donde la aplicación lee el claim. Es el mismo
@@ -353,13 +360,20 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
        lecturaDemora cuántos ms tarda CADA lectura de Firestore. Contra Firestore la primera
                      respuesta llega a los ~620 ms de mediana (todas juntas: abrir el canal es lo
                      que se paga, no cada documento); acá es 0 por default, y el escenario de la
-                     pantalla de carga lo estira para poder medirla */
+                     pantalla de carga lo estira para poder medirla
+       uid           el `uid` de la cuenta ('u-test' por default). Dos escenarios con uid distinto
+                     sobre los mismos datos son dos cuentas (orden-por-columnas S-03c)
+
+     `currentUser` queda con la cuenta desde que `onAuthStateChanged` la entrega, como en el SDK:
+     es de donde la preferencia de orden saca el `uid` (orden-por-columnas TD-02). */
+  let usuarioActual = null;
   const auth = () => ({
+    get currentUser() { return usuarioActual; },
     setPersistence: async () => {},
     signInWithEmailAndPassword: async () => {},
     signOut: async () => {},
-    onAuthStateChanged: (cb) => sinSesion ? cb(null) : cb({
-      uid: 'u-test',
+    onAuthStateChanged: (cb) => sinSesion ? cb(null) : cb(usuarioActual = {
+      uid,
       getIdTokenResult: async (forzado) => {
         if (forzado) {
           window.__refrescos++;

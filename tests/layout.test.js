@@ -379,6 +379,152 @@ const INVARIANTE_PARTIDO_DOS_COLUMNAS = () => {
   return problemas;
 };
 
+/* ---- orden por columnas: ayudantes de los escenarios `orden-*` ---- */
+const TITULO_ORDEN = criterio => `.roster-head button.roster-orden[data-criterio="${criterio}"]`;
+
+/* Antes del cambio de encabezado (T-2.8 del Plan) esto es lo que hace fallar a los escenarios:
+   que el título no sea un botón. Se pregunta primero en vez de dejar que `page.click` espere
+   30 segundos por un selector que no existe. */
+async function exigirTituloOrden(page, criterio) {
+  if (!(await page.$(TITULO_ORDEN(criterio)))) throw new Error(`no hay botón de título "${criterio}" en el encabezado del listado`);
+}
+
+/* El estado que miden los dos escenarios de encabezado: en la banda ancha el orden en Pos; en la
+   angosta el menú con su opción de texto más largo, "Partidos jugados ↓" (S-09b). */
+async function prepararEncabezadoOrden(page) {
+  await irAPestania(page, 'Jugadores');
+  if ((await page.evaluate(() => document.documentElement.clientWidth)) >= 760) {
+    await exigirTituloOrden(page, 'posicion');
+    await page.click(TITULO_ORDEN('posicion'));
+  } else {
+    await page.selectOption('#ordenModo', 'pj_desc');
+  }
+}
+
+/* Lo que se ve del listado en la banda ancha: por fila, el nombre, la sigla del puesto y las
+   celdas de PJ, Goles y Asist; y qué títulos llevan el indicador de sentido. */
+const LEER_LISTADO_ORDEN = () => ({
+  filas: [...document.querySelectorAll('.roster .row')].map(f => {
+    const c = [...f.querySelectorAll('.row-col')].map(x => x.textContent.trim());
+    return { nombre: f.querySelector('.row-name').textContent.trim(), sigla: f.querySelector('.badge').textContent.trim(), pj: c[0], goles: c[2], asist: c[3] };
+  }),
+  conIndicador: [...document.querySelectorAll('.roster-head .roster-orden-icono')].map(i => i.closest('button').dataset.criterio),
+});
+
+/* Que las filas estén ordenadas por una columna numérica en un sentido, con los que nunca jugaron
+   ("—" en PJ) al final (FR-007). El desempate alfabético lo cubre tests/orden.test.js. */
+function revisarOrdenNumerico(filas, campo, sentido, contexto) {
+  const problemas = [];
+  const primeraSinPartidos = filas.findIndex(f => f.pj === '—');
+  if (primeraSinPartidos >= 0 && filas.slice(primeraSinPartidos).some(f => f.pj !== '—')) problemas.push(`${contexto}: hay un jugador que jugó después de uno sin partidos`);
+  const valores = filas.filter(f => f.pj !== '—').map(f => Number(f[campo]));
+  for (let i = 1; i < valores.length; i++) {
+    if (sentido === 'desc' ? valores[i] > valores[i - 1] : valores[i] < valores[i - 1]) {
+      problemas.push(`${contexto}: ${campo} no está en sentido ${sentido} (${valores.join(', ')})`);
+      break;
+    }
+  }
+  return problemas;
+}
+
+/* S-09, S-09a, S-09b: de 760 para arriba, los títulos en orden y el indicador dentro de su celda
+   y del viewport, con el orden en Pos y —si la grilla tiene Pts— en Pts. Abajo de 760, el menú
+   con su opción más larga dentro del viewport. El desborde general lo mide MEDIR. */
+const INVARIANTE_ENCABEZADO_ORDEN = () => {
+  const problemas = [];
+  const ancho = document.documentElement.clientWidth;
+  if (ancho < 760) {
+    const menu = document.getElementById('ordenModo');
+    if (!menu || !menu.offsetParent) return ['abajo de 760px el menú de orden no se ve (orden/S-09b)'];
+    const texto = menu.options[menu.selectedIndex] && menu.options[menu.selectedIndex].text;
+    if (texto !== 'Partidos jugados ↓') problemas.push(`el menú tendría que mostrar "Partidos jugados ↓" y muestra ${JSON.stringify(texto)} (orden/S-09b)`);
+    if (menu.getBoundingClientRect().right > ancho + 0.5) problemas.push('el menú de orden se sale del viewport (orden/S-09b)');
+    return problemas;
+  }
+  const esJugador = document.body.classList.contains('role-jugador');
+  const esperados = ['Pos', 'Jugador', 'PJ', 'G E P', 'Goles', 'Asist'].concat(esJugador ? [] : ['Pts']);
+  const rotulos = [...document.querySelectorAll('.roster-head > div')].map(d => d.textContent.trim()).filter(Boolean);
+  if (JSON.stringify(rotulos) !== JSON.stringify(esperados)) problemas.push(`los títulos tendrían que ser ${esperados.join(', ')} y son ${rotulos.join(', ')} (orden/S-09)`);
+  const medir = criterio => {
+    const boton = document.querySelector(`.roster-head button.roster-orden[data-criterio="${criterio}"]`);
+    if (!boton) return [`no hay botón de título "${criterio}" en el encabezado (orden/S-09)`];
+    const icono = boton.querySelector('.roster-orden-icono');
+    if (!icono) return [`con el orden en "${criterio}" su título no muestra el indicador (orden/S-09)`];
+    const celda = boton.parentElement.getBoundingClientRect(), i = icono.getBoundingClientRect(), b = boton.getBoundingClientRect();
+    const fuera = [];
+    if (i.right > celda.right + 0.5 || i.left < celda.left - 0.5) fuera.push(`el indicador de "${criterio}" sale de su celda (${Math.round(i.left)}–${Math.round(i.right)} contra ${Math.round(celda.left)}–${Math.round(celda.right)}) (orden/S-09)`);
+    if (b.right > celda.right + 0.5) fuera.push(`el botón de "${criterio}" sale de su celda (orden/S-09)`);
+    if (i.right > ancho + 0.5) fuera.push(`el indicador de "${criterio}" sale del viewport (orden/S-09)`);
+    if (document.documentElement.scrollWidth !== ancho) fuera.push(`con el orden en "${criterio}" hay scroll horizontal (orden/NFR-005)`);
+    return fuera;
+  };
+  problemas.push(...medir('posicion'));
+  if (!esJugador) {
+    window.__ordenarPorColumna('puntaje');
+    problemas.push(...medir('puntaje'));
+  }
+  return problemas;
+};
+
+/* Abre otra página en el mismo contexto, con su propio doble, y la deja en Jugadores. Es "recargar"
+   (los datos que dejó la primera) o "entrar con otra cuenta" (otro `uid` u otro rol). El doble y el
+   bloqueo del CDN se instalan por página, como en `rol-dos-pestanias`. */
+async function abrirOtraPagina(page, { rol, datos, doble = {}, ancho = 1200 }) {
+  const otra = await page.context().newPage();
+  await otra.setViewportSize({ width: ancho, height: 900 });
+  await otra.route('**/firebasejs/**', r => r.abort());
+  await otra.addInitScript(fakeFirebase, Object.assign({ datos, rol }, doble));
+  await otra.goto(page.url(), { waitUntil: 'networkidle' });
+  await otra.waitForSelector('#appRoot', { state: 'attached' });
+  await otra.waitForTimeout(600);
+  await irAPestania(otra, 'Jugadores');
+  return otra;
+}
+
+/* Los datos de prueba con la preferencia de una cuenta sembrada, como la dejaría Firestore. */
+function datosConPreferencia(valor, uid = 'u-test') {
+  const datos = docsDesde();
+  if (valor !== undefined) datos[`preferenciasOrden/${uid}`] = valor;
+  return datos;
+}
+
+/* El orden base de los datos de prueba, como nombres visibles: la migración de `orden` lo asigna
+   en el alfabético existente (apellido y nombre), que es también como se ordena sin `orden`. */
+function nombresEnOrdenBase() {
+  const players = JSON.parse(docsDesde().players);
+  return players.sort((a, b) => (a.apellido + a.nombre).localeCompare(b.apellido + b.nombre))
+    .map(p => ((p.nombre || '') + ' ' + (p.apellido || '')).trim());
+}
+
+const FILA_ORDEN = nombre => `.roster .row:has(.row-name:text-is(${JSON.stringify(nombre)}))`;
+async function arrastrarFila(page, origen, destino) {
+  await page.dragAndDrop(FILA_ORDEN(origen), FILA_ORDEN(destino));
+  await page.waitForTimeout(300);
+}
+/* Lo que quedaría después de soltar `origen` sobre `destino`: inmediatamente antes (FR-031). */
+function trasSoltar(nombres, origen, destino) {
+  const sin = nombres.filter(n => n !== origen);
+  sin.splice(sin.indexOf(destino), 0, origen);
+  return sin;
+}
+const nombresDe = r => r.filas.map(f => f.nombre);
+const estadoDelOrden = page => page.evaluate(() => {
+  const menu = document.getElementById('ordenModo');
+  const head = document.querySelector('.roster-head');
+  const toast = document.getElementById('appToast');
+  return {
+    menuVisible: !!menu && getComputedStyle(menu).display !== 'none',
+    menuTexto: menu && menu.options[menu.selectedIndex] ? menu.options[menu.selectedIndex].text : null,
+    menuOpciones: menu ? [...menu.options].filter(o => !o.disabled).map(o => o.text) : [],
+    titulosVisibles: !!head && getComputedStyle(head).display !== 'none',
+    titulos: [...document.querySelectorAll('.roster-head button.roster-orden')].map(b => b.dataset.criterio),
+    aviso: toast && toast.classList.contains('show') ? toast.textContent : null,
+    escrituras: window.__escrituras.slice(window.__escrituras_base || 0),
+    preferencia: (window.__ultimosDocs || {})['preferenciasOrden/u-test'] || null,
+  };
+});
+const leerPreferencia = texto => { try { return JSON.parse(texto); } catch (e) { return null; } };
+
 /* ----------------------------------------------------------------- escenarios */
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
@@ -454,7 +600,7 @@ const ESCENARIOS = [
      ninguna pantalla nueva (NFR-006) y lo que hay que comprobar es que no haya movido nada. */
 
   { clave: 'rol-admin-primer-pintado', rol: 'admin', nombre: 'la barra de solapas ya tiene Configuración en su primer pintado',
-    spec: ['rol/S-01', 'rol/S-01d', 'rol/S-02', 'rol/NFR-001', 'rol/NFR-002', 'rol/NFR-007'],
+    spec: ['rol/S-01', 'rol/S-01d', 'rol/S-02', 'rol/NFR-001', 'rol/NFR-002', 'rol/NFR-007', 'orden/NFR-002'],
     async preparar(page) { /* la pantalla por default: la barra de solapas */ },
     async comprobar(page) {
       const r = await page.evaluate(() => ({
@@ -476,14 +622,16 @@ const ESCENARIOS = [
       if (r.lecturas.userRoles) problemas.push(`hubo ${r.lecturas.userRoles} lectura(s) de userRoles (rol/NFR-002)`);
       /* FR-009 / S-01d: con el rol resuelto se pidieron los seis documentos sólo-admin junto con
          los tres públicos, de una sola vez. */
-      if (r.lecturas.data !== 9) problemas.push(`un arranque de admin debería leer 9 documentos de data y leyó ${r.lecturas.data} (rol/S-01d)`);
+      if (r.lecturas.data !== 8) problemas.push(`un arranque de admin debería leer 8 documentos de data y leyó ${r.lecturas.data} (rol/S-01d, orden/NFR-002)`);
+      /* orden-por-columnas NFR-002: sale `playersSortMode` de data y entra la preferencia de la cuenta. */
+      if (r.lecturas.preferenciasOrden !== 1) problemas.push(`un arranque debería leer 1 preferencia de orden y leyó ${r.lecturas.preferenciasOrden || 0} (orden/NFR-002)`);
       /* NFR-001: con el claim presente no se toca la red para resolver el rol. */
       if (r.refrescos !== 0) problemas.push(`con el claim presente no debería refrescarse el token, y se refrescó ${r.refrescos} vez/veces (rol/NFR-001)`);
       return problemas;
     } },
 
   { clave: 'rol-jugador-primer-pintado', rol: 'jugador', nombre: 'con rol jugador, Configuración no aparece en ningún momento',
-    spec: ['rol/S-03', 'rol/S-03a', 'rol/NFR-002'],
+    spec: ['rol/S-03', 'rol/S-03a', 'rol/NFR-002', 'orden/NFR-002'],
     doble: { jugadorId: 'p1' },
     async preparar(page) { /* la barra de solapas */ },
     async comprobar(page) {
@@ -496,7 +644,8 @@ const ESCENARIOS = [
       const conMotor = r.pintados.filter(m => m.solapas.includes('motor'));
       if (conMotor.length) problemas.push(`la solapa Configuración estuvo visible en ${conMotor.length} muestra(s) con rol jugador (rol/S-03)`);
       if (r.lecturas.userRoles) problemas.push(`hubo ${r.lecturas.userRoles} lectura(s) de userRoles (rol/NFR-002)`);
-      if (r.lecturas.data !== 3) problemas.push(`una cuenta jugador debería leer sólo los 3 documentos públicos y leyó ${r.lecturas.data} (rol/S-03)`);
+      if (r.lecturas.data !== 2) problemas.push(`una cuenta jugador debería leer sólo los 2 documentos públicos y leyó ${r.lecturas.data} (rol/S-03, orden/NFR-002)`);
+      if (r.lecturas.preferenciasOrden !== 1) problemas.push(`un arranque debería leer 1 preferencia de orden y leyó ${r.lecturas.preferenciasOrden || 0} (orden/NFR-002)`);
       if (r.sesion.jugadorId !== 'p1') problemas.push(`el jugadorId del claim debería estar en window.session y quedó ${JSON.stringify(r.sesion.jugadorId)} (rol/S-03a)`);
       return problemas;
     } },
@@ -1682,7 +1831,9 @@ const ESCENARIOS = [
         ancho: window.innerWidth,
         tabs: document.querySelectorAll('.equipo-tab').length,
         arrastrables: document.querySelectorAll('.camiseta[draggable="true"]').length,
-        zonasConDrop: document.querySelectorAll('[ondrop]').length,
+        /* Fuera del listado de Jugadores: ahí cualquier cuenta arrastra para armar su propio orden
+           (orden-por-columnas FR-030), y este escenario es sobre la cancha. */
+        zonasConDrop: [...document.querySelectorAll('[ondrop]')].filter(z => !z.closest('.roster')).length,
         visible: document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null,
       }));
       if (a.arrastrables) problemas.push(`el rol jugador vio ${a.arrastrables} camisetas arrastrables (FR-041)`);
@@ -2545,6 +2696,321 @@ const ESCENARIOS = [
       if (r.hayBoton) problemas.push('el rol jugador ve el botón de intercambiar colores (FR-004)');
       if (r.escrituras) problemas.push('invocar el manejador como jugador pidió un guardado (FR-005, TC-040)');
       if (!r.igual) problemas.push('invocar el manejador como jugador cambió los equipos (FR-005, TC-040)');
+      return problemas;
+    } },
+
+  /* ---- orden por columnas: el encabezado ----
+     Los escenarios de orden-por-columnas que dependen de los títulos de la grilla. Los dos de
+     encabezado son de layout y corren en los diecisiete anchos: de 760 para arriba miden que el
+     indicador quede dentro de su celda con el orden en Pos y en Pts (S-09); abajo, que el menú con
+     su opción más larga no desborde (S-09b). Los dos de comportamiento corren a 1200. */
+  { clave: 'orden-encabezado', rol: 'admin', nombre: 'el encabezado ordenable entra en todos los anchos',
+    spec: ['orden/S-09', 'orden/S-09b', 'orden/NFR-005'],
+    invariante: INVARIANTE_ENCABEZADO_ORDEN,
+    async preparar(page) { await prepararEncabezadoOrden(page); } },
+
+  { clave: 'orden-encabezado-jugador', rol: 'jugador', nombre: 'el encabezado ordenable entra en todos los anchos (rol jugador)',
+    spec: ['orden/S-09a'],
+    invariante: INVARIANTE_ENCABEZADO_ORDEN,
+    async preparar(page) { await prepararEncabezadoOrden(page); } },
+
+  { clave: 'orden-titulo', rol: 'admin', nombre: 'tocar el título de una columna ordena e invierte',
+    anchos: [1200], spec: ['orden/S-01', 'orden/S-01i', 'orden/S-01j'],
+    async preparar(page) {
+      await irAPestania(page, 'Jugadores');
+      await exigirTituloOrden(page, 'goles');
+    },
+    async comprobar(page) {
+      const problemas = [];
+      /* El arranque de admin ya escribió sus migraciones: lo que importa es lo que se escribe
+         desde el primer toque. */
+      await page.evaluate(() => { window.__escrituras_base = window.__escrituras.length; });
+      await page.click(TITULO_ORDEN('goles'));
+      let r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'desc', 'primer toque en Goles (orden/S-01)'));
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push(`el indicador tendría que estar sólo en Goles y está en ${JSON.stringify(r.conIndicador)} (orden/S-01)`);
+      await page.click(TITULO_ORDEN('goles'));
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'asc', 'segundo toque en Goles (orden/S-01)'));
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push(`después del segundo toque el indicador está en ${JSON.stringify(r.conIndicador)} (orden/S-01)`);
+      /* S-01i: con el filtro de puesto en DEL ordena sólo a los visibles. */
+      await page.selectOption('#filters', 'DEL');
+      await page.click(TITULO_ORDEN('goles'));
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      if (!r.filas.length) problemas.push('con el filtro DEL no quedó ningún jugador visible: el escenario no prueba nada (orden/S-01i)');
+      if (r.filas.some(f => f.sigla !== 'DEL')) problemas.push('con el filtro DEL se ven jugadores de otro puesto (orden/S-01i)');
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'desc', 'Goles con el filtro DEL (orden/S-01i)'));
+      /* S-01j: se escribe sólo la preferencia de la cuenta, y lo último escrito es Goles descendente. */
+      const e = await page.evaluate(() => ({ escrituras: window.__escrituras.slice(window.__escrituras_base), ultimo: (window.__ultimosDocs || {})['preferenciasOrden/u-test'] }));
+      if (e.escrituras.some(k => k !== 'preferenciasOrden/u-test')) problemas.push(`elegir una columna escribió ${JSON.stringify(e.escrituras)}: sólo tendría que escribir la preferencia de la cuenta (orden/S-01j)`);
+      if (e.escrituras.includes('playersSortMode')) problemas.push('elegir una columna escribió data/playersSortMode (orden/S-01j)');
+      let guardado = null;
+      try { guardado = JSON.parse(e.ultimo); } catch (err) { /* queda null */ }
+      if (!guardado || guardado.modo !== 'goles_desc') problemas.push(`la preferencia guardada tendría que ser goles_desc y es ${JSON.stringify(e.ultimo)} (orden/S-01j)`);
+      return problemas;
+    } },
+
+  { clave: 'orden-teclado', rol: 'admin', nombre: 'ordenar con el teclado desde los títulos',
+    anchos: [1200], spec: ['orden/S-08', 'orden/S-08b', 'orden/NFR-004'],
+    async preparar(page) {
+      await irAPestania(page, 'Jugadores');
+      await exigirTituloOrden(page, 'pj');
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const etiquetas = () => page.evaluate(() => Object.fromEntries([...document.querySelectorAll('.roster-head button.roster-orden')]
+        .map(b => [b.dataset.criterio, b.getAttribute('aria-label')])));
+      const enFoco = () => page.evaluate(() => (document.activeElement && document.activeElement.dataset.criterio) || null);
+      const esperadas = { posicion: 'Posición', jugador: 'Jugador', pj: 'Partidos jugados', goles: 'Goles', asist: 'Asistencias', puntaje: 'Pts' };
+      let e = await etiquetas();
+      if (JSON.stringify(e) !== JSON.stringify(esperadas)) problemas.push(`en Manual los títulos tendrían que anunciarse ${JSON.stringify(esperadas)} y se anuncian ${JSON.stringify(e)} (orden/NFR-004)`);
+      /* S-08: llega con Tab a PJ, desde el título anterior. */
+      await page.focus(TITULO_ORDEN('jugador'));
+      await page.keyboard.press('Tab');
+      if ((await enFoco()) !== 'pj') problemas.push(`Tab desde Jugador tendría que llevar a PJ y llevó a ${await enFoco()} (orden/S-08)`);
+      await page.keyboard.press('Enter');
+      let r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'pj', 'desc', 'Enter sobre PJ (orden/S-08)'));
+      e = await etiquetas();
+      if (e.pj !== 'Partidos jugados, de mayor a menor') problemas.push(`después de Enter PJ se anuncia ${JSON.stringify(e.pj)} (orden/S-08)`);
+      const otrosConSentido = Object.entries(e).filter(([c, t]) => c !== 'pj' && t.includes(', ')).map(([c]) => c);
+      if (otrosConSentido.length) problemas.push(`otros títulos anuncian un sentido: ${otrosConSentido.join(', ')} (orden/S-08)`);
+      if ((await enFoco()) !== 'pj') problemas.push(`después de Enter el foco tendría que seguir en PJ y está en ${await enFoco()} (orden/S-08)`);
+      const contorno = await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle);
+      if (contorno === 'none') problemas.push('el título con foco no muestra contorno de foco (orden/NFR-004)');
+      await page.keyboard.press('Space');
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'pj', 'asc', 'Espacio sobre PJ (orden/S-08)'));
+      e = await etiquetas();
+      if (e.pj !== 'Partidos jugados, de menor a mayor') problemas.push(`después de Espacio PJ se anuncia ${JSON.stringify(e.pj)} (orden/S-08)`);
+      /* S-08b: G E P no es un botón y Tab lo saltea: de PJ va a Goles. */
+      await page.keyboard.press('Tab');
+      if ((await enFoco()) !== 'goles') problemas.push(`Tab desde PJ tendría que llevar a Goles y llevó a ${await enFoco()} (orden/S-08b)`);
+      const gep = await page.evaluate(() => {
+        const celda = document.querySelector('.roster-head .roster-head-gep');
+        return celda ? { boton: !!celda.querySelector('button'), oculta: celda.getAttribute('aria-hidden') } : null;
+      });
+      if (!gep) problemas.push('no se encontró la celda de G E P (orden/S-08b)');
+      else {
+        if (gep.boton) problemas.push('el título de G E P es un botón (orden/S-08b)');
+        if (gep.oculta !== 'true') problemas.push('la celda de G E P no lleva aria-hidden="true" (orden/NFR-004)');
+      }
+      return problemas;
+    } },
+
+  /* ---- orden por columnas: menú, persistencia y arrastre ----
+     Comportamiento, así que corren en uno o dos anchos. Los que "recargan" abren una segunda página
+     con los datos que dejó la primera; los que "entran con otra cuenta" cambian el `uid` del doble. */
+  { clave: 'orden-menu', rol: 'jugador', nombre: 'ordenar desde el menú en el celular',
+    anchos: [390, 759], spec: ['orden/S-02', 'orden/S-02a'],
+    invariante: () => {
+      const menu = document.getElementById('ordenModo');
+      const head = document.querySelector('.roster-head');
+      const problemas = [];
+      if (!menu || getComputedStyle(menu).display === 'none') problemas.push('abajo de 760px el menú de orden no se ve (orden/S-02a)');
+      if (head && getComputedStyle(head).display !== 'none') problemas.push('abajo de 760px se ven los títulos (orden/S-02a)');
+      return problemas;
+    },
+    async preparar(page) { await irAPestania(page, 'Jugadores'); },
+    async comprobar(page) {
+      const problemas = [];
+      let e = await estadoDelOrden(page);
+      if (e.menuTexto !== 'Ordenar por…') problemas.push(`en Manual el menú tendría que decir "Ordenar por…" y dice ${JSON.stringify(e.menuTexto)} (orden/S-02)`);
+      const esperadas = ['Posición ↑', 'Posición ↓', 'Jugador ↑', 'Jugador ↓', 'Partidos jugados ↓', 'Partidos jugados ↑',
+        'Goles ↓', 'Goles ↑', 'Asistencias ↓', 'Asistencias ↑'];
+      if (JSON.stringify(e.menuOpciones) !== JSON.stringify(esperadas)) problemas.push(`las opciones del menú tendrían que ser ${esperadas.join(', ')} y son ${e.menuOpciones.join(', ')} (orden/S-02)`);
+      await page.selectOption('#ordenModo', 'asist_desc');
+      await page.waitForTimeout(200);
+      problemas.push(...revisarOrdenNumerico((await page.evaluate(LEER_LISTADO_ORDEN)).filas, 'asist', 'desc', 'Asistencias ↓ desde el menú (orden/S-02)'));
+      e = await estadoDelOrden(page);
+      if (e.menuTexto !== 'Asistencias ↓') problemas.push(`después de elegir, el menú muestra ${JSON.stringify(e.menuTexto)} (orden/S-02)`);
+      return problemas;
+    } },
+
+  { clave: 'orden-cruce', rol: 'admin', nombre: 'el orden se conserva al cruzar los 760px',
+    anchos: [390], spec: ['orden/S-02a', 'orden/S-02b', 'orden/S-02c'],
+    async preparar(page) { await irAPestania(page, 'Jugadores'); },
+    async comprobar(page) {
+      const problemas = [];
+      const en = async ancho => { await page.setViewportSize({ width: ancho, height: 900 }); await page.waitForTimeout(200); return estadoDelOrden(page); };
+      let e = await en(390);
+      if (!e.menuOpciones.includes('Pts ↓') || !e.menuOpciones.includes('Pts ↑')) problemas.push(`un admin a 390px tendría que ver Pts en los dos sentidos en el menú, y ve ${e.menuOpciones.join(', ')} (orden/S-02c)`);
+      e = await en(759);
+      if (!e.menuVisible || e.titulosVisibles) problemas.push(`a 759px tendría que verse el menú y no los títulos (menú ${e.menuVisible}, títulos ${e.titulosVisibles}) (orden/S-02a)`);
+      e = await en(760);
+      if (e.menuVisible || !e.titulosVisibles) problemas.push(`a 760px tendrían que verse los títulos y no el menú (menú ${e.menuVisible}, títulos ${e.titulosVisibles}) (orden/S-02a)`);
+      await en(700);
+      await page.selectOption('#ordenModo', 'asist_desc');
+      await page.waitForTimeout(200);
+      const antes = nombresDe(await page.evaluate(LEER_LISTADO_ORDEN));
+      await en(900);
+      const r = await page.evaluate(LEER_LISTADO_ORDEN);
+      if (JSON.stringify(r.conIndicador) !== '["asist"]') problemas.push(`a 900px el indicador tendría que estar en Asist y está en ${JSON.stringify(r.conIndicador)} (orden/S-02b)`);
+      const etiqueta = await page.evaluate(() => document.querySelector('.roster-head .roster-orden[data-criterio="asist"]').getAttribute('aria-label'));
+      if (etiqueta !== 'Asistencias, de mayor a menor') problemas.push(`a 900px Asist se anuncia ${JSON.stringify(etiqueta)} (orden/S-02b)`);
+      if (JSON.stringify(nombresDe(r)) !== JSON.stringify(antes)) problemas.push('al pasar de 700 a 900px la lista cambió de orden (orden/S-02b)');
+      e = await en(700);
+      if (e.menuTexto !== 'Asistencias ↓') problemas.push(`de vuelta a 700px el menú muestra ${JSON.stringify(e.menuTexto)} (orden/S-02b)`);
+      return problemas;
+    } },
+
+  { clave: 'orden-persistencia', rol: 'admin', nombre: 'el orden guardado acompaña a la cuenta y no a las demás',
+    anchos: [1200], spec: ['orden/S-03', 'orden/S-03c'],
+    transformarDatos(datos) { datos['preferenciasOrden/u-test'] = JSON.stringify({ modo: 'goles_desc', ordenManual: [] }); },
+    async preparar(page) { await irAPestania(page, 'Jugadores'); },
+    async comprobar(page) {
+      const problemas = [];
+      const r = await page.evaluate(LEER_LISTADO_ORDEN);
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push(`con la preferencia en Goles la cuenta tendría que arrancar con el indicador en Goles, y está en ${JSON.stringify(r.conIndicador)} (orden/S-03)`);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'desc', 'arranque con la preferencia en Goles (orden/S-03)'));
+      /* S-03c: otra cuenta, sobre los mismos datos, no tiene preferencia: Manual, en el orden base. */
+      const otra = await abrirOtraPagina(page, { rol: 'admin', datos: datosConPreferencia(JSON.stringify({ modo: 'goles_desc', ordenManual: [] })), doble: { uid: 'u-otro' } });
+      const r2 = await otra.evaluate(LEER_LISTADO_ORDEN);
+      const lecturas = await otra.evaluate(() => window.__lecturas.preferenciasOrden);
+      await otra.close();
+      if (r2.conIndicador.length) problemas.push(`la otra cuenta tendría que arrancar en Manual y tiene el indicador en ${r2.conIndicador.join(', ')} (orden/S-03c)`);
+      if (JSON.stringify(nombresDe(r2)) !== JSON.stringify(nombresEnOrdenBase())) problemas.push('la otra cuenta no ve el orden base (orden/S-03c)');
+      if (lecturas !== 1) problemas.push(`la otra cuenta tendría que leer su preferencia una vez y la leyó ${lecturas} (orden/S-03c)`);
+      return problemas;
+    } },
+
+  { clave: 'orden-jugador', rol: 'jugador', nombre: 'una cuenta jugador ordena y su orden se guarda',
+    anchos: [1200], spec: ['orden/S-04', 'orden/S-04a', 'orden/S-04b'],
+    async preparar(page) { await irAPestania(page, 'Jugadores'); await exigirTituloOrden(page, 'asist'); },
+    async comprobar(page) {
+      const problemas = [];
+      let e = await estadoDelOrden(page);
+      if (e.titulos.includes('puntaje')) problemas.push('la cuenta jugador ve el título Pts (orden/S-04)');
+      await page.click(TITULO_ORDEN('asist'));
+      e = await estadoDelOrden(page);
+      const guardada = leerPreferencia(e.preferencia);
+      if (!guardada || guardada.modo !== 'asist_desc') problemas.push(`la cuenta jugador tendría que guardar asist_desc y guardó ${JSON.stringify(e.preferencia)} (orden/S-04)`);
+      const recargada = await abrirOtraPagina(page, { rol: 'jugador', datos: datosConPreferencia(e.preferencia) });
+      const r = await recargada.evaluate(LEER_LISTADO_ORDEN);
+      await recargada.close();
+      if (JSON.stringify(r.conIndicador) !== '["asist"]') problemas.push(`al recargar el indicador tendría que estar en Asist y está en ${JSON.stringify(r.conIndicador)} (orden/S-04)`);
+      problemas.push(...revisarOrdenNumerico(r.filas, 'asist', 'desc', 'al recargar (orden/S-04)'));
+      /* S-04a y S-04b: lo guardado no se puede usar → Manual, sin aviso, sin errores y sin reescribir. */
+      const casos = [
+        ['orden/S-04a', JSON.stringify({ modo: 'puntaje_desc', ordenManual: [] })],
+        ['orden/S-04b', JSON.stringify({ modo: 'goles_arriba', ordenManual: [] })],
+        ['orden/S-04b', JSON.stringify({ modo: 'tarjetas_desc', ordenManual: [] })],
+        ['orden/S-04b', 'esto no es JSON'],
+      ];
+      for (const [id, valor] of casos) {
+        const otra = await abrirOtraPagina(page, { rol: 'jugador', datos: datosConPreferencia(valor) });
+        const errores = [];
+        otra.on('pageerror', err => errores.push(err.message));
+        const r2 = await otra.evaluate(LEER_LISTADO_ORDEN);
+        const e2 = await estadoDelOrden(otra);
+        await otra.close();
+        if (r2.conIndicador.length) problemas.push(`con ${valor} la cuenta tendría que ver Manual y tiene el indicador en ${r2.conIndicador.join(', ')} (${id})`);
+        if (JSON.stringify(nombresDe(r2)) !== JSON.stringify(nombresEnOrdenBase())) problemas.push(`con ${valor} la cuenta no ve el orden base (${id})`);
+        if (e2.aviso) problemas.push(`con ${valor} apareció el aviso ${JSON.stringify(e2.aviso)} (${id})`);
+        if (errores.length) problemas.push(`con ${valor} hubo un error de página: ${errores[0]} (${id})`);
+        if (e2.escrituras.length) problemas.push(`con ${valor} el arranque escribió ${JSON.stringify(e2.escrituras)} (${id})`);
+      }
+      return problemas;
+    } },
+
+  { clave: 'orden-arrastre', rol: 'admin', nombre: 'arrastrar con un orden por columna arma el orden manual',
+    anchos: [390, 1200], spec: ['orden/S-05', 'orden/S-05d', 'orden/S-05f', 'orden/S-05h'],
+    async preparar(page) { await irAPestania(page, 'Jugadores'); },
+    async comprobar(page) {
+      const problemas = [];
+      /* A 390 (renglón apilado): Goles desde el menú, y el cuarto sobre el segundo. */
+      await page.evaluate(() => { window.__escrituras_base = window.__escrituras.length; });
+      await page.selectOption('#ordenModo', 'goles_desc');
+      await page.waitForTimeout(200);
+      const porGoles = nombresDe(await page.evaluate(LEER_LISTADO_ORDEN));
+      const esperado = trasSoltar(porGoles, porGoles[3], porGoles[1]);
+      await arrastrarFila(page, porGoles[3], porGoles[1]);
+      const a390 = nombresDe(await page.evaluate(LEER_LISTADO_ORDEN));
+      if (JSON.stringify(a390) !== JSON.stringify(esperado)) problemas.push(`a 390px, soltar a ${porGoles[3]} sobre ${porGoles[1]} dejó ${a390.slice(0, 5).join(', ')}… y tendría que dejar ${esperado.slice(0, 5).join(', ')}… (orden/S-05h)`);
+      let e = await estadoDelOrden(page);
+      if (e.menuTexto !== 'Ordenar por…') problemas.push(`después de arrastrar el menú tendría que decir "Ordenar por…" y dice ${JSON.stringify(e.menuTexto)} (orden/S-05)`);
+      const guardada = leerPreferencia(e.preferencia);
+      if (!guardada || guardada.modo !== 'manual') problemas.push(`el arrastre tendría que guardar modo manual y guardó ${JSON.stringify(e.preferencia)} (orden/S-05)`);
+      else if (guardada.ordenManual.length !== porGoles.length) problemas.push(`el orden manual guardado tiene ${guardada.ordenManual.length} jugadores y el plantel ${porGoles.length} (orden/S-05)`);
+      /* Al recargar, la misma lista, en Manual, sin indicador. */
+      const recargada = await abrirOtraPagina(page, { rol: 'admin', datos: datosConPreferencia(e.preferencia) });
+      const r = await recargada.evaluate(LEER_LISTADO_ORDEN);
+      if (r.conIndicador.length) problemas.push(`al recargar ningún título tendría que tener indicador y lo tiene ${r.conIndicador.join(', ')} (orden/S-05)`);
+      if (JSON.stringify(nombresDe(r)) !== JSON.stringify(esperado)) problemas.push('al recargar la lista no es la que dejó el arrastre (orden/S-05)');
+      /* S-05d: tocar PJ ordena por PJ y conserva el orden manual guardado. */
+      await recargada.click(TITULO_ORDEN('pj'));
+      problemas.push(...revisarOrdenNumerico((await recargada.evaluate(LEER_LISTADO_ORDEN)).filas, 'pj', 'desc', 'PJ después del arrastre (orden/S-05d)'));
+      const trasPJ = leerPreferencia(await recargada.evaluate(() => window.__ultimosDocs['preferenciasOrden/u-test']));
+      if (!trasPJ || trasPJ.modo !== 'pj_desc' || JSON.stringify(trasPJ.ordenManual) !== JSON.stringify(guardada && guardada.ordenManual)) problemas.push('tocar PJ cambió el orden manual guardado (orden/S-05d)');
+      /* S-05f: un id que ya no está no cambia nada ni escribe. */
+      const f = await recargada.evaluate(async () => {
+        const antes = window.__escrituras.length;
+        const fila = document.querySelector('.roster .row[ondrop]');
+        const destino = fila.getAttribute('ondrop').match(/'([^']+)'/)[1];
+        const nombres = () => [...document.querySelectorAll('.roster .row-name')].map(n => n.textContent.trim());
+        const previo = nombres();
+        await window.__dropOnRosterRow({ preventDefault() {}, dataTransfer: { getData: () => 'jugador-que-no-existe' } }, destino);
+        return { escribio: window.__escrituras.length !== antes, igual: JSON.stringify(previo) === JSON.stringify(nombres()) };
+      });
+      await recargada.close();
+      if (f.escribio || !f.igual) problemas.push(`soltar un id que no está cambió la lista (${!f.igual}) o escribió (${f.escribio}) (orden/S-05f)`);
+      /* S-05h: el mismo arrastre a 1200px da el mismo resultado que a 390px. */
+      const ancha = await abrirOtraPagina(page, { rol: 'admin', datos: docsDesde() });
+      await ancha.click(TITULO_ORDEN('goles'));
+      await arrastrarFila(ancha, porGoles[3], porGoles[1]);
+      const a1200 = nombresDe(await ancha.evaluate(LEER_LISTADO_ORDEN));
+      await ancha.close();
+      if (JSON.stringify(a1200) !== JSON.stringify(a390)) problemas.push('el mismo arrastre a 1200px dio otro resultado que a 390px (orden/S-05h)');
+      return problemas;
+    } },
+
+  { clave: 'orden-arrastre-jugador', rol: 'jugador', nombre: 'una cuenta jugador arrastra sin tocar el plantel',
+    anchos: [1200], spec: ['orden/S-06'],
+    async preparar(page) { await irAPestania(page, 'Jugadores'); },
+    async comprobar(page) {
+      const problemas = [];
+      await page.evaluate(() => { window.__escrituras_base = window.__escrituras.length; });
+      const base = nombresDe(await page.evaluate(LEER_LISTADO_ORDEN));
+      await arrastrarFila(page, base[2], base[0]);
+      const despues = nombresDe(await page.evaluate(LEER_LISTADO_ORDEN));
+      if (despues[0] !== base[2]) problemas.push(`el jugador arrastrado tendría que quedar primero y quedó ${despues[0]} (orden/S-06)`);
+      const e = await estadoDelOrden(page);
+      if (!e.escrituras.length) problemas.push('el arrastre del jugador no guardó nada (orden/S-06)');
+      if (e.escrituras.some(k => k !== 'preferenciasOrden/u-test')) problemas.push(`el arrastre del jugador escribió ${JSON.stringify(e.escrituras)}: sólo puede escribir su preferencia, nunca players (orden/S-06)`);
+      const recargada = await abrirOtraPagina(page, { rol: 'jugador', datos: datosConPreferencia(e.preferencia) });
+      const r = nombresDe(await recargada.evaluate(LEER_LISTADO_ORDEN));
+      await recargada.close();
+      if (r[0] !== base[2]) problemas.push('al recargar el jugador arrastrado ya no está primero (orden/S-06)');
+      const admin = await abrirOtraPagina(page, { rol: 'admin', datos: datosConPreferencia(e.preferencia), doble: { uid: 'u-admin' } });
+      const ra = nombresDe(await admin.evaluate(LEER_LISTADO_ORDEN));
+      await admin.close();
+      if (JSON.stringify(ra) !== JSON.stringify(base)) problemas.push('el admin, al recargar, no ve el orden base: lo cambió el arrastre del jugador (orden/S-06)');
+      return problemas;
+    } },
+
+  { clave: 'orden-guardado-falla', rol: 'admin', nombre: 'el orden con el guardado fallando',
+    anchos: [1200], spec: ['orden/S-01g', 'orden/S-05e'],
+    doble: { escrituraFalla: true },
+    async preparar(page) { await irAPestania(page, 'Jugadores'); await exigirTituloOrden(page, 'goles'); },
+    async comprobar(page) {
+      const problemas = [];
+      const errores = [];
+      page.on('pageerror', err => errores.push(err.message));
+      await page.click(TITULO_ORDEN('goles'));
+      await page.waitForTimeout(300);
+      let r = await page.evaluate(LEER_LISTADO_ORDEN);
+      let e = await estadoDelOrden(page);
+      if (e.aviso) problemas.push(`un cambio de columna que no se guardó no tendría que avisar, y avisó ${JSON.stringify(e.aviso)} (orden/S-01g)`);
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push('con el guardado fallando, la lista tendría que quedar por Goles (orden/S-01g)');
+      problemas.push(...revisarOrdenNumerico(r.filas, 'goles', 'desc', 'Goles con el guardado fallando (orden/S-01g)'));
+      const porGoles = nombresDe(r);
+      await arrastrarFila(page, porGoles[3], porGoles[1]);
+      r = await page.evaluate(LEER_LISTADO_ORDEN);
+      e = await estadoDelOrden(page);
+      if (e.aviso !== 'No se pudo guardar el nuevo orden. Intentá de nuevo.') problemas.push(`un arrastre que no se guardó tendría que avisar, y el aviso es ${JSON.stringify(e.aviso)} (orden/S-05e)`);
+      if (JSON.stringify(nombresDe(r)) !== JSON.stringify(porGoles)) problemas.push('después del arrastre fallido la lista no volvió a Goles (orden/S-05e)');
+      if (JSON.stringify(r.conIndicador) !== '["goles"]') problemas.push(`después del arrastre fallido el indicador tendría que volver a Goles y está en ${JSON.stringify(r.conIndicador)} (orden/S-05e)`);
+      if (errores.length) problemas.push(`el guardado fallido dejó una excepción sin capturar: ${errores[0]}`);
       return problemas;
     } },
 ];

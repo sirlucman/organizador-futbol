@@ -40,6 +40,10 @@
  *     `data/`: `node tests/reglas.test.js --solo=` con el caso que interese, o excluir S-20c.
  *
  * No apuntar ROL_TEST_LLAVE a la llave de producción.
+ *
+ * Desde orden-por-columnas suma los casos `orden/*`, sobre la preferencia de orden de cada cuenta
+ * (`preferenciasOrden/<uid>`). Los que escriben en la preferencia PROPIA la dejan como estaba al
+ * terminar —la reescriben, o borran el documento si no existía—, con `conPreferenciaRestaurada`.
  */
 const fs = require('fs');
 const path = require('path');
@@ -288,11 +292,10 @@ async function puedeEscribir(idToken, doc) {
 const EQUIVALENCIA = [
   { doc: 'data/players',                             admin: 'RW', jugador: 'R'  },
   { doc: 'data/partidos',                            admin: 'RW', jugador: 'RW' },
-  /* Sólo lectura para jugador, MEDIDO contra staging el 2026-09-09 — no deducido. La interfaz
-     no restringe el selector de orden, así que una cuenta jugador puede cambiarlo, ver el
-     listado reordenado, y su `window.storage.set` falla en silencio contra la regla. Es una
-     limitación preexistente que esta feature NO cambia; queda anotada en el contrato §3. */
-  { doc: 'data/playersSortMode',                     admin: 'RW', jugador: 'R'  },
+  /* Sin permisos para nadie desde orden-por-columnas (Spec FR-048): el bloque se retiró y la app
+     ya no lo lee. Hasta entonces era RW para admin y sólo R para jugador, medido contra staging
+     el 2026-09-09 (contrato §2.3, hallazgo C). */
+  { doc: 'data/playersSortMode',                     admin: '',   jugador: ''   },
   { doc: 'data/motorConfig',                         admin: 'RW', jugador: ''   },
   { doc: 'data/playerScores',                        admin: 'RW', jugador: ''   },
   { doc: 'data/partidosArmado',                      admin: 'RW', jugador: ''   },
@@ -300,6 +303,74 @@ const EQUIVALENCIA = [
   { doc: 'data/puntajeArmadoSeparadoMigrado',        admin: 'RW', jugador: ''   },
   { doc: 'data/ordenJugadoresMigrado',               admin: 'RW', jugador: ''   },
 ];
+
+/* ---------- la preferencia de orden por cuenta (orden-por-columnas) ----------
+   `puedeEscribir` no sirve para `preferenciasOrden/<uid>`: escribe un campo de sonda con PATCH, y
+   un PATCH sobre un documento que no existe lo CREA, así que dejaría una preferencia vacía en una
+   cuenta que nunca tuvo una. Estos ayudantes leen y escriben el campo `value` de verdad, y
+   `conPreferenciaRestaurada` deja cada preferencia como estaba (o la borra, si no existía), para no
+   dejar rastro ni pisar lo que el propietario usa al probar a mano (T-2.17 del Plan). */
+const PREFERENCIA = uid => 'preferenciasOrden/' + uid;
+
+/* El `value` del documento, o null si no existe. Tira si la regla lo deniega: para un veredicto
+   de permiso está `puedeLeer`. */
+async function leerValor(idToken, doc) {
+  const r = await fetch(RUTA(doc), { headers: { Authorization: 'Bearer ' + idToken } });
+  const cuerpo = await r.json().catch(() => ({}));
+  if (r.ok) return (cuerpo.fields && cuerpo.fields.value && cuerpo.fields.value.stringValue) || null;
+  const estado = (cuerpo.error && cuerpo.error.status) || String(r.status);
+  if (estado === 'NOT_FOUND') return null;
+  throw new Error(`no se pudo leer ${doc}: ${estado}`);
+}
+
+/* Escribe `{ value }` como lo hace la aplicación. Devuelve 'W' si la regla lo permitió y '—' si
+   lo denegó. */
+async function escribirValor(idToken, doc, valor) {
+  const r = await fetch(RUTA(doc) + '?updateMask.fieldPaths=value', {
+    method: 'PATCH',
+    headers: { Authorization: 'Bearer ' + idToken, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ fields: { value: { stringValue: valor } } }),
+  });
+  if (r.ok) return 'W';
+  const cuerpo = await r.json().catch(() => ({}));
+  const estado = (cuerpo.error && cuerpo.error.status) || String(r.status);
+  if (estado === 'PERMISSION_DENIED') return '—';
+  throw new Error(`respuesta inesperada escribiendo ${doc}: ${estado}`);
+}
+
+async function borrarDoc(idToken, doc) {
+  const r = await fetch(RUTA(doc), { method: 'DELETE', headers: { Authorization: 'Bearer ' + idToken } });
+  if (!r.ok) throw new Error(`no se pudo borrar ${doc}: ${r.status}`);
+}
+
+/* Lo mismo que puedeLeer/escribirValor, pero sin `Authorization`: una petición sin sesión.
+   Devuelve 'R' o 'W' si la regla la dejó pasar, '—' si la denegó. */
+async function pedirSinToken(metodo, doc) {
+  const r = metodo === 'GET'
+    ? await fetch(RUTA(doc))
+    : await fetch(RUTA(doc) + '?updateMask.fieldPaths=value', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fields: { value: { stringValue: '{"modo":"goles_desc","ordenManual":[]}' } } }),
+    });
+  if (r.ok) return metodo === 'GET' ? 'R' : 'W';
+  const cuerpo = await r.json().catch(() => ({}));
+  const estado = (cuerpo.error && cuerpo.error.status) || String(r.status);
+  if (estado === 'NOT_FOUND') return 'R';
+  if (estado === 'PERMISSION_DENIED' || estado === 'UNAUTHENTICATED') return '—';
+  throw new Error(`respuesta inesperada sin token sobre ${doc}: ${estado}`);
+}
+
+/* Corre `fn` y al terminar deja la preferencia de `cuenta` ({ idToken, uid }) como estaba antes:
+   la reescribe, o borra el documento si no existía. */
+async function conPreferenciaRestaurada(cuenta, fn) {
+  const doc = PREFERENCIA(cuenta.uid);
+  const previa = await leerValor(cuenta.idToken, doc);
+  try { return await fn(); }
+  finally {
+    if (previa === null) await borrarDoc(cuenta.idToken, doc).catch(() => {});
+    else await escribirValor(cuenta.idToken, doc, previa);
+  }
+}
 
 if (HAY_CUENTAS) {
   /* Las sesiones se abren una vez y se comparten entre los casos: cada `signInWithPassword` es un
@@ -492,6 +563,113 @@ if (HAY_CUENTAS) {
     ok(fs.existsSync(sonda), 'tools/medir-arranque.js debería existir: es lo que vuelve medible NFR-002 y NFR-004');
     const fuente = fs.readFileSync(sonda, 'utf8');
     ok(fuente.includes('__lecturas'), 'y contar las lecturas por colección');
+  });
+
+  /* ---- orden-por-columnas: la preferencia de orden de cada cuenta (Spec S-20, TC-040) ---- */
+
+  prueba('"orden/S-20" una cuenta jugador que escribe la preferencia del admin es rechazada y la del admin no cambia', async () => {
+    const s = await abrir();
+    const antes = await leerValor(s.admin.idToken, PREFERENCIA(s.admin.uid));
+    eq(await escribirValor(s.jugador.idToken, PREFERENCIA(s.admin.uid), '{"modo":"asist_desc","ordenManual":[]}'), '—',
+      'la escritura sobre la preferencia ajena se rechaza (TC-040)');
+    eq(await leerValor(s.admin.idToken, PREFERENCIA(s.admin.uid)), antes, 'y la preferencia del admin sigue igual');
+  });
+
+  prueba('"orden/S-20a" una cuenta jugador que lee la preferencia del admin es rechazada', async () => {
+    const s = await abrir();
+    eq(await puedeLeer(s.jugador.idToken, PREFERENCIA(s.admin.uid)), '—', 'lectura ajena denegada (TC-040, CWE-200)');
+  });
+
+  prueba('"orden/S-20b" una cuenta admin que lee o escribe la preferencia del jugador es rechazada', async () => {
+    const s = await abrir();
+    const antes = await leerValor(s.jugador.idToken, PREFERENCIA(s.jugador.uid));
+    eq(await puedeLeer(s.admin.idToken, PREFERENCIA(s.jugador.uid)), '—', 'ser admin no habilita leer la ajena');
+    eq(await escribirValor(s.admin.idToken, PREFERENCIA(s.jugador.uid), '{"modo":"goles_desc","ordenManual":[]}'), '—', 'ni escribirla');
+    eq(await leerValor(s.jugador.idToken, PREFERENCIA(s.jugador.uid)), antes, 'y la del jugador sigue igual');
+  });
+
+  prueba('"orden/S-20c" una cuenta sin claim rol no lee ni escribe su propia preferencia', async () => {
+    /* Mismo procedimiento que rol/S-20b: se le quita el claim a la cuenta admin, se pide un token
+       nuevo, y al terminar se le devuelve. */
+    if (!HAY_LLAVE) return fallar('este caso necesita ROL_TEST_LLAVE: hay que quitar y devolver un claim');
+    const { cargarSdk } = require('../tools/rol.js');
+    const sdk = cargarSdk(LLAVE);
+    const s = await abrir();
+    const uid = s.admin.uid;
+    const previos = (await sdk.auth.getUser(uid)).customClaims || {};
+    const antes = await leerValor(s.admin.idToken, PREFERENCIA(uid));
+    try {
+      await sdk.auth.setCustomUserClaims(uid, {});
+      const sinClaim = await refrescar(s.admin.refreshToken);
+      eq(claimsDe(sinClaim).rol, undefined, 'el token nuevo efectivamente no trae el claim');
+      eq(await puedeLeer(sinClaim, PREFERENCIA(uid)), '—', 'sin claim no lee la propia (OPEN-Q-13)');
+      eq(await escribirValor(sinClaim, PREFERENCIA(uid), '{"modo":"pj_desc","ordenManual":[]}'), '—', 'ni la escribe');
+    } finally {
+      await sdk.auth.setCustomUserClaims(uid, previos);
+      await asignar(sdk, { cuenta: CUENTAS_TEST.admin.user, rol: previos.rol || 'admin' });
+    }
+    const conClaim = await refrescar(s.admin.refreshToken);
+    eq(await leerValor(conClaim, PREFERENCIA(uid)), antes, 'y la preferencia quedó como estaba');
+  });
+
+  prueba('"orden/S-20d" una cuenta jugador que escribe data/players es rechazada, como antes', async () => {
+    const s = await abrir();
+    eq(await puedeEscribir(s.jugador.idToken, 'data/players'), '—', 'la regla de data/players no cambió (TC-041)');
+  });
+
+  prueba('"orden/S-20e" una petición sin sesión no lee ni escribe ninguna preferencia', async () => {
+    const s = await abrir();
+    for (const uid of [s.admin.uid, s.jugador.uid]) {
+      eq(await pedirSinToken('GET', PREFERENCIA(uid)), '—', `sin sesión no se lee ${PREFERENCIA(uid)}`);
+      eq(await pedirSinToken('PATCH', PREFERENCIA(uid)), '—', `sin sesión no se escribe ${PREFERENCIA(uid)}`);
+    }
+  });
+
+  prueba('"orden/S-20f" cada cuenta lee y escribe su propia preferencia', async () => {
+    const s = await abrir();
+    for (const rolNombre of ['admin', 'jugador']) {
+      const cuenta = s[rolNombre];
+      await conPreferenciaRestaurada(cuenta, async () => {
+        const valor = JSON.stringify({ modo: 'goles_desc', ordenManual: ['sonda-' + rolNombre] });
+        eq(await escribirValor(cuenta.idToken, PREFERENCIA(cuenta.uid), valor), 'W', `${rolNombre} escribe la suya`);
+        eq(await leerValor(cuenta.idToken, PREFERENCIA(cuenta.uid)), valor, `${rolNombre} lee la suya`);
+      });
+    }
+  });
+
+  prueba('"orden/S-03a" dos escrituras seguidas de la misma cuenta: la lectura devuelve la última', async () => {
+    const s = await abrir();
+    await conPreferenciaRestaurada(s.admin, async () => {
+      const primera = JSON.stringify({ modo: 'pj_desc', ordenManual: [] });
+      const segunda = JSON.stringify({ modo: 'goles_desc', ordenManual: [] });
+      eq(await escribirValor(s.admin.idToken, PREFERENCIA(s.admin.uid), primera), 'W', 'la primera');
+      eq(await escribirValor(s.admin.idToken, PREFERENCIA(s.admin.uid), segunda), 'W', 'la segunda');
+      eq(await leerValor(s.admin.idToken, PREFERENCIA(s.admin.uid)), segunda, 'gana la última escritura (R11 del Concept)');
+    });
+  });
+
+  prueba('"orden/NFR-006" ninguna cuenta lee ni escribe la preferencia de otra', async () => {
+    const s = await abrir();
+    const cruces = [['jugador', 'admin'], ['admin', 'jugador']];
+    const concedidos = [];
+    for (const [quien, deQuien] of cruces) {
+      const doc = PREFERENCIA(s[deQuien].uid);
+      if (await puedeLeer(s[quien].idToken, doc) === 'R') concedidos.push(`${quien} lee la de ${deQuien}`);
+      if (await escribirValor(s[quien].idToken, doc, '{"modo":"manual","ordenManual":[]}') === 'W') concedidos.push(`${quien} escribe la de ${deQuien}`);
+    }
+    eq(concedidos, [], 'permisos concedidos de más sobre preferencias ajenas');
+  });
+
+  prueba('"orden/TC-030" el contrato tiene el bloque de la preferencia, no el de playersSortMode, y coincide con la tabla', async () => {
+    const contrato = fs.readFileSync(path.join(__dirname, '..', 'docs', 'rol-en-el-token', 'contracts', 'firestore-rules.md'), 'utf8');
+    const bloque = /^## 4\. Texto nuevo[\s\S]*?```\n([\s\S]*?)```/m.exec(contrato);
+    ok(bloque, 'el contrato debería tener su §4 con el bloque de reglas');
+    ok(bloque[1].includes('match /preferenciasOrden/{uid}'), 'el texto de §4 tiene el bloque preferenciasOrden/{uid} (TC-030)');
+    ok(!bloque[1].includes('match /data/playersSortMode'), 'y ya no tiene el de data/playersSortMode (FR-048)');
+    ok(!/match\s+\/data\/\{/.test(bloque[1]) && !/match\s+\/\{/.test(bloque[1]), 'ni ningún comodín sobre data ni sobre colecciones (TC-014)');
+    ok(contrato.includes('`preferenciasOrden/{uid}`'), 'la tabla de §3 tiene la fila de la preferencia');
+    const fila = EQUIVALENCIA.find(f => f.doc === 'data/playersSortMode');
+    eq(fila && [fila.admin, fila.jugador], ['', ''], 'EQUIVALENCIA deja data/playersSortMode sin permisos para los dos roles');
   });
 }
 

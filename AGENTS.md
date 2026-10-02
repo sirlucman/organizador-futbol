@@ -210,6 +210,7 @@ node tests/toque.test.js                  # la carga por toque: validación, bor
 node tests/escapado.test.js               # el escapado del texto de jugador (AGENTS.md → Estilo)
 node tests/colores.test.js                # intercambiar colores: qué se invierte, dos veces = identidad
 node tests/puestos.test.js                # los ocho puestos: catálogo, motor, ficha, bloqueo, cancha, lo guardado
+node tests/orden.test.js                  # el orden del listado: comparador, preferencia leída, soltado, títulos
 node tests/layout.test.js                 # el layout responsive (Principio V)
 LAYOUT_STRICT=1 node tests/layout.test.js # en CI: la ausencia de Playwright falla
 node tests/sesion.test.js                 # el rol desde el claim del token: fail-closed, refresco acotado

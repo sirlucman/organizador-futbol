@@ -29,6 +29,16 @@ contrato se escribe en dos pasos, y el primero es de **lectura**.
 | 4 | Publicar en staging y verificar | ✅ hecho el 2026-09-10. `REGLAS_STRICT=1 node tests/reglas.test.js`: **20/20** |
 | 5 | Publicar en producción y verificar | ✅ hecho el 2026-09-10, con las **dos** cuentas — ver §6 |
 
+**Publicación de `orden-por-columnas`** ([Implementation Plan](../../orden-por-columnas/ORDEN_POR_COLUMNAS_IMPLEMENTATION_PLAN.md)
+`TD-17`, Spec `TC-030`). Una sola publicación por proyecto, que **agrega** el bloque
+`match /preferenciasOrden/{uid}` y **saca** el de `data/playersSortMode` (§3, §4). Primero
+staging, antes de probar la rama; después producción, inmediatamente antes del merge.
+
+| Proyecto | Qué | Estado |
+|---|---|---|
+| `organizador-futbol-staging` | Publicar el texto de §4 y correr `REGLAS_STRICT=1 node tests/reglas.test.js` (casos `rol/*` y `orden/*`) | ✅ publicado por el propietario el 2026-10-02 (`T-2.15`). `REGLAS_STRICT=1 node tests/reglas.test.js`: **30/30**. Al terminar, `preferenciasOrden` sin documentos y los claims de las dos cuentas intactos |
+| `organizador-futbol` (producción) | Publicar el mismo texto | ✅ publicado por el propietario el 2026-10-02 (`T-2.20`), inmediatamente antes del merge de `feature/orden-por-columnas` |
+
 > ✅ **El paso 1b está cumplido (2026-09-10).** `TC-041` obligaba a verificar la
 > equivalencia contra las **reglas vivas**, no contra el contrato committeado de
 > `007`, porque ese contrato está *probadamente incompleto*. El texto de las dos
@@ -223,7 +233,8 @@ Leyenda: **R** = read, **W** = write, **—** = denegado.
 | `userRoles/{uid}` | R (sólo el propio) | **—** | R (sólo el propio) | **—** | **Sí**, a propósito: `TC-012`, `FR-012`. Es el único cambio de permisos de la feature |
 | `data/players` | R W | R W | R | R | No |
 | `data/partidos` | R W | R W | R W | R W | No. Sigue vigente la limitación aceptada de [`research.md`](../../007-permisos-por-usuario/research.md) §3 |
-| `data/playersSortMode` | R W | R W | **R** | **R** | No. **Bloque nuevo en el contrato**, no en las reglas: ya existía vivo (§2.3, hallazgo A). El `jugador` lee pero **no escribe**, medido (§2.3, hallazgo C) — la interfaz lo deja cambiar el orden y la escritura falla en silencio. Limitación preexistente, preservada tal cual |
+| `data/playersSortMode` | R W | **—** | **R** | **—** | **Sí, por `orden-por-columnas`** (Spec `FR-048`): el bloque se retira y el documento queda sin lector ni escritor; la app ya no lo lee. Antes de esa feature: R W para admin y sólo R para `jugador`, medido (§2.3, hallazgos A y C) |
+| `preferenciasOrden/{uid}` | — | R W (**sólo el propio**) | — | R W (**sólo el propio**) | **Sí, por `orden-por-columnas`** (Spec `TC-040`): la preferencia de orden del listado de cada cuenta. La lee y la escribe sólo la cuenta cuyo `uid` es el del documento, y sólo con `rol` `admin` o `jugador`; ninguna otra cuenta la lee ni la escribe. Ruta explícita, sin comodín sobre `data` ni sobre colecciones (`TC-014`) |
 | `data/motorConfig` | R W | R W | — | — | No |
 | `data/playerScores` | R W | R W | — | — | No |
 | `data/partidosArmado` | R W | R W | — | — | No |
@@ -278,13 +289,14 @@ service cloud.firestore {
       allow write: if request.auth != null && request.auth.token.rol in ['admin', 'jugador'];
     }
 
-    // Orden del listado de jugadores (orden-jugadores, FR-051). Lo LEEN las dos cuentas y lo
-    // escribe sólo admin — medido contra staging, no deducido. La interfaz deja a una cuenta
-    // jugador cambiar el selector, y esa escritura se rechaza acá y falla en silencio: es una
-    // limitación preexistente que esta feature preserva sin tocar (contrato §2.3, hallazgo C).
-    match /data/playersSortMode {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.token.rol == 'admin';
+    // ---- de cada cuenta ----
+
+    // Preferencia de orden del listado de jugadores (orden-por-columnas, TC-040): la lee y la
+    // escribe sólo su dueño, y sólo con un rol reconocido. El uid de la ruta lo elige el cliente;
+    // esta condición lo ata al token. Reemplaza a data/playersSortMode, que era uno solo para
+    // todos y se retiró (FR-048).
+    match /preferenciasOrden/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid && request.auth.token.rol in ['admin', 'jugador'];
     }
 
     // ---- sólo admin: los seis de DOCS_SOLO_ADMIN (index.html) ----
