@@ -6,7 +6,7 @@
 >
 > **Concept note:** [ORDEN_POR_COLUMNAS_CONCEPT.md](./ORDEN_POR_COLUMNAS_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [ORDEN_POR_COLUMNAS_IMPLEMENTATION_PLAN.md](./ORDEN_POR_COLUMNAS_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5 *Sources &
 > Origins* del Concept Note. Donde un `FR-*`/`NFR-*`/`TC-*` se apoya en una ubicación de
@@ -366,7 +366,8 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
   orden en que aparecen en pantalla (Pos, Jugador, PJ, Goles, Asist, Pts), una opción por
   sentido, primero la del primer sentido; ninguna opción será Manual (`D-04`).
 - **FR-027** — While el criterio es Manual, la casilla del menú mostrará "Ordenar por…", que
-  no figura entre sus opciones (`OPEN-Q-12`).
+  no figura entre sus opciones (`OPEN-Q-12`). En Safari de iOS figura al principio de la
+  lista, deshabilitada y sin poder elegirse (`A-07`, aceptado por el propietario el 2026-10-02).
 - **FR-028** — When la ventana cruza los 760px, el sistema conservará el orden activo y el
   control que aparece lo reflejará.
 
@@ -439,7 +440,7 @@ Los IDs `FR-050`–`FR-053` no se usan, para no confundirse con los de OJ que es
 | NFR-001 | Performance | La mediana del **arranque completo** que informa `tools/medir-arranque.js --caso=vigente --corridas=5`, contra staging, sube **como máximo 50 ms** respecto de la misma medición en `main` antes de la feature (`OPEN-Q-14`). El arranque completo incluye la espera de la lectura de Firestore, ~620 ms de mediana (Roadmap §3; `tools/medir-arranque.js:23-26`). Si la diferencia supera 50 ms, se repiten las dos mediciones con `--corridas=10` antes de darlo por fallado, y se informan todas las corridas. |
 | NFR-002 | Performance | El total de lecturas de un arranque no cambia: la colección `data` pasa de 9 a 8 documentos para admin y de 3 a 2 para `jugador` (sale `playersSortMode`), y la colección de preferencias suma exactamente 1, medido por colección con `tools/medir-arranque.js --lecturas`. |
 | NFR-003 | Performance | Con 500 jugadores, el comparador del orden ordena la lista completa en **≤ 50 ms** para cada criterio y sentido, medido en Node con un plantel sintético. 50 ms son tres cuadros a 60 Hz: el repintado no se percibe como espera. Que no se espere a la red lo fijan `FR-057` y `FR-058`. |
-| NFR-004 | Accessibility | Cada título ordenable es un `button` dentro de su celda; la columna activa lleva `aria-sort` (`ascending`/`descending`) y es la **única** que lo lleva; en Manual ninguna lo lleva; los títulos se alcanzan con Tab y se activan con Enter y Espacio; el foco es visible (WAI-ARIA APG *Sortable Table*, Concept §6.5; WCAG 2.1 AA). El arrastre sigue sin alternativa de teclado (`NFR-006` y `A-05` de OJ, extendidos a `jugador`). |
+| NFR-004 | Accessibility | Cada título ordenable es un `button` dentro de su celda; el nombre accesible del botón de la columna activa dice la columna **y** el sentido ("Goles, de mayor a menor"; "Jugador, de la A a la Z"), y el de las demás dice sólo la columna; en Manual ninguno dice sentido; los títulos se alcanzan con Tab y se activan con Enter y Espacio; el foco es visible (WCAG 2.1 AA). No se usa `aria-sort`: sólo vale en un `columnheader` dentro de una tabla o grilla (MDN, *aria-sort*, "Associated roles", consultado el 2026-10-02), y el listado no está marcado como tabla; marcarlo cambiaría cómo un lector de pantalla recorre toda la lista (decisión del propietario, 2026-10-02). El arrastre sigue sin alternativa de teclado (`NFR-006` y `A-05` de OJ, extendidos a `jugador`). |
 | NFR-005 | Responsive | En 360, 759, 760, 768 y 1200px, con rol admin y con rol `jugador`, la pestaña Jugadores no produce scroll horizontal (`scrollWidth === clientWidth`) y ningún elemento —incluidos "Pos" con su indicador y "Pts" con el suyo— tiene el borde derecho fuera del viewport (`node tests/layout.test.js`; [`AGENTS.md`](../../AGENTS.md) → Responsive). |
 | NFR-006 | Security | Ver §4.5. Ninguna cuenta lee ni escribe la preferencia de otra, verificado contra staging (`TC-040`). |
 | NFR-007 | Observability | Ninguna capa nueva: la app no tiene telemetría (`NFR-005` de OJ). Las señales de `NFR-001`/`NFR-002` son la salida de `tools/medir-arranque.js`. |
@@ -563,13 +564,13 @@ rol, y el intento de escribir `data/players` es `S-20d`.
 - **Given** un admin a 1200px que navega con el teclado
 - **When** llega con Tab al título "PJ" y aprieta Enter
 - **Then** la lista se ordena por PJ descendente
-- **And** el encabezado de PJ tiene `aria-sort="descending"` y ningún otro encabezado tiene `aria-sort`
+- **And** el botón de PJ se anuncia como "Partidos jugados, de mayor a menor" y ningún otro botón anuncia un sentido
 - **When** aprieta Espacio
-- **Then** el sentido se invierte y `aria-sort` pasa a `ascending`
+- **Then** el sentido se invierte y el botón de PJ pasa a anunciarse "de menor a mayor"
 
 **Variants:**
 
-- `S-08a [property]` — en cualquier secuencia de cambios de criterio y arrastres, a lo sumo un encabezado tiene `aria-sort`, y ninguno en Manual.
+- `S-08a [property]` — en cualquier secuencia de cambios de criterio y arrastres, a lo sumo un botón de título anuncia un sentido, y ninguno en Manual.
 - `S-08b [boundary]` — el título de G E P no se alcanza con Tab ni reacciona a Enter (`FR-021`).
 
 #### Scenario S-09 — El encabezado entra en todos los anchos (covers FR-023, NFR-005)
@@ -680,7 +681,7 @@ erDiagram
 
 ### 11.3 Constraint compliance
 
-- **AC-15** — `TC-001`, `TC-002`, `TC-010`–`TC-013`, `TC-015` y `TC-033` verificados por
+- **AC-15** — `TC-001`, `TC-002`, `TC-010`, `TC-011`, `TC-012`, `TC-013`, `TC-015` y `TC-033` verificados por
   revisión de código contra las ubicaciones citadas; `TC-015` además por `tests/sesion.test.js`
   (las lecturas del arranque salen juntas).
 - **AC-16** — `TC-040`, `TC-041` y `TC-014` verificados por `REGLAS_STRICT=1 node
@@ -692,7 +693,8 @@ erDiagram
 - **AC-18** — `TC-042`, `TC-043` y `TC-044` verificados por tests unitarios de `S-04b`,
   `S-05f` y `S-07b`, y por un test de escapado sobre una preferencia con texto HTML.
 - **AC-19** — `TC-031` verificado porque `node tests/sesion.test.js` y `node
-  tests/layout.test.js` pasan con las listas y los conteos nuevos.
+  tests/layout.test.js` pasan con las listas y los conteos nuevos. `TC-032` y `TC-034` están
+  retirados y no tienen chequeo propio: los cubre `AGENTS.md`.
 
 ### 11.4 Negative / safety acceptance
 
@@ -756,6 +758,9 @@ staging y de producción (Concept §12).
 - **A-06** — El `orden` de `data/players` que existe hoy es el orden manual compartido que ven
   todos: la migración de `FR-060` de OJ ya corrió. `[UNVERIFIED — verificar en los datos de
   producción antes de dar por bueno AC-02]`
+- **A-07** — Safari de iOS no esconde una opción marcada `hidden` en un menú desplegable: la
+  muestra deshabilitada. `[UNVERIFIED — conocimiento general, no probado en un iPhone; se
+  verifica en el Plan]`
 
 ## 15. Risks
 
@@ -786,7 +791,7 @@ staging y de producción (Concept §12).
 - **Plan must resolve:** OPEN-Q-05, OPEN-Q-15, OPEN-Q-16.
 - **Marcar el reemplazo en OJ:** las partes de la Declaración de reemplazo quedan marcadas en
   OJ en la rama de esta Spec, antes de su merge.
-- **Deuda de verificación (`MD-26`):** `A-02`, `A-05` y `A-06` llevan `[UNVERIFIED]`; `A-06`
+- **Deuda de verificación (`MD-26`):** `A-02`, `A-05`, `A-06` y `A-07` llevan `[UNVERIFIED]`; `A-06`
   se salda antes de `AC-02`, y `A-05` con `S-05h` en un teléfono. La del CWE Top 25 quedó
   saldada en §4.5; la del patrón habitual de tablas (Concept §6.5, §7.1) no condiciona ningún
   requisito y queda como estaba.
@@ -799,6 +804,7 @@ staging y de producción (Concept §12).
 |---|---|---|
 | 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Initial draft desde el Concept Note. Resuelve con el propietario `OPEN-Q-01`, `02`, `04`, `07`, `09`, `10`, `11`, `12`, `13` y `14`; `OPEN-Q-05` pasa al Plan; agrega `OPEN-Q-15` y `OPEN-Q-16`. CWE Top 25 2025 consultado en vivo. Self-critique: skipped. |
 | 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Incorpora la crítica [`ORDEN_POR_COLUMNAS_SPEC_CRITIQUE_2026-10-02_sonnet-5-5.md`](./ORDEN_POR_COLUMNAS_SPEC_CRITIQUE_2026-10-02_sonnet-5-5.md) (1🔴 / 7🟡 / 6🔵). 🔴 4: la Declaración de reemplazo suma §1, §5.1, `FR-001`/`002`/`010`/`011`/`012`/`050`/`051` por separado, `NFR-001`–`003`, `S-02`/`S-03` (en el disparador), `AC-01`, `AC-10`, `AC-11`, `AC-15`, el riesgo del no-admin y `OPEN-Q-03`, y amplía "No reemplaza". 🟡: 1 (`A-03`), 2 (`NFR-002` por colección), 3 (viñetas 1, 2, 4 y 6; una fila por parte, con la misma redacción que las notas de OJ), 5 (`TC-031` suma los conteos de `tests/layout.test.js`), 6 (`S-01i`, `S-01j`, `S-01k`, rótulos en `S-09`, valores en `S-05c`), 7 (se parten `FR-020`, `FR-041`, `FR-043`–`FR-045`, `FR-047`: nuevos `FR-029`, `FR-054`–`FR-058`), 8 (`FR-039`: elegir una columna conserva el orden manual guardado, según Concept §8.2). 🔵: 9 (`TC-032`, `TC-034` retirados), 10, 11 (`NFR-001` nombra el arranque completo y la repetición; `NFR-003` justifica los 50 ms), 12 (`TC-014`), 13 (sólo `tests/sesion.test.js:261-273`: `tests/reglas.test.js:288-302` es correcto, la tabla cierra en 302), 14 (nombre completo de `CWE-770`; pertenencia a la lista 2025 verificada). Self-critique: no corresponde (incorporación de una crítica independiente). |
+| 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Dos enmiendas que surgieron al derivar el Implementation Plan, decididas por el propietario: `NFR-004`, `S-08` y `S-08a` cambian `aria-sort` por el nombre accesible del botón, porque `aria-sort` sólo vale dentro de una tabla y el listado no lo es; `FR-027` y la nueva `A-07` registran que Safari de iOS muestra "Ordenar por…" deshabilitada en la lista. Además, por el gate `T-1.D10b` del Plan: `AC-15` enumera `TC-011` y `TC-012`, que el rango `TC-010`–`TC-013` escondía, y `AC-19` declara retirados `TC-032` y `TC-034`. El encabezado enlaza el Plan. Self-critique: skipped (enmienda puntual; el Plan corre su propia crítica). |
 
 ---
 
