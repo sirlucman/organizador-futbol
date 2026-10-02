@@ -184,7 +184,7 @@ Custom arc: 2 branches — AGENTS.md § Ramas (decisión 11 del Concept Note de 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
 | 1 | `docs/orden-por-columnas` | `main` | In progress | — | — | Concept Note y Spec ya mergeados (`89f58b0`, `4d6306d`); esta rama suma el Plan y dos enmiendas de la Spec |
-| 2 | `feature/orden-por-columnas` | `main` | Not started | — | — | Se crea desde `main` una vez mergeada la 1 |
+| 2 | `feature/orden-por-columnas` | `main` | In progress | — | — | Creada desde `main` en `e8141fd` el 2026-10-02 |
 
 ```mermaid
 flowchart LR
@@ -390,44 +390,56 @@ docs/orden-por-columnas/ORDEN_POR_COLUMNAS_IMPLEMENTATION_PLAN.md   (estado, med
 
 Implementation tasks (grouped into atomic commits):
 
-- [ ] T-2.1 En `main`, antes de crear la rama: `node tools/medir-arranque.js --caso=vigente --corridas=5` y `--lecturas` contra staging. Anotar las dos medianas y el conteo por colección en este Plan (`NFR-001`, `NFR-002`). Sin esto no hay línea de base
-- [ ] T-2.2 Ampliar `ORDEN_MODOS` y, en el mismo commit, `ORDEN_MODO_LABELS` con los rótulos de `TD-11` (sin esto el menú muestra ocho opciones `undefined` hasta `T-2.C5`); agregar `PRIMER_SENTIDO`, `modoTrasElegirColumna`, `normalizarPreferenciaOrden`, `ordenManualTrasSoltar`, `etiquetaTituloOrden`, y el tercer parámetro y los modos nuevos de `sortRoster` (`TD-04` a `TD-06`, `TD-08`, `TD-09`). Si `sortRoster` usa `fullName`, sumarlo a `DECLARACIONES_FICHA` de `tests/puestos.test.js` en el mismo commit
-- [ ] T-2.C1 Commit — `feat(orden-por-columnas): ordena por seis columnas (FR-001, FR-005)`
+- [x] T-2.1 En `main`, antes de crear la rama: `node tools/medir-arranque.js --caso=vigente --corridas=5` y `--lecturas` contra staging. Anotar las dos medianas y el conteo por colección en este Plan (`NFR-001`, `NFR-002`). Sin esto no hay línea de base
+  - **Medido el 2026-10-02 sobre `main` en `e8141fd`**, contra staging, desde la misma máquina y red, cuenta admin.
+  - `--caso=vigente --corridas=5`: arranque completo 968, 1066, 1094, 718, 1218 ms → **mediana 1066 ms**; hueco de la solapa **mediana 0 ms**; refrescos 0; frames incompletos 0.
+  - `--caso=vigente --lecturas` (3 corridas por defecto), admin: `data` = 9, 9, 9 → **mediana 9**; `userRoles` 0; ninguna otra colección.
+  - Mismo comando con la cuenta `jugador` (no lo pide la tarea; sirve de base para los 3 → 2 de `NFR-002`): `data` = 3, 3, 3 → **mediana 3**; `userRoles` 0.
+  - Dispersión observada: 500 ms entre la corrida más rápida y la más lenta, diez veces el margen de 50 ms de `NFR-001`. Si `T-2.19` sale por encima del margen, la repetición con `--corridas=10` que prevé la tarea es la que decide
+- [x] T-2.2 Ampliar `ORDEN_MODOS` y, en el mismo commit, `ORDEN_MODO_LABELS` con los rótulos de `TD-11` (sin esto el menú muestra ocho opciones `undefined` hasta `T-2.C5`); agregar `PRIMER_SENTIDO`, `modoTrasElegirColumna`, `normalizarPreferenciaOrden`, `ordenManualTrasSoltar`, `etiquetaTituloOrden`, y el tercer parámetro y los modos nuevos de `sortRoster` (`TD-04` a `TD-06`, `TD-08`, `TD-09`). Si `sortRoster` usa `fullName`, sumarlo a `DECLARACIONES_FICHA` de `tests/puestos.test.js` en el mismo commit
+- [x] T-2.C1 Commit — `feat(orden-por-columnas): ordena por seis columnas (FR-001, FR-005)`
 
-- [ ] T-2.3 Crear `tests/orden.test.js` con los casos **puros** de §7.3.6: unitarios, de propiedad, `'orden/S-08a'` y `'orden/NFR-003'`. Los casos sobre la fuente (`'orden/S-03b'`, `'orden/TC-013'`, `'orden/TC-044'`, `'orden/S-06'`/`'orden/TC-041'`) entran en el commit que vuelve verdadera su condición (`T-2.21` a `T-2.23`), para que cada commit pase los tests (§5)
-- [ ] T-2.4 [P] Sumar `node tests/orden.test.js` a `tests/README.md` y a `AGENTS.md` § Tests
-- [ ] T-2.C2 Commit — `test(orden-por-columnas): cubre el comparador y el soltado (S-01, S-05)`
+- [x] T-2.3 Crear `tests/orden.test.js` con los casos **puros** de §7.3.6: unitarios, de propiedad, `'orden/S-08a'` y `'orden/NFR-003'`. Los casos sobre la fuente (`'orden/S-03b'`, `'orden/TC-013'`, `'orden/TC-044'`, `'orden/S-06'`/`'orden/TC-041'`) entran en el commit que vuelve verdadera su condición (`T-2.21` a `T-2.23`), para que cada commit pase los tests (§5)
+- [x] T-2.4 [P] Sumar `node tests/orden.test.js` a `tests/README.md` y a `AGENTS.md` § Tests
+- [x] T-2.C2 Commit — `test(orden-por-columnas): cubre el comparador y el soltado (S-01, S-05)`
 
-- [ ] T-2.5 `fakeFirebase`: opción `uid`, clave compuesta fuera de `data`, `currentUser` (`TD-15`). Correr todo `tests/layout.test.js`: sin cambios en la app, tiene que seguir pasando
-- [ ] T-2.C3 Commit — `test(tests): el doble de firebase distingue colecciones y cuentas`
+- [x] T-2.5 `fakeFirebase`: opción `uid`, clave compuesta fuera de `data`, `currentUser` (`TD-15`). Correr todo `tests/layout.test.js`: sin cambios en la app, tiene que seguir pasando
+- [x] T-2.C3 Commit — `test(tests): el doble de firebase distingue colecciones y cuentas`
 
-- [ ] T-2.6 Declarar `window.preferenciaDeOrden` y `pedirPreferenciaOrden` (`TD-02`); cambiar `iniciarLecturas`/`loadAll` (`TD-14`); reemplazar `playersSortMode` por `ordenActivo`/`ordenManualCuenta` (`TD-07`); `aplicarOrden`, `guardarPreferenciaOrden`; el listener de `#ordenModo` llama a `aplicarOrden` y deja de escribir `playersSortMode` (`FR-048`); `getFiltered` pasa `ordenManualCuenta` a `sortRoster`
-- [ ] T-2.7 En el mismo commit: `tests/sesion.test.js` (listas y stub), conteos de `rol-*-primer-pintado` en `tests/layout.test.js` con `'orden/NFR-002'`, y la línea `orden/NFR-001`/`orden/NFR-002` del informe de `tools/medir-arranque.js` (`TC-031`)
-- [ ] T-2.21 [P] Sumar a `tests/orden.test.js` `'orden/TC-013'` y `'orden/S-03b'`
-- [ ] T-2.C4 Commit — `feat(orden-por-columnas): guarda el orden por cuenta (FR-040, FR-048)`
+- [x] T-2.6 Declarar `window.preferenciaDeOrden` y `pedirPreferenciaOrden` (`TD-02`); cambiar `iniciarLecturas`/`loadAll` (`TD-14`); reemplazar `playersSortMode` por `ordenActivo`/`ordenManualCuenta` (`TD-07`); `aplicarOrden`, `guardarPreferenciaOrden`; el listener de `#ordenModo` llama a `aplicarOrden` y deja de escribir `playersSortMode` (`FR-048`); `getFiltered` pasa `ordenManualCuenta` a `sortRoster`
+- [x] T-2.7 En el mismo commit: `tests/sesion.test.js` (listas y stub), conteos de `rol-*-primer-pintado` en `tests/layout.test.js` con `'orden/NFR-002'`, y la línea `orden/NFR-001`/`orden/NFR-002` del informe de `tools/medir-arranque.js` (`TC-031`)
+- [x] T-2.21 [P] Sumar a `tests/orden.test.js` `'orden/TC-013'` y `'orden/S-03b'`
+- [x] T-2.C4 Commit — `feat(orden-por-columnas): guarda el orden por cuenta (FR-040, FR-048)`
 
-- [ ] T-2.8 Escribir los escenarios `orden-encabezado`, `orden-encabezado-jugador`, `orden-titulo` y `orden-teclado` y **correrlos sin el cambio de encabezado**: tienen que fallar por "no hay botón de título". Guardar la salida para el PR. No se commitea todavía
-- [ ] T-2.9 Encabezado con botones, indicador, CSS de `.roster-orden` y menú escondido desde 760px; `renderOrdenModoSelect` con "Ordenar por…" (`TD-09` a `TD-11`); `window.__ordenarPorColumna`
-- [ ] T-2.10 Medir `orden-encabezado` a 760 con el orden en Pos: si el indicador sale de su celda, aplicar los `40px` de `TD-10` en las dos grillas y volver a medir. Anotar el resultado en §15.1 (`OPEN-Q-16`). Después, con el escenario en verde, forzar a mano `--roster-cols` a una primera columna de `20px`, confirmar que `orden-encabezado` falla **por el borde del indicador fuera de su celda**, revertir, y guardar esa salida para el PR junto con la de `T-2.8` (`AGENTS.md` § Responsive: la aserción de contención tiene que verse roja por su propia causa)
-- [ ] T-2.22 [P] Sumar a `tests/orden.test.js` `'orden/TC-044'`
-- [ ] T-2.C5 Commit — `feat(orden-por-columnas): ordena tocando el título (FR-020, FR-022)`, incluye `T-2.8` a `T-2.10` y `T-2.22`
+- [x] T-2.8 Escribir los escenarios `orden-encabezado`, `orden-encabezado-jugador`, `orden-titulo` y `orden-teclado` y **correrlos sin el cambio de encabezado**: tienen que fallar por "no hay botón de título". Guardar la salida para el PR. No se commitea todavía
+- [x] T-2.9 Encabezado con botones, indicador, CSS de `.roster-orden` y menú escondido desde 760px; `renderOrdenModoSelect` con "Ordenar por…" (`TD-09` a `TD-11`); `window.__ordenarPorColumna`
+- [x] T-2.10 Medir `orden-encabezado` a 760 con el orden en Pos: si el indicador sale de su celda, aplicar los `40px` de `TD-10` en las dos grillas y volver a medir. Anotar el resultado en §15.1 (`OPEN-Q-16`). Después, con el escenario en verde, forzar a mano `--roster-cols` a una primera columna de `20px`, confirmar que `orden-encabezado` falla **por el borde del indicador fuera de su celda**, revertir, y guardar esa salida para el PR junto con la de `T-2.8` (`AGENTS.md` § Responsive: la aserción de contención tiene que verse roja por su propia causa)
+- [x] T-2.22 [P] Sumar a `tests/orden.test.js` `'orden/TC-044'`
+- [x] T-2.C5 Commit — `feat(orden-por-columnas): ordena tocando el título (FR-020, FR-022)`, incluye `T-2.8` a `T-2.10` y `T-2.22`
 
-- [ ] T-2.11 Arrastre para cualquier cuenta y soltado sobre la lista completa (`TD-13`); `puedeArrastrar` pasa a `true`
-- [ ] T-2.23 [P] Sumar a `tests/orden.test.js` `'orden/S-06'` y `'orden/TC-041'`
-- [ ] T-2.C6 Commit — `feat(orden-por-columnas): cualquier cuenta arrastra (FR-030, FR-031)`
+- [x] T-2.11 Arrastre para cualquier cuenta y soltado sobre la lista completa (`TD-13`); `puedeArrastrar` pasa a `true`
+- [x] T-2.23 [P] Sumar a `tests/orden.test.js` `'orden/S-06'` y `'orden/TC-041'`
+- [x] T-2.C6 Commit — `feat(orden-por-columnas): cualquier cuenta arrastra (FR-030, FR-031)`
 
-- [ ] T-2.12 Escribir los escenarios `orden-menu`, `orden-cruce`, `orden-persistencia`, `orden-jugador`, `orden-arrastre`, `orden-arrastre-jugador` y `orden-guardado-falla`
-- [ ] T-2.C7 Commit — `test(orden-por-columnas): escenarios de pantalla (S-02..S-06)`
+- [x] T-2.12 Escribir los escenarios `orden-menu`, `orden-cruce`, `orden-persistencia`, `orden-jugador`, `orden-arrastre`, `orden-arrastre-jugador` y `orden-guardado-falla`
+- [x] T-2.C7 Commit — `test(orden-por-columnas): escenarios de pantalla (S-02..S-06)`
 
-- [ ] T-2.13 Contrato de reglas: en §4, bloque `match /preferenciasOrden/{uid} { allow read, write: if request.auth != null && request.auth.uid == uid && request.auth.token.rol in ['admin', 'jugador']; }` y sin el bloque de `data/playersSortMode`; en §3, fila nueva y la de `playersSortMode` en "—" para los dos roles; en §1, una fila de estado para esta publicación (`TC-030`, `TC-040`, `TC-014`)
-- [ ] T-2.14 `tests/reglas.test.js`: casos `orden/*` de §7.3.6 y la fila de `EQUIVALENCIA`. Ayudantes nuevos, junto a `puedeLeer`/`puedeEscribir`: `leerValor(idToken, doc)` (devuelve el campo `value` o `null`), `escribirValor(idToken, doc, valor)`, `pedirSinToken(metodo, doc)` (sin `Authorization`, para `S-20e`), y `conPreferenciaRestaurada(cuenta, fn)`, que lee la preferencia de la cuenta antes de cada caso que escribe (`S-03a`, `S-20f`) y al terminar la restaura, o borra el documento si no existía, para no dejar rastro ni tocar lo que `T-2.17` usa
-- [ ] T-2.C8 Commit — `feat(orden-por-columnas): regla de la preferencia por cuenta (TC-040)`
+- [x] T-2.13 Contrato de reglas: en §4, bloque `match /preferenciasOrden/{uid} { allow read, write: if request.auth != null && request.auth.uid == uid && request.auth.token.rol in ['admin', 'jugador']; }` y sin el bloque de `data/playersSortMode`; en §3, fila nueva y la de `playersSortMode` en "—" para los dos roles; en §1, una fila de estado para esta publicación (`TC-030`, `TC-040`, `TC-014`)
+- [x] T-2.14 `tests/reglas.test.js`: casos `orden/*` de §7.3.6 y la fila de `EQUIVALENCIA`. Ayudantes nuevos, junto a `puedeLeer`/`puedeEscribir`: `leerValor(idToken, doc)` (devuelve el campo `value` o `null`), `escribirValor(idToken, doc, valor)`, `pedirSinToken(metodo, doc)` (sin `Authorization`, para `S-20e`), y `conPreferenciaRestaurada(cuenta, fn)`, que lee la preferencia de la cuenta antes de cada caso que escribe (`S-03a`, `S-20f`) y al terminar la restaura, o borra el documento si no existía, para no dejar rastro ni tocar lo que `T-2.17` usa
+- [x] T-2.C8 Commit — `feat(orden-por-columnas): regla de la preferencia por cuenta (TC-040)`
 
-- [ ] T-2.15 **El propietario publica** las reglas de §4 del contrato en la consola de **staging**. Después: `REGLAS_STRICT=1 node tests/reglas.test.js` pasa entero (los casos `rol/*` y los `orden/*`)
-- [ ] T-2.16 Correr el gate de binding (`T-2.D8`) y cerrar cualquier hueco antes de seguir
-- [ ] T-2.17 Abrir `index.html` localmente contra staging con las dos cuentas, a 360, 759, 760 y 1200 px: ordenar, recargar, arrastrar, recargar, y confirmar que una cuenta no ve los cambios de la otra (`AC-03`). En un iPhone real, abrir el menú en Manual y anotar si "Ordenar por…" aparece deshabilitada o escondida (`A-07`); en el mismo teléfono, arrastrar una fila del listado (`A-05`). Credenciales de staging fuera del repositorio
-- [ ] T-2.18 Confirmar en la consola de producción, sólo leyendo, que los jugadores de `data/players` tienen `orden` (`A-06`, `AC-02`). Si alguno no lo tiene, abrir `R-06` antes de mergear
-- [ ] T-2.19 `node tools/medir-arranque.js --caso=vigente --corridas=5` y `--lecturas` en la rama, contra staging, en la misma red que `T-2.1`. Si la mediana sube más de 50 ms, repetir las dos con `--corridas=10` (`NFR-001`). Anotar todo en este Plan
+- [x] T-2.15 **El propietario publica** las reglas de §4 del contrato en la consola de **staging**. Después: `REGLAS_STRICT=1 node tests/reglas.test.js` pasa entero (los casos `rol/*` y los `orden/*`)
+  - Publicadas por el propietario el 2026-10-02. `REGLAS_STRICT=1 node tests/reglas.test.js`: **30/30**. Antes de publicar, `--solo=orden/` con las reglas viejas daba 5 fallas (ninguna cuenta leía su propia preferencia; una era `orden/S-20c` por falta de llave). Al terminar, `preferenciasOrden` sin documentos en staging y los claims de las dos cuentas intactos
+- [x] T-2.16 Correr el gate de binding (`T-2.D8`) y cerrar cualquier hueco antes de seguir
+  - 2026-10-02: `T-2.D8`, `T-2.D9` y `T-2.D10` vacíos, sin huecos que cerrar
+- [x] T-2.17 Abrir `index.html` localmente contra staging con las dos cuentas, a 360, 759, 760 y 1200 px: ordenar, recargar, arrastrar, recargar, y confirmar que una cuenta no ve los cambios de la otra (`AC-03`). En un iPhone real, abrir el menú en Manual y anotar si "Ordenar por…" aparece deshabilitada o escondida (`A-07`); en el mismo teléfono, arrastrar una fila del listado (`A-05`). Credenciales de staging fuera del repositorio
+  - 2026-10-02: el propietario lo probó en la computadora con las dos cuentas y en un iPhone real, y confirma que todo anda: el orden y el arrastre se conservan al recargar, cada cuenta no ve los cambios de la otra (`AC-03`), y en el iPhone el menú y el arrastre funcionan (`A-05` verificado por el propietario). No se registró si Safari de iOS muestra "Ordenar por…" deshabilitada o escondida (`A-07`); las dos salidas son aceptables según `FR-027`
+- [x] T-2.18 Confirmar en la consola de producción, sólo leyendo, que los jugadores de `data/players` tienen `orden` (`A-06`, `AC-02`). Si alguno no lo tiene, abrir `R-06` antes de mergear
+  - 2026-10-02, sólo lectura con el Admin SDK sobre `organizador-futbol`: **40 jugadores, los 40 con `orden`**, sin valores repetidos; `data/ordenJugadoresMigrado` = `"true"`. `A-06` verificado; `R-06` no se abre
+- [x] T-2.19 `node tools/medir-arranque.js --caso=vigente --corridas=5` y `--lecturas` en la rama, contra staging, en la misma red que `T-2.1`. Si la mediana sube más de 50 ms, repetir las dos con `--corridas=10` (`NFR-001`). Anotar todo en este Plan
+  - **Medido el 2026-10-02 en la rama (`bc60803`)**, contra staging, misma máquina y red que `T-2.1`, cuenta admin.
+  - `--caso=vigente --corridas=5`: 909, 753, 761, 736, 863 ms → **mediana 761 ms**, contra 1066 ms de la línea de base: −305 ms, dentro de +50 ms (`NFR-001`), así que no corresponde repetir con `--corridas=10`. La diferencia es menor que la dispersión entre corridas (~500 ms, `T-2.1`): se lee como "no empeoró", no como una mejora
+  - `--lecturas`, admin: `data` 8, 8, 8 y `preferenciasOrden` 1, 1, 1. Cuenta `jugador`: `data` 2, 2, 2 y `preferenciasOrden` 1, 1, 1. El total por arranque no cambia: 9 y 3, como en `T-2.1` (`NFR-002`)
 - [ ] T-2.C9 Commit — `docs(orden-por-columnas): registra mediciones y verificaciones`
 - [ ] T-2.20 **El propietario publica** las mismas reglas en la consola de **producción**, inmediatamente antes de mergear, y anota la fecha en §1 del contrato (`TD-17`)
 
@@ -682,7 +694,7 @@ logra guardar un arrastre y ve el aviso. Ningún dato del plantel ni de los part
 |---|---|---|---|---|
 | OPEN-Q-05 | ¿Cómo entra el documento por cuenta en la interfaz simple de guardar/leer? | Lucas Manoukian | Resuelta en este Plan | `TD-02`: una interfaz propia, `window.preferenciaDeOrden`, al lado de `window.storage` y no dentro |
 | OPEN-Q-15 | El texto exacto de cada opción del menú | Lucas Manoukian | Resuelta en este Plan | `TD-11`: nombre completo y flecha ("Asistencias ↓"), decisión del propietario del 2026-10-02 |
-| OPEN-Q-16 | Dónde va el indicador y si la columna de 34px se ensancha | — | Branch 2 (`T-2.10`) | `TD-10` fija la regla: a la derecha, 10px; 40px sólo si la medición lo pide. Se anota el resultado acá |
+| OPEN-Q-16 | Dónde va el indicador y si la columna de 34px se ensancha | — | Resuelta en Branch 2 (`T-2.10`, 2026-10-02) | `TD-10` fija la regla: a la derecha, 10px; 40px sólo si la medición lo pide. **Medido:** con 34px, `orden-encabezado` y `orden-encabezado-jugador` fallaron de 760 a 1200px porque el botón "Pos" con su indicador mide 35px (p. ej. a 760: indicador en 58–68 contra la celda 33–67). Se aplicaron los 40px en las dos grillas y los dos escenarios pasan en los diecisiete anchos. Con la primera columna forzada a 20px los dos fallan por el indicador fuera de su celda (p. ej. 58–68 contra 33–53), y se revirtió |
 | OPEN-Q-17 | ¿Se cumple `A-05` de la Spec: el arrastre del listado funciona en un teléfono? `[UNVERIFIED]` heredado | Lucas Manoukian | Branch 2 (`T-2.17`) | Si no, `R-09` |
 | OPEN-Q-18 | ¿Se cumple `A-06` de la Spec: todo jugador de producción tiene `orden`? `[UNVERIFIED]` heredado | Lucas Manoukian | Branch 2 (`T-2.18`) | Si no, `R-06` |
 | OPEN-Q-19 | ¿Se cumple `A-07` de la Spec: Safari de iOS muestra la opción `hidden`? `[UNVERIFIED]` heredado | Lucas Manoukian | Branch 2 (`T-2.17`) | Si no la muestra, mejor: `FR-027` sin excepción |
