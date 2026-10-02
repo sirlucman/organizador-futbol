@@ -22,34 +22,59 @@
 >
 > | Parte de OJ | Línea | Qué deja de ser cierto | Reemplazado por |
 > |---|---|---|---|
+> | §1 Purpose, en el listado de Jugadores | 18-25 | el orden se elige "via a filter" de puntaje o posición | §1 de esta Spec |
 > | §2 Summary, en lo que dice del listado de Jugadores | 29-47 | un selector de cinco modos; Manual es un modo; orden y modo compartidos; arrastre sólo de admin | §2 de esta Spec |
-> | §3.1, viñetas 1, 2, 4 y 5 | 53-63 | selector de cinco modos; arrastre sólo en Manual; `playersSortMode` compartido; respaldo sobre el valor global | §3.1 de esta Spec |
-> | §3.2, non-goal de preferencias por usuario | 94-96 | "no per-user ordering preferences" | `FR-040`, `D-03` |
-> | `TC-013` | 133-138 | `playersSortMode` se lee en toda sesión | `FR-048`: deja de leerse |
+> | §3.1, viñetas 1, 2, 4 y 6 | 53-63 | selector de cinco modos; arrastre sólo en Manual; `playersSortMode` compartido; respaldo sobre el valor global. Las viñetas 3 (`orden`) y 5 (migración) siguen vigentes | §3.1 de esta Spec |
+> | §3.2, non-goal de preferencias por usuario | 94-96 | "no per-user ordering preferences" | `FR-040` |
+> | `TC-013` | 133-138 | `playersSortMode` se lee en toda sesión | `FR-048` |
 > | `TC-030`, en el listado de Jugadores | 158-162 | todo handler de arrastre y de cambio de orden empieza con `if(!isAdmin()) return;` | `FR-030`, `FR-045`. Sigue vigente para la convocatoria (§7.8 de OJ) |
-> | `TC-040`, en el listado de Jugadores | 186-198 | toda mutación del orden pasa por `isAdmin()` | `TC-040` y `TC-041` de esta Spec. Sigue vigente para la convocatoria (`TC-042` de OJ) |
-> | `TC-041`, en quién arrastra | 199-209 | el id arrastrado se busca "en el array del admin" | `FR-035`: la misma validación, para cualquier cuenta |
+> | `TC-040`, en el listado de Jugadores | 186-198 | toda mutación del orden pasa por `isAdmin()` | `TC-040`, `TC-041`. Sigue vigente para la convocatoria (`TC-042` de OJ) |
+> | `TC-041`, en quién arrastra | 199-209 | el id arrastrado se busca "en el array del admin" | `FR-035`, `TC-043`: la misma validación, para cualquier cuenta |
+> | §5.1, fila "Jugador (viewer)" | 254 | "without being able to change it" | §5.1 de esta Spec: el `jugador` ordena y arrastra |
 > | `US-01`, `US-04`, `US-05` | 260, 263, 264 | arrastre de admin; mismo orden para todos; el `jugador` ante el modo global | `US-05`, `US-03`, `US-04` de esta Spec |
 > | §6 Glosario: "Modo de orden", "Orden manual", `playersSortMode` | 271, 272, 274 | definiciones del modelo compartido | §6 de esta Spec |
-> | §6 Glosario: `orden`, en su uso | 273 | "used to sort the roster in Manual mode" | §6 "Orden base": ya nadie lo modifica arrastrando; es el punto de partida de cada cuenta |
-> | `FR-001`, `FR-002`, `FR-003` | 396-406 | las opciones del selector y su único disparador | `FR-001`–`FR-004`, `FR-020`–`FR-027` |
-> | `FR-010`, `FR-011`, `FR-012`, `FR-013` | 410-424 | arrastre sólo en Manual, sólo admin, escribe `orden` | `FR-030`–`FR-036` |
-> | `FR-041` | 455-459 | reordenar con filtro: sólo admin, sólo en Manual | `FR-031`, que lo generaliza y lo conserva cuando el orden activo es Manual |
-> | `FR-050`, `FR-051`, `FR-052` | 463-475 | `orden` y modo compartidos; respaldo sobre el valor global | `FR-040`–`FR-044`, `FR-048` |
-> | `FR-053` | 476-478 | revierte el `orden` de `data/players` | `FR-047`: la misma conducta, sobre la preferencia de la cuenta |
-> | `S-01` (con `S-01a`–`S-01e`), `S-04` (con `S-04a`), `S-05` (con `S-05a`), `S-06` (con `S-06a`, `S-06b`) | 548-562, 591-612, 614-626 | orden compartido, arrastre de admin en Manual, volver a elegir Manual | `S-01`–`S-07`, `S-20` de esta Spec |
+> | §6 Glosario: `orden`, en su uso | 273 | "used to sort the roster in Manual mode" | §6 "Orden base" |
+> | `FR-001` | 396-399 | un control con cinco modos, Manual por defecto | `FR-001`, `FR-024`–`FR-026` |
+> | `FR-002` | 400-402 | el no-admin ve Manual y Posición | `FR-002`, `FR-026` |
+> | `FR-003` | 403-406 | el orden cambia sólo desde el control | `FR-003`, `FR-004`, `FR-020`, `FR-045` |
+> | `FR-010` | 410-413 | arrastrable sólo en Manual y para admin | `FR-030` |
+> | `FR-011` | 414-417 | el soltado reordena `orden` | `FR-031`, `FR-032`, `FR-033` |
+> | `FR-012` | 418-420 | fuera de Manual nada es arrastrable | `FR-030` |
+> | `FR-013` | 421-424 | el no-admin no arrastra | `FR-030`, `FR-036` |
+> | `FR-041` | 455-459 | reordenar con filtro: sólo admin, sólo en Manual | `FR-031`, que lo conserva cuando el orden activo es Manual |
+> | `FR-050` | 463-465 | el orden manual es el `orden` compartido de `data/players` | `FR-032`, `FR-036`, `FR-040` |
+> | `FR-051` | 466-470 | el modo se guarda compartido en `playersSortMode` | `FR-040`, `FR-048` |
+> | `FR-052` | 471-475 | el respaldo a Manual mira el valor global | `FR-044`, sobre la preferencia propia |
+> | `FR-053` | 476-478 | revierte el `orden` de `data/players` | `FR-047`, `FR-058` |
+> | `NFR-001` | 533 | "switching modo de orden" | `NFR-003`, `FR-057` |
+> | `NFR-002` | 534 | "See FR-053" | `FR-047`, `FR-058` |
+> | `NFR-003` | 535 | "See §4.5 TC-040/TC-041" | §4.5 de esta Spec |
+> | `S-01` (con `S-01a`–`S-01e`) | 548-562 | arrastre de admin sobre el `orden` compartido; last-write-wins entre admins | `S-05`, `S-06`, `S-03a` |
+> | `S-02` (con `S-02a`–`S-02c`), en el disparador | 564-575 | "selecciona 'Puntaje descendente' en el modo de orden". El orden resultante sigue vigente | `S-01` (el disparador es el título o el menú) |
+> | `S-03` (con `S-03a`, `S-03b`), en el disparador | 577-589 | "selecciona 'Posición ascendente' en el modo de orden". El orden resultante sigue vigente | `S-01d` |
+> | `S-04` (con `S-04a`) | 591-600 | cambiar el modo deshabilita el arrastre; volver a Manual | `S-05`, `S-05d` |
+> | `S-05` (con `S-05a`) | 602-612 | el `jugador` ante el modo global; arrastre rechazado | `S-04a`, `S-06` |
+> | `S-06` (con `S-06a`, `S-06b`) | 614-626 | reordenar con filtro, sólo admin en Manual | `S-05b`, `S-05c` |
 > | §10.1, filas "Jugador" (en el ciclo de vida de `orden`) y `playersSortMode` | 673-674 | `orden` se actualiza al arrastrar; modo compartido | §10.1 de esta Spec |
+> | `AC-01` | 701-702 | "S-01 through S-08 … pass" | `AC-01` de esta Spec; de OJ siguen vigentes `S-02`, `S-03` (en el orden resultante), `S-07` y `S-08` |
+> | `AC-10`, `AC-11` | 709-713 | verifican el cambio de modo y la reversión sobre `savePlayers()` | `AC-12`, y `S-05e` dentro de `AC-01` |
+> | `AC-15`, en `TC-013` y `TC-030` | 717-718 | revisión de dos TC reemplazados | `AC-15` de esta Spec |
 > | `AC-16`, en el listado de Jugadores; `AC-20` | 719-724, 728-730 | verifican `TC-040` y `S-05a` de OJ | `AC-16`, `AC-20` de esta Spec |
 > | `A-02`, `A-03`, `A-04` (en el arrastre) | 808-821 | arrastre sólo en Manual; orden compartido; arrastre sólo de admin | `D-03`, `D-04` (§3.3) |
+> | §15, riesgo "A non-admin is confused…" | 842 | depende del modo global | sin modo global, el riesgo no existe |
+> | `OPEN-Q-03` | 853 | aviso al no-admin cuando aplica el respaldo | `FR-055`: el respaldo es silencioso |
 >
 > **No reemplaza** —y lo declara para que no se lea como contradicción—: `FR-020`–`FR-022`
 > (Pts, sin puntaje al final, desempate) y `FR-030`–`FR-031` (posición, con la secuencia de
 > [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)
-> `FR-003`/`FR-032`), que esta Spec conserva y generaliza a las columnas nuevas; `FR-040`
-> (el orden va después de búsqueda y filtros); `FR-060`, `FR-061` y `TC-031` (la migración
-> y el `orden` de un jugador nuevo), que siguen alimentando el orden base (`FR-037`);
-> `TC-001`, `TC-010`, `TC-011`, `TC-012`; `NFR-006` y `A-05`, cuyo alcance se extiende a la
-> cuenta `jugador`; y todo §7.8 (convocatoria).
+> `FR-003`/`FR-032`), que esta Spec conserva y generaliza a las columnas nuevas; el orden
+> resultante de `S-02` y `S-03` con sus variantes; `FR-040` (el orden va después de búsqueda
+> y filtros); `FR-060`, `FR-061`, `TC-031`, `S-07`, `AC-02` y la viñeta 5 de §3.1 (la
+> migración y el `orden` de un jugador nuevo), que siguen alimentando el orden base
+> (`FR-037`); `TC-001`, `TC-010`, `TC-011`, `TC-012`; `NFR-004`–`NFR-010`, con `NFR-006` y
+> `A-05` extendidos a la cuenta `jugador`; `US-02`, `US-03`; `A-01`; `OPEN-Q-01`,
+> `OPEN-Q-02`; y todo lo de la convocatoria (§7.8, `TC-014`, `TC-015`, `TC-042`, `US-06`,
+> `S-08`, `AC-21`, `A-06`, `A-07`, `OPEN-Q-04`, `OPEN-Q-05` y sus riesgos).
 
 ## 1. Purpose
 
@@ -172,8 +197,8 @@ el orden pasa a ser de cada persona.
   Firestore ni el `uid` ([`AGENTS.md`](../../AGENTS.md) → Arquitectura desacoplada). Cómo
   entra en esa interfaz lo decide el Plan (`OPEN-Q-05`).
 - **TC-014** — La preferencia vive en un documento por cuenta cuyo identificador es el `uid`
-  de Firebase Auth, **fuera** de la colección `data`. No se agrega ninguna regla comodín
-  sobre `data` (el contrato registra que no hay catch-all,
+  de Firebase Auth, **fuera** de la colección `data`. Su regla tiene una ruta explícita: no se agrega ninguna
+  regla comodín sobre `data` ni sobre colecciones (el contrato registra que no hay catch-all,
   [`firestore-rules.md`](../rol-en-el-token/contracts/firestore-rules.md) §2.3, Hallazgo B).
 - **TC-015** — La lectura de la preferencia sale junto con las demás lecturas del arranque,
   no después de ellas (`iniciarLecturas`, `index.html:2088-2093`; misma lista en `loadAll`,
@@ -193,24 +218,26 @@ Ninguna — la preferencia es un dato de interfaz asociado a una cuenta, sin dat
   (`tests/reglas.test.js:288-302`) cambia en el mismo commit; las reglas se publican en
   staging y en producción como paso explícito (R1 del Concept).
 - **TC-031** — Las listas de documentos del arranque que fija `tests/sesion.test.js`
-  (`tests/sesion.test.js:261-271`) cambian en el mismo commit que `iniciarLecturas` y
-  `loadAll`.
-- **TC-032** — Toda función renombrada o borrada que figure en `DECLARACIONES` de
-  `tests/harness.js` se actualiza ahí en el mismo commit ([`AGENTS.md`](../../AGENTS.md) →
-  Estilo).
+  (`tests/sesion.test.js:261-273`), y los conteos de lecturas de `data` que verifica
+  `tests/layout.test.js` (`tests/layout.test.js:479`, 9 para admin; `:499`, 3 para
+  `jugador`; pasan a 8 y 2 por `FR-048`), cambian en el mismo commit que `iniciarLecturas`
+  y `loadAll`.
+- **TC-032** — *Retirado el 2026-10-02 (crítica, hallazgo 9):* repetía la regla de
+  `DECLARACIONES` de [`AGENTS.md`](../../AGENTS.md) → Estilo, que aplica sin restatearla.
 - **TC-033** — El título interactivo, el indicador de sentido y la casilla "Ordenar por…" se
   construyen con tokens y componentes de
   [`.claude/skills/football-app-design/`](../../.claude/skills/football-app-design/); el
   indicador sale de Lucide vía `Icon`. Si ninguno alcanza, la excepción se documenta en el
   Plan ([`AGENTS.md`](../../AGENTS.md) → Design system).
-- **TC-034** — Los tests que satisfacen un `S-NN`, `NFR-NNN` o `TC-NNN` de esta Spec llevan
-  el identificador con guion dentro de un string literal, nunca en un comentario
-  ([`AGENTS.md`](../../AGENTS.md) → Tests).
+- **TC-034** — *Retirado el 2026-10-02 (crítica, hallazgo 9):* repetía el binding de IDs
+  de [`AGENTS.md`](../../AGENTS.md) → Tests, que aplica sin restatearlo.
 
 ### 4.5 Security constraints (`MD-31`)
 
 CWE Top 25 consultado en vivo el 2026-10-02 en `https://cwe.mitre.org/top25/`: la edición
 vigente es la **2025** (`https://cwe.mitre.org/top25/archive/2025/2025_cwe_top25.html`).
+Todos los identificadores citados abajo, incluidos los que no aplican, figuran en esa lista
+(verificado contra la página de la edición el mismo día).
 Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 
 - **TC-040** — La regla del documento de preferencia concede leer y escribir sólo si
@@ -237,7 +264,7 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
   sentido sólo eligen entre rótulos fijos, y el orden manual sólo elige qué jugadores pintar,
   cuyos textos se escapan como siempre ([`AGENTS.md`](../../AGENTS.md) → Estilo). **Defiende
   `CWE-79` *Cross-site Scripting***.
-- **`CWE-770` *Allocation of Resources Without Limits*** — aceptado, no mitigado: una cuenta
+- **`CWE-770` *Allocation of Resources Without Limits or Throttling*** — aceptado, no mitigado: una cuenta
   puede escribir en su documento un valor de hasta el máximo de Firestore y alargar su propio
   arranque; el daño queda en esa cuenta (Concept §5.2), y lo que se pinta está acotado por el
   plantel, porque los ids desconocidos se ignoran (`TC-042`).
@@ -269,7 +296,7 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 |---|---|---|
 | US-01 | Como cualquier cuenta, quiero ordenar por Goles, Asist o PJ para ver al primero arriba sin recorrer la lista. | FR-001, FR-003, FR-007 |
 | US-02 | Como cualquier cuenta en pantalla ancha, quiero tocar el título de la columna para ordenar, y tocarlo otra vez para invertir. | FR-004, FR-020, FR-022 |
-| US-03 | Como cualquier cuenta, quiero que mi orden se mantenga al recargar y en otro dispositivo, sin cambiar el de los demás. | FR-040, FR-041, FR-049 |
+| US-03 | Como cualquier cuenta, quiero que mi orden se mantenga al recargar y en otro dispositivo, sin cambiar el de los demás. | FR-040, FR-041, FR-054, FR-049 |
 | US-04 | Como `jugador`, quiero que el orden que elijo se guarde de verdad. | FR-002, FR-045 |
 | US-05 | Como cualquier cuenta, quiero arrastrar una fila para armar mi propio orden, sin elegir antes un modo. | FR-030, FR-031, FR-032, FR-033 |
 | US-06 | Como cualquier cuenta en el celular, quiero ordenar desde el menú, porque no hay títulos. | FR-024, FR-026, FR-027 |
@@ -323,11 +350,12 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 ### 7.2 Controles por ancho
 
 - **FR-020** — While la ventana está en la banda ancha, el sistema mostrará el título de cada
-  columna ordenable como un control que se activa con clic, toque, Enter o Espacio y aplica
-  `FR-003`/`FR-004` (`D-02`).
+  columna ordenable como un control que, al activarse, aplica `FR-003`/`FR-004` (`D-02`).
+- **FR-029** — El sistema permitirá activar el control de `FR-020` con clic, toque, Enter y
+  Espacio.
 - **FR-021** — El sistema no hará interactivo el título de G E P.
-- **FR-022** — While el criterio es una columna, el sistema mostrará junto a su título un
-  indicador del sentido, y ningún indicador en las demás.
+- **FR-022** — El sistema mostrará un indicador del sentido sólo junto al título de la columna
+  activa; en Manual no hay columna activa, así que ningún título lo muestra.
 - **FR-023** — El sistema rotulará la columna de posición "Pos" y la de asistencias "Asist",
   sin punto (`D-09`; hoy vacío y "Asist.", `index.html:2673`, `index.html:2678`).
 - **FR-024** — While la ventana está en la banda angosta, el sistema mostrará un menú
@@ -338,7 +366,7 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
   orden en que aparecen en pantalla (Pos, Jugador, PJ, Goles, Asist, Pts), una opción por
   sentido, primero la del primer sentido; ninguna opción será Manual (`D-04`).
 - **FR-027** — While el criterio es Manual, la casilla del menú mostrará "Ordenar por…", que
-  no figura entre sus opciones, y ningún título mostrará indicador de sentido (`OPEN-Q-12`).
+  no figura entre sus opciones (`OPEN-Q-12`).
 - **FR-028** — When la ventana cruza los 760px, el sistema conservará el orden activo y el
   control que aparece lo reflejará.
 
@@ -366,40 +394,51 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 - **FR-038** — If el orden manual de la cuenta contiene un id que no es texto, que no es de
   ningún jugador del plantel o que ya apareció antes en la lista, then el sistema lo ignorará
   (`TC-042`).
+- **FR-039** — When una cuenta elige una columna, el sistema conservará sin cambios el orden
+  manual guardado: queda sin uso hasta que el próximo arrastre lo reemplace (Concept §8.2,
+  `D-04`). Sólo vuelve a verse si la preferencia cae a Manual por `FR-043` o `FR-044`, que no
+  son un control (`S-05d`).
 
 ### 7.4 Persistencia
 
 - **FR-040** — El sistema persistirá, por cuenta, el orden activo y el orden manual en un
   documento que sólo esa cuenta lee y escribe (`D-03`, `TC-014`, `TC-040`).
 - **FR-041** — When la aplicación arranca con sesión, el sistema leerá la preferencia de la
-  cuenta y la aplicará antes de mostrar el listado (`TC-015`).
+  cuenta (`TC-015`).
 - **FR-042** — If la cuenta no tiene preferencia guardada, then el sistema mostrará Manual.
 - **FR-043** — If la preferencia tiene un criterio o un sentido que el sistema no reconoce, o
-  no se puede interpretar, then el sistema mostrará Manual sin error visible y sin escribir la
-  preferencia (`D-07` b, `TC-042`).
+  no se puede interpretar, then el sistema mostrará Manual (`D-07` b, `TC-042`).
 - **FR-044** — If la preferencia es Pts y la cuenta no es admin, then el sistema mostrará
-  Manual sin error visible y sin escribir la preferencia (`D-07` a; conserva `FR-052` de OJ
-  sobre la preferencia propia).
-- **FR-045** — When una cuenta elige una columna o un sentido, el sistema mostrará el orden
-  nuevo sin esperar a que termine de guardarse, y lo persistirá en su preferencia.
+  Manual (`D-07` a; conserva `FR-052` de OJ sobre la preferencia propia).
+- **FR-045** — When una cuenta elige una columna o un sentido, el sistema lo persistirá en su
+  preferencia.
 - **FR-046** — If falla guardar un cambio de columna o de sentido, then el sistema no avisará
   y conservará el orden en pantalla hasta que la cuenta recargue (`OPEN-Q-07`; R4 del Concept,
   aceptado).
 - **FR-047** — If falla guardar un arrastre, then el sistema mostrará el aviso de error de la
-  app (`window.__showToast(…, 'error')`) y volverá a mostrar el orden activo y el orden manual
-  que la cuenta tenía antes del arrastre (conserva `FR-053` de OJ).
+  app (conserva `FR-053` de OJ).
 - **FR-048** — El sistema no leerá ni escribirá `data/playersSortMode`; su regla se retira del
   contrato y de las dos consolas (`OPEN-Q-04`; `index.html:2089`, `2107`, `2127`, `2886`).
 - **FR-049** — El sistema no cambiará lo que ve una cuenta como efecto de lo que hace otra
   cuenta con su orden (`D-03`, `D-04`).
+- **FR-054** — El sistema mostrará el listado por primera vez con la preferencia leída en
+  `FR-041` ya aplicada.
+- **FR-055** — If aplica `FR-043` o `FR-044`, then el sistema no mostrará ningún error.
+- **FR-056** — If aplica `FR-043` o `FR-044`, then el sistema no escribirá la preferencia.
+- **FR-057** — When una cuenta elige una columna o un sentido, el sistema mostrará el orden
+  nuevo sin esperar a que termine de guardarse.
+- **FR-058** — If falla guardar un arrastre, then el sistema volverá a mostrar el orden activo
+  y el orden manual que la cuenta tenía antes del arrastre (conserva `FR-053` de OJ).
+
+Los IDs `FR-050`–`FR-053` no se usan, para no confundirse con los de OJ que esta Spec cita.
 
 ## 8. Non-functional requirements
 
 | ID | Category | Requirement |
 |---|---|---|
-| NFR-001 | Performance | La mediana del "arranque completo" de `tools/medir-arranque.js --caso=vigente --corridas=5`, contra staging, sube **como máximo 50 ms** respecto de la misma medición en `main` antes de la feature (línea de base ~620 ms de lectura, Roadmap §3) (`OPEN-Q-14`). |
-| NFR-002 | Performance | Un arranque hace **exactamente una** lectura de Firestore más que antes de la feature (la preferencia) y **una menos** sobre `data` (`playersSortMode`), medido con `tools/medir-arranque.js --lecturas`. |
-| NFR-003 | Performance | Un cambio de criterio o un soltado repinta el listado sin esperar a la red (`FR-045`, `FR-047`); con 500 jugadores, ordenar en memoria la lista completa tarda **≤ 50 ms** en el comparador, medido en Node sobre `sortRoster` con un plantel sintético. |
+| NFR-001 | Performance | La mediana del **arranque completo** que informa `tools/medir-arranque.js --caso=vigente --corridas=5`, contra staging, sube **como máximo 50 ms** respecto de la misma medición en `main` antes de la feature (`OPEN-Q-14`). El arranque completo incluye la espera de la lectura de Firestore, ~620 ms de mediana (Roadmap §3; `tools/medir-arranque.js:23-26`). Si la diferencia supera 50 ms, se repiten las dos mediciones con `--corridas=10` antes de darlo por fallado, y se informan todas las corridas. |
+| NFR-002 | Performance | El total de lecturas de un arranque no cambia: la colección `data` pasa de 9 a 8 documentos para admin y de 3 a 2 para `jugador` (sale `playersSortMode`), y la colección de preferencias suma exactamente 1, medido por colección con `tools/medir-arranque.js --lecturas`. |
+| NFR-003 | Performance | Con 500 jugadores, el comparador del orden ordena la lista completa en **≤ 50 ms** para cada criterio y sentido, medido en Node con un plantel sintético. 50 ms son tres cuadros a 60 Hz: el repintado no se percibe como espera. Que no se espere a la red lo fijan `FR-057` y `FR-058`. |
 | NFR-004 | Accessibility | Cada título ordenable es un `button` dentro de su celda; la columna activa lleva `aria-sort` (`ascending`/`descending`) y es la **única** que lo lleva; en Manual ninguna lo lleva; los títulos se alcanzan con Tab y se activan con Enter y Espacio; el foco es visible (WAI-ARIA APG *Sortable Table*, Concept §6.5; WCAG 2.1 AA). El arrastre sigue sin alternativa de teclado (`NFR-006` y `A-05` de OJ, extendidos a `jugador`). |
 | NFR-005 | Responsive | En 360, 759, 760, 768 y 1200px, con rol admin y con rol `jugador`, la pestaña Jugadores no produce scroll horizontal (`scrollWidth === clientWidth`) y ningún elemento —incluidos "Pos" con su indicador y "Pts" con el suyo— tiene el borde derecho fuera del viewport (`node tests/layout.test.js`; [`AGENTS.md`](../../AGENTS.md) → Responsive). |
 | NFR-006 | Security | Ver §4.5. Ninguna cuenta lee ni escribe la preferencia de otra, verificado contra staging (`TC-040`). |
@@ -411,7 +450,7 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 
 ### 9.1 Happy path scenarios
 
-#### Scenario S-01 — Ordenar por Goles tocando el título (covers FR-001, FR-003, FR-004, FR-005, FR-007, FR-020, FR-022, FR-045)
+#### Scenario S-01 — Ordenar por Goles tocando el título (covers FR-001, FR-003, FR-004, FR-005, FR-006, FR-007, FR-008, FR-009, FR-010, FR-020, FR-022, FR-045, FR-046, FR-048, FR-057)
 
 - **Given** un admin en Jugadores a 1200px, en Manual, con Ana Ríos (5 goles), Beto Ríos (5 goles),
   Ciro Paz (2 goles) y Dani Sosa, que nunca jugó
@@ -433,6 +472,9 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 - `S-01f [property]` — para cualquier plantel y cualquier columna, el sentido descendente invierte al ascendente entre los jugadores con dato, conserva a los sin dato al final y desempata A→Z en los dos.
 - `S-01g [failure]` — falla guardar la preferencia → no hay aviso, la lista queda ordenada por Goles; al recargar se ve el orden guardado antes (`FR-046`).
 - `S-01h [boundary]` — Jugador con "Ana Zeta" y "Beto Alfa" → A→Z pone primero a Ana (nombre visible), aunque por apellido iría Beto (`FR-006`).
+- `S-01i [boundary]` — con el filtro de puesto en DEL, que deja visibles a Ciro Paz y Dani Sosa, Goles descendente muestra Ciro, Dani: ordena sólo a los visibles (`FR-010`).
+- `S-01j [boundary]` — elegir Goles escribe sólo la preferencia de la cuenta: `data/playersSortMode` no recibe ninguna escritura (`FR-048`).
+- `S-01k [boundary]` — un admin toca "Pts" con un jugador sin ningún puntaje cargado → la lista va de mayor a menor promedio y ese jugador queda al final, en los dos sentidos (`FR-008`).
 
 #### Scenario S-02 — Ordenar desde el menú en el celular (covers FR-024, FR-025, FR-026, FR-027, FR-028)
 
@@ -448,7 +490,7 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 - `S-02b [boundary]` — con Asist descendente, la ventana pasa de 700 a 900px → "Asist" muestra el indicador de descendente y la lista no cambia; de vuelta a 700, el menú muestra Asist descendente.
 - `S-02c [boundary]` — una cuenta admin a 390px → el menú incluye Pts en los dos sentidos.
 
-#### Scenario S-03 — El orden acompaña a la cuenta y no a las demás (covers FR-040, FR-041, FR-049)
+#### Scenario S-03 — El orden acompaña a la cuenta y no a las demás (covers FR-037, FR-040, FR-041, FR-042, FR-049)
 
 - **Given** dos cuentas admin, A y B, las dos en Manual
 - **When** A ordena por Goles en la computadora
@@ -462,7 +504,7 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 - `S-03b [concurrency]` — A ordena por Goles con la app abierta en el teléfono → el teléfono no cambia hasta su próximo arranque (§3.2).
 - `S-03c [boundary]` — una cuenta sin preferencia guardada (el primer día) → ve Manual, en el orden base, igual que veía el orden compartido antes de la feature (`FR-042`, `FR-037`).
 
-#### Scenario S-04 — Una cuenta jugador ordena y su orden se guarda (covers FR-002, FR-045, FR-041)
+#### Scenario S-04 — Una cuenta jugador ordena y su orden se guarda (covers FR-002, FR-041, FR-043, FR-044, FR-045, FR-054, FR-055, FR-056)
 
 - **Given** una cuenta `jugador` a 1200px
 - **Then** la fila de títulos no tiene "Pts"
@@ -471,10 +513,10 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 
 **Variants:**
 
-- `S-04a [failure]` — la preferencia guardada de la cuenta `jugador` es Pts (se le bajó el rol, o la escribió fuera de la interfaz) → ve Manual, sin error, y la preferencia sigue diciendo Pts (`FR-044`).
-- `S-04b [failure]` — la preferencia tiene un criterio desconocido, un sentido desconocido o un contenido que no se puede interpretar → ve Manual, sin error, y la preferencia no se reescribe (`FR-043`).
+- `S-04a [failure]` — la preferencia guardada de la cuenta `jugador` es Pts (se le bajó el rol, o la escribió fuera de la interfaz) → ve Manual (`FR-044`), sin ningún error (`FR-055`), y la preferencia sigue diciendo Pts (`FR-056`).
+- `S-04b [failure]` — la preferencia tiene un criterio desconocido, un sentido desconocido o un contenido que no se puede interpretar → ve Manual (`FR-043`), sin ningún error (`FR-055`), y la preferencia no se reescribe (`FR-056`).
 
-#### Scenario S-05 — Arrastrar con un orden por columna arma el orden manual (covers FR-030, FR-031, FR-032, FR-033, FR-037)
+#### Scenario S-05 — Arrastrar con un orden por columna arma el orden manual (covers FR-030, FR-031, FR-032, FR-033, FR-034, FR-035, FR-037, FR-039, FR-047, FR-058)
 
 - **Given** un admin con la lista por Goles descendente: Ana, Beto, Ciro, Dani, Eva
 - **When** arrastra a Dani y lo suelta sobre Beto
@@ -486,9 +528,9 @@ Esto salda la deuda `[UNVERIFIED]` del Concept §5.2.
 
 - `S-05a [boundary]` — suelta a Dani sobre sí mismo → nada cambia y no se escribe nada (`FR-034`).
 - `S-05b [boundary]` — con Goles descendente **y** el filtro de puesto en DEL, que deja visibles a Ciro y Eva, arrastra a Eva sobre Ciro → su orden manual es Ana, Beto, Eva, Ciro, Dani: los ocultos quedan donde estaban por Goles (`FR-031`).
-- `S-05c [boundary]` — ya en Manual, con una búsqueda que deja visibles a Beto y Eva, arrastra a Eva sobre Beto → los ocultos conservan su lugar relativo (lo que hoy fija `FR-041` de OJ).
-- `S-05d [boundary]` — después del arrastre toca "PJ" → la lista se ordena por PJ; no hay control que vuelva al orden manual, y el próximo arrastre lo reemplaza (R8 del Concept, aceptado).
-- `S-05e [failure]` — falla guardar el arrastre → aviso de error, y la lista vuelve a Goles descendente con el orden manual anterior (`FR-047`).
+- `S-05c [boundary]` — en Manual con el orden Ana, Beto, Ciro, Dani, Eva y una búsqueda que deja visibles a Beto y Eva, arrastra a Eva sobre Beto → su orden manual es Ana, Eva, Beto, Ciro, Dani: Ana, Ciro y Dani, ocultos, conservan su lugar relativo (lo que hoy fija `FR-041` de OJ).
+- `S-05d [boundary]` — después del arrastre toca "PJ" → la lista se ordena por PJ; no hay control que vuelva al orden manual, el orden manual guardado no cambia (`FR-039`), y el próximo arrastre lo reemplaza (R8 del Concept, aceptado).
+- `S-05e [failure]` — falla guardar el arrastre → aviso de error (`FR-047`), y la lista vuelve a Goles descendente con el orden manual anterior (`FR-058`).
 - `S-05f [failure]` — el id arrastrado ya no está en la lista visible (se borró el jugador, o el dato se manipuló) → nada cambia y no se escribe nada (`FR-035`).
 - `S-05g [property]` — para cualquier plantel, orden activo, filtro y par arrastrado/destino, el orden manual resultante contiene a cada jugador del plantel exactamente una vez.
 - `S-05h [boundary]` — a 390px, arrastrar en el renglón apilado produce el mismo resultado que a 1200px.
@@ -516,7 +558,7 @@ rol, y el intento de escribir `data/players` es `S-20d`.
 - `S-07b [failure]` — el orden manual guardado tiene ids repetidos, ids que no son texto o ids que no existen → se ignoran y cada jugador aparece una sola vez (`FR-038`).
 - `S-07c [boundary]` — el orden manual guardado está vacío → la cuenta ve el orden base.
 
-#### Scenario S-08 — Ordenar con el teclado (covers FR-020, NFR-004)
+#### Scenario S-08 — Ordenar con el teclado (covers FR-020, FR-021, FR-029, NFR-004)
 
 - **Given** un admin a 1200px que navega con el teclado
 - **When** llega con Tab al título "PJ" y aprieta Enter
@@ -535,6 +577,7 @@ rol, y el intento de escribir `data/players` es `S-20d`.
 - **Given** la pestaña Jugadores con rol admin
 - **When** se mide a 760px con el orden activo en Pos, y después en Pts
 - **Then** "Pos" con su indicador y "Pts" con el suyo quedan dentro de su columna y del viewport, sin scroll horizontal
+- **And** los títulos dicen, en orden, Pos, Jugador, PJ, G E P, Goles, Asist, Pts (`FR-023`)
 
 **Variants:**
 
@@ -615,7 +658,7 @@ erDiagram
 ### 11.1 Functional acceptance
 
 - **AC-01** — `S-01` a `S-09` y sus variantes pasan contra un arranque de la app con datos
-  de prueba (covers `FR-001`–`FR-049`).
+  de prueba (covers `FR-001`–`FR-049` y `FR-054`–`FR-058`).
 - **AC-02** — El primer día, con los datos de staging copiados de producción, una cuenta sin
   preferencia ve el listado en el mismo orden que el orden manual compartido de antes de la
   feature (`S-03c`).
@@ -627,9 +670,10 @@ erDiagram
 
 - **AC-10** — `NFR-001` verificado con `tools/medir-arranque.js --caso=vigente --corridas=5`
   antes y después, sobre la misma red, con las dos medianas registradas en el Plan.
-- **AC-11** — `NFR-002` verificado con `tools/medir-arranque.js --lecturas`.
-- **AC-12** — `NFR-003` verificado con un test en Node que mide `sortRoster` sobre 500
-  jugadores sintéticos en cada criterio y sentido.
+- **AC-11** — `NFR-002` verificado con `tools/medir-arranque.js --lecturas`, comparando el
+  conteo de cada colección antes y después.
+- **AC-12** — `NFR-003` verificado con un test en Node que mide el comparador del orden sobre
+  500 jugadores sintéticos en cada criterio y sentido.
 - **AC-13** — `NFR-004` verificado por `S-08` y sus variantes.
 - **AC-14** — `NFR-005` verificado por `node tests/layout.test.js` con escenarios nuevos para
   `S-09`, vistos fallar al menos una vez antes del arreglo ([`AGENTS.md`](../../AGENTS.md)).
@@ -647,8 +691,8 @@ erDiagram
   registra la publicación en staging y en producción.
 - **AC-18** — `TC-042`, `TC-043` y `TC-044` verificados por tests unitarios de `S-04b`,
   `S-05f` y `S-07b`, y por un test de escapado sobre una preferencia con texto HTML.
-- **AC-19** — `TC-031`, `TC-032` y `TC-034` verificados porque `node tests/sesion.test.js` y
-  `node tests/motor.test.js` pasan, y por los gates de `grep` del Plan.
+- **AC-19** — `TC-031` verificado porque `node tests/sesion.test.js` y `node
+  tests/layout.test.js` pasan con las listas y los conteos nuevos.
 
 ### 11.4 Negative / safety acceptance
 
@@ -659,7 +703,7 @@ erDiagram
 
 ### 11.5 Test & traceability obligations
 
-- **AC-50** — Every scenario in §9 — including every enumerated variant (`S-NNa`, `S-NNb`, …) — has at least one runnable test referenced in the Plan's §12.1 *Scenario Traceability Matrix*, with the scenario or variant ID embedded via a **structurally-anchored** binding (a framework mark, an `it()` / `t.Run()` / `test_case` string argument, or a function-name binding with the §12.1 normalising regex — *not* in a comment or docstring; those false-match the `T-N.D8` grep gate). The §16 *AC coverage* matrix should also cite the scenarios or scenario ranges each `AC-*` aggregates, so the roll-up is readable — this half is **reviewer-checked, not mechanically gated**. Additionally, every scenario heading in §9 is followed by either a `Variants:` block enumerating its shifts or the explicit `Variants: none — single-path scenario` declaration. Mechanically enforced by Plan `T-N.D8` **and** `T-N.D8b`. *En este repositorio el binding es el de [`AGENTS.md`](../../AGENTS.md) → Tests (`TC-034`). Los escenarios que dependen de las reglas vivas (`S-03`, `S-04`, `S-06`, `S-20`) se ligan a `tests/reglas.test.js`; los de layout, a un campo `spec:` de `tests/layout.test.js`.*
+- **AC-50** — Every scenario in §9 — including every enumerated variant (`S-NNa`, `S-NNb`, …) — has at least one runnable test referenced in the Plan's §12.1 *Scenario Traceability Matrix*, with the scenario or variant ID embedded via a **structurally-anchored** binding (a framework mark, an `it()` / `t.Run()` / `test_case` string argument, or a function-name binding with the §12.1 normalising regex — *not* in a comment or docstring; those false-match the `T-N.D8` grep gate). The §16 *AC coverage* matrix should also cite the scenarios or scenario ranges each `AC-*` aggregates, so the roll-up is readable — this half is **reviewer-checked, not mechanically gated**. Additionally, every scenario heading in §9 is followed by either a `Variants:` block enumerating its shifts or the explicit `Variants: none — single-path scenario` declaration. Mechanically enforced by Plan `T-N.D8` **and** `T-N.D8b`. *En este repositorio el binding es el de [`AGENTS.md`](../../AGENTS.md) → Tests. Los escenarios que dependen de las reglas vivas (`S-03`, `S-04`, `S-06`, `S-20`) se ligan a `tests/reglas.test.js`; los de layout, a un campo `spec:` de `tests/layout.test.js`.*
 - **AC-51** — Every NFR in §8 with a quantified target has a measurement test referenced in the Plan's §12, with the NFR ID embedded similarly. *Aplica a `NFR-001`, `NFR-002`, `NFR-003` y `NFR-005`.*
 - **AC-52** — Every TC in §4 has a §11.3 compliance check AND a corresponding entry in the Plan's §12. Where the TC is mechanically verifiable, the §12 entry references the runnable verification with the TC ID embedded in the test name or tag. Where the TC is inherently non-mechanical, the §12 entry names the reviewer / review checklist that verifies it. Mechanically gated by Plan `T-N.D10` **and** `T-N.D10b`.
 - **AC-53** — The change has at least one `IMP-*` row in the Plan's §12.2 *Impact Traceability* matrix for every materially-affected scope (`code` / `system` / `business` / `external`). Mechanically gated by Plan `T-N.D15`. *Como mínimo: `code` (el comparador, el encabezado, el arrastre, las lecturas del arranque), `system` (reglas nuevas publicadas a mano en dos proyectos; retiro de `playersSortMode`) y `business` (el orden deja de ser común; el `jugador` gana el arrastre; el manual anterior se pierde al elegir una columna).*
@@ -701,8 +745,9 @@ staging y de producción (Concept §12).
 - **A-02** — El `uid` de Firebase Auth de una cuenta no cambia entre sesiones ni
   dispositivos. `[UNVERIFIED — propiedad documentada de Firebase Auth, no medida en este
   proyecto]`
-- **A-03** — PJ, goles y asistencias ya están en `data/players` y los recibe cualquier cuenta
-  (`index.html:2253`, `index.html:2696-2703`); Pts sólo llega a admin (`playerScores`).
+- **A-03** — PJ, goles y asistencias los calcula la app en memoria a partir de `partidos`,
+  que recibe cualquier cuenta (`index.html:2240-2262`, `index.html:2089`); Pts sólo llega a
+  admin (`playerScores`).
 - **A-04** — Las reglas de Firestore se publican a mano desde la consola de cada proyecto
   ([`firestore-rules.md`](../rol-en-el-token/contracts/firestore-rules.md) §1).
 - **A-05** — El drag and drop nativo funciona en el listado en pantalla táctil, como se
@@ -737,7 +782,7 @@ staging y de producción (Concept §12).
 ## 17. Handoff to the Implementation Plan
 
 - **Plan must respect (no relitigation):** every FR-* (§7), every NFR-* (§8), every TC-* (§4), every AC-* (§11 — including the `AC-50`/`AC-51`/`AC-52` test-obligation gates, the `AC-53`/`AC-54` traceability gates, and the `AC-55` supply-chain gate in §11.5), and every Concept Note constraint inherited in §3.3. En particular, las tres cosas que más fácil se desvían acá: el arrastre **nunca** escribe `data/players` (`TC-041`); la regla nueva **no** es un comodín sobre `data` (`TC-014`); y la lectura nueva sale **junto** con las demás (`TC-015`).
-- **Plan has freedom over:** el nombre de la colección y la forma del documento de preferencia (dentro de `TC-014`); cómo entra en `window.storage` (`OPEN-Q-05`); los rótulos del menú (`OPEN-Q-15`); el indicador y el ancho de la columna Pos (`OPEN-Q-16`); la forma interna del comparador; el orden de las ramas.
+- **Plan has freedom over:** el nombre del comparador y de las funciones del arrastre; el nombre de la colección y la forma del documento de preferencia (dentro de `TC-014`); cómo entra en `window.storage` (`OPEN-Q-05`); los rótulos del menú (`OPEN-Q-15`); el indicador y el ancho de la columna Pos (`OPEN-Q-16`); la forma interna del comparador; el orden de las ramas.
 - **Plan must resolve:** OPEN-Q-05, OPEN-Q-15, OPEN-Q-16.
 - **Marcar el reemplazo en OJ:** las partes de la Declaración de reemplazo quedan marcadas en
   OJ en la rama de esta Spec, antes de su merge.
@@ -753,6 +798,7 @@ staging y de producción (Concept §12).
 | Date | Author | Change |
 |---|---|---|
 | 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Initial draft desde el Concept Note. Resuelve con el propietario `OPEN-Q-01`, `02`, `04`, `07`, `09`, `10`, `11`, `12`, `13` y `14`; `OPEN-Q-05` pasa al Plan; agrega `OPEN-Q-15` y `OPEN-Q-16`. CWE Top 25 2025 consultado en vivo. Self-critique: skipped. |
+| 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Incorpora la crítica [`ORDEN_POR_COLUMNAS_SPEC_CRITIQUE_2026-10-02_sonnet-5-5.md`](./ORDEN_POR_COLUMNAS_SPEC_CRITIQUE_2026-10-02_sonnet-5-5.md) (1🔴 / 7🟡 / 6🔵). 🔴 4: la Declaración de reemplazo suma §1, §5.1, `FR-001`/`002`/`010`/`011`/`012`/`050`/`051` por separado, `NFR-001`–`003`, `S-02`/`S-03` (en el disparador), `AC-01`, `AC-10`, `AC-11`, `AC-15`, el riesgo del no-admin y `OPEN-Q-03`, y amplía "No reemplaza". 🟡: 1 (`A-03`), 2 (`NFR-002` por colección), 3 (viñetas 1, 2, 4 y 6; una fila por parte, con la misma redacción que las notas de OJ), 5 (`TC-031` suma los conteos de `tests/layout.test.js`), 6 (`S-01i`, `S-01j`, `S-01k`, rótulos en `S-09`, valores en `S-05c`), 7 (se parten `FR-020`, `FR-041`, `FR-043`–`FR-045`, `FR-047`: nuevos `FR-029`, `FR-054`–`FR-058`), 8 (`FR-039`: elegir una columna conserva el orden manual guardado, según Concept §8.2). 🔵: 9 (`TC-032`, `TC-034` retirados), 10, 11 (`NFR-001` nombra el arranque completo y la repetición; `NFR-003` justifica los 50 ms), 12 (`TC-014`), 13 (sólo `tests/sesion.test.js:261-273`: `tests/reglas.test.js:288-302` es correcto, la tabla cierra en 302), 14 (nombre completo de `CWE-770`; pertenencia a la lista 2025 verificada). Self-critique: no corresponde (incorporación de una crítica independiente). |
 
 ---
 
