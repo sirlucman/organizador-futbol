@@ -6,6 +6,7 @@ node tests/cancha.test.js       # la cancha: agrupado en líneas, sub-filas, nom
 node tests/escapado.test.js     # el escapado del texto de jugador (regla transversal de AGENTS.md)
 node tests/colores.test.js      # intercambiar colores: qué se invierte, dos veces = identidad
 node tests/puestos.test.js      # los ocho puestos: catálogo, motor, ficha, bloqueo, cancha, lo guardado
+node tests/orden.test.js        # el orden del listado: comparador, preferencia leída, soltado, títulos
 node tests/layout.test.js       # el layout responsive (Principio V)
 node tests/sesion.test.js       # el rol desde el claim del token: fail-closed, refresco acotado
 node tests/rol-script.test.js   # el script de roles: rechazos, listado, escritura conjunta
@@ -14,7 +15,7 @@ node tests/reglas.test.js       # el rol en el token contra staging (necesita cr
 
 Todos devuelven código de salida 1 solo si se rompe el comportamiento actual.
 
-`motor.test.js`, `cancha.test.js`, `colores.test.js`, `puestos.test.js`, `sesion.test.js` y `rol-script.test.js` no tienen
+`motor.test.js`, `cancha.test.js`, `colores.test.js`, `puestos.test.js`, `orden.test.js`, `sesion.test.js` y `rol-script.test.js` no tienen
 dependencias: Node y nada más (`puestos.test.js` lee además, con git, el `index.html` de antes del
 catálogo de puestos para comparar cómo se ven los partidos viejos; si git no está, esos casos avisan
 y se saltean). `layout.test.js` necesita un navegador y `reglas.test.js` necesita credenciales de
