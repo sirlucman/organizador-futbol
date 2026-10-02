@@ -1429,6 +1429,27 @@
     }
   };
 
+  // Preferencia de orden del listado de la cuenta logueada (orden-por-columnas TD-02). Es la
+  // única parte de la app que sabe en qué colección vive y que la direcciona por la cuenta; el
+  // resto sólo conoce leer()/guardar(valor). Va aparte de window.storage porque ese documento es
+  // de una cuenta y no del grupo. `leer` devuelve null sin sesión, sin documento o ante un error;
+  // `guardar` no traga el error, igual que window.storage.set: el arrastre lo necesita (FR-047).
+  window.preferenciaDeOrden = {
+    leer: async () => {
+      const cuenta = auth && auth.currentUser;
+      if(!db || !cuenta) return null;
+      try{
+        const doc = await db.collection('preferenciasOrden').doc(cuenta.uid).get();
+        return doc.exists ? doc.data().value : null;
+      }catch(e){ console.error('Firestore get error (preferencia de orden):', e); return null; }
+    },
+    guardar: async (valor) => {
+      const cuenta = auth && auth.currentUser;
+      if(!db || !cuenta) throw new Error('Sin sesión: no se puede guardar la preferencia de orden');
+      await db.collection('preferenciasOrden').doc(cuenta.uid).set({ value: valor });
+    }
+  };
+
   // Rol de la cuenta logueada ("admin"/"jugador") y, si es "jugador", el Jugador vinculado
   // a esa cuenta (ver data-model.md → Sesión de usuario, feature 007-permisos-por-usuario).
   // Viaja en los *custom claims* del token de Firebase Auth, que es lo que leen tanto esta
@@ -1841,7 +1862,10 @@
   let currentFilter = 'todos';
   let currentEstadoFilter = 'todos';
   let searchTerm = '';
-  let playersSortMode = 'manual'; // FR-051 — persistido, compartido por todos los usuarios
+  // orden-por-columnas TD-07 — el orden de la cuenta logueada: el modo activo y su orden manual.
+  // Salen de su preferencia al arrancar (FR-041) y vuelven a ella al cambiar (FR-045).
+  let ordenActivo = 'manual';
+  let ordenManualCuenta = [];
 
   let currentMatchId = null;
   let matchSearchTerm = '';
@@ -2092,15 +2116,21 @@
      Sigue sin ser una decision de permisos: quien autoriza es Firestore y quien habilita la
      interfaz es window.session. */
   function iniciarLecturas(esAdmin){
-    const claves = ['players','partidos','playersSortMode'].concat(esAdmin ? DOCS_SOLO_ADMIN : []);
+    const claves = ['players','partidos'].concat(esAdmin ? DOCS_SOLO_ADMIN : []);
     const pedidos = {};
     claves.forEach(clave => { pedidos[clave] = pedirDoc(clave); });
+    // La preferencia de orden de la cuenta sale junto con las demás, no después (orden-por-columnas TC-015).
+    pedidos.preferenciaOrden = pedirPreferenciaOrden();
     return pedidos;
   }
   function pedirDoc(clave){
     return window.storage.get(clave, false)
       .then(res => (res && res.value) || null)
       .catch(e => { console.error('No se pudo leer ' + clave + ':', e); return null; });
+  }
+  function pedirPreferenciaOrden(){
+    return window.preferenciaDeOrden.leer()
+      .catch(e => { console.error('No se pudo leer la preferencia de orden:', e); return null; });
   }
 
   /* `alPintar` es el aviso de que ya está en pantalla todo lo que se ve. El arranque lo usa para
@@ -2110,14 +2140,15 @@
        orden en que se APLICAN abajo no cambia, porque el merge de puntaje/armado depende de que
        `players`/`matches` ya esten normalizados. */
     const admin = isAdmin();
-    const claves = ['players','partidos','playersSortMode'].concat(admin ? DOCS_SOLO_ADMIN : []);
+    const claves = ['players','partidos'].concat(admin ? DOCS_SOLO_ADMIN : []);
     pedidos = pedidos || {};
     const crudo = {};
+    if(!pedidos.preferenciaOrden) pedidos.preferenciaOrden = pedirPreferenciaOrden();
     await Promise.all(claves.map(async (clave) => {
       // Si iniciarLecturas() ya lo pidio, se reusa ese pedido en vuelo en vez de repetirlo.
       if(!pedidos[clave]) pedidos[clave] = pedirDoc(clave);
       crudo[clave] = await pedidos[clave];
-    }));
+    }).concat(pedidos.preferenciaOrden.then(valor => { crudo.preferenciaOrden = valor; })));
     const leerJson = (clave, porDefecto) => {
       if(!crudo[clave]) return porDefecto;
       try{ return JSON.parse(crudo[clave]); }
@@ -2127,10 +2158,9 @@
     players = leerJson('players', []);
     matches = leerJson('partidos', []);
     motorConfig = admin ? normalizeMotorConfig(leerJson('motorConfig', null)) : defaultMotorConfig();
-    // playersSortMode (FR-051) es un string plano, no JSON — mismo formato que los flags de
-    // migración — y a diferencia de `motorConfig` se pide y se lee para CUALQUIER sesión (TC-013),
-    // porque FR-052 necesita que un no-admin sepa qué modo está activo para aplicar su fallback.
-    playersSortMode = ORDEN_MODOS.includes(crudo['playersSortMode']) ? crudo['playersSortMode'] : 'manual';
+    // El orden de la cuenta, antes del primer pintado (orden-por-columnas FR-054). Lo que no se
+    // entiende cae a Manual sin avisar ni reescribir nada (FR-043, FR-055, FR-056).
+    ({ modo: ordenActivo, ordenManual: ordenManualCuenta } = normalizarPreferenciaOrden(crudo.preferenciaOrden));
 
     // Puntaje ("scores") por jugador nunca falta en memoria (aunque esté vacío), para que
     // computeAvg/puntajeEnPosicion sigan funcionando igual para "jugador" (que no lo carga —
@@ -2568,12 +2598,12 @@
   /* ================= JUGADORES: listado y alta/edición normal ================= */
   const alfabetico = (a, b) => (a.apellido+a.nombre).localeCompare(b.apellido+b.nombre);
 
-  // FR-052 — si el modo global persistido es por puntaje pero quien mira no es admin, no puede
-  // calcular ese orden (no tiene `scores`), así que ve Manual en su lugar, sin tocar el valor
-  // global que dejó el admin.
+  // orden-por-columnas FR-044 — si la preferencia de la cuenta es Pts pero quien mira no es admin,
+  // no puede calcular ese orden (no tiene `scores`), así que ve Manual en su lugar, sin tocar lo
+  // guardado (FR-056).
   function effectiveSortMode(){
-    if(playersSortMode.startsWith('puntaje') && !isAdmin()) return 'manual';
-    return playersSortMode;
+    if(ordenActivo.startsWith('puntaje') && !isAdmin()) return 'manual';
+    return ordenActivo;
   }
 
   // Qué campo del jugador lee cada columna de estadística (orden-por-columnas TC-012).
@@ -2710,7 +2740,7 @@
       }
       return true;
     });
-    return sortRoster(filtrados, effectiveSortMode()); // TC-010
+    return sortRoster(filtrados, effectiveSortMode(), ordenManualCuenta); // TC-010
   }
 
   // orden-por-columnas TD-11 — nombre completo y flecha: ↑ ascendente, ↓ descendente.
@@ -2723,6 +2753,21 @@
     asist_desc: 'Asistencias ↓', asist_asc: 'Asistencias ↑',
     puntaje_desc: 'Pts ↓', puntaje_asc: 'Pts ↑',
   };
+
+  // orden-por-columnas TD-03 — cada escritura manda el modo y el orden manual juntos: así elegir
+  // una columna conserva el orden manual guardado sin leerlo antes (FR-039).
+  function guardarPreferenciaOrden(){
+    return window.preferenciaDeOrden.guardar(JSON.stringify({ modo: ordenActivo, ordenManual: ordenManualCuenta }));
+  }
+
+  // TD-12 — repinta antes de guardar (FR-057), y si guardar falla no avisa: el orden queda en
+  // pantalla hasta recargar (FR-046). Pts sólo para admin (FR-002).
+  function aplicarOrden(modo){
+    if(!ORDEN_MODOS.includes(modo) || (modo.startsWith('puntaje') && !isAdmin())) return;
+    ordenActivo = modo;
+    renderPlayersTab();
+    guardarPreferenciaOrden().catch(err => console.error('No se pudo guardar el orden del listado:', err));
+  }
 
   // FR-001/FR-002 — el selector siempre muestra Manual + Posición (públicos); Puntaje solo se
   // agrega para admin, ya que el puntaje mismo es un dato solo-admin (FR-013 en la Spec).
@@ -2980,11 +3025,7 @@
     currentEstadoFilter = e.target.value;
     renderPlayersTab();
   });
-  el('ordenModo').addEventListener('change', (e) => { // FR-003/FR-051
-    playersSortMode = e.target.value;
-    renderPlayersTab();
-    window.storage.set('playersSortMode', playersSortMode, false).catch(err => console.error(err));
-  });
+  el('ordenModo').addEventListener('change', (e) => aplicarOrden(e.target.value)); // orden-por-columnas FR-045
 
   // Duplas de rotación (008-duplas-rotacion): devuelve el id del compañero de rotación de
   // `playerId` en este partido, o null si no está vinculado (ver data-model.md → Dupla).

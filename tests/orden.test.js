@@ -320,6 +320,35 @@ prueba('orden/NFR-003: con 500 jugadores, cada uno de los trece modos ordena en 
   console.log(`      la mediana más alta: ${Math.max(...tiempos.map(t => t.mediana)).toFixed(2)} ms`);
 });
 
+console.log('\n\x1b[1mLA FUENTE\x1b[0m — lo que sólo se prueba leyendo index.html\n');
+
+/* El bloque de `window.preferenciaDeOrden`, desde su asignación hasta la llave que la cierra. */
+function bloqueDePreferencia() {
+  const desde = src.indexOf('window.preferenciaDeOrden = {');
+  const hasta = src.indexOf('\n  };', desde);
+  ok(desde > 0 && hasta > desde, 'se encuentra el bloque de window.preferenciaDeOrden');
+  return [desde, hasta];
+}
+const apariciones = texto => {
+  const out = [];
+  for (let i = src.indexOf(texto); i !== -1; i = src.indexOf(texto, i + 1)) out.push(i);
+  return out;
+};
+
+prueba('orden/TC-013: la colección y la cuenta sólo aparecen dentro de window.preferenciaDeOrden', () => {
+  const [desde, hasta] = bloqueDePreferencia();
+  ['preferenciasOrden', 'currentUser'].forEach(texto => {
+    const todas = apariciones(texto);
+    ok(todas.length > 0, `${texto} aparece en index.html`);
+    const fuera = todas.filter(i => i < desde || i > hasta).map(i => src.slice(0, i).split('\n').length);
+    eq(fuera, [], `líneas de index.html con ${texto} fuera del bloque`);
+  });
+});
+
+prueba('orden/S-03b: la preferencia se lee sólo al arrancar: index.html no escucha cambios en vivo', () => {
+  eq(apariciones('onSnapshot').length, 0, 'apariciones de onSnapshot');
+});
+
 /* ---------- resumen ---------- */
 console.log(`\nPasaron: ${pasaron}/${pasaron + fallos.length}`);
 if (fallos.length) {

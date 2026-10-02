@@ -51,6 +51,7 @@ function cargarSesion() {
     /* iniciarLecturas() lo llama por cada clave; lo que devuelva no importa acá, sólo
        importa QUÉ claves pide. */
     function pedirDoc(clave){ return Promise.resolve(null); }
+    function pedirPreferenciaOrden(){ return Promise.resolve(null); }
   `;
   const exports = `return { ${DECLARACIONES.join(', ')}, window, __errores,
     __refrescoIntentado: () => refrescoIntentado };`;
@@ -261,14 +262,14 @@ prueba('"rol/S-11" con el claim presente no se toca la red ni una vez de más', 
 prueba('"rol/S-01d" con el rol admin resuelto se piden los documentos sólo-admin', async () => {
   const S = cargarSesion();
   eq(Object.keys(S.iniciarLecturas(true)).sort(),
-     ['players', 'partidos', 'playersSortMode'].concat(S.DOCS_SOLO_ADMIN).sort(),
-     'admin pide los públicos más los seis sólo-admin (FR-009)');
+     ['players', 'partidos', 'preferenciaOrden'].concat(S.DOCS_SOLO_ADMIN).sort(),
+     'admin pide los públicos, su preferencia de orden y los seis sólo-admin (FR-009, orden-por-columnas TC-015)');
 });
 
 prueba('"rol/S-03" con el rol jugador no se pide ningún documento sólo-admin', async () => {
   const S = cargarSesion();
   const claves = Object.keys(S.iniciarLecturas(false));
-  eq(claves.sort(), ['players', 'partidos', 'playersSortMode'].sort(), 'sólo los públicos');
+  eq(claves.sort(), ['players', 'partidos', 'preferenciaOrden'].sort(), 'sólo los públicos y su preferencia de orden');
   eq(claves.filter(k => S.DOCS_SOLO_ADMIN.includes(k)), [], 'ninguno de los sólo-admin');
 });
 

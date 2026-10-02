@@ -454,7 +454,7 @@ const ESCENARIOS = [
      ninguna pantalla nueva (NFR-006) y lo que hay que comprobar es que no haya movido nada. */
 
   { clave: 'rol-admin-primer-pintado', rol: 'admin', nombre: 'la barra de solapas ya tiene Configuración en su primer pintado',
-    spec: ['rol/S-01', 'rol/S-01d', 'rol/S-02', 'rol/NFR-001', 'rol/NFR-002', 'rol/NFR-007'],
+    spec: ['rol/S-01', 'rol/S-01d', 'rol/S-02', 'rol/NFR-001', 'rol/NFR-002', 'rol/NFR-007', 'orden/NFR-002'],
     async preparar(page) { /* la pantalla por default: la barra de solapas */ },
     async comprobar(page) {
       const r = await page.evaluate(() => ({
@@ -476,14 +476,16 @@ const ESCENARIOS = [
       if (r.lecturas.userRoles) problemas.push(`hubo ${r.lecturas.userRoles} lectura(s) de userRoles (rol/NFR-002)`);
       /* FR-009 / S-01d: con el rol resuelto se pidieron los seis documentos sólo-admin junto con
          los tres públicos, de una sola vez. */
-      if (r.lecturas.data !== 9) problemas.push(`un arranque de admin debería leer 9 documentos de data y leyó ${r.lecturas.data} (rol/S-01d)`);
+      if (r.lecturas.data !== 8) problemas.push(`un arranque de admin debería leer 8 documentos de data y leyó ${r.lecturas.data} (rol/S-01d, orden/NFR-002)`);
+      /* orden-por-columnas NFR-002: sale `playersSortMode` de data y entra la preferencia de la cuenta. */
+      if (r.lecturas.preferenciasOrden !== 1) problemas.push(`un arranque debería leer 1 preferencia de orden y leyó ${r.lecturas.preferenciasOrden || 0} (orden/NFR-002)`);
       /* NFR-001: con el claim presente no se toca la red para resolver el rol. */
       if (r.refrescos !== 0) problemas.push(`con el claim presente no debería refrescarse el token, y se refrescó ${r.refrescos} vez/veces (rol/NFR-001)`);
       return problemas;
     } },
 
   { clave: 'rol-jugador-primer-pintado', rol: 'jugador', nombre: 'con rol jugador, Configuración no aparece en ningún momento',
-    spec: ['rol/S-03', 'rol/S-03a', 'rol/NFR-002'],
+    spec: ['rol/S-03', 'rol/S-03a', 'rol/NFR-002', 'orden/NFR-002'],
     doble: { jugadorId: 'p1' },
     async preparar(page) { /* la barra de solapas */ },
     async comprobar(page) {
@@ -496,7 +498,8 @@ const ESCENARIOS = [
       const conMotor = r.pintados.filter(m => m.solapas.includes('motor'));
       if (conMotor.length) problemas.push(`la solapa Configuración estuvo visible en ${conMotor.length} muestra(s) con rol jugador (rol/S-03)`);
       if (r.lecturas.userRoles) problemas.push(`hubo ${r.lecturas.userRoles} lectura(s) de userRoles (rol/NFR-002)`);
-      if (r.lecturas.data !== 3) problemas.push(`una cuenta jugador debería leer sólo los 3 documentos públicos y leyó ${r.lecturas.data} (rol/S-03)`);
+      if (r.lecturas.data !== 2) problemas.push(`una cuenta jugador debería leer sólo los 2 documentos públicos y leyó ${r.lecturas.data} (rol/S-03, orden/NFR-002)`);
+      if (r.lecturas.preferenciasOrden !== 1) problemas.push(`un arranque debería leer 1 preferencia de orden y leyó ${r.lecturas.preferenciasOrden || 0} (orden/NFR-002)`);
       if (r.sesion.jugadorId !== 'p1') problemas.push(`el jugadorId del claim debería estar en window.session y quedó ${JSON.stringify(r.sesion.jugadorId)} (rol/S-03a)`);
       return problemas;
     } },

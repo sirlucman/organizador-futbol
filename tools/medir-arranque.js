@@ -313,6 +313,9 @@ async function main() {
     console.log(`    hueco de la solapa (NFR-001, AC-10) : ${mediana(filas.map(f => f.hueco))} ms   objetivo ≤ 50 ms`);
     console.log(`    refrescos forzados (TC-046)         : ${mediana(filas.map(f => f.refrescos))}   máximo admitido 1`);
     console.log(`    frames con la barra incompleta      : ${mediana(filas.map(f => f.framesIncompletos))}   objetivo 0 (FR-002)`);
+    /* orden-por-columnas NFR-001: la misma mediana del arranque completo, comparada contra la de
+       `main` antes de la feature (anotada en su Implementation Plan, T-2.1). */
+    console.log(`    arranque completo (${'orden/NFR-001'})       : ${mediana(filas.map(f => f.arranque))} ms   objetivo ≤ línea de base + 50 ms`);
     console.log('');
   }
   console.log('  LECTURAS de Firestore por colección (NFR-002, NFR-004, AC-12)');
@@ -322,6 +325,10 @@ async function main() {
   if (!porColeccion.userRoles) {
     console.log('    userRoles    0   ← ninguna lectura: es lo que NFR-002 compromete');
   }
+  /* orden-por-columnas NFR-002: `data` baja uno (sale playersSortMode: 8 admin, 2 jugador) y la
+     preferencia de la cuenta suma exactamente uno, así que el total no cambia. */
+  const prefs = porColeccion.preferenciasOrden ? mediana(porColeccion.preferenciasOrden) : 0;
+  console.log(`    ${'orden/NFR-002'}: preferenciasOrden ${prefs} (objetivo 1) · data ${porColeccion.data ? mediana(porColeccion.data) : 0} (objetivo 8 admin, 2 jugador)`);
   console.log('');
 }
 
