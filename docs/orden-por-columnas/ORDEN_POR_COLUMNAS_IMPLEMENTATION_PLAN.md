@@ -441,7 +441,8 @@ Implementation tasks (grouped into atomic commits):
   - `--caso=vigente --corridas=5`: 909, 753, 761, 736, 863 ms → **mediana 761 ms**, contra 1066 ms de la línea de base: −305 ms, dentro de +50 ms (`NFR-001`), así que no corresponde repetir con `--corridas=10`. La diferencia es menor que la dispersión entre corridas (~500 ms, `T-2.1`): se lee como "no empeoró", no como una mejora
   - `--lecturas`, admin: `data` 8, 8, 8 y `preferenciasOrden` 1, 1, 1. Cuenta `jugador`: `data` 2, 2, 2 y `preferenciasOrden` 1, 1, 1. El total por arranque no cambia: 9 y 3, como en `T-2.1` (`NFR-002`)
 - [ ] T-2.C9 Commit — `docs(orden-por-columnas): registra mediciones y verificaciones`
-- [ ] T-2.20 **El propietario publica** las mismas reglas en la consola de **producción**, inmediatamente antes de mergear, y anota la fecha en §1 del contrato (`TD-17`)
+- [x] T-2.20 **El propietario publica** las mismas reglas en la consola de **producción**, inmediatamente antes de mergear, y anota la fecha en §1 del contrato (`TD-17`)
+  - Publicadas por el propietario el 2026-10-02; fecha anotada en §1 del contrato
 
 DoD verification (§6). Todo arreglo hecho durante la verificación va en un commit propio
 (numerado a continuación del último `T-2.C*`, con `fix(...)`):

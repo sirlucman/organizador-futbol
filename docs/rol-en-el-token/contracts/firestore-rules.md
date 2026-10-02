@@ -37,7 +37,7 @@ staging, antes de probar la rama; después producción, inmediatamente antes del
 | Proyecto | Qué | Estado |
 |---|---|---|
 | `organizador-futbol-staging` | Publicar el texto de §4 y correr `REGLAS_STRICT=1 node tests/reglas.test.js` (casos `rol/*` y `orden/*`) | ✅ publicado por el propietario el 2026-10-02 (`T-2.15`). `REGLAS_STRICT=1 node tests/reglas.test.js`: **30/30**. Al terminar, `preferenciasOrden` sin documentos y los claims de las dos cuentas intactos |
-| `organizador-futbol` (producción) | Publicar el mismo texto | ⏳ pendiente — `T-2.20` |
+| `organizador-futbol` (producción) | Publicar el mismo texto | ✅ publicado por el propietario el 2026-10-02 (`T-2.20`), inmediatamente antes del merge de `feature/orden-por-columnas` |
 
 > ✅ **El paso 1b está cumplido (2026-09-10).** `TC-041` obligaba a verificar la
 > equivalencia contra las **reglas vivas**, no contra el contrato committeado de
