@@ -549,7 +549,7 @@ prueba('puestos/S-20a: un valor guardado cualquiera ("Líbero") cae en la fila a
 const DECLARACIONES_FICHA = [
   ...DECLARACIONES_CATALOGO, 'blankScores', 'computeAvg', 'puntajesViejosDe', 'estadoInicialDeFicha',
   'precargaDePuesto', 'scoresAlGuardar', 'textoAntesDeReclasificar', 'FILTRO_A_REVISAR', 'pasaFiltroPuesto',
-  'alfabetico', 'sortRoster',
+  'fullName', 'alfabetico', 'CAMPO_DE_COLUMNA', 'sortRoster',
 ];
 const FICHA = new Function(`${DECLARACIONES_FICHA.map(n => extraer(src, n)).join('\n\n')}\nreturn { ${DECLARACIONES_FICHA.join(', ')} };`)();
 // Juan, de la Spec: Defensor 7 de principal y Volante 6 de secundaria.

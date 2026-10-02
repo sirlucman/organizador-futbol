@@ -1594,7 +1594,13 @@
     return p ? [p.principal, ...(p.secundarias || [])].filter(Boolean) : [];
   }
   // Orden de listado de jugadores (FR-001): modos de orden disponibles para el listado de Jugadores.
-  const ORDEN_MODOS = ['manual', 'puntaje_asc', 'puntaje_desc', 'posicion_asc', 'posicion_desc'];
+  // orden-por-columnas TD-04: Manual más seis columnas en dos sentidos, `<criterio>_<sentido>`.
+  // El orden de la lista es el del menú (FR-026): por columna, primero su primer sentido. Pts
+  // conserva la clave interna `puntaje`.
+  const ORDEN_MODOS = [
+    'manual', 'posicion_asc', 'posicion_desc', 'jugador_asc', 'jugador_desc', 'pj_desc', 'pj_asc',
+    'goles_desc', 'goles_asc', 'asist_desc', 'asist_asc', 'puntaje_desc', 'puntaje_asc',
+  ];
   const CANCHAS = {
     // Lugares por puesto de cada equipo (desglose-posiciones TD-06).
     futbol8: { label: 'Fútbol 8', jugadoresPorEquipo: 8, formacion: { LI: 1, DC: 1, LD: 1, MI: 1, MC: 1, MD: 1, DEL: 1 } },
@@ -2570,10 +2576,35 @@
     return playersSortMode;
   }
 
-  // FR-020/FR-021/FR-022/FR-030/FR-031 — un único comparador para los cinco modos de orden;
-  // en todos los casos el desempate es el orden alfabético ya existente.
-  function sortRoster(list, mode){
+  // Qué campo del jugador lee cada columna de estadística (orden-por-columnas TC-012).
+  const CAMPO_DE_COLUMNA = { pj: 'partidosJugados', goles: 'golesTotales', asist: 'asistenciasTotales' };
+
+  // orden-por-columnas TD-05 — un único comparador para los trece modos (TC-010). En todos los
+  // casos el desempate es el alfabético existente, ascendente, sin importar el sentido (FR-005).
+  // `ordenManual` sólo lo usa Manual; los modos de columna conservan la firma de dos argumentos.
+  function sortRoster(list, mode, ordenManual = []){
     const copia = [...list];
+    if(mode === 'jugador_asc' || mode === 'jugador_desc'){
+      const signo = mode === 'jugador_asc' ? 1 : -1;
+      return copia.sort((a, b) => {
+        const porNombre = fullName(a).localeCompare(fullName(b)); // nombre visible (FR-006)
+        if(porNombre !== 0) return porNombre * signo;
+        return alfabetico(a, b);
+      });
+    }
+    const columna = mode.split('_')[0];
+    if(Object.prototype.hasOwnProperty.call(CAMPO_DE_COLUMNA, columna) && (mode.endsWith('_asc') || mode.endsWith('_desc'))){
+      const campo = CAMPO_DE_COLUMNA[columna], signo = mode.endsWith('_asc') ? 1 : -1;
+      return copia.sort((a, b) => {
+        const jugoA = !!a.partidosJugados, jugoB = !!b.partidosJugados;
+        if(!jugoA && !jugoB) return alfabetico(a, b);
+        if(!jugoA) return 1; // sin partidos siempre al final, en los dos sentidos (FR-007)
+        if(!jugoB) return -1;
+        const valorA = a[campo] || 0, valorB = b[campo] || 0;
+        if(valorA !== valorB) return (valorA - valorB) * signo;
+        return alfabetico(a, b);
+      });
+    }
     if(mode === 'puntaje_asc' || mode === 'puntaje_desc'){
       const signo = mode === 'puntaje_asc' ? 1 : -1;
       return copia.sort((a, b) => {
@@ -2593,12 +2624,72 @@
         return alfabetico(a, b);
       });
     }
-    // 'manual' (default): por `orden`; sin `orden` (dato legacy no migrado todavía) al final.
+    // 'manual' (default, FR-037): primero los del orden manual de la cuenta, en su orden; los ids
+    // que no son del plantel nunca se consultan, así que se ignoran solos (FR-038). Después, el
+    // orden base: por `orden`; sin `orden` (dato legacy no migrado todavía) al final.
+    const lugarManual = new Map();
+    (Array.isArray(ordenManual) ? ordenManual : []).forEach(id => { if(!lugarManual.has(id)) lugarManual.set(id, lugarManual.size); });
     return copia.sort((a, b) => {
+      const enA = lugarManual.has(a.id), enB = lugarManual.has(b.id);
+      if(enA && enB) return lugarManual.get(a.id) - lugarManual.get(b.id);
+      if(enA) return -1;
+      if(enB) return 1;
       const ordenA = a.orden ?? Infinity, ordenB = b.orden ?? Infinity;
       if(ordenA !== ordenB) return ordenA - ordenB;
       return alfabetico(a, b);
     });
+  }
+
+  // orden-por-columnas FR-003 — el sentido del primer toque sobre cada columna: lo más útil primero.
+  const PRIMER_SENTIDO = { posicion: 'asc', jugador: 'asc', pj: 'desc', goles: 'desc', asist: 'desc', puntaje: 'desc' };
+
+  // FR-003/FR-004 — la misma columna invierte el sentido; otra columna entra en su primer sentido.
+  function modoTrasElegirColumna(criterio, modoActual){
+    const [criterioActual, sentidoActual] = String(modoActual).split('_');
+    if(criterioActual === criterio) return criterio + '_' + (sentidoActual === 'asc' ? 'desc' : 'asc');
+    return criterio + '_' + PRIMER_SENTIDO[criterio];
+  }
+
+  // TD-08 / TC-042 — lo leído de la preferencia no es confiable: cualquier cosa que no se entienda
+  // cae a Manual y a un orden manual vacío. No escribe nada (FR-056) ni mira el plantel: los ids que
+  // no son de ningún jugador los ignora sortRoster.
+  function normalizarPreferenciaOrden(crudo){
+    let datos = null;
+    if(typeof crudo === 'string'){
+      try { datos = JSON.parse(crudo); } catch(e) { datos = null; }
+    }
+    if(!datos || typeof datos !== 'object' || Array.isArray(datos)) datos = {};
+    const modo = ORDEN_MODOS.includes(datos.modo) ? datos.modo : 'manual';
+    const ordenManual = [];
+    (Array.isArray(datos.ordenManual) ? datos.ordenManual : []).forEach(id => {
+      if(typeof id === 'string' && !ordenManual.includes(id)) ordenManual.push(id); // FR-038
+    });
+    return { modo, ordenManual };
+  }
+
+  // FR-031 — `ids` es el plantel completo en el orden activo; el arrastrado queda inmediatamente
+  // antes del destino. Soltar sobre sí mismo o un id que no está devuelve `ids` sin cambios.
+  function ordenManualTrasSoltar(ids, arrastradoId, destinoId){
+    if(arrastradoId === destinoId || !ids.includes(arrastradoId) || !ids.includes(destinoId)) return ids;
+    const sinArrastrado = ids.filter(id => id !== arrastradoId);
+    sinArrastrado.splice(sinArrastrado.indexOf(destinoId), 0, arrastradoId);
+    return sinArrastrado;
+  }
+
+  // TD-09 / NFR-004 — el nombre accesible del título de una columna: el nombre, y el sentido en
+  // palabras sólo si es la columna activa. Devuelve siempre un rótulo fijo (TC-044).
+  function etiquetaTituloOrden(criterio, modo){
+    const NOMBRES = { posicion: 'Posición', jugador: 'Jugador', pj: 'Partidos jugados', goles: 'Goles', asist: 'Asistencias', puntaje: 'Pts' };
+    const NUMERICO = { asc: 'de menor a mayor', desc: 'de mayor a menor' };
+    const SENTIDOS = {
+      posicion: { asc: 'del arquero al delantero', desc: 'del delantero al arquero' },
+      jugador: { asc: 'de la A a la Z', desc: 'de la Z a la A' },
+      pj: NUMERICO, goles: NUMERICO, asist: NUMERICO, puntaje: NUMERICO,
+    };
+    const nombre = NOMBRES[criterio];
+    const [criterioActivo, sentido] = String(modo).split('_');
+    if(criterioActivo !== criterio || (sentido !== 'asc' && sentido !== 'desc')) return nombre;
+    return nombre + ', ' + SENTIDOS[criterio][sentido];
   }
 
   // El filtro de puesto de la lista: todos, un puesto (por su principal) o los que faltan reclasificar (FR-031).
@@ -2622,7 +2713,16 @@
     return sortRoster(filtrados, effectiveSortMode()); // TC-010
   }
 
-  const ORDEN_MODO_LABELS = { manual: 'Manual', puntaje_asc: 'Puntaje ↑', puntaje_desc: 'Puntaje ↓', posicion_asc: 'Posición ↑', posicion_desc: 'Posición ↓' };
+  // orden-por-columnas TD-11 — nombre completo y flecha: ↑ ascendente, ↓ descendente.
+  const ORDEN_MODO_LABELS = {
+    manual: 'Manual',
+    posicion_asc: 'Posición ↑', posicion_desc: 'Posición ↓',
+    jugador_asc: 'Jugador ↑', jugador_desc: 'Jugador ↓',
+    pj_desc: 'Partidos jugados ↓', pj_asc: 'Partidos jugados ↑',
+    goles_desc: 'Goles ↓', goles_asc: 'Goles ↑',
+    asist_desc: 'Asistencias ↓', asist_asc: 'Asistencias ↑',
+    puntaje_desc: 'Pts ↓', puntaje_asc: 'Pts ↑',
+  };
 
   // FR-001/FR-002 — el selector siempre muestra Manual + Posición (públicos); Puntaje solo se
   // agrega para admin, ya que el puntaje mismo es un dato solo-admin (FR-013 en la Spec).
