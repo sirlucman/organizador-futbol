@@ -46,6 +46,8 @@ admin manually reorder that queue in any match state, including a
 present two of its existing lists in an order the admin chooses, instead of
 only their current fixed order.
 
+**Reemplazado el 2026-10-02 por §2 de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** en el listado de Jugadores, el orden se elige por seis columnas (títulos desde 760px, menú abajo), Manual deja de ser un modo y se entra arrastrando, cualquier cuenta arrastra, y el orden activo y el orden manual son de cada cuenta. Lo que este párrafo dice de la convocatoria sigue vigente.
+
 ## 3. Scope
 
 ### 3.1 In scope
@@ -67,6 +69,8 @@ only their current fixed order.
   `Finalizado`) — unlike the existing add/quitar/dupla controls on that
   same queue, which stay locked once the match is closed or finalized
   (§7.8).
+
+**Reemplazado el 2026-10-02 por §3.1 de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** en el listado de Jugadores, la primera, segunda, cuarta y quinta viñeta dejan de ser ciertas: seis columnas en dos sentidos, arrastre con cualquier orden, preferencia por cuenta en lugar de `playersSortMode`, y el respaldo a Manual sobre la preferencia propia.
 
 ### 3.2 Out of scope / non-goals
 
@@ -94,6 +98,7 @@ only their current fixed order.
 - The system shall not introduce per-user (per-device/local) ordering
   preferences; ordering is a single shared state (see §10, D-equivalent
   rationale in §14 A-03).
+  **Reemplazado el 2026-10-02 por `FR-040` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** el orden activo y el orden manual son por cuenta.
 - The system shall not change the existing search (`#searchInput`) or
   filter (`#filters`, `#filtersEstado`) behaviour beyond making the sort
   step that follows them selectable.
@@ -136,6 +141,7 @@ None — no Concept Note exists for this feature (§6.5).
   document readable by every session, admin and non-admin alike — FR-052
   requires every viewer, not just admins, to know the currently active
   sort mode in order to apply its fallback.
+  **Reemplazado el 2026-10-02 por `FR-048` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** `playersSortMode` deja de leerse y de escribirse, y su regla se retira.
 - **TC-014** — The convocatoria queue's drag-and-drop (§7.8) shall reorder
   `m.convocados` directly and reuse the existing `getUnidadesConvocatoria`
   grouping (`index.html:1628-1643`) so a dupla is always dragged and
@@ -160,6 +166,7 @@ scorekeeping, single deployment, no payments, no health/financial data).
   `window.__`-prefixed camelCase naming convention and the existing
   `if(!isAdmin()) return;` gating pattern already used by every mutation
   handler on this screen (`index.html:1541`, `1549`, `1555`, `1586`).
+  **Reemplazado el 2026-10-02 por `FR-030` y `FR-045` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** En el listado de Jugadores: el arrastre y el cambio de orden son de cualquier cuenta. Sigue vigente para la convocatoria (§7.8).
 - **TC-031** — The one-time migration that assigns `orden` to legacy
   players shall follow the existing one-time-migration-flag pattern: a
   `crudo['<nombre>Migrado']` check, the migration itself, then
@@ -196,6 +203,7 @@ CWE Top 25 retrieved live from `https://cwe.mitre.org/top25/archive/2024/2024_to
   Function — this feature introduces no new authentication or privilege
   tier, only new fields and handlers behind the one gate every sibling
   mutation already uses.
+  **Reemplazado el 2026-10-02 por `TC-040` y `TC-041` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** En el listado de Jugadores: la preferencia de orden la autoriza una regla de Firestore por `uid`, y ningún arrastre escribe `orden` ni `data/players`, cuya escritura sigue siendo sólo de admin. Sigue vigente para la convocatoria (`TC-042`).
 - **TC-041** — Before applying a drop, the system shall validate that the
   dragged id read from `dataTransfer` corresponds to a player currently
   present in the visible list; if it does not (stale drag, tampered
@@ -207,6 +215,7 @@ CWE Top 25 retrieved live from `https://cwe.mitre.org/top25/archive/2024/2024_to
   Through User-Controlled Key** (the dragged id is treated as a lookup key
   into the admin's own already-authorized `players` array, never trusted
   to reach into another admin's session or a different collection).
+  **Reemplazado el 2026-10-02 por `FR-035` y `TC-043` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** la misma validación del id arrastrado, para cualquier cuenta.
 - **`CWE-79` Cross-Site Scripting** — not applicable; this feature adds a
   numeric field (`orden`) and a closed-set string (`playersSortMode`),
   never new free-text rendered via unescaped interpolation.
@@ -264,6 +273,8 @@ CWE Top 25 retrieved live from `https://cwe.mitre.org/top25/archive/2024/2024_to
 | US-05 | As a Jugador (viewer), I don't want to be blocked or shown an error just because an admin left the puntaje sort active — I expect to still see a sensible order. | FR-052 |
 | US-06 | As an Admin, I want to drag a player (or a dupla) up or down the titulares/suplentes convocatoria queue of a match, in any match state, so I can fix an ordering mistake or promote a suplente without removing and re-adding them. | FR-070, FR-071, FR-075 |
 
+**Reemplazado el 2026-10-02 por `US-03`, `US-04` y `US-05` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** `US-01` (arrastre de admin), `US-04` (mismo orden para todos) y `US-05` (el `jugador` ante el modo global) dejan de ser ciertas.
+
 ## 6. Glossary
 
 | Term | Definition |
@@ -276,6 +287,8 @@ CWE Top 25 retrieved live from `https://cwe.mitre.org/top25/archive/2024/2024_to
 | Convocatoria | The existing ordered list (`m.convocados`) of players called up for a match. |
 | Titular / suplente | Existing derived status: the first `titularesRequeridos(m)` unidades in the convocatoria queue are "titulares"; the rest are "suplentes" — purely a function of queue order (`getTitularIds`). |
 | Unidad (de convocatoria) | Existing grouping unit (`getUnidadesConvocatoria`): either one player or one dupla (two players who rotate together), always occupying exactly one slot in the queue. |
+
+**Reemplazado el 2026-10-02 por §6 de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** "Modo de orden", "Orden manual" y `playersSortMode` se leen con el glosario de esa Spec (Criterio, Orden manual de la cuenta, Preferencia de orden). `orden` sigue existiendo, pero ya nadie lo modifica arrastrando: es el "Orden base" del que parte cada cuenta.
 
 
 
@@ -404,6 +417,7 @@ constraints beyond what's already cited above).
   shall re-render the roster using the existing filter/search pipeline
   (`getFiltered()`), replacing its fixed alphabetical sort step with the
   sort criterion the new value selects.
+  **Reemplazado el 2026-10-02 por `FR-001`–`FR-004` y `FR-020`–`FR-027` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** seis columnas en dos sentidos, Manual ya no es una opción, y el orden se cambia con los títulos desde 760px o con el menú abajo de 760px.
 
 ### 7.2 Orden manual (drag and drop)
 
@@ -422,6 +436,7 @@ constraints beyond what's already cited above).
   every row as non-draggable regardless of modo de orden (manual
   reordering remains admin-only, mirroring the existing equipos
   drag-and-drop gate).
+  **Reemplazado el 2026-10-02 por `FR-030`–`FR-036` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** toda fila es arrastrable para cualquier cuenta y con cualquier orden activo; el soltado escribe el orden manual de esa cuenta, no `orden`.
 
 ### 7.3 Orden por puntaje
 
@@ -457,6 +472,7 @@ constraints beyond what's already cited above).
   reposition the dragged player only relative to the other players
   currently visible, and shall preserve the relative manual order of
   players not currently visible.
+  **Reemplazado el 2026-10-02 por `FR-031` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** con cualquier orden activo, los jugadores ocultos quedan donde estaban en la lista completa en ese orden; en Manual, esto es lo mismo que este requisito, y vale para cualquier cuenta.
 
 ### 7.6 Persistencia y sincronización
 
@@ -473,9 +489,11 @@ constraints beyond what's already cited above).
   render the roster in Manual order instead (a non-admin has no access to
   `playerScores` and cannot compute the sort), without altering the
   persisted global value.
+  **Reemplazado el 2026-10-02 por `FR-040`–`FR-044` y `FR-048` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** el orden manual y el orden activo se guardan por cuenta; el respaldo a Manual de `FR-052` se conserva, aplicado a la preferencia propia.
 - **FR-053** — If persisting a manual reorder fails, the system shall show
   an error toast (`window.__showToast(mensaje, 'error')`) and revert the
   visible roster to the last successfully persisted order.
+  **Reemplazado el 2026-10-02 por `FR-047` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** la misma conducta, sobre la preferencia de la cuenta.
 
 ### 7.7 Migración de datos existentes
 
@@ -547,6 +565,8 @@ applicable for that reason.
 
 #### Scenario S-01 — Reordenar manualmente por drag and drop (covers FR-010, FR-011, FR-050)
 
+**Reemplazado el 2026-10-02 por `S-05`, `S-06` y `S-03a` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** el arrastre escribe el orden manual de la cuenta; no hay last-write-wins entre admins. Este escenario y sus variantes quedan sin efecto.
+
 - **Given** un admin viendo el listado de Jugadores en modo de orden Manual
 - **And** al menos tres jugadores visibles
 - **When** el admin arrastra el segundo jugador de la lista y lo suelta en la primera posición
@@ -590,6 +610,8 @@ applicable for that reason.
 
 #### Scenario S-04 — Cambiar el modo de orden deshabilita el drag and drop (covers FR-012, FR-003)
 
+**Reemplazado el 2026-10-02 por `S-05` y `S-05d` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** el arrastre está disponible con cualquier orden, y no se puede volver a elegir Manual. Este escenario y su variante quedan sin efecto.
+
 - **Given** un admin en modo de orden Manual, con filas arrastrables
 - **When** el admin selecciona "Puntaje ascendente"
 - **Then** el listado se reordena por puntaje
@@ -600,6 +622,8 @@ applicable for that reason.
 - `S-04a [boundary]` — el admin vuelve a seleccionar "Manual" → las filas vuelven a ser arrastrables y el listado muestra el último orden manual guardado (no el orden por puntaje que se acaba de abandonar).
 
 #### Scenario S-05 — Un jugador (no-admin) ve el listado cuando el modo global es puntaje (covers FR-002, FR-013, FR-052)
+
+**Reemplazado el 2026-10-02 por `S-04a` y `S-06` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** no hay modo global, y el `jugador` arrastra su propio orden. Este escenario y su variante quedan sin efecto.
 
 - **Given** un admin dejó el modo de orden global en "Puntaje descendente"
 - **When** un usuario no-admin abre la pantalla de Jugadores
@@ -614,6 +638,8 @@ applicable for that reason.
 ### 9.2 Edge cases
 
 #### Scenario S-06 — Reordenar con búsqueda o filtro activo (covers FR-040, FR-041)
+
+**Reemplazado el 2026-10-02 por `S-05b` y `S-05c` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** la conducta se conserva para cualquier cuenta y con cualquier orden activo, sobre el orden manual de la cuenta en lugar de `orden`. Este escenario y sus variantes quedan sin efecto.
 
 - **Given** un admin en modo de orden Manual con el filtro de posición aplicado en "Defensor" (mostrando solo 4 de 20 jugadores)
 - **When** el admin arrastra el tercer defensor visible a la primera posición del subconjunto filtrado
@@ -674,6 +700,8 @@ una entidad con relaciones/cardinalidad propia).
 | `playersSortMode` (nuevo, valor único de configuración — no es una entidad de dominio con identidad o relaciones propias, es un escalar compartido análogo a `motorConfig`) | Modo de orden actualmente activo, compartido por todos los usuarios | Un valor entre `manual` / `puntaje_asc` / `puntaje_desc` / `posicion_asc` / `posicion_desc` | Se crea con valor por defecto `manual`; se actualiza al cambiar el selector (FR-051) |
 | Convocatoria de un partido (existente, sin cambios de esquema) | Cola ordenada de jugadores/duplas convocados a un partido (`m.convocados`) | Sin campos nuevos — el orden del array existente pasa a poder cambiarse también por drag and drop, además de por alta/baja (FR-071) | Se reordena al arrastrar una unidad (FR-071); el corte titular/suplente (`getTitularIds`) se recalcula a partir del nuevo orden |
 
+**Reemplazado el 2026-10-02 por §10.1 de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** la fila Jugador en el ciclo de vida de `orden` (ya no se actualiza al arrastrar) y la fila `playersSortMode` (se retira). Aparece la entidad Preferencia de orden.
+
 #### 10.1.1 Entity-relationship diagram
 
 No requerido — esta feature no introduce ninguna entidad de dominio nueva
@@ -722,12 +750,14 @@ existing `motorConfig`-style values).
   visible list before mutating, and — for the convocatoria queue
   specifically — intentionally skips the `locked` check while still
   requiring `isAdmin()`.
+  **Reemplazado el 2026-10-02 por `AC-16` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** En el listado de Jugadores: verifica la regla por `uid` contra staging. Sigue vigente para la convocatoria.
 
 ### 11.4 Negative / safety acceptance
 
 - **AC-20** — Scenario S-05a (a non-admin attempting to force a drop)
   produces no mutation of `orden` or `players`, as observed by manual
   testing with a non-admin session.
+  **Reemplazado el 2026-10-02 por `AC-20` de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** ninguna cuenta toca la preferencia de otra ni `data/players`, verificado contra staging. Este `AC-20` queda sin efecto.
 - **AC-21** — Scenario S-08d (a non-admin attempting to force a convocatoria
   drop) produces no mutation of `m.convocados`, as observed by manual
   testing with a non-admin session; and S-08a (reordering a `Finalizado`
@@ -819,6 +849,7 @@ infrastructure (consistent with every other feature in this app).
   `admin-only` class) — this half is inferred from that existing
   visibility, not directly confirmed by the user, and is flagged here for
   explicit review before the Plan builds against it.
+  **Reemplazado el 2026-10-02 por `D-03` y `D-04` (§3.3) de [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md):** `A-02`, `A-03` y la mitad de `A-04` sobre el arrastre dejan de ser ciertas: se arrastra con cualquier orden, el orden es de cada cuenta, y cualquier cuenta arrastra. La mitad sobre Puntaje sigue vigente.
 - **A-05** — The lack of a keyboard-accessible drag-and-drop alternative is
   an accepted limitation, consistent with the existing equipos-screen
   drag-and-drop, which has the same gap today.
@@ -877,6 +908,7 @@ infrastructure (consistent with every other feature in this app).
 | 2026-08-28 | Lucas Manoukian | Initial draft. Self-critique: passed (0🔴 / 5🟡 / 1🔵) — fixed EARS pattern misuse in FR-013/FR-022/FR-031/FR-060 (changed "Where" to "If…then" for conditional-consequence FRs), added TC-013 to make explicit that `playersSortMode` must be readable by non-admin sessions (unlike `motorConfig`, which is deliberately admin-only) since FR-052 depends on it, tagged the inferred half of A-04 with `[INFERRED]`, added a qualitative-NFR disclaimer to §8 matching the goles-en-contra precedent, clarified §10.1.1's reasoning for why `playersSortMode` doesn't need an ER diagram, and softened §13's claim about `docs/002-gestion-jugadores`/`007-permisos-por-usuario` (cited for context, not verified as active dependencies). |
 | 2026-08-28 | Lucas Manoukian | Expanded scope per user request: added §7.8 (drag-and-drop reordering of the match convocatoria's titulares/suplentes queue, available to admin in every match state, including `Finalizado`, unlike the existing locked add/quitar/dupla controls). Added FR-070–FR-075, TC-014/TC-015/TC-042, Scenario S-08 with 5 variants, A-06/A-07, two new risks, two new open questions (OPEN-Q-04/05), and updated §3.1/§3.2 scope (the prior non-goal claiming drag-and-drop was exclusive to Jugadores is now corrected). Self-critique: skipped for this iteration — the added content mirrors the already-reviewed §7.1–§7.7 shape closely (same TC-040/TC-041 authorization pattern, same GWT/Variants discipline), and the user is present to review directly. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo parcial declarado por [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md): se marcan las partes que pasan a leerse con los ocho puestos. |
+| 2026-10-02 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo parcial declarado por [`ORDEN_POR_COLUMNAS_SPEC.md`](../orden-por-columnas/ORDEN_POR_COLUMNAS_SPEC.md): se marcan como reemplazadas §2 y §3.1 (en el listado de Jugadores), el non-goal de §3.2, `TC-013`, `TC-030`, `TC-040` y `TC-041` (en el listado), `US-01`/`US-04`/`US-05`, el glosario, `FR-001`–`FR-003`, `FR-010`–`FR-013`, `FR-041`, `FR-050`–`FR-053`, `S-01`, `S-04`, `S-05`, `S-06`, §10.1, `AC-16` (en el listado), `AC-20` y `A-02`–`A-04`. La convocatoria (§7.8) no cambia. |
 
 ---
 
