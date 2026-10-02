@@ -349,6 +349,26 @@ prueba('orden/S-03b: la preferencia se lee sólo al arrancar: index.html no escu
   eq(apariciones('onSnapshot').length, 0, 'apariciones de onSnapshot');
 });
 
+/* El cuerpo de un manejador `window.__<nombre> = (async) function(…){ … };`, hasta su llave de cierre. */
+function cuerpoDeManejador(nombre) {
+  const desde = src.indexOf(`window.${nombre} = `);
+  ok(desde > 0, `se encuentra window.${nombre}`);
+  const hasta = src.indexOf('\n  };', desde);
+  return src.slice(desde, hasta);
+}
+
+prueba('orden/S-06: cualquier cuenta arrastra: ni el inicio ni el soltado del listado preguntan por el rol', () => {
+  ['__dragStartRosterRow', '__dropOnRosterRow'].forEach(nombre =>
+    ok(!cuerpoDeManejador(nombre).includes('isAdmin'), `window.${nombre} consulta isAdmin`));
+});
+
+prueba('orden/TC-041: ningún camino del soltado del listado escribe data/players', () => {
+  const cuerpo = cuerpoDeManejador('__dropOnRosterRow');
+  ['savePlayers', 'storage.set', "'players'"].forEach(texto =>
+    ok(!cuerpo.includes(texto), `window.__dropOnRosterRow contiene ${texto}`));
+  ok(cuerpo.includes('guardarPreferenciaOrden'), 'el soltado guarda la preferencia de la cuenta');
+});
+
 prueba('orden/TC-044: un modo leído con texto HTML no llega a la pantalla: los títulos y el menú sólo usan rótulos fijos', () => {
   const HOSTILES = ['<img src=x onerror=alert(1)>', 'goles_<img src=x>', '"><script>x</script>', 'puntaje_desc" onclick="x'];
   const NOMBRES = { posicion: 'Posición', jugador: 'Jugador', pj: 'Partidos jugados', goles: 'Goles', asist: 'Asistencias', puntaje: 'Pts' };

@@ -1772,7 +1772,9 @@ const ESCENARIOS = [
         ancho: window.innerWidth,
         tabs: document.querySelectorAll('.equipo-tab').length,
         arrastrables: document.querySelectorAll('.camiseta[draggable="true"]').length,
-        zonasConDrop: document.querySelectorAll('[ondrop]').length,
+        /* Fuera del listado de Jugadores: ahí cualquier cuenta arrastra para armar su propio orden
+           (orden-por-columnas FR-030), y este escenario es sobre la cancha. */
+        zonasConDrop: [...document.querySelectorAll('[ondrop]')].filter(z => !z.closest('.roster')).length,
         visible: document.querySelector('.equipo-tabs') ? document.querySelector('.equipo-tabs').dataset.visible : null,
       }));
       if (a.arrastrables) problemas.push(`el rol jugador vio ${a.arrastrables} camisetas arrastrables (FR-041)`);

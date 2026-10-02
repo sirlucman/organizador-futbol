@@ -2833,10 +2833,8 @@
       roster.innerHTML = `<div class="empty-state"><p>No hay jugadores que coincidan con la búsqueda o el filtro.</p></div>`;
       return;
     }
-    // FR-010/FR-012/FR-013 — el drag and drop del listado solo está activo para admin y solo
-    // mientras el modo de orden es Manual; en cualquier otro caso (no-admin, u otro modo) las
-    // filas no son arrastrables.
-    const puedeArrastrar = isAdmin() && effectiveSortMode() === 'manual';
+    // orden-por-columnas FR-030 — toda fila es arrastrable, para cualquier cuenta, con cualquier
+    // orden activo y en los dos anchos (TD-13).
     /* Encabezado de columnas del turno 16b. Va como primer hijo de `.roster` y pega arriba con
        `position:sticky` mientras el listado pasa por debajo; abajo de 760px el CSS lo esconde y
        el dato vuelve al renglón apilado (16c). Las dos últimas columnas —Pts y el menú— sólo
@@ -2883,9 +2881,7 @@
           + `<div class="row-col" aria-hidden="true">${p.golesTotales || 0}</div>`
           + `<div class="row-col" aria-hidden="true">${p.asistenciasTotales || 0}</div>`
         : `<div class="row-col row-col-vacio" aria-hidden="true">—</div><div class="row-col" aria-hidden="true"></div><div class="row-col" aria-hidden="true"></div><div class="row-col" aria-hidden="true"></div>`;
-      const dragAttrs = puedeArrastrar
-        ? `draggable="true" ondragstart="window.__dragStartRosterRow(event,'${p.id}')" ondragover="event.preventDefault()" ondrop="window.__dropOnRosterRow(event,'${p.id}')"`
-        : '';
+      const dragAttrs = `draggable="true" ondragstart="window.__dragStartRosterRow(event,'${p.id}')" ondragover="event.preventDefault()" ondrop="window.__dropOnRosterRow(event,'${p.id}')"`;
       // "jugador" ve el listado completo (incluidos los jugadores sin puntaje) y las estadísticas
       // acumuladas, pero nunca el puntaje ni las acciones de administrar el plantel (FR-003/FR-004/FR-013).
       return `
@@ -2931,44 +2927,41 @@
       onclick="window.__abrirMenuJugador(event,'${playerId}')">${ICON_MAS_ACCIONES}</button>`;
   }
 
-  // FR-010/FR-011 — reusa el mismo patrón de drag and drop nativo ya usado para mover jugadores
-  // entre equipos (window.__dragStartJugador/window.__dropEnCancha).
+  // Reusa el mismo patrón de drag and drop nativo ya usado para mover jugadores entre equipos
+  // (window.__dragStartJugador/window.__dropEnCancha). Desde orden-por-columnas arrastra
+  // cualquier cuenta (FR-030), y lo que cambia es el orden manual de esa cuenta: el plantel
+  // compartido de data/players no se toca (FR-036, TC-041).
   window.__dragStartRosterRow = function(e, playerId){
-    if(!isAdmin()) return; // TC-040
     e.dataTransfer.setData('text/plain', playerId);
   };
 
   window.__dropOnRosterRow = async function(e, targetPlayerId){
     e.preventDefault();
-    if(!isAdmin()) return; // TC-040
     const draggedId = e.dataTransfer.getData('text/plain');
-    if(!draggedId || draggedId === targetPlayerId) return;
+    if(!draggedId || draggedId === targetPlayerId) return; // FR-034
 
-    // TC-041 — valida que tanto el id arrastrado como el objetivo existan en el listado
+    // TC-043 — valida que tanto el id arrastrado como el objetivo existan en el listado
     // actualmente visible antes de mutar nada (evita reordenar contra un id obsoleto o ajeno).
     const visibleIds = getFiltered().map(p => p.id);
     if(!visibleIds.includes(draggedId) || !visibleIds.includes(targetPlayerId)) return;
 
-    // FR-053 — guarda el `orden` previo de cada jugador tocado para poder revertir si falla el guardado.
-    const ordenPrevio = new Map(players.map(p => [p.id, p.orden]));
-
-    // TD-05 — resecuencia como enteros consecutivos (0,1,2,...) el subconjunto visible, tras
-    // insertar el arrastrado en la posición del objetivo; FR-041 hace que esto solo reordene el
-    // subconjunto visible, preservando el orden relativo de quienes no están filtrados.
-    const sinArrastrado = visibleIds.filter(id => id !== draggedId);
-    const idxObjetivo = sinArrastrado.indexOf(targetPlayerId);
-    sinArrastrado.splice(idxObjetivo, 0, draggedId);
-    sinArrastrado.forEach((id, idx) => {
-      const p = players.find(pl => pl.id === id);
-      if(p) p.orden = idx;
-    });
+    // FR-031 — el nuevo orden manual es la lista COMPLETA del plantel, sin búsqueda ni filtros,
+    // en el orden activo, con el arrastrado inmediatamente antes del destino: los ocultos quedan
+    // donde estaban. Pasa a Manual (FR-033) y se guarda el estado anterior por si falla (FR-058).
+    const completa = sortRoster(players, effectiveSortMode(), ordenManualCuenta).map(p => p.id);
+    const anterior = { modo: ordenActivo, ordenManual: ordenManualCuenta };
+    ordenManualCuenta = ordenManualTrasSoltar(completa, draggedId, targetPlayerId);
+    ordenActivo = 'manual';
 
     renderPlayersTab();
-    const guardado = await savePlayers();
-    if(!guardado){
-      players.forEach(p => { if(ordenPrevio.has(p.id)) p.orden = ordenPrevio.get(p.id); });
+    try{
+      await guardarPreferenciaOrden();
+    }catch(err){
+      console.error('No se pudo guardar el orden manual:', err);
+      ordenActivo = anterior.modo;
+      ordenManualCuenta = anterior.ordenManual;
       renderPlayersTab();
-      window.__showToast('No se pudo guardar el nuevo orden. Intentá de nuevo.', 'error');
+      window.__showToast('No se pudo guardar el nuevo orden. Intentá de nuevo.', 'error'); // FR-047
     }
   };
 
