@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** *not yet written* · **Implementation plan:** *not yet written*
+> **Spec:** [POSICIONES_DEL_JUGADOR_SPEC.md](./POSICIONES_DEL_JUGADOR_SPEC.md) · **Implementation plan:** *not yet written*
 
 ## 1. TL;DR
 
@@ -447,6 +447,13 @@ Ningún concepto nuevo de dominio.
 | D-15 | El arquero improvisado sigue sumando al total lo de su puesto anterior, salvo que tenga puntaje de Arquero cargado | Que el total no salte por un cambio circunstancial: casi nadie tiene nota de arquero, y contarla bajaría el total del equipo de golpe | Easy |
 | D-16 | La ventaja que el motor le dio al equipo sin arquero fijo se mantiene cuando se elige un arquero improvisado | Un arquero improvisado sigue siendo una desventaja real. Además no se recalcula nada del motor | Easy |
 | D-17 | En un partido "Solo por puntaje", que no asigna puestos, el toque intercambia con alguien del otro equipo sin regla de compatibilidad, y dentro del propio equipo no tiene efecto. El arrastre en esos partidos sigue como hoy | Escribir un puesto asignado ahí cambiaría el valor de todos los jugadores de promedio general a puntaje por puesto (`index.html:5066`), no sólo el de los dos | Easy |
+| D-18 | Al regenerar, lo hecho a mano sobre unidades sin candado se pierde, como hoy; una unidad con candado conserva equipo y puesto. Un arquero elegido deja el arco siempre, tenga candado o no; con candado conserva el equipo | Decisión del propietario al escribir la Spec (2026-10-28). Conservar el arco obligaría a cambiar el motor para aceptar un arquero que no declaró el puesto. Cierra `OPEN-Q-02` | Easy |
+| D-19 | Al empezar un arrastre se resaltan los mismos candidatos que al tocar; soltar sobre una camiseta incompatible no cambia nada y un aviso corto dice qué puesto falta cubrir | Decisión del propietario (2026-10-28): el arrastre no debe rechazar sin haber mostrado antes qué se acepta. Cierra `OPEN-Q-04` y reemplaza también `FR-014`/`FR-015` de `ARRASTRE_SPEC.md` | Easy |
+| D-20 | En un partido con puestos del catálogo viejo, la compatibilidad se mide por línea, con la misma función que ya usa el recálculo de lugares sin cubrir (`cubrePosicionGuardada`, `index.html:3642`) | El motor y el recálculo ya resuelven así ese caso; una regla distinta en la cancha contradiría a `D-07`. Cierra `OPEN-Q-06` | Easy |
+| D-21 | El puesto anterior del arquero elegido se guarda con el partido, en `data/partidosArmado` (sólo `admin`), sin documento nuevo ni cambio de reglas | No se puede derivar: el puntaje se lee del puesto asignado (`index.html:5064`) y en el arco sumaría cero. Las reglas de ese documento no validan campos (`firestore-rules.md:308`). Cierra `OPEN-Q-07` | Easy |
+| D-22 | En un partido "Solo por puntaje" el arco vacío también se puede ocupar, sólo como dibujo: no se escribe puesto asignado y ningún total cambia | Decisión del propietario (2026-10-28). Ahí cada uno suma su promedio general, así que dibujarlo en el arco no mueve números. Cierra `OPEN-Q-08` y amplía `D-17` | Easy |
+| D-23 | Un arquero elegido puede volver a su puesto anterior con un toque, y si se lo pasa al otro equipo llega en su puesto anterior y no como arquero | Decisión del propietario (2026-10-28): sin esto, poner a alguien en el arco por error sólo se deshacía regenerando. Es la única excepción a `D-09` (el pase conserva el puesto) | Easy |
+| D-24 | El arco vacío también se ocupa arrastrando, y el arquero elegido también vuelve a su puesto anterior arrastrando: al empezar el arrastre el destino aparece marcado y soltar ahí hace lo mismo que tocarlo, con y sin puestos | Decisión del propietario (2026-10-28): los dos gestos deben llegar a los mismos lugares, igual que `D-08` para las camisetas. Reemplaza, sólo para esos dos destinos, la segunda viñeta de §3.2 de `ARRASTRE_SPEC.md` (no se suelta sobre una línea) | Easy |
 
 ## 11. Risks
 
@@ -508,13 +515,13 @@ Ningún concepto nuevo de dominio.
 | ID | Question | Owner | Target stage | Notes |
 |---|---|---|---|---|
 | OPEN-Q-01 | ~~¿Qué dice el resumen sobre los intercambios manuales?~~ | Lucas Manoukian | — | Resuelta el 2026-10-28 por `D-12`: no dice nada nuevo; actúa la división vigente |
-| OPEN-Q-02 | Al regenerar, los intercambios hechos a mano sobre jugadores sin candado se pierden, como pasa hoy con cualquier movimiento manual. ¿Se confirma? ¿Y el arquero improvisado sin candado? | Lucas Manoukian | Spec | Hoy regenerar descarta lo manual salvo lo fijado (`D-13`) |
+| OPEN-Q-02 | ~~Al regenerar, los intercambios hechos a mano sobre jugadores sin candado se pierden, como pasa hoy con cualquier movimiento manual. ¿Se confirma? ¿Y el arquero improvisado sin candado?~~ | Lucas Manoukian | — | Resuelta el 2026-10-28 por `D-18` |
 | OPEN-Q-03 | ¿Cómo se selecciona e intercambia con el teclado? | Lucas Manoukian | Post-launch | WCAG 2.1.1 (§6.5); pendiente de `Roadmap.md` §2 |
-| OPEN-Q-04 | Durante un arrastre, ¿se resaltan los compatibles? Al soltar sobre una camiseta incompatible, ¿qué ve el administrador? | Lucas Manoukian | Spec | Si se resalta, reemplaza también `FR-015` de `ARRASTRE_SPEC.md` |
+| OPEN-Q-04 | ~~Durante un arrastre, ¿se resaltan los compatibles? Al soltar sobre una camiseta incompatible, ¿qué ve el administrador?~~ | Lucas Manoukian | — | Resuelta el 2026-10-28 por `D-19` |
 | OPEN-Q-05 | ¿Con qué tokens del design system se dibujan la camiseta seleccionada, las resaltadas y el arco vacío como destino? | Lucas Manoukian | Plan | Orden de resolución de `AGENTS.md`; si nada alcanza, excepción documentada |
-| OPEN-Q-06 | En un partido editable cuyo puesto asignado todavía es del catálogo viejo (anterior a `desglose-posiciones`), ¿cómo se aplica la regla de compatibilidad? | Lucas Manoukian | Spec | El código compara esos valores por línea (`cubrePosicionGuardada`, `juegaFueraDePuesto`) |
-| OPEN-Q-07 | ¿Cómo se sabe el puesto anterior del arquero improvisado (`D-15`): se deriva o se guarda? Si se guarda, ¿las reglas de Firestore lo validan? | Lucas Manoukian | Spec | Afecta §5.2 y §13.1 |
-| OPEN-Q-08 | ¿El arco vacío (`D-14`) aplica también en partidos "Solo por puntaje", donde no hay puestos asignados? | Lucas Manoukian | Spec | `D-17` no lo cubre |
+| OPEN-Q-06 | ~~En un partido editable cuyo puesto asignado todavía es del catálogo viejo (anterior a `desglose-posiciones`), ¿cómo se aplica la regla de compatibilidad?~~ | Lucas Manoukian | — | Resuelta el 2026-10-28 por `D-20` |
+| OPEN-Q-07 | ~~¿Cómo se sabe el puesto anterior del arquero improvisado (`D-15`): se deriva o se guarda? Si se guarda, ¿las reglas de Firestore lo validan?~~ | Lucas Manoukian | — | Resuelta el 2026-10-28 por `D-21` |
+| OPEN-Q-08 | ~~¿El arco vacío (`D-14`) aplica también en partidos "Solo por puntaje", donde no hay puestos asignados?~~ | Lucas Manoukian | — | Resuelta el 2026-10-28 por `D-22` |
 
 ## 16. Handoff to the Spec
 
@@ -568,6 +575,8 @@ Ningún concepto nuevo de dominio.
 |---|---|---|
 | 2026-10-28 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Acota en `Roadmap.md` §3 la alternativa táctil para editar equipos: el intercambio por toque sale de ahí, el pase por toque y el teclado quedan. Self-critique: skipped (cross-model critique run instead). |
 | 2026-10-28 | Lucas Manoukian (claude-opus-5-5) | Atiende la revisión de claude-sonnet-5-5 (4🔴 / 8🟡 / 4🔵, todas tomadas): §16 lista cada parte reemplazada; `D-12` se reescribe contra `D-26` (el resumen no cambia); el non-goal de fuera de puesto pasa a `D-04` "en esta versión" para no chocar con §14; `D-13` verificado en código; `D-01`, `D-03`, `D-05`, `D-07`, `D-08` reformuladas; se quita la cita sin fuente a juegos de fantasy y se verifica WCAG 2.1.1. Decisiones nuevas del propietario: arco vacío (`D-14` a `D-16`) y "Solo por puntaje" (`D-17`). Nuevas `OPEN-Q-06` a `OPEN-Q-08`; `OPEN-Q-01` resuelta. Self-critique: skipped. |
+| 2026-10-28 | Lucas Manoukian (claude-opus-5-5) | Enmienda desde la Spec: se incorporan `D-18` a `D-23`, decisiones tomadas al escribirla (cuatro del propietario, dos técnicas verificadas en código), y se marcan resueltas `OPEN-Q-02`, `-04`, `-06`, `-07` y `-08`. `D-23` es la única excepción a `D-09`. Self-critique: no corresponde (enmienda acotada). |
+| 2026-10-28 | Lucas Manoukian (claude-opus-5-5) | Se agrega `D-24` (el arco vacío y la vuelta del arquero elegido a su puesto anterior también aceptan el arrastre), pedido del propietario sobre el borrador de la Spec. Self-critique: no corresponde (enmienda acotada). |
 
 ---
 
