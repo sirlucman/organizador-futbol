@@ -89,7 +89,7 @@ la posición asignada de nadie.~~ **Reemplazado el 2026-10-29 por `FR-030` de [`
 - Las zonas donde se puede soltar: la pestaña del otro equipo (una columna), la
   cancha del otro equipo y una camiseta del otro equipo (dos columnas).
   **Reemplazado en parte el 2026-10-29 por `FR-041`, `FR-048` y `FR-049` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** también son zona una camiseta compatible del propio equipo,
-  el arco vacío del propio equipo y el puesto anterior de un arquero elegido.
+  el arco vacío del propio equipo y el puesto anterior de un arquero manual.
 - El realce visual de la zona válida bajo el puntero mientras se arrastra.
 - El efecto persistido del movimiento: cambio de equipo, recálculo de totales y
   guardado, con las reglas que ya existen.
@@ -116,7 +116,7 @@ límites propios de esta rebanada:
   sobre una línea— por la misma razón: sin escribir la posición asignada, soltar
   sobre una línea no puede tener efecto.
   **Reemplazado en parte el 2026-10-29 por `FR-048` y `FR-049` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el arco vacío del propio equipo y el puesto
-  anterior de un arquero elegido sí reciben el arrastre. Soltar sobre las demás líneas
+  anterior de un arquero manual sí reciben el arrastre. Soltar sobre las demás líneas
   sigue sin efecto.
 - El sistema **no** ofrecerá el intercambio de dos jugadores en una sola columna.
   Es consecuencia directa del selector: con un equipo por vez no hay ninguna
@@ -129,6 +129,9 @@ límites propios de esta rebanada:
   cambio por sobrevuelo sería invención por fuera del handoff y la única razón
   para construirlo sería habilitar el intercambio en angosto, que el punto
   anterior ya declara fuera de alcance.
+  **Nota del 2026-10-29:** el cambio por sobrevuelo sigue fuera de alcance, pero esta
+  justificación ya no aplica: el intercambio en angosto existe, por toque (`FR-012` de
+  [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md)).
 - El sistema **no** mostrará el selector cuando la tarjeta esté en dos columnas:
   ahí las dos canchas se ven a la vez y el selector no tendría nada que resolver.
 - El sistema **no** modificará el encabezado de la tarjeta de equipos, el combo
@@ -173,7 +176,7 @@ límites propios de esta rebanada:
   heredada; se encoda como `TC-012` y `FR-022`.
   **Reemplazada en parte el 2026-10-29 por `FR-030`, `FR-051`, `FR-053` y `FR-054` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el intercambio y
   el arco vacío sí escriben la posición asignada. El pase la conserva, salvo para el
-  arquero elegido.
+  arquero manual.
 - **D-21** (en una sola columna los equipos se muestran de a uno con el selector,
   y la pestaña del otro recibe el drop) — heredada. Es la que reemplaza el
   `FR-054` de la Spec de la rebanada 1 y cierra su `OPEN-Q-01`; se encoda en
@@ -372,7 +375,7 @@ esta rebanada:
 | Equipo visible | El equipo cuya cancha se está mostrando en una sola columna. Es estado de pantalla: no se guarda con el partido. |
 | Una columna | El modo de layout en que la tarjeta de equipos apila sus dos paneles, que la aplicación ya aplica hoy en `max-width: 900px`. Es el modo en que aparece el selector y se ve una cancha por vez. |
 | Dos columnas | El modo de layout en que los dos paneles van lado a lado. Es el modo en que se ven las dos canchas a la vez, no hay selector, y existe el intercambio. **Reemplazado en parte el 2026-10-29 por el Glosario de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el intercambio también existe en una columna, por toque. |
-| Zona de drop | Una región que, si la camiseta se suelta sobre ella, produce un movimiento. En una columna hay una: la pestaña del otro equipo. En dos columnas hay dos: la cancha del otro equipo y una camiseta del otro equipo. **Reemplazado en parte el 2026-10-29 por `FR-041`, `FR-048` y `FR-049` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** también son zona una camiseta compatible del propio equipo, el arco vacío propio y el puesto anterior de un arquero elegido. |
+| Zona de drop | Una región que, si la camiseta se suelta sobre ella, produce un movimiento. En una columna hay una: la pestaña del otro equipo. En dos columnas hay dos: la cancha del otro equipo y una camiseta del otro equipo. **Reemplazado en parte el 2026-10-29 por `FR-041`, `FR-048` y `FR-049` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** también son zona una camiseta compatible del propio equipo, el arco vacío propio y el puesto anterior de un arquero manual. |
 | Realce | El recuadro que se dibuja sobre la zona de drop bajo el puntero mientras se arrastra, para anunciar qué va a recibir la camiseta. |
 | Movimiento | El efecto persistido de una camiseta soltada sobre una zona válida: una o dos unidades cambian de equipo, los totales se recalculan y el partido se guarda. |
 | Intercambio | ~~El movimiento que produce soltar sobre una camiseta del otro equipo: las dos unidades cambian de equipo a la vez. Sólo existe en dos columnas.~~ **Reemplazado el 2026-10-29 por el Glosario de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** dos unidades se cambian el puesto asignado y, si eran de equipos distintos, también el equipo. |
@@ -427,14 +430,14 @@ esta rebanada:
   **Reemplazado en parte el 2026-10-29 por `FR-041` y `FR-042` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** soltar sobre otra camiseta del propio
   equipo intercambia si es compatible y, si no, avisa por qué no. Sobre la cancha o la
   pestaña propias sigue sin efecto (`FR-044`), salvo el arco vacío y el puesto anterior
-  del arquero elegido (`FR-048`, `FR-049`).
+  del arquero manual (`FR-048`, `FR-049`).
 - **FR-014** — Mientras el puntero esté sobre una zona de drop válida, el sistema
   realzará esa zona con la geometría que fija `TC-033`.
 - **FR-015** — Mientras el puntero esté sobre el propio equipo de la camiseta
   arrastrada, o fuera de toda zona de drop, el sistema no realzará nada.
   **`FR-014` y `FR-015` reemplazados en parte el 2026-10-29 por `FR-040`, `FR-047` y `FR-049` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):**
   al empezar el arrastre se resaltan además los candidatos, también los del propio
-  equipo, y se muestran el arco vacío y el puesto anterior del arquero elegido.
+  equipo, y se muestran el arco vacío y el puesto anterior del arquero manual.
 - **FR-016** — El sistema arrastrará la dupla de rotación como una sola unidad:
   el gesto sobre su camiseta mueve a sus dos integrantes juntos, al mismo equipo,
   con la regla que ya aplica `__moverJugadorManual`
@@ -455,11 +458,8 @@ esta rebanada:
   `moverUnJugadorDeEquipo`: el puntaje de la unidad en su posición asignada, o su
   promedio general si no tiene posición asignada
   ([`index.html:4008-4020`](../../../index.html#L4008-L4020)).
-  **Reemplazado en parte el 2026-10-29 por `FR-056` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** un arquero elegido suma con su puntaje de Arquero si es
-  mayor que cero y, si no, con el de su puesto anterior. Para el resto de las unidades
-  sigue vigente.
 - **FR-022** — ~~El sistema no modificará la posición asignada de ninguna unidad al
-  aplicar un movimiento (`TC-012`).~~ **Reemplazado el 2026-10-29 por `FR-030`, `FR-051`, `FR-053` y `FR-054` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el intercambio, el arco vacío y la vuelta del arquero elegido sí la modifican. El pase
+  aplicar un movimiento (`TC-012`).~~ **Reemplazado el 2026-10-29 por `FR-030`, `FR-051`, `FR-053` y `FR-054` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el intercambio, el arco vacío y la vuelta del arquero manual sí la modifican. El pase
   la conserva (`FR-043` de esa Spec).
 - **FR-023** — Cuando el sistema aplique un movimiento, persistirá el partido y
   volverá a pintar la tarjeta de equipos, con el mismo camino que hoy.
@@ -579,7 +579,7 @@ esta rebanada:
 | NFR-002 | Usabilidad | El área interactiva de cada pestaña no es menor a 44×44 px, y la del candado sigue midiendo al menos 24×24 px en todos los anchos medidos. La pestaña es el destino de todo movimiento en una columna, así que su tamaño es funcional y no cosmético; el handoff ya la dibuja con `padding: 10px 0` sobre la mitad del ancho de la tarjeta, que a 360 px supera holgadamente ese piso. El candado es no-regresión sobre `NFR-004` de la rebanada 1. |
 | NFR-003 | Accesibilidad | Toda camiseta arrastrable declara el gesto en su `title`, no vacío; cada pestaña tiene un nombre accesible no vacío que identifica al equipo y expone cuál está seleccionada; y el candado conserva el nombre accesible que `NFR-003` de la rebanada 1 le exige. El arrastre no tiene equivalente de teclado; ver `OPEN-Q-02`. |
 | NFR-004 | Rendimiento | Aplicar un movimiento —soltar, escribir y repintar— con un plantel de 18 titulares no supera los 150 ms medidos con `performance.now()` en el Chromium que `tests/layout.test.js` ya usa vía Playwright. El techo es el de `NFR-005` de la rebanada 1 (100 ms para el repintado) más el margen del guardado. |
-| NFR-005 | Compatibilidad de datos | ~~El conjunto de campos escritos en el documento de partido por un movimiento es exactamente `equipos.blanco`, `equipos.negro`, `equipos.sumaBlanco` y `equipos.sumaNegro`: el mismo que escribía el arrastre de la lista, sin agregados.~~ Cambiar de pestaña no escribe nada. **Reemplazado en parte el 2026-10-29 por `NFR-005` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el conjunto de campos escritos es el que fija esa Spec, que suma la posición asignada y el registro del arquero elegido. |
+| NFR-005 | Compatibilidad de datos | ~~El conjunto de campos escritos en el documento de partido por un movimiento es exactamente `equipos.blanco`, `equipos.negro`, `equipos.sumaBlanco` y `equipos.sumaNegro`: el mismo que escribía el arrastre de la lista, sin agregados.~~ Cambiar de pestaña no escribe nada. **Reemplazado en parte el 2026-10-29 por `NFR-005` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** el conjunto de campos escritos es el que fija esa Spec, que suma la posición asignada y el registro del arquero manual. |
 | NFR-006 | Mantenibilidad | Todo valor de color, espaciado, radio y sombra usado por el selector y por el realce proviene de un token del design system o de una excepción listada en el Implementation Plan; no queda ningún valor literal sin declarar. |
 | NFR-007 | Seguridad | Un `dataTransfer` con contenido que no corresponde a una unidad del reparto no produce ninguna escritura, verificado disparando los dos manejadores de drop —el de la cancha y el de la pestaña— con contenido arbitrario. |
 | NFR-008 | Verificabilidad del gesto | Todo requisito de esta Spec es verificable en el entorno disponible: navegador de escritorio y el Chromium que el arnés ya conduce. **Ningún criterio de aceptación depende de tener un teléfono a mano.** Es una restricción del entorno, declarada, y es lo que fundamenta `D-21`. Lo que queda sin verificar antes del merge está acotado y enunciado en `A-01` y `R-01`. |
@@ -606,7 +606,7 @@ esta rebanada:
 - **When** una camiseta del Equipo Blanco se suelta sobre la pestaña del Equipo Negro
 - **Then** el sistema pasa a ese jugador al Equipo Negro
 - **And** el equipo visible pasa a ser el Equipo Negro
-- **And** la camiseta aparece dibujada en esa cancha, en la línea de su posición asignada, que no cambió
+- **And** la camiseta aparece dibujada en esa cancha, en la línea de su posición asignada, que no cambió. **Reemplazado en parte el 2026-10-29 por `FR-054` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** un arquero manual que pasa al otro equipo vuelve a su puesto anterior.
 - **And** el total de puntaje de los dos equipos se recalcula
 - **And** el partido queda guardado
 
@@ -864,7 +864,7 @@ esa Spec.
   verificado como aserción del escenario de layout tras un movimiento (verifica
   TC-012).
   **Reemplazado el 2026-10-29 por `NFR-005` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** tras un pase el diff sigue sin `posicionAsignada`, salvo para un
-  arquero elegido (`FR-054` de esa Spec); tras un intercambio en un partido con puestos sí
+  arquero manual (`FR-054` de esa Spec); tras un intercambio en un partido con puestos sí
   la contiene.
 - **AC-24** — Revisión de código: `renderTeamPlayerRow` y
   `renderTeamPlayerRowDupla` ya no emiten atributos de arrastre (verifica TC-013,
@@ -1087,7 +1087,7 @@ esa Spec.
 
 | Date | Author | Change |
 |---|---|---|
-| 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo declarado en el encabezado de `POSICIONES_DEL_JUGADOR_SPEC.md` (`AC-02` de esa Spec, todavía en borrador): quedan marcados como reemplazados, en todo o en parte, la última frase de §2, §3.1, las tres primeras viñetas de §3.2, las líneas de `D-19`/`D-20` de §3.3, `TC-010`, `TC-012`, `FR-011` a `FR-015`, `FR-021`, `FR-022`, `NFR-005`, `AC-14`, `AC-23`, `US-02`, el glosario ("Dos columnas", "Zona de drop", "Intercambio"), `S-02`, `S-02c`, `S-03a`, `S-03b`, `A-02`, `R-02` y el no-objetivo de §17. El texto viejo se conserva: se tacha sólo lo que dejó de valer entero. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). |
+| 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo declarado en el encabezado de `POSICIONES_DEL_JUGADOR_SPEC.md` (`AC-02` de esa Spec, todavía en borrador): quedan marcados como reemplazados, en todo o en parte, la última frase de §2, §3.1, las tres primeras viñetas de §3.2, las líneas de `D-19`/`D-20` de §3.3, `TC-010`, `TC-012`, `FR-011` a `FR-015`, `FR-022`, `NFR-005`, `AC-14`, `AC-23`, `US-02`, el glosario ("Dos columnas", "Zona de drop", "Intercambio"), `S-02`, `S-02c`, `S-03a`, `S-03b`, `A-02`, `R-02` y el no-objetivo de §17; el mismo día, tras la revisión de esa Spec, también el último *Then* de `S-01` y una nota (no un reemplazo) en la cuarta viñeta de §3.2. Ese mismo día se quitó la nota de `FR-021`, porque esa Spec dejó de reemplazarlo (`D-30` de su Concept Note). El texto viejo se conserva: se tacha sólo lo que dejó de valer entero. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). |
 | 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marca `FR-040` como reemplazado **en parte** por la rebanada 6. Su primera cláusula —que en esas tres pantallas no se ofrece arrastre— sigue vigente; las otras dos (ningún selector, y la lista de filas) las reemplazan `FR-020` y `FR-001`/`FR-002` de `CARGA_POR_TOQUE_SPEC.md`. Lo detectó la auditoría de conformidad del 2026-09-23. Se marcó cláusula por cláusula a propósito: tachar el requisito entero habría borrado una restricción que sigue rigiendo. |
 | 2026-09-02 | Lucas Manoukian | `S-01a` se ajusta a la enmienda de `FR-012` en `CANCHA_SPEC.md` §18 (rebanada 1, no ésta): la línea de origen que queda sin nadie ahora se sigue dibujando, vacía, en vez de omitirse — el comportamiento viejo era justo lo que generaba la confusión reportada (una unidad movida se veía en el lugar de la línea que desapareció). Self-critique: no corresponde (enmienda desde otra rebanada). |
 | 2026-08-31 | Lucas Manoukian | Se disuelve §3.4: las cuatro decisiones que esta Spec había tomado pasan al Concept Note como `D-18` a `D-21` y acá quedan como heredadas en §3.3, que es lo que la separación de tres documentos (`MD-01`) pide. El relato de la premisa falsa que dio origen a `D-18` y `D-21` pasa al §17 del Concept Note. Cierra `OPEN-Q-07`. Self-critique: no corresponde (enmienda acotada, verificada con las pasadas de consistencia). |
