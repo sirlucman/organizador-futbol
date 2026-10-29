@@ -64,7 +64,8 @@
 > - `CANCHA_SPEC.md` `NFR-003` (l. 455), "hoy únicamente el candado": sigue vigente;
 >   `NFR-003` de esta Spec suma la selección y los candidatos.
 > - `CARGA_POR_TOQUE_SPEC.md` §3.2, última viñeta (l. 194-197) y glosario "Modo de carga
->   por toque" (l. 344): siguen vigentes. Fuera del modo de carga la cancha ahora también
+>   por toque" (l. 344): siguen vigentes; el glosario lleva desde el 2026-10-29 una nota que lo
+>   aclara. Fuera del modo de carga la cancha ahora también
 >   responde a toques, con otro significado y en una ventana que no se superpone (`FR-001`).
 >
 > **No reemplaza:** el resumen dividido (`D-26` de `equipos-en-el-campo`, `FR-072b` a
@@ -406,8 +407,8 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
 - **FR-034** — If al aplicar un intercambio la sesión no es `admin`, el partido no está en
   la ventana de edición, alguna de las dos unidades no pertenece al reparto o ya no son
   candidatas entre sí, then el sistema no escribirá nada.
-- **FR-034b** — If el intercambio no se aplica porque las dos unidades dejaron de ser
-  candidatas entre sí (el reparto cambió entre los dos toques), then el sistema mostrará el
+- **FR-034b** — If, al tocar el candidato, el intercambio no se aplica porque las dos
+  unidades dejaron de ser candidatas entre sí (el reparto cambió entre los dos toques), then el sistema mostrará el
   aviso "Ya no se puede intercambiar: el reparto cambió" y descartará la selección.
 - **FR-035** — El sistema permitirá intercambiar una unidad fijada con el candado, y
   después del intercambio esa unidad seguirá fijada (`D-13`).
@@ -422,7 +423,8 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   equipo o del otro, el sistema aplicará el mismo intercambio de `FR-030` a `FR-036`.
 - **FR-042** — When una camiseta arrastrada A en un partido con puestos se suelta sobre otra
   camiseta B que no es candidata, el sistema no modificará el partido y mostrará el aviso
-  que corresponda de `FR-042b` a `FR-042d`.
+  que corresponda de `FR-042b` a `FR-042d`. Si B no es candidata sólo por `FR-023` (mismo
+  equipo y mismo puesto asignado), no mostrará ningún aviso: no hay nada que intercambiar.
 - **FR-042b** — If sólo B no cubre el puesto de A, then el aviso será "{B} no juega de
   {puesto de A}".
 - **FR-042c** — If sólo A no cubre el puesto de B, then el aviso será "{A} no juega de
@@ -572,7 +574,7 @@ stateDiagram-v2
 - `S-03e [boundary]` — había una selección por toque al empezar el arrastre: se descarta (`FR-046`)
 - `S-03f [failure]` — el arrastre se cancela: no cambia nada y no queda ningún resaltado
 - `S-03g [boundary]` — a 360 px, la suelta sobre un candidato del propio equipo: el intercambio se aplica también en una columna
-- `S-03h [concurrency]` — en el celular, un toque y el comienzo de un arrastre sobre la misma camiseta: se aplica un solo gesto, nunca los dos (`TC-003`, `A-01`)
+- `S-03h [concurrency]` — en el celular, un toque y el comienzo de un arrastre sobre la misma camiseta: se aplica un solo gesto, nunca los dos (`TC-003`, `A-01`). Se verifica a mano en un teléfono: el arnés de Playwright no reproduce el arrastre nativo táctil
 
 #### Scenario S-04 — Un equipo sin arquero se resuelve regenerando (covers FR-050, FR-057)
 
@@ -868,6 +870,7 @@ La aplicación no tiene telemetría de uso; la fuente es el uso del propietario.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Revisión corta del propio autor sobre los cambios de `fb880df..f85689d`, a pedido del propietario. Self-critique (Step 5, sólo sobre ese diff): passed (0🔴 / 1🟡 / 3🔵), todos resueltos: `FR-042` no decía qué pasa al soltar sobre un compañero del mismo puesto (no es candidato por `FR-023` y ninguno de `FR-042b` a `FR-042d` aplica; ahora: sin aviso); `FR-034b` se acota al toque; `S-03h` se declara de verificación manual; el encabezado menciona la nota en `CARGA_POR_TOQUE_SPEC.md`. Verificado en el código que el control de `A-07` está en `__generarEquipos` ([index.html:4670-4676](../../index.html#L4670-L4676)). |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Atiende la crítica [`POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-sonnet-5.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-sonnet-5.md) (1🔴 / 2🟡 / 2🔵) y la de [`…_claude-haiku-5-5.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-haiku-5-5.md) (0🔴 / 5🟡 / 7🔵; no leyó el Concept Note ni las críticas previas ni hizo los chequeos pedidos, así que sólo se tomaron sus hallazgos verificados). El 🔴 de claude-sonnet-5 (`FR-061` falso para puestos del catálogo viejo, verificado en [index.html:3105-3111](../../index.html#L3105-L3111)) deja de aplicar por `D-32`, decisión del propietario: la feature no contempla puestos viejos, porque generar exige revisar las fichas ([index.html:4676](../../index.html#L4676)); queda como supuesto `A-07` `[UNVERIFIED]`. Se retiran `D-20`, `S-01i`, `S-06c` y la mención en §3.1 y el glosario; `FR-061` cita `FR-015` de la Spec del motor (l. 288). Se restituye "Arco vacío" en el glosario. Nuevas `FR-034b` (aviso "Ya no se puede intercambiar: el reparto cambió", texto aprobado por el propietario), `FR-042b` a `FR-042d`, `FR-045b`, `FR-045c` y `S-03h` (toque y arrastre a la vez). El diagrama de §9 suma `FR-019`, `FR-019b` y `FR-034b`; `NFR-002` cita su origen; §17 aclara que las funciones de `TC-010`/`TC-011` no se renombran; encabezado con fecha de última revisión. Pendientes de claude-fable-5-1: el 3 se resuelve (aviso del encabezado con `CANCHA_SPEC.md`), el 11 se resuelve (`FR-042` partido), el 12 se resuelve (nota en el glosario de `CARGA_POR_TOQUE_SPEC.md`); el 6 y el 7 no estaban pendientes: dejaron de aplicar con `D-31`, como señaló claude-sonnet-5. No se tomaron de claude-haiku-5-5: quitar `TC-001`, `TC-030` a `TC-032` (son recordatorios de `AGENTS.md` que gatean `AC-30`, `AC-38` a `AC-40`), unificar `TC-020` con `NFR-003` (uno es la norma y el otro la mide) y traducir `AC-50` (texto del template). Self-critique: skipped |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras la crítica de claude-fable-5-1 ([`POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-fable-5-1.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-fable-5-1.md), 0🔴 / 5🟡 / 8🔵): la feature deja de ocupar el arco vacío (`D-31`). Un equipo sin arquero se resuelve regenerando, como hoy, y la idea de ocuparlo a mano pasa a `Roadmap.md`. Se retiran `FR-047` a `FR-049`, `FR-050b`, `FR-051` a `FR-056`, `FR-058`, `FR-058b`, `FR-059`, `FR-062`, `FR-063`, `US-05`, `A-04`, `A-05` y el glosario del arquero puesto a mano; `FR-050` pasa a decir que el arco vacío no se ofrece; `TC-002`, `TC-042` y `TC-043` dejan de hablar de un dato nuevo en `data/partidosArmado`. Además, `FR-061` se corrige contra la Spec del motor (`003`, l. 231): el candado fija el equipo y no el puesto, lo que cierra `OPEN-Q-12`; y con candado y ARQ guardado el motor ya deja al arquero en el arco (hallazgo 1 de la crítica, verificado en [index.html:3364-3366](../../index.html#L3364-L3366)). `S-04` y `S-06` se reescriben con sus variantes; se retira `S-21b`. Con el arco vacío fuera, dejan de aplicar los hallazgos 1, 2, 4, 5, 8, 9 y 10 de esa crítica, y el 13 se resolvió en la nota de `FR-022` de `ARRASTRE_SPEC.md`; los 🔵 3, 6, 7, 11 y 12 quedan para la revisión siguiente. Self-critique: skipped |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, que aclaró el alcance (`D-30`): no se cambia cómo el motor elige los arqueros ni cómo se calculan los puntajes; cuando nadie de un equipo ataja, el equipo rota el arco sin ningún criterio, y por eso nadie se pone en él. Se retira el arquero improvisado: sólo quien cubre el ARQ puede ocupar el arco vacío (`FR-050`, nueva `FR-050b`), como arquero manual que guarda su puesto anterior para volver (`FR-051`, `FR-053`) y que se valúa con el cálculo de hoy (`FR-056` reescrito). Se retiran `FR-022`, el valor especial (`D-15`, `D-25`), el arco en "Solo por puntaje" (`D-22`, `D-26`; `FR-052` pasa a decir que no se ofrece), el aviso propio (`FR-059` reescrito) y el arquero de arranque (`D-29` en parte). `TC-011`, `AC-34` y `A-03` vuelven a no pedir una función de valor propia; la fila de `FR-021` de `ARRASTRE_SPEC.md` sale de la declaración de reemplazo. Las variantes de `S-04` se reescriben y reordenan (`S-04a` a `S-04s`), las de `S-05` quedan en `S-05a` a `S-05c` y se retira `S-21c`: la Spec es borrador y ningún documento posterior las usa; la crítica del 2026-10-29 cita los IDs anteriores. Self-critique: skipped (cambio acotado a pedido explícito) |
