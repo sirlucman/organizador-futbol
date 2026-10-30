@@ -538,8 +538,10 @@
   /* Afordancia del toque en modo de carga (FR-030): la camiseta individual y el nombre de cada
      integrante de una dupla llevan `role="button"` sólo cuando son destino de un toque real.
      `touch-callout`/`user-select` en `none` evitan que mantener presionado (FR-054) dispare el
-     menú nativo de "Copiar"/selección de texto del navegador en vez de sacar un evento. */
-  .camiseta[role="button"], .camiseta-nombre[role="button"]{
+     menú nativo de "Copiar"/selección de texto del navegador en vez de sacar un evento. La camiseta
+     `tocable` de la ventana de edición (posiciones-del-jugador) toma lo mismo sin `role="button"`
+     (TD-20): tocarla selecciona, y el menú de "Copiar" taparía el segundo toque. */
+  .camiseta[role="button"], .camiseta.tocable, .camiseta-nombre[role="button"]{
     cursor: pointer; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none;
   }
   .camiseta-fig{ position: relative; width: var(--chip-size); height: var(--chip-size); }
@@ -4669,6 +4671,7 @@
 
   window.__generarEquipos = function(matchId){
     if(!isAdmin()) return; // FR-008
+    seleccionIntercambio = null; // regenerar cambia el partido (posiciones-del-jugador, FR-019b)
     const m = matches.find(mm => mm.id === matchId);
     if(!m) return;
     // Con titulares a revisar no se genera ni se regenera, y lo que ya hubiera queda como está:
@@ -5219,7 +5222,7 @@
     // El mismo número que la lista pone en la columna de puntaje: el de la UNIDAD, que es el que
     // suma al total del equipo. No se recalcula acá (012-puntajes-coherentes-panel, FR-027).
     const valor = admin ? valorDePuntaje(grupo, m) : null;
-    const completos = grupo.map(fullName).join(' / ');
+    const completos = nombreDeGrupo(grupo);
     const secundaria = grupo.some(j => juegaFueraDePuesto(j, posAsignada));
 
     const arrastrable = esFilaEditable(m);
@@ -5239,6 +5242,7 @@
     if(admin && valor === null) partes.push('sin puntaje');
     // El `title` anuncia el gesto sin desplazar lo que ya llevaba (FR-003).
     if(arrastrable) partes.push('arrastrala al otro equipo para pasarlo');
+    if(arrastrable) partes.push('tocala para intercambiar puesto'); // posiciones-del-jugador, NFR-003
     if(puedeTocarCamiseta) partes.push('tocá para sumar un evento del tipo activo');
     const titulo = escaparHtml(partes.join(' · '));
 
@@ -5252,7 +5256,9 @@
     const candadoHtml = esFilaEditable(m)
       ? '<button type="button" draggable="false" class="camiseta-candado' + (bloqueado ? ' fijado' : '') + '"'
         + ' aria-label="' + escaparHtml(accion) + '" title="' + escaparHtml(accion) + '"'
-        + ' onclick="window.__toggleBloqueo(\'' + m.id + '\',\'' + p.id + '\')">'
+        // Corta la propagación: el candado está dentro de la camiseta tocable, y alternarlo no
+        // selecciona ni cancela nada (posiciones-del-jugador, FR-017).
+        + ' onclick="event.stopPropagation();window.__toggleBloqueo(\'' + m.id + '\',\'' + p.id + '\')">'
         + '<span class="cand-badge">' + (bloqueado ? ICON_CANDADO_CERRADO : ICON_CANDADO_ABIERTO) + '</span></button>'
       : '';
 
@@ -5266,11 +5272,19 @@
     const attrsPresionSostenida = (jugadorId) =>
       ' onpointerdown="window.__presionarInicio(\'' + m.id + '\',\'' + jugadorId + '\')"'
       + ' onpointerup="window.__presionarFin()" onpointercancel="window.__presionarFin()" onpointerleave="window.__presionarFin()"';
+    /* Con el arrastre va también el toque que selecciona para intercambiar puesto
+       (posiciones-del-jugador, TD-07): mismo contenedor y mismo predicado, con `click` y sin
+       manejadores de `pointer` ni de `touch` (TC-003). Que `click` y `dragstart` no se disparen
+       juntos en un teléfono es `A-01`, y se verifica a mano. No se anuncia como botón —sin `role`
+       ni `tabindex`—: no tiene equivalente de teclado en esta versión, y anunciar un botón que no
+       se puede activar confunde más que no anunciarlo (TD-20, OPEN-Q-03). El gesto va en el
+       `title`. */
     const arrastreAttrs = arrastrable
       ? ' draggable="true" ondragstart="window.__dragStartJugador(event,\'' + p.id + '\')"'
         + ' ondragend="window.__dragFin()"'
         + ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
+        + ' onclick="window.__tocarCamiseta(event,\'' + m.id + '\',\'' + p.id + '\')"'
       : (puedeTocarCamiseta
         ? ' onclick="window.__tocarNombreJugador(\'' + m.id + '\',\'' + p.id + '\')" role="button" tabindex="0"' + attrsPresionSostenida(p.id)
         : '');
@@ -5324,8 +5338,16 @@
       ? '<span class="camiseta-sec" title="' + escaparHtml(secTitle) + '">2º</span>'
       : '';
 
+    /* El estado de la selección por toque: la tocada, sus candidatos y el resto. Los candidatos no
+       se calculan acá, camiseta por camiseta, sino una vez al seleccionar (`seleccionIntercambio`):
+       con 18 titulares serían 324 evaluaciones por repintado (NFR-004). */
+    const sel = arrastrable ? seleccionVigente(m) : null;
+    const estado = !sel ? ''
+      : (mismaUnidad(m, sel.id, p.id) ? ' seleccionada'
+        : (sel.candidatos.some(id => mismaUnidad(m, id, p.id)) ? ' candidata' : ' atenuada'));
     // `data-id` deja al arrastre marcar candidatos sobre las camisetas ya dibujadas (TD-09).
-    return '<div class="camiseta ' + equipo + '-eq" data-id="' + escaparHtml(p.id) + '"' + arrastreAttrs + ' title="' + titulo + '">'
+    return '<div class="camiseta ' + equipo + '-eq' + (arrastrable ? ' tocable' : '') + estado + '"'
+      + ' data-id="' + escaparHtml(p.id) + '"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
       + puntajeHtml + secHtml + candadoHtml + chipsHtml
@@ -5351,7 +5373,9 @@
       ? ' ondragover="window.__dragSobre(event,this)"'
         + ' ondrop="window.__dropEnCancha(event,\'' + m.id + '\',\'' + equipo + '\')"'
       : '';
-    return '<div class="cancha" data-max-fila="' + maxFila + '"' + dropAttrs + '>' + MARCAS_CANCHA
+    // Con una selección viva la cancha se vela, para que resalten la tocada y sus candidatos (TD-13).
+    const conSeleccion = esFilaEditable(m) && seleccionVigente(m) ? ' con-seleccion' : '';
+    return '<div class="cancha' + conSeleccion + '" data-max-fila="' + maxFila + '"' + dropAttrs + '>' + MARCAS_CANCHA
       + '<div class="cancha-lineas">' + lineasHtml + '</div>'
       + (dropAttrs ? '<span class="drop-realce"></span>' : '') + '</div>';
   }
@@ -5373,6 +5397,43 @@
     });
     saveMatches();
     renderMatchesTab();
+  };
+
+  /* El toque sobre una camiseta en la ventana de edición (posiciones-del-jugador, TD-06). Las
+     guardas van ACÁ y no sólo al dibujar: el manejador se puede invocar desde la consola con
+     cualquier cosa (TC-040, TC-042). Decide `resolverToqueCamiseta`; acá sólo se ejecuta.
+
+     Corta la propagación para no llegar a la escucha de `document` que cancela la selección al
+     tocar fuera (TD-08): este toque es, por definición, adentro. */
+  window.__tocarCamiseta = function(event, matchId, playerId){
+    if(event && event.stopPropagation) event.stopPropagation();
+    if(!isAdmin()) return;                                      // FR-002, TC-040
+    const m = matches.find(mm => mm.id === matchId);
+    if(!m || !m.equipos || !esFilaEditable(m)) return;          // FR-001, FR-034
+    if(!unidadDelPartido(m, playerId)) return;                  // TC-042
+    const porId = Object.fromEntries(players.map(p => [p.id, p]));
+    const r = resolverToqueCamiseta(m, seleccionVigente(m), playerId, porId);
+    if(r.accion === 'intercambiar'){                            // FR-013, FR-036
+      intercambiarUnidades(m, seleccionIntercambio.id, r.id);
+      seleccionIntercambio = null;
+      saveMatches();
+      renderMatchesTab();
+      return;
+    }
+    if(r.accion === 'seleccionar'){
+      const candidatos = candidatosDeIntercambio(m, playerId, porId);
+      seleccionIntercambio = { matchId: m.id, id: playerId, candidatos };
+      if(tienePuestos(m) && !candidatos.length){                // FR-018
+        window.__showToast(textoAvisoIntercambio('sin-candidatos', { a: nombreDeGrupo(grupoDeUnidad(m, playerId)) }));
+      }
+    } else {
+      seleccionIntercambio = null;                              // FR-015, FR-034b
+      if(r.accion === 'reparto-cambio') window.__showToast(textoAvisoIntercambio('reparto-cambio'));
+    }
+    // Seleccionar no escribe nada (NFR-005): sólo se repinta, en el mismo lugar de la página.
+    const scrollY = window.scrollY;
+    renderMatchesTab();
+    window.scrollTo(0, scrollY);
   };
 
   /* --- LA CARGA POR TOQUE (rebanada 6) — handlers ---
@@ -5480,6 +5541,22 @@
   let equipoVisibleCancha = 'blanco';
   let partidoDelEquipoVisible = null;
 
+  /* La camiseta tocada que espera un segundo toque (posiciones-del-jugador, TD-01). Estado de
+     PANTALLA, por lo mismo que los dos de arriba: sobrevive al repintado y al cambio de pestaña
+     (FR-012), no se persiste (TC-013) y muere al recargar. `{ matchId, id, candidatos }`: `id` es
+     el del primer integrante de la unidad, y `candidatos`, los que se calcularon al seleccionarla,
+     que son los que dibuja la cancha (FR-034b). Hay a lo sumo una en la pantalla (FR-019). */
+  let seleccionIntercambio = null;
+  /* Se lee siempre por acá: si el partido salió de la ventana de edición o la unidad ya no está en
+     el reparto, la selección se descarta en el momento. Así `FR-003` no depende de acordarse de
+     limpiarla en cada lugar que cierra la ventana. */
+  function seleccionVigente(m){
+    const s = seleccionIntercambio;
+    if(!s || !m || s.matchId !== m.id) return null;
+    if(!m.equipos || !esFilaEditable(m) || !unidadDelPartido(m, s.id)){ seleccionIntercambio = null; return null; }
+    return s;
+  }
+
   /* Qué partido tiene abierto el desplegable "Por qué quedaron así". Estado de PANTALLA por el
      mismo motivo que los dos de arriba: no se persiste, y vive acá y no en el DOM porque
      `renderTeamsSection` repinta la sección entera en cada cambio. Un solo id y no un conjunto
@@ -5506,6 +5583,19 @@
      Por eso hay que volver a pintar cuando el modo cambia; el CSS solo no alcanza. */
   window.matchMedia('(max-width: ' + ANCHO_UNA_COLUMNA + 'px)').addEventListener('change', () => {
     if(document.querySelector('.teams-wrap')) renderMatchesTab();
+  });
+
+  /* Tocar fuera de las camisetas, y fuera del selector de equipo, cancela la selección (FR-016).
+     Es UNA escucha en `document` y no un `onclick` en cada fondo posible, para cubrir también el
+     encabezado, el resumen o lo que quede fuera de la tarjeta (TD-08). El toque sobre una camiseta
+     y el del candado cortan la propagación y no llegan acá; los botones que cambian el partido ya
+     descartaron la selección en su manejador (FR-019b), así que acá no hay nada que hacer. */
+  document.addEventListener('click', e => {
+    if(!seleccionIntercambio) return;
+    const t = e.target;
+    if(t && t.closest && (t.closest('.camiseta') || t.closest('.equipo-tabs'))) return;
+    seleccionIntercambio = null;
+    if(document.querySelector('.cancha')) renderMatchesTab();
   });
 
   /* Las dos pestañas. Se dibujan también para el rol jugador, que puede mirar el otro equipo
@@ -5695,6 +5785,24 @@
     return null;
   }
 
+  /* Qué hace un toque sobre la camiseta de `idTocado`, dada la selección que había (TD-06). Es la
+     máquina de estados de §9 de la Spec, sin DOM:
+       'seleccionar'     sin selección, o de otro partido (FR-010, FR-019), o un no candidato (FR-014)
+       'cancelar'        la misma unidad (FR-015)
+       'intercambiar'    un candidato, revalidado contra el reparto de AHORA (FR-013, FR-034)
+       'reparto-cambio'  era candidato cuando se pintó y ya no lo es (FR-034b)
+     "Candidato cuando se pintó" es `seleccion.candidatos`, que se calculan una vez al seleccionar
+     y son los que dibuja la cancha. */
+  function resolverToqueCamiseta(m, seleccion, idTocado, porId){
+    if(!seleccion || seleccion.matchId !== m.id) return { accion: 'seleccionar', id: idTocado };
+    if(mismaUnidad(m, seleccion.id, idTocado)) return { accion: 'cancelar' };
+    const marcado = (seleccion.candidatos || []).some(id => mismaUnidad(m, id, idTocado));
+    if(!marcado) return { accion: 'seleccionar', id: idTocado };
+    return evaluarIntercambio(m, seleccion.id, idTocado, porId).valido
+      ? { accion: 'intercambiar', id: idTocado }
+      : { accion: 'reparto-cambio' };
+  }
+
   /* Qué movimiento corresponde a soltar `idArrastrado` sobre `destino`, o null si no
      corresponde ninguno. `destino` es { clase: 'cancha' | 'camiseta' | 'pestana', equipo, id }.
 
@@ -5868,6 +5976,7 @@
     // Un drop que no escribe no repinta: los candidatos marcados al empezar se quitan acá.
     quitarEstadoDeSeleccionDelDom();
     arrastreEnCurso = null;
+    seleccionIntercambio = null; // posiciones-del-jugador, FR-019b
     if(!isAdmin()) return;                                   // TC-040, FR-042
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !m.equipos || !esFilaEditable(m)) return;        // TC-040
@@ -5915,7 +6024,10 @@
   window.__dragStartJugador = function(e, playerId){
     if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
     e.dataTransfer.setData('text/plain', playerId);
+    // Empezar un arrastre descarta la selección por toque (FR-046): primero se borra del DOM lo que
+    // la dibujaba, porque acá no se repinta (TD-09).
     quitarEstadoDeSeleccionDelDom();
+    seleccionIntercambio = null;
     arrastreEnCurso = null;
     // La cancha que se arrastra es la del partido abierto: es el único que dibuja camisetas.
     const m = matches.find(mm => mm.id === currentMatchId);
@@ -5947,6 +6059,7 @@
 
   window.__moverJugadorManual = function(matchId, playerId, targetTeam){
     if(!isAdmin()) return; // FR-008
+    seleccionIntercambio = null; // el pase cambia el partido (posiciones-del-jugador, FR-019b)
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !m.equipos) return;
     moverUnJugadorDeEquipo(m, playerId, targetTeam);
@@ -5973,6 +6086,7 @@
   window.__intercambiarColores = function(matchId){
     const m = matches.find(mm => mm.id === matchId);
     if(!sePuedenIntercambiarColores(m)) return;
+    seleccionIntercambio = null; // posiciones-del-jugador, FR-019b
     invertirColoresDelPartido(m);
     if(partidoDelEquipoVisible === m.id) equipoVisibleCancha = equipoVisibleCancha === 'blanco' ? 'negro' : 'blanco';
     saveMatches();
