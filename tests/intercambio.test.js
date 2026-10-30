@@ -55,6 +55,9 @@ const DECLARACIONES = [
   'evaluarIntercambio',
   'candidatosDeIntercambio',
   'intercambioConCosto',
+  'estadoDePuesto',
+  'textoFueraDePuesto',
+  'fueraDePuestoPorEquipo',
   'nombreDeGrupo',
   'grupoDeUnidad',
   'avisoDeRechazo',
@@ -358,6 +361,66 @@ prueba('"intercambio/TC-043" ningún aviso lleva puntajes: no hay dígitos fuera
 prueba('"intercambio/S-01e" el nombre de una dupla en un aviso es el de su camiseta: los dos, con barra', () => {
   const m = partido('m-int-9');
   eq(I.nombreDeGrupo(I.grupoDeUnidad(m, 'int-esteban')), 'Ramiro Castro / Esteban Luna', 'TD-12');
+});
+
+console.log('\n\x1b[1mEL ESTADO DE PUESTO\x1b[0m — natural, «2º» y «!» (diseño 19a)\n');
+
+const grupoDe = (m, id) => I.grupoDeUnidad(m, id);
+const estado = (m, id) => I.estadoDePuesto(grupoDe(m, id), puesto(m, id));
+
+prueba('"intercambio/S-01o" el estado de puesto sale del lugar: natural, secundario o fuera de puesto', () => {
+  const m = partido('m-int-9');
+  eq(estado(m, 'int-lucas'), 'natural', 'Lucas (MC; MD) de MC: sin pastilla');
+  eq(estado(m, 'int-ramon'), 'fuera', 'Ramón (MC) de DEL: la «!»');
+  eq(estado(m, 'int-hernan'), 'fuera', 'Hernán (LD) de MI, en la fila de cuatro: la «!»');
+  eq(estado(m, 'int-ramiro'), 'secundario', 'la dupla Ramiro (LD; MC) + Esteban (MC) de MC: cubre, pero no es la principal de Ramiro, la «2º»');
+  const otra = partido('m-int-8');
+  I.intercambiarUnidades(otra, 'int-juan', 'int-pedro');
+  eq([estado(otra, 'int-juan'), estado(otra, 'int-pedro')], ['secundario', 'secundario'], 'Juan de LD y Pedro de DC: los dos la «2º»');
+});
+
+prueba('"intercambio/S-01o" las pastillas se recalculan con cada intercambio, y nunca hay dos', () => {
+  const m = partido('m-int-8');
+  eq([estado(m, 'int-juan'), estado(m, 'int-nico')], ['natural', 'natural'], 'antes, los dos en su principal');
+  I.intercambiarUnidades(m, 'int-juan', 'int-nico');
+  eq([estado(m, 'int-juan'), estado(m, 'int-nico')], ['secundario', 'fuera'], 'Juan de LI, la «2º»; Nico de DC, que no juega, la «!» (S-01n)');
+  I.intercambiarUnidades(m, 'int-nico', 'int-juan');
+  eq([estado(m, 'int-juan'), estado(m, 'int-nico')], ['natural', 'natural'], 'de vuelta, ninguna');
+});
+
+prueba('"intercambio/S-01o" la «!» coincide con "lugares sin cubrir": la misma unidad, el mismo criterio', () => {
+  const m = partido('m-int-9');
+  m.equipos.formacion = { objetivo: { LI: 1, DC: 1, LD: 1, MI: 1, MC: 2, MD: 1, DEL: 1 } };
+  const fuera = equipo => I.agruparFilasDeEquipo(m, I.jugadoresDeEquipoOrdenados(m, m.equipos[equipo]))
+    .filter(g => I.estadoDePuesto(g, puesto(m, g[0].id)) === 'fuera' && puesto(m, g[0].id) !== 'Arquero')
+    .map(g => puesto(m, g[0].id)).sort();
+  ['blanco', 'negro'].forEach(e => eq(fuera(e), I.faltantesDeFormacionVigente(m, porId)[e].slice().sort(), `${e} (TC-010)`));
+});
+
+prueba('"intercambio/S-01o" el texto de la «!» dice qué no juega y qué juega, en minúscula', () => {
+  const m = partido('m-int-9');
+  eq(I.textoFueraDePuesto(grupoDe(m, 'int-hernan'), 'MI'), 'Fuera de puesto: no juega de mediocampista izquierdo (juega de lateral derecho)', 'FR-025');
+  eq(I.textoFueraDePuesto(grupoDe(m, 'int-juan'), 'MI'), 'Fuera de puesto: no juega de mediocampista izquierdo (juega de defensor central, lateral derecho, lateral izquierdo)',
+    'la lista en el orden de la ficha: la principal primero');
+});
+
+prueba('"intercambio/S-02i" la «!» de la pestaña cuenta los fuera de puesto de cada equipo, de los dos', () => {
+  eq(I.fueraDePuestoPorEquipo(partido('m-int-9')), { blanco: 0, negro: 3 }, 'Ramón, Hernán y Bruno, en el Negro');
+  eq(I.fueraDePuestoPorEquipo(partido('m-int-8')), { blanco: 0, negro: 0 }, 'm-int-8 no tiene a nadie fuera de puesto');
+  const m = partido('m-int-8');
+  I.intercambiarUnidades(m, 'int-juan', 'int-nico');
+  eq(I.fueraDePuestoPorEquipo(m), { blanco: 1, negro: 0 }, 'el intercambio con costo deja a Nico fuera de puesto en el Blanco');
+  const n = partido('m-int-9');
+  I.intercambiarUnidades(n, 'int-pedro', 'int-bruno');
+  eq(I.fueraDePuestoPorEquipo(n).negro, 2, 'Pedro (LD; DC) toma el LD de Bruno: el Negro baja de 3 a 2');
+});
+
+prueba('"intercambio/S-01n" el candidato con costo se mide contra el lugar que deja el elegido, también con duplas', () => {
+  const m = partido('m-int-9');
+  ok(I.intercambioConCosto(m, 'int-lucas', 'int-martin', porId), 'Martín (MD) no juega el MC que deja Lucas');
+  ok(!I.intercambioConCosto(m, 'int-lucas', 'int-tomas', porId), 'Tomás (MD; MC) sí');
+  ok(!I.intercambioConCosto(m, 'int-ezequiel', 'int-ramiro', porId), 'la dupla cubre MC por los dos');
+  ok(I.intercambioConCosto(m, 'int-sergio', 'int-nico', porId) === false, 'Nico juega LI, el lugar de Sergio');
 });
 
 /* ---------- propiedades ---------- */

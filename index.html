@@ -591,6 +591,17 @@
   .camiseta-candado.fijado .cand-badge{ background: var(--pitch-pale); color: var(--pitch-deep); box-shadow: inset 0 0 0 1.5px rgb(42 93 10 / 0.35), 0 2px 6px rgb(17 24 39 / 0.35); }
   .camiseta-candado:hover .cand-badge{ background: var(--ink); }
   .camiseta-candado.fijado:hover .cand-badge{ background: #ffffff; }
+  /* Pastilla «!» de fuera de puesto: el diseño 19a, aprobado el 2026-10-30 (posiciones-del-jugador,
+     TD-24). Ocupa el lugar de la «2º» y nunca convive con ella. Tamaño fijo, del diseño; el borde
+     izquierdo va por escalón con la regla del 19a —lejos del puntaje y adentro de la columna—:
+     −5px con la camiseta de 56 y 52px, −12px con la de 48 y 44px. Cuando la fila aprieta y flex
+     angosta la columna por debajo de su `--chip-w`, −12px la sacaría de la columna: la pastilla
+     se corre lo justo para quedar adentro. Para eso la camiseta es un contenedor y `100cqw` es el
+     ancho real de su columna; la figura está centrada en ella, así que su borde izquierdo queda a
+     (columna − figura) / 2. Rojo `--brick-light` con tinta, el par de la píldora de diferencia
+     excedida: la tinta blanca sobre ese rojo no llega a 4.5:1. */
+  .cancha .camiseta{ container-type: inline-size; }
+  .camiseta-fuera{ position: absolute; top: -3px; left: max(var(--fuera-edge), calc((var(--chip-size) - 100cqw) / 2)); display: flex; align-items: center; justify-content: center; width: 26px; height: 20px; padding: 0; border-radius: var(--radius-pill); background: var(--brick-light); color: var(--ink); font: 900 13px/20px var(--font-display); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.72), 0 2px 6px rgb(17 24 39 / 0.45); }
   /* Cápsula de dupla: reemplaza al nombre, no se suma. La dupla es UNA unidad de armado y viaja
      como una sola camiseta, con el puntaje de la unidad (FR-020, FR-026, FR-027). */
   /* `min-width: 0` no es decorativo: la cápsula es un flex item cuya `min-width` automática es su
@@ -622,14 +633,14 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -5px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 4px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -5px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 20px; --sec-h: 16px; --sec-fs: 8.5px; --sec-edge: -2px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -5px; --fuera-edge: -5px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 4px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -5px; --fuera-edge: -5px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 20px; --sec-h: 16px; --sec-fs: 8.5px; --sec-edge: -2px; --fuera-edge: -12px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 72px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 3px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 22px; --sec-h: 17px; --sec-fs: 9px; --sec-edge: -3px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 72px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 3px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 22px; --sec-h: 17px; --sec-fs: 9px; --sec-edge: -3px; --fuera-edge: -12px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 24px; --sec-h: 18px; --sec-fs: 9.5px; --sec-edge: -4px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 24px; --sec-h: 18px; --sec-fs: 9.5px; --sec-edge: -4px; --fuera-edge: -5px; }
   }
   /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
      olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
@@ -666,7 +677,11 @@
   .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
   /* Cuántos candidatos tiene el equipo de la pestaña, con una selección viva: la cápsula del diseño
      18h (posiciones-del-jugador, TD-21). */
-  .equipo-tab-cuenta{ display: inline-block; margin-left: 6px; min-width: 20px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--ink); color: var(--chalk); font: 900 11px/20px var(--font-display); text-align: center; vertical-align: 1px; }
+  .equipo-tab-cuenta{ display: inline-block; min-width: 20px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--ink); color: var(--chalk); font: 900 11px/20px var(--font-display); text-align: center; }
+  /* La «!» de la pestaña: alguien de ese equipo está fuera de puesto (diseño 19a, TD-25). Va antes
+     de la cuenta de candidatos, y la pestaña pasa a flex para alinear las dos con el nombre. */
+  .equipo-tab{ display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  .equipo-tab-fuera{ flex: none; display: flex; align-items: center; justify-content: center; width: 26px; height: 20px; border-radius: var(--radius-pill); background: var(--brick-light); color: var(--ink); font: 900 13px/20px var(--font-display); box-shadow: inset 0 0 0 1.5px rgb(255 255 255 / 0.72); }
 
   /* --- La carga por toque (rebanada 6): selector de evento y Deshacer ---
      Mismo patrón de selector segmentado que `.equipo-tabs` (TC-010), con cuatro columnas en vez
@@ -767,6 +782,10 @@
   .camiseta.seleccionada .camiseta-dupla{ background: rgb(17 24 39 / 0.82); }
   /* Un recuadro por camiseta, nunca una franja por línea. */
   .camiseta.candidata .camiseta-placa{ display: block; background: rgb(255 255 255 / 0.16); box-shadow: inset 0 0 0 1.5px var(--pitch-light); }
+  /* El candidato con costo (20b): el otro quedaría fuera de puesto. Misma fuerza que el verde —no
+     se atenúa—, sólo cambia el color del recuadro. Va antes del hover, que lo pisa igual que al
+     verde. Es la excepción declarada a TC-020 de la Spec. */
+  .camiseta.candidata.con-costo .camiseta-placa{ background: rgb(239 68 68 / 0.18); box-shadow: inset 0 0 0 1.5px var(--brick-light); }
   .camiseta.candidata:hover .camiseta-placa,
   .camiseta.candidata.drop-activo .camiseta-placa{ background: rgb(255 255 255 / 0.22); box-shadow: inset 0 0 0 2px #ffffff; }
   /* Con una selección viva el realce del arrastre sobre una camiseta lo hace su recuadro, no el
@@ -5302,9 +5321,22 @@
     // suma al total del equipo. No se recalcula acá (012-puntajes-coherentes-panel, FR-027).
     const valor = admin ? valorDePuntaje(grupo, m) : null;
     const completos = nombreDeGrupo(grupo);
-    const secundaria = grupo.some(j => juegaFueraDePuesto(j, posAsignada));
+    /* Natural, «2º» o «!»: del puesto del lugar, en cada repintado (diseño 19a, FR-025). Antes la
+       «2º» marcaba a todo el que no estaba en su principal, jugara o no ese puesto. */
+    const estadoPuesto = estadoDePuesto(grupo, posAsignada);
+    const secundaria = estadoPuesto === 'secundario';
+    const fueraDePuesto = estadoPuesto === 'fuera';
 
     const arrastrable = esFilaEditable(m);
+    /* El estado de la selección por toque: la tocada, sus candidatos y el resto. Los candidatos no
+       se calculan acá, camiseta por camiseta, sino una vez al seleccionar (`seleccionIntercambio`):
+       con 18 titulares serían 324 evaluaciones por repintado (NFR-004). Lo mismo el costo (20b). */
+    const sel = arrastrable ? seleccionVigente(m) : null;
+    const esCandidata = !!sel && !mismaUnidad(m, sel.id, p.id) && sel.candidatos.some(id => mismaUnidad(m, id, p.id));
+    const conCosto = esCandidata && sel.conCosto.some(id => mismaUnidad(m, id, p.id));
+    const estado = !sel ? ''
+      : (mismaUnidad(m, sel.id, p.id) ? ' seleccionada'
+        : (esCandidata ? ' candidata' + (conCosto ? ' con-costo' : '') : ' atenuada'));
     // El toque abarca toda la camiseta cuando la unidad es un solo jugador (FR-030): sobre una
     // dupla, dos jugadores comparten una camiseta y el toque queda acotado al nombre de cada uno,
     // que es lo único que distingue a quién atribuírselo (FR-030b, TD-01). `arrastrable` y
@@ -5315,9 +5347,13 @@
     const partes = [completos];
     if(esUnidadDupla) partes.push('dupla de rotación');
     // El puesto asignado por su nombre y, si no es el principal, también el principal (FR-076).
-    partes.push(!secundaria ? nombreDe(posAsignada)
-      : (esUnidadDupla ? nombreDe(posAsignada) + ' (posición secundaria)'
-        : nombreDe(posAsignada) + ' (su puesto es ' + nombreDe(p.principal) + ')'));
+    partes.push(fueraDePuesto ? nombreDe(posAsignada) + ', fuera de puesto'
+      : (!secundaria ? nombreDe(posAsignada)
+        : (esUnidadDupla ? nombreDe(posAsignada) + ' (posición secundaria)'
+          : nombreDe(posAsignada) + ' (su puesto es ' + nombreDe(p.principal) + ')')));
+    /* Lo que el 20b pone en el nombre accesible del candidato con costo va acá: la camiseta no se
+       anuncia como botón (TD-20, TD-24). */
+    if(conCosto) partes.push('se puede intercambiar pero queda fuera de puesto');
     if(admin && valor === null) partes.push('sin puntaje');
     // El `title` anuncia el gesto sin desplazar lo que ya llevaba (FR-003).
     if(arrastrable) partes.push('arrastrala al otro equipo para pasarlo');
@@ -5413,17 +5449,10 @@
           .map(j => nombreCorto(j) + ' juega de ' + nombreDe(posAsignada) + ', su puesto es ' + nombreDe(j.principal))
           .join(' · ')
       : 'Juega de ' + nombreDe(posAsignada) + ', su puesto es ' + nombreDe(p.principal));
+    // La «!» del 19a: mismo lugar que la «2º», y nunca las dos (FR-025, TD-24).
     const secHtml = secundaria
       ? '<span class="camiseta-sec" title="' + escaparHtml(secTitle) + '">2º</span>'
-      : '';
-
-    /* El estado de la selección por toque: la tocada, sus candidatos y el resto. Los candidatos no
-       se calculan acá, camiseta por camiseta, sino una vez al seleccionar (`seleccionIntercambio`):
-       con 18 titulares serían 324 evaluaciones por repintado (NFR-004). */
-    const sel = arrastrable ? seleccionVigente(m) : null;
-    const estado = !sel ? ''
-      : (mismaUnidad(m, sel.id, p.id) ? ' seleccionada'
-        : (sel.candidatos.some(id => mismaUnidad(m, id, p.id)) ? ' candidata' : ' atenuada'));
+      : (fueraDePuesto ? '<span class="camiseta-fuera" title="' + escaparHtml(textoFueraDePuesto(grupo, posAsignada)) + '">!</span>' : '');
     // `data-id` deja al arrastre marcar candidatos sobre las camisetas ya dibujadas (TD-09).
     return '<div class="camiseta ' + equipo + '-eq' + (arrastrable ? ' tocable' : '') + estado + '"'
       + ' data-id="' + escaparHtml(p.id) + '"' + arrastreAttrs + ' title="' + titulo + '">'
@@ -5502,7 +5531,8 @@
     }
     if(r.accion === 'seleccionar'){
       const candidatos = candidatosDeIntercambio(m, playerId, porId);
-      seleccionIntercambio = { matchId: m.id, id: playerId, candidatos };
+      const conCosto = candidatos.filter(id => intercambioConCosto(m, playerId, id, porId)); // FR-021b
+      seleccionIntercambio = { matchId: m.id, id: playerId, candidatos, conCosto };
       if(tienePuestos(m) && !candidatos.length){                // FR-018
         window.__showToast(textoAvisoIntercambio('sin-candidatos', { a: nombreDeGrupo(grupoDeUnidad(m, playerId)) }));
       }
@@ -5623,9 +5653,10 @@
 
   /* La camiseta tocada que espera un segundo toque (posiciones-del-jugador, TD-01). Estado de
      PANTALLA, por lo mismo que los dos de arriba: sobrevive al repintado y al cambio de pestaña
-     (FR-012), no se persiste (TC-013) y muere al recargar. `{ matchId, id, candidatos }`: `id` es
-     el del primer integrante de la unidad, y `candidatos`, los que se calcularon al seleccionarla,
-     que son los que dibuja la cancha (FR-034b). Hay a lo sumo una en la pantalla (FR-019). */
+     (FR-012), no se persiste (TC-013) y muere al recargar. `{ matchId, id, candidatos, conCosto }`:
+     `id` es el del primer integrante de la unidad; `candidatos`, los que se calcularon al
+     seleccionarla, que son los que dibuja la cancha (FR-034b), y `conCosto`, los que de ellos
+     quedarían fuera de puesto (FR-021b). Hay a lo sumo una en la pantalla (FR-019). */
   let seleccionIntercambio = null;
   /* Se lee siempre por acá: si el partido salió de la ventana de edición o la unidad ya no está en
      el reparto, la selección se descarta en el momento. Así `FR-003` no depende de acordarse de
@@ -5688,11 +5719,20 @@
        en la selección; acá sólo se cuentan. */
     const sel = editable ? seleccionVigente(m) : null;
     const cuentaDe = equipo => sel.candidatos.filter(id => unidadDelPartido(m, id) === equipo).length;
-    const tab = (equipo, etiqueta) => {
+    /* La «!» del 19a: cuántos de cada equipo están fuera de puesto, de los dos equipos y con o sin
+       selección, porque en una columna el otro equipo no se ve (FR-025b, TD-25). */
+    const fuera = m.equipos ? fueraDePuestoPorEquipo(m) : { blanco: 0, negro: 0 };
+    /* El texto visible es el corto del diseño 19a ("Blanco"): con la «!» y la cuenta, "Equipo Negro"
+       no entra en una línea a 360 px. El nombre accesible conserva el largo, siempre. */
+    const tab = (equipo, etiqueta, corto) => {
       const activo = equipoVisibleCancha === equipo;
       const cuenta = sel ? cuentaDe(equipo) : null;
-      const cuentaAttrs = cuenta === null ? ''
-        : ' aria-label="' + etiqueta + ', ' + cuenta + (cuenta === 1 ? ' candidato' : ' candidatos') + '"';
+      const textoFuera = fuera[equipo] + ' fuera de puesto';
+      const nombreAccesible = [etiqueta]
+        .concat(fuera[equipo] ? [textoFuera] : [])
+        .concat(cuenta === null ? [] : [cuenta + (cuenta === 1 ? ' opción' : ' opciones')]);
+      const cuentaAttrs = ' aria-label="' + nombreAccesible.join(', ') + '"';
+      const fueraHtml = fuera[equipo] ? '<span class="equipo-tab-fuera" aria-hidden="true" title="' + textoFuera + '">!</span>' : '';
       const cuentaHtml = cuenta === null ? '' : '<span class="equipo-tab-cuenta" aria-hidden="true">' + cuenta + '</span>';
       /* Sólo la pestaña del equipo que NO se está viendo recibe el drop: soltar sobre la propia
          no hace nada (FR-013), y con rol jugador no hay drop en ninguna (FR-038b). */
@@ -5703,11 +5743,11 @@
       return '<button type="button" class="equipo-tab"' + dropAttrs + cuentaAttrs
         + ' aria-pressed="' + (activo ? 'true' : 'false') + '"'
         + ' onclick="window.__verEquipo(\'' + m.id + '\',\'' + equipo + '\')">'
-        + etiqueta + cuentaHtml + '<span class="drop-realce"></span></button>';
+        + corto + fueraHtml + cuentaHtml + '<span class="drop-realce"></span></button>';
     };
     return '<div class="equipo-tabs" data-visible="' + equipoVisibleCancha + '">'
       + '<span class="equipo-tabs-thumb"></span>'
-      + tab('blanco', 'Equipo Blanco') + tab('negro', 'Equipo Negro') + '</div>';
+      + tab('blanco', 'Equipo Blanco', 'Blanco') + tab('negro', 'Equipo Negro', 'Negro') + '</div>';
   }
 
   window.__verEquipo = function(matchId, equipo){
@@ -5848,6 +5888,34 @@
       .flatMap(equipo => agruparFilasDeEquipo(m, jugadoresDeEquipoOrdenados(m, eq[equipo])))
       .map(grupo => grupo[0].id)
       .filter(id => evaluarIntercambio(m, idA, id, porId).valido);
+  }
+
+  /* El estado de puesto de una unidad en un lugar, calculado en cada repintado (diseño 19a,
+     FR-025, TD-23): 'natural' en su principal, 'secundario' en otro puesto que cubre («2º»),
+     'fuera' en uno que no cubre («!»). Sale del puesto del LUGAR, no de un dato del jugador, así
+     las pastillas siguen a cada intercambio. "No cubre" es la misma pregunta que hace "lugares sin
+     cubrir" (`cubrePosicionGuardada`), con la unidad de la dupla si es una dupla (TD-03): la «!»
+     y el lugar sin cubrir no pueden disentir. "Secundario" usa `juegaFueraDePuesto`, que ya
+     compara por línea contra una posición vieja. */
+  function estadoDePuesto(grupo, pos){
+    const unidad = grupo.length === 2 ? construirUnidadDupla(grupo[0], grupo[1]) : grupo[0];
+    if(cubrePosicionGuardada(unidad, pos) >= COSTO_DESCUBIERTA) return 'fuera';
+    return grupo.some(j => juegaFueraDePuesto(j, pos)) ? 'secundario' : 'natural';
+  }
+  // El `title` de la «!»: qué puesto no juega y cuáles sí, en el orden de la ficha (FR-025).
+  function textoFueraDePuesto(grupo, pos){
+    const unidad = grupo.length === 2 ? construirUnidadDupla(grupo[0], grupo[1]) : grupo[0];
+    const minuscula = v => nombreDe(v).toLowerCase();
+    return 'Fuera de puesto: no juega de ' + minuscula(pos) + ' (juega de ' + posicionesDe(unidad).map(minuscula).join(', ') + ')';
+  }
+  /* Cuántas unidades de cada equipo están fuera de puesto, para la «!» de la pestaña (FR-025b).
+     Se cuentan los dos equipos siempre: en una columna se ve uno solo, y es justamente el otro el
+     que pasaría de largo. */
+  function fueraDePuestoPorEquipo(m){
+    const eq = (m && m.equipos) || {};
+    const cuenta = equipo => agruparFilasDeEquipo(m, jugadoresDeEquipoOrdenados(m, eq[equipo]))
+      .filter(grupo => estadoDePuesto(grupo, posicionAsignadaDe(grupo[0], m)) === 'fuera').length;
+    return { blanco: cuenta('blanco'), negro: cuenta('negro') };
   }
 
   // El nombre de una unidad, el mismo que la camiseta ya usa en su `title` y en el candado (TD-12).
@@ -6026,15 +6094,16 @@
   let arrastreEnCurso = null;
   function quitarEstadoDeSeleccionDelDom(){
     document.querySelectorAll('.camiseta.seleccionada, .camiseta.candidata, .camiseta.atenuada')
-      .forEach(c => c.classList.remove('seleccionada', 'candidata', 'atenuada'));
+      .forEach(c => c.classList.remove('seleccionada', 'candidata', 'atenuada', 'con-costo'));
     document.querySelectorAll('.cancha.con-seleccion').forEach(c => c.classList.remove('con-seleccion'));
   }
-  function marcarArrastreEnDom(m, id, candidatos){
+  function marcarArrastreEnDom(m, id, candidatos, conCosto){
     document.querySelectorAll('.cancha').forEach(c => c.classList.add('con-seleccion'));
     document.querySelectorAll('.cancha .camiseta[data-id]').forEach(c => {
       const cid = c.dataset.id;
-      c.classList.add(mismaUnidad(m, id, cid) ? 'seleccionada'
-        : (candidatos.some(x => mismaUnidad(m, x, cid)) ? 'candidata' : 'atenuada'));
+      const esCandidata = !mismaUnidad(m, id, cid) && candidatos.some(x => mismaUnidad(m, x, cid));
+      c.classList.add(mismaUnidad(m, id, cid) ? 'seleccionada' : (esCandidata ? 'candidata' : 'atenuada'));
+      if(esCandidata && conCosto.some(x => mismaUnidad(m, x, cid))) c.classList.add('con-costo'); // FR-021b
     });
   }
 
@@ -6129,10 +6198,11 @@
     // La cancha que se arrastra es la del partido abierto: es el único que dibuja camisetas.
     const m = matches.find(mm => mm.id === currentMatchId);
     if(!m || !m.equipos || !esFilaEditable(m) || !unidadDelPartido(m, playerId)) return;
-    const candidatos = tienePuestos(m)
-      ? candidatosDeIntercambio(m, playerId, Object.fromEntries(players.map(p => [p.id, p]))) : null;
+    const porId = Object.fromEntries(players.map(p => [p.id, p]));
+    const candidatos = tienePuestos(m) ? candidatosDeIntercambio(m, playerId, porId) : null;
+    const conCosto = candidatos ? candidatos.filter(id => intercambioConCosto(m, playerId, id, porId)) : null;
     arrastreEnCurso = { matchId: m.id, id: playerId, candidatos };
-    if(candidatos) marcarArrastreEnDom(m, playerId, candidatos);
+    if(candidatos) marcarArrastreEnDom(m, playerId, candidatos, conCosto);
   };
 
   /* Mueve un único id de un equipo a otro. Extraída de __moverJugadorManual para poder aplicarla

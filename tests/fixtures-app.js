@@ -322,7 +322,7 @@ function agregarDatosDeIntercambio(datos) {
     J('int-pedro', 'Pedro', 'Gómez', 'LD', { LD: 8, DC: 5 }, ['DC']),
     J('int-mateo', 'Mateo', 'Ruiz', 'MI', { MI: 6 }),
     J('int-lucas', 'Lucas', 'Herrera', 'MC', { MC: 7, MD: 6 }, ['MD']),
-    J('int-martin', 'Martín', 'Sosa', 'MD', { MD: 6, MC: 5 }, ['MC']),
+    J('int-martin', 'Martín', 'Sosa', 'MD', { MD: 6 }),
     J('int-img', '<img src=x onerror=alert(1)>', '', 'DEL', { DEL: 7 }),
     J('int-gabriel', 'Gabriel', 'Ortiz', 'Arquero', { Arquero: 6 }),
     J('int-sergio', 'Sergio', 'Paz', 'LI', { LI: 6 }),
@@ -357,15 +357,18 @@ function agregarDatosDeIntercambio(datos) {
   const ids8 = [...equipos8.blanco, ...equipos8.negro];
 
   /* Fútbol 9: la fila de cuatro del Medio con la dupla adentro. Juan, Pedro, Lucas y Tomás
-     siguen donde estaban, así que la selección de Lucas tiene candidatos en los dos equipos
-     (Martín en el propio; Ezequiel, Agustín y Tomás en el otro). */
+     siguen donde estaban, así que la selección de Lucas tiene candidatos en los dos equipos:
+     Martín en el propio, con costo —no juega MC—, y Ezequiel, Agustín y Tomás en el otro. En el
+     Negro hay tres fuera de puesto, para el diseño 19a: Ramón de DEL, Hernán (LD) de MI, en la fila
+     de cuatro, y Bruno (MI) de LD (`S-02i`, `S-22c`). */
   const BLANCO_9 = [['int-fermin', 'Arquero'], ['int-nico', 'LI'], ['int-juan', 'DC'], ['int-pedro', 'LD'],
     ['int-mateo', 'MI'], ['int-lucas', 'MC'], ['int-ramiro', 'MC'], ['int-esteban', 'MC'], ['int-martin', 'MD'], ['int-img', 'DEL']];
-  const NEGRO_9 = [['int-gabriel', 'Arquero'], ['int-sergio', 'LI'], ['int-diego', 'DC'], ['int-hernan', 'LD'],
-    ['int-bruno', 'MI'], ['int-ezequiel', 'MC'], ['int-agustin', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'DEL']];
+  const NEGRO_9 = [['int-gabriel', 'Arquero'], ['int-sergio', 'LI'], ['int-diego', 'DC'], ['int-hernan', 'MI'],
+    ['int-bruno', 'LD'], ['int-ezequiel', 'MC'], ['int-agustin', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'DEL']];
   const duplas9 = [['int-ramiro', 'int-esteban']];
-  // La dupla vale 6 en MC (los dos tienen 6): Blanco 53 + 6 = 59. Negro 6+6+6+7+6+6+6+6 = 49: Ramón no tiene puntaje de DEL.
-  const equipos9 = reparto(BLANCO_9, NEGRO_9, { sumaBlanco: 59, sumaNegro: 49,
+  /* La dupla vale 6 en MC (los dos tienen 6): Blanco 53 + 6 = 59. Negro 6+6+6+6+6+6 = 36: Ramón,
+     Hernán y Bruno no tienen puntaje en el puesto que ocupan. */
+  const equipos9 = reparto(BLANCO_9, NEGRO_9, { sumaBlanco: 59, sumaNegro: 36,
     duplasSnapshot: JSON.stringify(duplas9.map(par => [...par].sort())) });
   const ids9 = [...equipos9.blanco, ...equipos9.negro];
 

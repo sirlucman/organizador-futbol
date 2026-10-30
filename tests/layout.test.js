@@ -688,6 +688,30 @@ const INVARIANTE_INTERCAMBIO = () => {
   if (document.querySelector('.cancha .camiseta[role="button"]')) {
     problemas.push('una camiseta se anuncia como botón sin poder enfocarse ni activarse con el teclado (TD-20)');
   }
+  /* Fuera de puesto (19a) y candidato con costo (20b), S-22c. La «!» va en −5 px, y en −12 px con la
+     camiseta de 48 y 44 px; no se sale de su columna ni pisa el puntaje, y nunca convive con la «2º». */
+  const fueras = [...document.querySelectorAll('.cancha .camiseta-fuera')];
+  const seVeElNegro = !document.querySelector('.equipo-tabs') || document.querySelector('.equipo-tabs').dataset.visible === 'negro';
+  if (seVeElNegro && !fueras.length) problemas.push('no hay ninguna pastilla «!» a la vista: el Negro de m-int-9 tiene tres fuera de puesto (S-22c)');
+  if (!document.querySelector('.camiseta.candidata.con-costo')) problemas.push('no hay ningún candidato con costo a la vista (S-22c)');
+  for (const f of fueras) {
+    const c = f.closest('.camiseta'), fig = c.querySelector('.camiseta-fig');
+    const lado = fig.getBoundingClientRect().width;
+    /* −12 con la camiseta de 48 y 44 px, −5 con las demás; salvo que la columna esté angostada,
+       donde va justo en su borde. */
+    const borde = (lado - c.getBoundingClientRect().width) / 2;
+    const esperado = Math.max(lado < 50 ? -12 : -5, borde);
+    const left = parseFloat(getComputedStyle(f).left);
+    if (Math.abs(left - esperado) > 0.5) problemas.push(`la «!» de "${nombre(c)}" va en ${left}px con camiseta de ${Math.round(lado)}px, y tiene que ir en ${Math.round(esperado * 10) / 10}px (S-22c)`);
+    const b = f.getBoundingClientRect(), col = c.getBoundingClientRect();
+    if (b.left < col.left - 0.5) problemas.push(`la «!» de "${nombre(c)}" se sale de su columna por la izquierda (${Math.round(col.left - b.left)}px) (S-22c)`);
+    const pts = c.querySelector('.camiseta-puntaje');
+    if (pts && b.right > pts.getBoundingClientRect().left - 0.5) problemas.push(`la «!» de "${nombre(c)}" pisa el puntaje (S-22c)`);
+    if (c.querySelector('.camiseta-sec')) problemas.push(`"${nombre(c)}" lleva la «2º» y la «!» a la vez (FR-025)`);
+    if (b.width !== 26 || b.height !== 20) problemas.push(`la «!» de "${nombre(c)}" mide ${b.width}x${b.height}px y son 26x20 (FR-025)`);
+  }
+  const tab = document.querySelector('.equipo-tab');
+  if (tab && !document.querySelector('.equipo-tab .equipo-tab-fuera')) problemas.push('en una columna, ninguna pestaña lleva la «!» y el Negro tiene tres fuera de puesto (S-02i)');
   const aviso = document.getElementById('appToast');
   if (!aviso || aviso.getAttribute('role') !== 'status' || aviso.getAttribute('aria-live') !== 'polite') {
     problemas.push('la región del aviso no existe con role="status" y aria-live="polite" antes del primer aviso (NFR-003, TD-14)');
@@ -2145,7 +2169,7 @@ const ESCENARIOS = [
     anchos: [360, 1200],
     spec: ['intercambio/S-01', 'intercambio/S-01b', 'intercambio/S-01c', 'intercambio/S-01d', 'intercambio/S-01e',
       'intercambio/S-01g', 'intercambio/S-01k', 'intercambio/S-02', 'intercambio/S-02a', 'intercambio/S-02e',
-      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-02h', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
+      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-02h', 'intercambio/S-02i', 'intercambio/S-01n', 'intercambio/S-01o', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
     transformarDatos: agregarDatosDeIntercambio,
     async preparar(page) { await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
@@ -2155,8 +2179,16 @@ const ESCENARIOS = [
       /* Lo que dice cada pestaña: la cuenta visible y el nombre accesible (FR-012b). */
       const pestanias = () => page.evaluate(() => [...document.querySelectorAll('.equipo-tab')].map(t => ({
         cuenta: (t.querySelector('.equipo-tab-cuenta') || {}).textContent || null,
+        fuera: t.querySelector('.equipo-tab-fuera') ? t.querySelector('.equipo-tab-fuera').getAttribute('title') : null,
         etiqueta: t.getAttribute('aria-label') || t.textContent.trim(),
       })));
+      // La pastilla de puesto de una camiseta: '2º', '!' o null (FR-025).
+      const pastilla = id => page.evaluate(sel => {
+        const c = document.querySelector(sel);
+        if (!c) return 'no está';
+        const sec = c.querySelector('.camiseta-sec'), fuera = c.querySelector('.camiseta-fuera');
+        return sec && fuera ? 'las dos' : (fuera ? '!' : (sec ? '2º' : null));
+      }, CAMISETA(id));
 
       /* --- a 360 px, una columna: S-02 --- */
       let base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
@@ -2166,7 +2198,7 @@ const ESCENARIOS = [
       /* S-02h: Martín en el Blanco; Ezequiel, Ramón y Tomás en el Negro. */
       let p = await pestanias();
       if (p.map(x => x.cuenta).join() !== '1,3') problemas.push(`con Lucas seleccionado las pestañas cuentan ${JSON.stringify(p.map(x => x.cuenta))}, y son 1 en el Blanco y 3 en el Negro (S-02h, FR-012b)`);
-      if (!p[1] || !/3 candidatos/.test(p[1].etiqueta)) problemas.push(`la pestaña del Negro no dice la cuenta en su nombre accesible: ${JSON.stringify(p[1] && p[1].etiqueta)} (S-02h, NFR-003)`);
+      if (!p[1] || !/3 opciones/.test(p[1].etiqueta)) problemas.push(`la pestaña del Negro no dice la cuenta en su nombre accesible: ${JSON.stringify(p[1] && p[1].etiqueta)} (S-02h, NFR-003)`);
       await page.click('.equipo-tab[aria-pressed="false"]');
       await page.waitForTimeout(300);
       s = await leerSeleccion(page);
@@ -2209,6 +2241,35 @@ const ESCENARIOS = [
       await mostrarEquiposMobile(page);
       if (haySeleccion(await leerSeleccion(page))) problemas.push('al reabrir la inscripción la selección volvió: no se había descartado (S-02e, FR-003)');
 
+      /* S-01n, S-01o y S-02i a 360 px: Juan con Nico, el intercambio con costo. */
+      if ((await page.$eval('.equipo-tabs', t => t.dataset.visible)) !== 'blanco') {
+        await page.click('.equipo-tab[aria-pressed="false"]');
+        await page.waitForTimeout(300);
+      }
+      if ((await pestanias()).some(x => x.fuera)) problemas.push('m-int-8 no tiene a nadie fuera de puesto y una pestaña muestra la «!» (S-02i, FR-025b)');
+      await tocarCamiseta(page, 'int-juan');
+      const costo = await page.evaluate(() => [...document.querySelectorAll('.camiseta.candidata')]
+        .map(c => c.dataset.id + (c.classList.contains('con-costo') ? ':costo' : '')).sort());
+      if (costo.join() !== 'int-nico:costo,int-pedro') problemas.push(`a la vista, los candidatos de Juan son ${JSON.stringify(costo)}: Nico con costo y Pedro sin (S-01n, FR-021b)`);
+      await tocarCamiseta(page, 'int-nico');
+      await page.waitForTimeout(250);
+      if ((await pastilla('int-nico')) !== '!') problemas.push(`Nico quedó de DC, que no juega, y su pastilla es ${JSON.stringify(await pastilla('int-nico'))} (S-01n, S-01o, FR-025)`);
+      if ((await pastilla('int-juan')) !== '2º') problemas.push(`Juan quedó de LI, su secundaria, y su pastilla es ${JSON.stringify(await pastilla('int-juan'))} (S-01o, FR-025)`);
+      p = await pestanias();
+      if (!p[0] || p[0].fuera !== '1 fuera de puesto') problemas.push(`la pestaña del Blanco no lleva la «!» con "1 fuera de puesto": ${JSON.stringify(p[0])} (S-02i, FR-025b)`);
+      if (!p[0] || !/1 fuera de puesto/.test(p[0].etiqueta)) problemas.push(`la pestaña del Blanco no dice "1 fuera de puesto" en su nombre accesible (S-02i, NFR-003)`);
+      if (p[1] && p[1].fuera) problemas.push('la pestaña del Negro muestra la «!» sin nadie fuera de puesto (S-02i)');
+      await page.click('.equipo-tab[aria-pressed="false"]');
+      await page.waitForTimeout(300);
+      if (!(await pestanias())[0].fuera) problemas.push('viendo el Negro, la pestaña del Blanco perdió su «!»: se calcula para los dos equipos (S-02i, FR-025b)');
+      await page.click('.equipo-tab[aria-pressed="false"]');
+      await page.waitForTimeout(300);
+      await tocarCamiseta(page, 'int-juan');
+      await tocarCamiseta(page, 'int-nico');
+      await page.waitForTimeout(250);
+      if ((await pestanias()).some(x => x.fuera)) problemas.push('Nico volvió a LI y la «!» de la pestaña no desapareció (S-02i, FR-025b)');
+      if ((await pastilla('int-nico')) !== null || (await pastilla('int-juan')) !== null) problemas.push('de vuelta en su puesto, Juan o Nico siguen con pastilla (S-01o)');
+
       /* --- a 1200 px, las dos canchas, desde los datos de arranque --- */
       await recargarEn(page, 1200, '2026-10-13');
       base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
@@ -2246,6 +2307,8 @@ const ESCENARIOS = [
       if (s.candidatas.join() !== 'int-diego,int-hernan,int-nico,int-pedro,int-sergio') {
         problemas.push(`los candidatos de Juan son ${JSON.stringify(s.candidatas)}, y la regla da a Nico y Pedro en el Blanco y a Sergio, Diego y Hernán en el Negro, a la vez (S-01, S-02a, FR-011)`);
       }
+      const conCostoDeJuan = await page.evaluate(() => [...document.querySelectorAll('.camiseta.candidata.con-costo')].map(c => c.dataset.id).sort());
+      if (conCostoDeJuan.join() !== 'int-hernan,int-nico,int-sergio') problemas.push(`en escritorio los candidatos con costo de Juan son ${JSON.stringify(conCostoDeJuan)}: Nico, Sergio y Hernán no juegan DC (S-01n, FR-021b)`);
       if (s.atenuadas !== s.camisetas - 1 - s.candidatas.length) problemas.push(`con Juan seleccionado hay ${s.atenuadas} atenuadas de ${s.camisetas - 1 - s.candidatas.length} que no son candidatas (FR-011)`);
 
       /* S-01g: el candado alterna el bloqueo y no toca la selección. */
@@ -2540,17 +2603,21 @@ const ESCENARIOS = [
     } },
 
   { clave: 'intercambio-cancha', rol: 'admin', nombre: 'la cancha con una selección activa no rompe el layout',
-    spec: ['intercambio/S-22', 'intercambio/S-22a', 'intercambio/S-22b', 'intercambio/NFR-001', 'intercambio/NFR-002', 'intercambio/NFR-003'],
+    spec: ['intercambio/S-22', 'intercambio/S-22a', 'intercambio/S-22b', 'intercambio/S-22c', 'intercambio/NFR-001', 'intercambio/NFR-002', 'intercambio/NFR-003'],
     transformarDatos: agregarDatosDeIntercambio,
     invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_INTERCAMBIO],
-    /* Fútbol 9 con la dupla en la fila de cuatro, y Lucas seleccionado: tiene candidatos en los dos
-       equipos. A 360 px se cambia al Negro con la selección viva (S-22a); en el resto de los anchos
-       de una columna se mide el Blanco, donde están la tocada, un candidato y las atenuadas. */
+    /* Fútbol 9 con la dupla en la fila de cuatro del Blanco y Tomás seleccionado, en la fila de cuatro
+       del Negro: ahí están también Hernán, fuera de puesto, y dos candidatos con costo (Ezequiel y
+       Agustín no juegan MD), y en el Blanco hay más candidatos, uno con costo (la dupla). En una
+       columna se mide el Negro, salvo a 360 px, donde se vuelve al Blanco con la selección viva
+       (S-22a). */
     async preparar(page) {
       await abrirPartido(page, '2026-10-14');
       await mostrarEquiposMobile(page);
-      await tocarCamiseta(page, 'int-lucas');
-      if (page.viewportSize().width === 360) {
+      const unaColumna = await page.$('.equipo-tab');
+      if (unaColumna) { await page.click('.equipo-tab[aria-pressed="false"]'); await page.waitForTimeout(300); }
+      await tocarCamiseta(page, 'int-tomas');
+      if (unaColumna && page.viewportSize().width === 360) {
         await page.click('.equipo-tab[aria-pressed="false"]');
         await page.waitForTimeout(300);
       }

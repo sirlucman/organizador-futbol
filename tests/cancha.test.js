@@ -495,7 +495,9 @@ prueba('"NFR-007" / "NFR-006" todo valor visual de la cancha y del selector sale
   /* `133 182 50` es --pitch (#85b632) con alfa, y lo agrega la rebanada 2: los tres realces de
      drop lo usan como tinte. Misma razón que los otros tres: `var()` no puede aportar el canal
      alfa de un token de color sólido sin un token de triple que el design system no define. */
-  const RGB_PERMITIDOS = ['255 255 255', '17 24 39', '42 93 10', '133 182 50']; // --chalk, --ink, --pitch-deep, --pitch
+  /* `239 68 68` es --brick-light (#ef4444) con alfa: el recuadro del candidato con costo del diseño
+     20b (posiciones-del-jugador, §7.2.3 del Implementation Plan). */
+  const RGB_PERMITIDOS = ['255 255 255', '17 24 39', '42 93 10', '133 182 50', '239 68 68']; // --chalk, --ink, --pitch-deep, --pitch, --brick-light
 
   const hex = [...new Set(bloque.match(/#[0-9a-fA-F]{3,8}/g) || [])];
   const noDeclaradosHex = hex.filter(h => !HEX_PERMITIDOS.includes(h.toLowerCase()));
