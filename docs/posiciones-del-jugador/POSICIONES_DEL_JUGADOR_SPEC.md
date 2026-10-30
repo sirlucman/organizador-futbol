@@ -6,7 +6,7 @@
 >
 > **Concept note:** [POSICIONES_DEL_JUGADOR_CONCEPT.md](./POSICIONES_DEL_JUGADOR_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md](./POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5 *Sources &
 > Origins* del Concept Note. Donde un `FR-*`/`NFR-*`/`TC-*` se apoya en una ubicación de

@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** [POSICIONES_DEL_JUGADOR_SPEC.md](./POSICIONES_DEL_JUGADOR_SPEC.md) · **Implementation plan:** *not yet written*
+> **Spec:** [POSICIONES_DEL_JUGADOR_SPEC.md](./POSICIONES_DEL_JUGADOR_SPEC.md) · **Implementation plan:** [POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md](./POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md)
 
 
 > **Actualización 2026-10-29 (`D-31`).** La feature ya no ocupa el arco vacío: un equipo
