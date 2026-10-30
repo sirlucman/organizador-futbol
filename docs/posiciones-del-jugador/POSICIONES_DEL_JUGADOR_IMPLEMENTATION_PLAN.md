@@ -28,7 +28,7 @@ ellos aplica el intercambio. El arrastre sobre una camiseta pasa a usar la misma
 mismos resaltados. Todo pasa por **una** decisión pura nueva (`evaluarIntercambio`, construida
 sobre `cubrePosicionGuardada`, `TC-010`) y por **una** ruta de escritura, la que ya existía
 (`intercambiarUnidades`, extendida para escribir el puesto asignado y para intercambiar dentro
-del mismo equipo, `TC-011`). El motor de generación no se toca (`TC-012`, `D-30`). El dibujo de
+del mismo equipo, `TC-011`). El motor de generación no se toca (`TC-012`, `D-30`), salvo para sumar a una unidad fuera de puesto su principal (`D-36`, `TD-26`). El dibujo de
 la camiseta tocada y de los candidatos sale del diseño 18h, aprobado por el propietario el
 2026-10-30, del que se toma **sólo el dibujo**: el comportamiento es el de la Spec (`TD-13`).
 Los avisos pasan al `Toast` del design system, y con ellos los avisos que la aplicación ya
@@ -50,7 +50,9 @@ mostraba (`TD-14`).
 **Non-goals:**
 
 - No se modifica ninguna estrategia del motor, ni `resolverArqueros`, ni `__generarEquipos`
-  salvo una línea que descarta la selección (`TC-012`, `FR-019b`).
+  salvo una línea que descarta la selección (`TC-012`, `FR-019b`). **Excepción desde el
+  2026-10-30 (`D-36`, `TD-26`):** donde el motor suma el valor de una unidad ya ubicada, usa
+  `valorEnPuesto`, que a una unidad fuera de puesto le cuenta su principal.
 - No se agrega equivalente de teclado (Spec §3.2, `OPEN-Q-03`), aunque el diseño 18h lo dibuje.
 - No se adoptan las conductas del 18h que contradicen la Spec: tocar el pasto **sí** cancela
   (`FR-016`); se puede soltar fuera de un candidato, con el pase y el aviso de hoy (`FR-042`,
@@ -121,6 +123,7 @@ sigue entrando por `saveMatches` y `window.storage` (`TC-002`).
 | TD-23 | **El estado de puesto se calcula en el render** con `estadoDePuesto(grupo, pos)`: `'fuera'` si `cubrePosicionGuardada(unidad, pos) >= COSTO_DESCUBIERTA`; `'secundario'` si no, y alguno de los integrantes juega fuera de su principal (`juegaFueraDePuesto`, que ya resuelve las posiciones viejas por línea); `'natural'` en otro caso. La unidad es la del jugador o la de la dupla (`construirUnidadDupla`), como en `TD-03`. Reemplaza el cálculo de la «2º» de `renderCamiseta`, que marcaba «2º» también a quien no juega el puesto | `FR-025`, `TC-010` | Diseño 19a, aprobado el 2026-10-30. La «2º» de antes ya salía del puesto del lugar, pero sólo comparaba contra la principal, así que confundía secundario con fuera de puesto. Con `cubrePosicionGuardada`, la «!» coincide con "lugares sin cubrir" por construcción |
 | TD-24 | **Las dos pastillas comparten lugar y son excluyentes:** `.camiseta-sec` («2º», sin cambios) o `.camiseta-fuera` («!», 26×20, `--brick-light` con tinta `--ink`). En escritorio, con camiseta de 56 y 52 px, la «!» es la del 19a, 26×20 en −5 px; en la vista de una columna —el compacto, la del celular— en cualquier camiseta, y en escritorio con la de 48 y 44 px, toma el tamaño, la letra y el borde izquierdo de la «2º» de esa camiseta (`--sec-w`, `--sec-h`, `--sec-fs`, `--sec-edge`), decisión del propietario del 2026-10-30 que reemplaza los −12 px del 19a y cierra la decisión abierta de OPEN-Q-05b: las dos pastillas ocupan exactamente el mismo lugar. Nunca sale de la columna: cuando flex angosta la columna por debajo de su `--chip-w` (a 360 px, en la fila de cuatro), la pastilla se corre lo justo para quedar en su borde, con `left: max(var(--fuera-edge), calc((var(--chip-size) - 100cqw) / 2))` y la camiseta como contenedor (`container-type: inline-size`). Los textos que el 19a y el 20b ponen en un `aria-label` de la camiseta van a su `title`, porque la camiseta no se anuncia como botón (`TD-20`) | `FR-025`, `NFR-003`, `TC-030` | El 19a sólo da el escritorio (−5) y el compacto de 48 px (−12); el propietario pidió aplicar la misma lógica en todos los escalones. La «2º» del compacto queda en −5 px: es la decisión abierta del final de OPEN-Q-05b, que no se resuelve acá |
 | TD-25 | **La «!» de la pestaña:** `renderSelectorEquipo` cuenta, para los dos equipos y con o sin selección, las unidades con `estadoDePuesto` `'fuera'`, y dibuja `span.equipo-tab-fuera` antes de la cuenta de candidatos. La pestaña pasa a `display:inline-flex; gap:6px`; el `aria-label` es "{Equipo}, N fuera de puesto[, M opciones]" | `FR-025b`, `FR-012b` | Diseño 19a. El texto visible de la pestaña pasa a ser el corto del prototipo, "Blanco" y "Negro": con la «!» y la cuenta, "Equipo Negro" se partía en dos renglones a 360 px (medido al implementar). El nombre accesible conserva "Equipo Blanco" |
+| TD-26 | **El valor fuera de puesto (`D-36`):** `puestoQueSuma(u, pos)` devuelve el puesto del lugar si la unidad lo juega (`cubrePosicionGuardada < COSTO_DESCUBIERTA`) y su principal si no; `valorEnPuesto(u, pos)` es `puntajeEnPosicion(u, puestoQueSuma(u, pos))`. Reemplaza a `puntajeEnPosicion` en los 19 lugares donde se suma el valor de una unidad ya ubicada —los totales y las líneas del motor, sus balanceos y mejoras, y `valorDePuntaje` de la pantalla— y "tiene puntaje" pasa a mirar el mismo puesto. Quedan con `puntajeEnPosicion` los 5 lugares donde el motor **elige**: los tres órdenes de candidatos al arco, la mejor secundaria de un arquero desplazado y el orden de las duplas de un puesto | `FR-025c`, `TC-011`, `TC-012` | Decisión del propietario, 2026-10-30, para la pantalla y el motor: si sólo cambiara la pantalla, el total guardado no coincidiría con el visible y el resumen aparecería dividido recién generado. Elegir por la principal metería en el arco a quien no ataja, y eso no se pidió. La misma pregunta de cobertura que la «!» y "lugares sin cubrir" (`TC-010`) |
 
 ## 4. Module map
 
@@ -140,7 +143,7 @@ sigue entrando por `saveMatches` y `window.storage` (`TC-002`).
 | `index.html` — `:root` ([index.html:14-50](../../index.html#L14-L50)) | Tres tokens del design system (`TD-15`) | modified |
 | `index.html` — CSS de la cancha: escalones `data-max-fila="4"` ([index.html:616](../../index.html#L616), [619](../../index.html#L619)), `.camiseta-sec` ([index.html:567](../../index.html#L567)), `.drop-realce` ([index.html:715-729](../../index.html#L715-L729)) y reglas nuevas de los tres estados | Dibujo del 18h (`TD-13`) | modified |
 | `index.html` — `cubrePosicionGuardada`, `costoEncaje`, `construirUnidadDupla`, `getDuplaPartner`, `unidadDelPartido`, `moverUnJugadorDeEquipo`, `posicionAsignadaDe`, `valorDePuntaje`, `esFilaEditable`, `sumasVigentes`, `balanceLineasVigente`, `faltantesDeFormacionVigente`, `colapsarDuplasParaLinea`, `saveMatches` | Se consultan; no cambian (`TC-010`, `TC-011`) | untouched |
-| `index.html` — estrategias del motor, `resolverArqueros`, `expandirUnidadesEnResultado`, `posicionesPreviasVigentes` | El motor (`TC-012`) | untouched |
+| `index.html` — estrategias del motor, `resolverArqueros`, `expandirUnidadesEnResultado`, `posicionesPreviasVigentes` | El motor (`TC-012`) | modified sólo donde suman el valor de una unidad ya ubicada: pasan a `valorEnPuesto` (`TD-26`); ninguna elección cambia |
 | `index.html` — `renderSelectorEquipo` | Cuenta de candidatos por pestaña (`TD-21`, `FR-012b`) | modified |
 | `index.html` — `__verEquipo` | Cambiar de pestaña repinta y la selección sobrevive por `TD-01` (`FR-012`) | untouched |
 | `tests/intercambio.test.js` | Archivo nuevo, unidad y propiedad (`TD-16`) | new |
@@ -337,6 +340,7 @@ Fuera de puesto y candidato con costo (`TD-23` a `TD-25`), del 19a y el 20b:
 | `.camiseta-fuera` | `position:absolute; top:-3px; left:var(--fuera-edge); display:flex; align-items:center; justify-content:center; width:var(--fuera-w); height:var(--fuera-h); padding:0; border-radius:var(--radius-pill); background:var(--brick-light); color:var(--ink); font:900 var(--fuera-fs)/var(--fuera-h) var(--font-display); box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.72), 0 2px 6px rgb(17 24 39 / 0.45)` |
 | `--fuera-w`, `--fuera-h`, `--fuera-fs`, `--fuera-edge` | 26 px, 20 px, 13 px y −5 px en escritorio con camiseta de 56 y 52 px; en la vista de una columna (`@media (max-width: 1099px)`) y con 48 y 44 px, los de la «2º» de ese escalón (`--sec-w`, `--sec-h`, `--sec-fs`, `--sec-edge`). El borde, acotado al de la columna cuando flex la angosta (`TD-24`) |
 | `.camiseta.candidata.con-costo .camiseta-placa` | `background:rgb(239 68 68 / 0.18); box-shadow:inset 0 0 0 1.5px var(--brick-light)` |
+| `.camiseta-puntaje.de-principal` | `background:var(--brick-light)`: el puntaje de una unidad fuera de puesto, que es el de su principal (`TD-26`); el `title` dice de qué puesto es |
 | hover / drag-over de cualquier candidato | el del 18h, sin cambios |
 | `.equipo-tab-fuera` | `flex:none; display:flex; align-items:center; justify-content:center; width:26px; height:20px; border-radius:var(--radius-pill); background:var(--brick-light); color:var(--ink); font:900 13px/20px var(--font-display); box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.72)` |
 | `.equipo-tab` | suma `display:inline-flex; align-items:center; justify-content:center; gap:6px`; la cuenta de candidatos pierde su `margin-left` |
@@ -369,6 +373,8 @@ File: `index.html`
 | `textoAvisoIntercambio` | `(clave, { a, b, puestoA, puestoB }) -> string \| null` | Texto plano. `'sin-candidatos'` → "Nadie puede intercambiar puesto con {a}" (`FR-018`); `'reparto-cambio'` → "Ya no se puede intercambiar: el reparto cambió" (`FR-034b`); `'b-no-cubre'` → "{b} no juega de {puestoA}" (`FR-042b`); `'a-no-cubre'` → "{a} no juega de {puestoB}" (`FR-042c`); `'ninguno-cubre'` → "Ninguno de los dos juega en el puesto del otro" (`FR-042d`); cualquier otra → `null` (sin aviso: `FR-042` mismo puesto, `FR-045b`). Los puestos van por `nombreDe` ("Defensor Central"). Ningún texto lleva puntajes (`TC-043`) |
 | `estadoDePuesto` | `(grupo, pos) -> 'natural' \| 'secundario' \| 'fuera'` | `TD-23` |
 | `intercambioConCosto` | `(m, idA, idB, porId) -> boolean` | `TD-22`. B no cubre el puesto que deja A |
+| `puestoQueSuma` | `(u, pos) -> puesto` | `TD-26` |
+| `valorEnPuesto` | `(u, pos) -> number` | `TD-26`. Lo que vale una unidad ya ubicada |
 | `seleccionVigente` | `(m) -> Seleccion \| null` | `TD-01`. Si `seleccionIntercambio` es de `m` y `m` ya no está en la ventana o la unidad ya no está en el reparto, la pone en `null` (`FR-003`) |
 | `window.__tocarCamiseta` | `(event, matchId, playerId) -> void` | Corta la propagación. Guardas: `isAdmin()` (`FR-002`, `TC-040`), partido existente y `esFilaEditable(m)` (`FR-001`, `FR-034`), `unidadDelPartido(m, playerId)` (`TC-042`). Ejecuta la acción de `resolverToqueCamiseta`: seleccionar (y si es con puestos y no tiene candidatos, `__showToast` con `'sin-candidatos'`, `FR-018`), cancelar, intercambiar (`intercambiarUnidades`, descarta la selección, `saveMatches`, `renderMatchesTab`, `FR-036`), o `'reparto-cambio'` (aviso, descarta, repinta). Mide con `performance.now()` sólo en los tests, no en producción |
 | `intercambiarUnidades` | *(firma sin cambios)* | `TD-04`. Sin cambio de equipo cuando las dos son del mismo; sin escribir puestos cuando `!tienePuestos(m)` (`FR-033`) |
@@ -496,6 +502,8 @@ Implementation tasks (agrupadas en commits atómicos):
 - [ ] T-1.32 Agregar `estadoDePuesto`, las pastillas de `TD-24` y `TD-25`, y el recuadro con costo en el toque y en el arrastre, según §7.2.3 (`FR-021b`, `FR-025`, `FR-025b`), con sus casos de unidad y de layout, vistos fallar antes
 - [ ] T-1.33 Verificar a 390 px y en escritorio contra las capturas del 19a y el 20b
 - [ ] T-1.C14 Commit — `feat(posiciones): fuera de puesto y candidato con costo (FR-025)`
+- [ ] T-1.34 Agregar `puestoQueSuma` y `valorEnPuesto` y usarlas en los lugares de suma de `TD-26`; sumarlas a la lista `DECLARACIONES` de `tests/harness.js` y de cada test que recorta `valorDePuntaje` (`TC-032`); el puntaje en rojo y la «!» de la vista de una columna igual a la «2º»; adaptar el caso de `014` de `tests/motor.test.js` y escribir `S-01p` y `S-07b`, vistos fallar (`FR-025c`)
+- [ ] T-1.C15 Commit — `feat(posiciones): fuera de puesto suma su principal (FR-025c)`
 
 DoD verification (§6). Todo cambio de código hecho durante esta verificación va en su propio
 commit de arreglo, nunca doblado dentro de uno anterior:
@@ -598,6 +606,7 @@ Ninguno (`TD-19`).
 | S-01m `[property]` misma cantidad de unidades | `tests/intercambio.test.js` `"intercambio/S-01m"` | unit + property | Branch 1 |
 | S-01n `[boundary]` candidato con costo | `tests/intercambio.test.js` `"intercambio/S-01n"` + `intercambio-toque` | unit + e2e | Branch 1 |
 | S-01o `[boundary]` el estado de puesto se recalcula | `tests/intercambio.test.js` `"intercambio/S-01o"` + `intercambio-toque` | unit + e2e | Branch 1 |
+| S-01p `[boundary]` fuera de puesto suma su principal, en rojo | `tests/intercambio.test.js` `"intercambio/S-01p"` + `intercambio-toque` | unit + e2e | Branch 1 |
 | S-02 (parent) entre equipos en el celular | `intercambio-toque` a 360 px (`intercambio/S-02`) | e2e | Branch 1 |
 | S-02a `[boundary]` las dos canchas a la vez | `intercambio-toque` a 1200 px (`intercambio/S-02a`) | e2e | Branch 1 |
 | S-02b `[boundary]` mismo puesto entre equipos | `tests/intercambio.test.js` `"intercambio/S-02b"` | unit | Branch 1 |
@@ -631,6 +640,7 @@ Ninguno (`TD-19`).
 | S-06b `[boundary]` dupla con candado | `intercambio-regenerar` (`intercambio/S-06b`) | e2e | Branch 1 |
 | S-07 (parent) el resumen se divide | `intercambio-toque` (`intercambio/S-07`), leyendo "Con tus cambios" ([index.html:6555](../../index.html#L6555)) | e2e | Branch 1 |
 | S-07a `[boundary]` mismo puesto y mismo puntaje | `intercambio-toque` (`intercambio/S-07a`) | e2e | Branch 1 |
+| S-07b `[boundary]` recién generado con alguien fuera de puesto, el total del motor es el de la pantalla | `tests/intercambio.test.js` `"intercambio/S-07b"`, con el motor real | unit | Branch 1 |
 | S-20 (parent) rol `jugador` | `intercambio-permisos`, rol `jugador` (`intercambio/S-20`) | e2e | Branch 1 |
 | S-20a `[failure]` inscripción cerrada | `intercambio-permisos` sobre `m-int-cerrado` (`intercambio/S-20a`) | e2e | Branch 1 |
 | S-20b `[failure]` identificadores ajenos o `dataTransfer` arbitrario | `intercambio-permisos` (`intercambio/S-20b`) + `"intercambio/S-20b"` sobre `evaluarIntercambio` | e2e + unit | Branch 1 |
@@ -645,8 +655,8 @@ Ninguno (`TD-19`).
 `S-22b` dice "700 y 701 px"; la lista de anchos de `tests/layout.test.js` mide 699 y 701, que son
 los dos lados del corte. El escenario usa esos dos, y se anota así.
 
-Reparto: 58 filas, una por escenario o variante definidos en la Spec. 21 llevan `unit` (3 de ellas
-`property`), 46 llevan `e2e` (10 de ellas también `unit`) y 1 es manual. No se declara proporción
+Reparto: 60 filas, una por escenario o variante definidos en la Spec. 23 llevan `unit` (3 de ellas
+`property`), 47 llevan `e2e` (11 de ellas también `unit`) y 1 es manual. No se declara proporción
 objetivo.
 
 ### 12.2 Impact Traceability
@@ -708,6 +718,8 @@ temporal en `index.html` que deshace lo que el escenario protege. Ninguna se com
 | `intercambio-toque` | `renderSelectorEquipo` sin la cuenta de candidatos (`TD-21`) | `S-02h`: las pestañas no dicen cuántos candidatos tienen |
 | `intercambio-toque` | `estadoDePuesto` lee un dato fijo del jugador en vez del puesto del lugar | `S-01o`: después del intercambio la pastilla no cambia |
 | `intercambio-toque` | `intercambioConCosto` mide contra el puesto del candidato en vez del que deja el elegido | `S-01n`: Nico no se dibuja con costo |
+| `intercambio-toque` | `puestoQueSuma` devuelve siempre el puesto del lugar | `S-01p`: Nico no muestra número y el Blanco dice 45; también `"intercambio/S-07b"` |
+| `tests/intercambio.test.js` | El motor suma con `puntajeEnPosicion` al cerrar el reparto de la Estrategia 4 | `S-07b`: el motor guarda 44 y la pantalla muestra 52 |
 | `intercambio-arrastre` | En `aplicarDrop`, aplicar `intercambiarUnidades` sin consultar `evaluarIntercambio` | `S-03a`: hay escritura y no hay aviso |
 | `intercambio-arrastre` | En `__dragStartJugador`, no quitar las clases de la selección previa | `S-03e`: dos camisetas con `.seleccionada` |
 | `intercambio-arrastre` | `resolverDestinoDrop` sin el rechazo de la propia unidad | `S-03d`: soltar sobre sí misma escribe |
@@ -869,6 +881,8 @@ claude-sonnet-5-5). Para cada uno, por qué se cumple y qué lo verifica:
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-36` (fuera de puesto se suma la principal, en la pantalla y en el motor) con la nueva `TD-26`, y la corrección de lo que es el compacto en `TD-24` (la vista de una columna, en cualquier camiseta). §2 declara la excepción al no-objetivo del motor; §7.2.3 suma el puntaje en rojo y la regla de una columna; §7.2.5 suma `puestoQueSuma` y `valorEnPuesto`; tarea `T-1.34` y commit `T-1.C15`; §12.1 suma `S-01p` y `S-07b` (60 filas); §12.6.1, dos mutaciones. Self-critique: skipped (cambio acotado a pedido explícito) |
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: en el compacto —la vista de una columna, en cualquier camiseta, y en escritorio con camiseta de 48 y 44 px— la «!» toma el tamaño y el lugar de la «2º» en vez de los 26×20 en −12 px del 19a (`TD-24`, §7.2.3). Cierra la decisión abierta de OPEN-Q-05b. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-34` y `D-35` (diseños 19a y 20b). Nuevas `TD-22` a `TD-25`; `TD-02` y la forma de la evaluación pierden `'b-no-cubre'` y `'ninguno-cubre'`; §7.2.3 suma la «!», `--fuera-edge` por escalón, el recuadro con costo y la «!» de la pestaña, con `239 68 68` como excepción de alfa; §7.2.5 suma `estadoDePuesto` e `intercambioConCosto`; tareas `T-1.31` a `T-1.33` y commits `T-1.C13` y `T-1.C14`; §12.1 suma `S-01n`, `S-01o`, `S-02i` y `S-22c` (58 filas); §12.6.1, dos mutaciones. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, al probar la rama de código en un iPhone (`D-33`): el contador de candidatos del 18h entra en esta versión. Se retira de los non-goals de §2; nueva `TD-21` (cuenta por pestaña, en el nombre accesible); `renderSelectorEquipo` pasa a modified; §7.2.3 suma la cápsula, §7.2.5 la firma, §7.2.9 las tareas `T-1.30` y `T-1.C12`, §12.1 la fila de `S-02h` (54 filas), §12.6 el ID en `intercambio-toque` y §12.6.1 su mutación. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | Atiende la crítica [`POSICIONES_DEL_JUGADOR_PLAN_CRITIQUE_2026-10-30_claude-sonnet-5-5.md`](./POSICIONES_DEL_JUGADOR_PLAN_CRITIQUE_2026-10-30_claude-sonnet-5-5.md) (0🔴 / 9🟡 / 5🔵). Se verificaron con comandos los hallazgos 1, 3, 4, 5 y 11 antes de corregirlos. 🟡: la región del `Toast` existe vacía desde el arranque y el texto llega después, con verificación manual con lector de pantalla (2, `TD-14`, §12.7); `resolverDestinoDrop` y `aplicarDrop` pasan al mismo commit (3, §7.2.1); `T-1.D10b` declara su salida exacta, `TC-041` y `TC-042` (4); nueva §16.1 con los `FR` sin tarea propia (5); `dragstart` limpia la selección previa del DOM (6, `TD-09`); la deuda `[UNVERIFIED]` queda en una lista en §15 (7); `T-1.D8b`, `T-1.D18`, `T-1.D18b` y `T-1.D19` llevan su comando (8); nueva §12.6.1 con una mutación por escenario y la tarea `T-1.28` para verlos fallar por lo que los motiva, y la placa pasa a ser un elemento medible (10, `TD-13`); los asuntos de commit se acortan a 72 caracteres de línea entera con scope `posiciones`, por decisión del propietario, que se aclara en `AGENTS.md` § Commits (11). 🔵: dieciséis `TC`, ocho funciones (1); `T-1.27` dice qué hacer (9); la justificación del arco se reescribe (12); la camiseta deja de anunciarse como botón, por decisión del propietario (13, nueva `TD-20`); el rojo de `T-1.C4` se declara excepción al criterio de bisect y el título reescrito de `"arrastre/S-02c"` pierde el prefijo de binding (14). No se tomó el cambio de arco a `single-branch` del hallazgo 12: ese arco es para hasta 3 FR y esta feature tiene más de 40. Las tareas de §7.2.9 se renumeraron. Self-critique (Step 5, sobre la versión corregida): passed (0🔴 / 3🟡 / 3🔵), todos resueltos. 🟡: la extensión de `intercambiarUnidades` había quedado en `T-1.C1`, donde el arrastre entre equipos ya la llama sin regla; pasa a `T-1.C2` junto con `resolverDestinoDrop` y `aplicarDrop` (el mismo defecto del hallazgo 3, en el otro caso); el rango de commits en rojo de §7.2.1 llegaba a `T-1.C6` y el aviso llega en `T-1.C7`; `T-1.D16` y `T-1.D17` no tenían comando. 🔵: `T-1.D5` con comando exacto; los candidatos se calculan una vez por render, no por camiseta (`NFR-004`); marcadores `[P]` en `T-1.20` y `T-1.26`. |
@@ -879,4 +893,3 @@ claude-sonnet-5-5). Para cada uno, por qué se cumple y qué lo verifica:
 *Este Plan es el contrato ejecutable de la feature. Lo que el sistema debe hacer vive en
 [POSICIONES_DEL_JUGADOR_SPEC.md](./POSICIONES_DEL_JUGADOR_SPEC.md); la motivación y el fundamento
 de las decisiones, en [POSICIONES_DEL_JUGADOR_CONCEPT.md](./POSICIONES_DEL_JUGADOR_CONCEPT.md).*
-| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: en el compacto —la vista de una columna, en cualquier camiseta, y en escritorio con camiseta de 48 y 44 px— la «!» toma el tamaño y el lugar de la «2º» en vez de los 26×20 en −12 px del 19a (`TD-24`, §7.2.3). Cierra la decisión abierta de OPEN-Q-05b. Self-critique: skipped (cambio acotado a pedido explícito) |

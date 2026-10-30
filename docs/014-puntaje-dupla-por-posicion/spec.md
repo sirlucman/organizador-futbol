@@ -87,11 +87,11 @@ El "admin" ve en el panel el puntaje de la dupla para la posición en la que que
 
 - **FR-001**: En las Estrategias 2 y 3, el sistema MUST calcular el valor de una dupla de rotación en una posición como el promedio del aporte de cada integrante en esa posición.
 - **FR-002**: El aporte de un integrante en una posición MUST ser su nota cargada para esa posición si existe, y su promedio general si no la tiene cargada.
-- **FR-003**: Cuando ninguno de los dos integrantes tiene nota cargada para esa posición, el valor resultante MUST coincidir con el que produce la fórmula vigente hoy (promedio de los promedios generales).
+- **FR-003**: Cuando ninguno de los dos integrantes tiene nota cargada para esa posición, el valor resultante MUST coincidir con el que produce la fórmula vigente hoy (promedio de los promedios generales). **Reemplazado en parte el 2026-10-30 por `FR-025c` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** si la unidad no juega esa posición, vale su nota en la principal de la unidad.
 - **FR-004**: Cuando ninguno de los dos integrantes tiene ninguna nota cargada, la unidad MUST seguir tratándose como "sin puntaje".
 - **FR-005**: Cuando solo uno de los dos integrantes tiene alguna nota cargada, el valor de la unidad MUST ser el de ese integrante (`008-duplas-rotacion`, FR-008).
 - **FR-006**: En la Estrategia 1 el valor de la dupla MUST seguir siendo el promedio de los promedios generales de sus integrantes.
-- **FR-007**: El sistema MUST NOT cambiar el valor de un jugador individual en una posición que no tiene cargada.
+- **FR-007**: El sistema MUST NOT cambiar el valor de un jugador individual en una posición que no tiene cargada. **Reemplazado en parte el 2026-10-30 por `FR-025c` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** en una posición que el jugador no juega, vale su nota en la principal.
 - **FR-008**: El sistema MUST NOT usar el puntaje de una dupla para decidir en qué posición la ubica; esa decisión sigue siendo la de encaje, con las posiciones declaradas (`011-encaje-optimo-formacion`).
 - **FR-009**: El sistema MUST NOT cambiar cómo se elige el arquero de cada equipo.
 - **FR-010**: El valor de la dupla MUST expresarse con un decimal, igual que el resto de los puntajes.
