@@ -1155,17 +1155,26 @@
   .login-card input{ width: 100%; padding: 10px 12px; border: 1px solid var(--paper-line); border-radius: var(--radius-control); background: var(--chalk); font-family: var(--font-body); font-size: 14px; color: var(--ink); }
   .login-card input:focus{ outline: 2px solid var(--pitch-light); outline-offset: 1px; }
 
+  /* El aviso es el `Toast` del design system (components/feedback/Toast): superficie blanca, radio
+     de tarjeta, sombra flotante, tope de 400px y una franja izquierda de 3px que lleva el tono —la
+     superficie nunca cambia de color—. Sin título ni botón de cerrar, que son partes opcionales
+     del componente: los avisos de la aplicación son de una línea y se van solos (posiciones-del-
+     jugador, TD-14). Se oculta con opacidad y NO con `visibility:hidden`, para que la región no
+     salga del árbol de accesibilidad: una región viva que reaparece con el texto ya puesto,
+     muchos lectores de pantalla no la anuncian (NFR-003). */
   .toast{
     position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
-    max-width: min(90vw, 360px);
-    background: var(--ink); color: var(--chalk);
-    padding: 12px 18px; border-radius: var(--radius-control);
-    font-family: var(--font-body); font-size: 13.5px; line-height: 1.4; text-align: center;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.28);
-    z-index: 80; opacity: 0; visibility: hidden; transition: opacity .18s ease, transform .18s ease;
+    width: calc(100vw - 32px); max-width: 400px; box-sizing: border-box;
+    display: flex; gap: 12px; padding: 12px 16px;
+    border-radius: var(--radius-card); background: var(--chalk); color: var(--ink);
+    font: 400 14px/1.4 var(--font-body); box-shadow: var(--shadow-floating);
+    z-index: 80; opacity: 0; pointer-events: none;
+    transition: opacity var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
   }
-  .toast.show{ opacity: 1; visibility: visible; transform: translateX(-50%) translateY(0); }
-  .toast.toast--error{ background: var(--brick); }
+  .toast .toast-franja{ width: 3px; align-self: stretch; flex: 0 0 auto; border-radius: var(--radius-pill); background: var(--ink); }
+  .toast .toast-texto{ flex: 1 1 auto; min-width: 0; color: var(--slate); }
+  .toast.toast--error .toast-franja{ background: var(--brick-light); }
+  .toast.show{ opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
 </style>
 </head>
 <!-- Arranca con el rol más restringido (007-permisos-por-usuario): la clase se saca recién cuando
@@ -1978,20 +1987,45 @@
     return letra ? palabras[0] + ' ' + letra[0].toUpperCase() + '.' : palabras[0];
   }
 
-  let toastTimeoutId = null;
-  window.__showToast = function(mensaje, tipo){
+  /* La región del aviso existe desde el arranque, vacía, y no se saca nunca del DOM (TD-14). Un
+     lector de pantalla anuncia los cambios de una región viva que ya conoce; una que aparece con
+     el texto puesto, o que pasa de oculta a visible en el mismo momento en que cambia, muchos no la
+     anuncian. Por eso se crea acá, al cargar el script, y no al mostrar el primer aviso. */
+  function asegurarRegionDeAviso(){
     let toast = el('appToast');
     if(!toast){
       toast = document.createElement('div');
       toast.id = 'appToast';
       toast.className = 'toast';
+      toast.setAttribute('role', 'status');
+      toast.setAttribute('aria-live', 'polite');
+      toast.innerHTML = '<span class="toast-franja" aria-hidden="true"></span><span class="toast-texto"></span>';
       document.body.appendChild(toast);
     }
-    toast.textContent = mensaje;
+    return toast;
+  }
+  asegurarRegionDeAviso();
+
+  /* El texto entra con `textContent`, así un nombre de jugador nunca se interpreta como HTML
+     (TC-041), y entra en el cuadro SIGUIENTE al que muestra el aviso: vaciar y volver a llenar es
+     lo que hace que el mismo aviso dos veces seguidas se anuncie las dos veces. Dura 3 s, como
+     siempre; al ocultarse, la región vuelve a quedar vacía. */
+  let toastTimeoutId = null, toastVaciarId = null;
+  const TOAST_DURACION = 3000;
+  const TOAST_TRANSICION = 200; // un poco más que --duration-fast: el texto se vacía con el aviso ya oculto
+  window.__showToast = function(mensaje, tipo){
+    const toast = asegurarRegionDeAviso();
+    const texto = toast.querySelector('.toast-texto');
+    clearTimeout(toastTimeoutId);
+    clearTimeout(toastVaciarId);
     toast.classList.toggle('toast--error', tipo === 'error');
+    texto.textContent = '';
     toast.classList.add('show');
-    if(toastTimeoutId) clearTimeout(toastTimeoutId);
-    toastTimeoutId = setTimeout(() => toast.classList.remove('show'), 3000);
+    requestAnimationFrame(() => { texto.textContent = mensaje; });
+    toastTimeoutId = setTimeout(() => {
+      toast.classList.remove('show');
+      toastVaciarId = setTimeout(() => { texto.textContent = ''; }, TOAST_TRANSICION);
+    }, TOAST_DURACION);
   };
 
   /* Las duplas de rotación del armado que se está copiando. Se lee `duplasSnapshot` —lo que
