@@ -192,9 +192,9 @@ Restatadas de [`AGENTS.md`](../../AGENTS.md), leído al escribir este Plan.
 - [x] Linter y type-checker: no aplican (§5), declarado
 - [x] No quedan `TODO`, `FIXME` ni `HACK`
 - [x] El historial sigue §5 (`T-1.D11`)
-- [ ] La descripción del PR resume los cambios, cita la Spec y registra el resultado de la verificación manual (`T-1.D12`)
-- [ ] **Gate propio:** la verificación manual de `A-01`/`S-03h` en un teléfono y el chequeo de `A-07` contra los partidos reales están hechos y su resultado está en el PR (`T-1.D13`)
-- [ ] PR abierto contra `main` (`T-1.D14`)
+- [x] La descripción del PR resume los cambios, cita la Spec y registra el resultado de la verificación manual (`T-1.D12`) — no aplica: sin PR, por decisión del propietario; ver `T-1.D12` a `T-1.D14`
+- [x] **Gate propio:** la verificación manual de `A-01`/`S-03h` en un teléfono y el chequeo de `A-07` contra los partidos reales están hechos y su resultado está en el PR (`T-1.D13`) — no aplica: sin PR, por decisión del propietario; ver `T-1.D12` a `T-1.D14`
+- [x] PR abierto contra `main` (`T-1.D14`) — no aplica: sin PR, por decisión del propietario; ver `T-1.D12` a `T-1.D14`
 
 ## 7. Branch / phase plan
 
@@ -216,7 +216,7 @@ previo que `AGENTS.md` § Ramas fija para toda feature (Spec y Plan primero, có
 
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
-| 1 | `feature/posiciones-del-jugador` | `main` | In progress — código completo, sin PR | — | Unidad: 11/11. Layout, suite completa en modo estricto: 73/73 | Abierta desde `main` después del merge de `docs/posiciones-del-jugador`. Suma `D-33` a `D-36`, decididas al probar la rama |
+| 1 | `feature/posiciones-del-jugador` | `main` | Lista para mergear — sin PR, por decisión del propietario | — | Unidad: 11/11. Layout, suite completa en modo estricto: 73/73 | Abierta desde `main` después del merge de `docs/posiciones-del-jugador`. Suma `D-33` a `D-36`, decididas al probar la rama |
 
 ```mermaid
 flowchart LR
@@ -521,9 +521,9 @@ commit de arreglo, nunca doblado dentro de uno anterior:
 - [x] T-1.D10 Cada `TC-*` de Spec §4 aparece en §12 de este Plan — `comm -23 <(sed -n '/^## 4\./,/^## 5\./p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md | grep -oE '\*\*TC-[0-9]+' | grep -oE 'TC-[0-9]+' | sort -u) <(sed -n '/^## 12\./,/^## 13\./p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md | grep -oE 'TC-[0-9]+' | sort -u)` devuelve vacío (`AC-52`)
 - [x] T-1.D10b Cada `TC-*` de Spec §4 tiene su criterio en Spec §11.3 — `comm -23 <(sed -n '/^## 4\./,/^## 5\./p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md | grep -oE '\*\*TC-[0-9]+' | grep -oE 'TC-[0-9]+' | sort -u) <(sed -nE '/^#{2,4} +11\.3/,/^#{2,4} +11\.4/p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md | grep -oE 'TC-[0-9]+' | sort -u)` devuelve **exactamente** `TC-041` y `TC-042`, ni más ni menos: los dos están dentro del rango "`TC-040` a `TC-043`" de `AC-42`, que el `grep` no expande. Cualquier otra salida es una falla (`AC-52`; hallazgo 4 de la crítica de claude-sonnet-5-5)
 - [x] T-1.D11 El historial es limpio y sigue §5 — `git log --oneline main..HEAD`; ningún asunto es `chore: bump version`
-- [ ] T-1.D12 Descripción del PR redactada: resumen, Spec citada, decisiones (`TD-13`, `TD-14`, `TD-20`), salida de `T-1.27`, `T-1.28` y `T-1.29`
-- [ ] T-1.D13 **Gate propio:** `T-1.27`, `T-1.28` y `T-1.29` están hechos y su resultado está en el PR
-- [ ] T-1.D14 PR abierto contra `main`
+- [x] T-1.D12 Descripción del PR redactada: resumen, Spec citada, decisiones (`TD-13`, `TD-14`, `TD-20`), salida de `T-1.27`, `T-1.28` y `T-1.29` — **No aplica, por decisión del propietario (2026-10-30):** es el único integrante del equipo y no abre PR; se mergea a `main` como fija `AGENTS.md` § Ramas. Los resultados que iban en la descripción están en este Plan, junto a `T-1.27`, `T-1.28`, `T-1.29` y `T-1.D1`.
+- [x] T-1.D13 **Gate propio:** `T-1.27`, `T-1.28` y `T-1.29` están hechos y su resultado está en el PR — **No aplica, por decisión del propietario (2026-10-30):** es el único integrante del equipo y no abre PR; se mergea a `main` como fija `AGENTS.md` § Ramas. Los resultados que iban en la descripción están en este Plan, junto a `T-1.27`, `T-1.28`, `T-1.29` y `T-1.D1`.
+- [x] T-1.D14 PR abierto contra `main` — **No aplica, por decisión del propietario (2026-10-30):** es el único integrante del equipo y no abre PR; se mergea a `main` como fija `AGENTS.md` § Ramas. Los resultados que iban en la descripción están en este Plan, junto a `T-1.27`, `T-1.28`, `T-1.29` y `T-1.D1`.
 - [x] T-1.D15 §12.2 tiene al menos una fila `IMP-*` por ámbito afectado — `sed -n '/^### 12\.2/,/^### 12\.3/p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md | grep -cE "^\| *IMP-[0-9]+"` ≥ 1 (`AC-53`)
 - [x] T-1.D16 Cada NFR cuantificado tiene fila `OBS-*` en §11 — `comm -23 <(printf 'NFR-001\nNFR-002\nNFR-004\n') <(sed -n '/^## 11\./,/^## 12\./p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md | grep -oE 'NFR-[0-9]+' | sort -u)` devuelve vacío (`AC-54`)
 - [x] T-1.D17 Cada `R-*` de §14 registra vía de mitigación (ninguna celda *Mitigation task* vacía) y cada `T-1.*` citado en §14 está definido en §7.2.9 — `comm -23 <(sed -n '/^## 14\./,/^## 15\./p' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md | grep -oE 'T-1\.[A-Z]?[0-9]+' | sort -u) <(grep -oE '^- \[[ x]\] T-1\.[A-Z]?[0-9]+' docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md | grep -oE 'T-1\.[A-Z]?[0-9]+' | sort -u)` devuelve vacío
@@ -888,6 +888,7 @@ claude-sonnet-5-5). Para cada uno, por qué se cumple y qué lo verifica:
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | Por decisión del propietario, único integrante del equipo, la rama se mergea sin PR (`AGENTS.md` § Ramas no lo exige). `T-1.D12` a `T-1.D14` y los ítems de §6 que piden un PR quedan como no aplicables, con los resultados registrados en este Plan. §7.1: lista para mergear. Self-critique: skipped (registro de avance) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | Registra el avance de la rama: §7.1 pasa a *In progress* sin PR; se tildan las tareas y los ítems de §6 cumplidos, con nota en las que no aplican (`T-1.C9`, `T-1.D3`, `T-1.D4`) y el resultado de `T-1.27`, `T-1.28` y `T-1.29`; `OPEN-Q-13` resuelta (Safari y Chrome); la deuda de verificación de §15 queda saldada. `T-1.D1` pasó (suite completa de layout 73/73). Queda lo del PR (`T-1.D12` a `T-1.D14`). Self-critique: skipped (registro de avance) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, el puntaje del fuera de puesto pasa a tener el color de todos los puntajes, sin el rojo (§7.2.3, Spec `FR-025c`, Concept Note `D-36`). Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-36` (fuera de puesto se suma la principal, en la pantalla y en el motor) con la nueva `TD-26`, y la corrección de lo que es el compacto en `TD-24` (la vista de una columna, en cualquier camiseta). §2 declara la excepción al no-objetivo del motor; §7.2.3 suma el puntaje en rojo y la regla de una columna; §7.2.5 suma `puestoQueSuma` y `valorEnPuesto`; tarea `T-1.34` y commit `T-1.C15`; §12.1 suma `S-01p` y `S-07b` (60 filas); §12.6.1, dos mutaciones. Self-critique: skipped (cambio acotado a pedido explícito) |
