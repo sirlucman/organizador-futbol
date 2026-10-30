@@ -5324,7 +5324,8 @@
       ? '<span class="camiseta-sec" title="' + escaparHtml(secTitle) + '">2º</span>'
       : '';
 
-    return '<div class="camiseta ' + equipo + '-eq"' + arrastreAttrs + ' title="' + titulo + '">'
+    // `data-id` deja al arrastre marcar candidatos sobre las camisetas ya dibujadas (TD-09).
+    return '<div class="camiseta ' + equipo + '-eq" data-id="' + escaparHtml(p.id) + '"' + arrastreAttrs + ' title="' + titulo + '">'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
       + puntajeHtml + secHtml + candadoHtml + chipsHtml
@@ -5665,6 +5666,20 @@
   function nombreDeGrupo(grupo){
     return grupo.map(fullName).join(' / ');
   }
+  // El grupo (jugador o dupla) de `id`, en el mismo orden en que lo dibuja la cancha.
+  function grupoDeUnidad(m, id){
+    const equipo = unidadDelPartido(m, id);
+    if(!equipo) return [];
+    return agruparFilasDeEquipo(m, jugadoresDeEquipoOrdenados(m, m.equipos[equipo]))
+      .find(grupo => grupo.some(j => j.id === id)) || [];
+  }
+  // El aviso de un intercambio rechazado, con los nombres y los puestos de las dos unidades.
+  function avisoDeRechazo(m, idA, idB, motivo, porId){
+    return textoAvisoIntercambio(motivo, {
+      a: nombreDeGrupo(grupoDeUnidad(m, idA)), b: nombreDeGrupo(grupoDeUnidad(m, idB)),
+      puestoA: posicionAsignadaDe(porId[idA], m), puestoB: posicionAsignadaDe(porId[idB], m),
+    });
+  }
 
   /* El texto de cada aviso, en texto plano: quien lo muestre lo pone con `textContent`, nunca como
      HTML (TC-041). `null` es "sin aviso": el drop sobre un compañero del mismo puesto no tiene nada
@@ -5683,9 +5698,15 @@
   /* Qué movimiento corresponde a soltar `idArrastrado` sobre `destino`, o null si no
      corresponde ninguno. `destino` es { clase: 'cancha' | 'camiseta' | 'pestana', equipo, id }.
 
-     Devuelve null —y no un error— para todo drop que simplemente no hace nada: sobre el propio
-     equipo (FR-013) o con identificadores ajenos al partido (FR-025). Soltar en el lugar
+     Devuelve null —y no un error— para todo drop que simplemente no hace nada: sobre la cancha o
+     la pestaña del propio equipo (FR-013), sobre la propia unidad (FR-044 de
+     posiciones-del-jugador) o con identificadores ajenos al partido (FR-025). Soltar en el lugar
      equivocado es parte del uso normal, no una condición excepcional.
+
+     Es GEOMÉTRICA: dice sobre qué cayó, no si se puede. Desde posiciones-del-jugador una camiseta
+     del propio equipo también es un intercambio (FR-041), y si ese intercambio vale lo decide
+     después `evaluarIntercambio`, en `aplicarDrop`. Así el aviso de un rechazo sale de la misma
+     regla que el toque y no de una segunda regla acá (TD-05).
      (Spec del arrastre, FR-010 a FR-013.) */
   function resolverDestinoDrop(m, idArrastrado, destino){
     const origen = unidadDelPartido(m, idArrastrado);
@@ -5693,8 +5714,7 @@
     /* La camiseta gana sobre la cancha que la contiene (FR-012). Se resuelve acá, por orden de
        evaluación, y además en el manejador con `stopPropagation`. */
     if(destino.clase === 'camiseta'){
-      const equipoDestino = unidadDelPartido(m, destino.id);
-      if(!equipoDestino || equipoDestino === origen) return null;
+      if(!unidadDelPartido(m, destino.id) || mismaUnidad(m, idArrastrado, destino.id)) return null;
       return { tipo: 'intercambiar', idDestino: destino.id };
     }
     /* Cancha y pestaña deciden lo mismo: mover al equipo que representan. Lo único que las
@@ -5708,20 +5728,30 @@
     return null;
   }
 
-  /* Intercambia dos unidades de equipo. Cada una viaja con su pareja de dupla, y el movimiento
-     lo aplica `moverUnJugadorDeEquipo`, que es la misma función que usa el movimiento simple:
-     los totales se recalculan con el criterio que ya existía y la posición asignada no se toca
-     (FR-011, FR-017, FR-021, FR-022, FR-024).
+  /* Intercambia dos unidades: cada una toma el puesto asignado de la otra y, si eran de equipos
+     distintos, también su equipo. Cada una viaja con su pareja de dupla, y el cambio de equipo lo
+     aplica `moverUnJugadorDeEquipo`, la misma función que usa el pase (FR-011 de la rebanada 2;
+     FR-030 a FR-033 de posiciones-del-jugador). Es la ÚNICA ruta de escritura del intercambio,
+     por toque o por arrastre (TC-011): por eso no valida la regla, la valida quien la llama
+     (`evaluarIntercambio`), igual que antes no validaba si el drop tenía sentido.
 
-     Los dos equipos se leen ANTES de mover a nadie. Mover la primera unidad cambiaría el equipo
-     de la segunda si estuvieran en el mismo, cosa que `resolverDestinoDrop` ya descartó — pero
-     esta función no se apoya en eso, porque también se la llama desde los tests. */
+     Sin puestos ("Solo por puntaje") sólo cambia el equipo y no escribe ningún puesto (FR-033).
+     Con puestos, los puestos y los equipos se leen ANTES de mover a nadie: mover la primera
+     unidad cambiaría el equipo de la segunda si estuvieran en el mismo. Sólo se escriben las
+     entradas de `posicionAsignada` de los integrantes de las dos unidades (NFR-005). */
   function intercambiarUnidades(m, idA, idB){
     const equipoA = unidadDelPartido(m, idA);
     const equipoB = unidadDelPartido(m, idB);
-    if(!equipoA || !equipoB || equipoA === equipoB) return;
+    if(!equipoA || !equipoB || mismaUnidad(m, idA, idB)) return;
     const parA = getDuplaPartner(m, idA);
     const parB = getDuplaPartner(m, idB);
+    if(tienePuestos(m)){
+      const asignada = m.equipos.posicionAsignada;
+      const puestoA = asignada[idA], puestoB = asignada[idB];
+      [idA, parA].filter(Boolean).forEach(id => { if(puestoB !== undefined) asignada[id] = puestoB; });
+      [idB, parB].filter(Boolean).forEach(id => { if(puestoA !== undefined) asignada[id] = puestoA; });
+    }
+    if(equipoA === equipoB) return;
     moverUnJugadorDeEquipo(m, idA, equipoB);
     if(parA) moverUnJugadorDeEquipo(m, parA, equipoB);
     moverUnJugadorDeEquipo(m, idB, equipoA);
@@ -5780,16 +5810,49 @@
     document.querySelectorAll('.drop-activo').forEach(x => x.classList.remove('drop-activo'));
   }
 
+  /* --- Los candidatos durante el arrastre (posiciones-del-jugador, FR-040) ---
+     Al empezar un arrastre en un partido con puestos, la camiseta arrastrada toma el dibujo de la
+     tocada y sus candidatos el de candidato, como en el toque. Se marca con `classList` sobre las
+     camisetas YA dibujadas, sin repintar: repintar durante `dragstart` reemplaza el nodo que se
+     está arrastrando y el navegador aborta el gesto (TD-09).
+
+     `arrastreEnCurso` guarda qué se arrastra porque durante `dragover` el `dataTransfer` no deja
+     leer su contenido. `candidatos` es null sin puestos: ahí el arrastre es el de siempre. */
+  let arrastreEnCurso = null;
+  function quitarEstadoDeSeleccionDelDom(){
+    document.querySelectorAll('.camiseta.seleccionada, .camiseta.candidata, .camiseta.atenuada')
+      .forEach(c => c.classList.remove('seleccionada', 'candidata', 'atenuada'));
+    document.querySelectorAll('.cancha.con-seleccion').forEach(c => c.classList.remove('con-seleccion'));
+  }
+  function marcarArrastreEnDom(m, id, candidatos){
+    document.querySelectorAll('.cancha').forEach(c => c.classList.add('con-seleccion'));
+    document.querySelectorAll('.cancha .camiseta[data-id]').forEach(c => {
+      const cid = c.dataset.id;
+      c.classList.add(mismaUnidad(m, id, cid) ? 'seleccionada'
+        : (candidatos.some(x => mismaUnidad(m, x, cid)) ? 'candidata' : 'atenuada'));
+    });
+  }
+
   window.__dragSobre = function(e, el){
     if(!isAdmin()) return;
     e.preventDefault();
     e.stopPropagation();
+    /* Una camiseta que no es candidata igual cancela el `dragover` —si no, el drop no llegaría y no
+       habría aviso (FR-042)—, pero no se realza: realzarla invitaría a soltar ahí (TD-10). */
+    if(arrastreEnCurso && arrastreEnCurso.candidatos && el.classList.contains('camiseta') && !el.classList.contains('candidata')){
+      limpiarRealces();
+      return;
+    }
     if(el.classList.contains('drop-activo')) return;
     limpiarRealces();
     el.classList.add('drop-activo');
   };
 
-  window.__dragFin = function(){ limpiarRealces(); };
+  window.__dragFin = function(){
+    limpiarRealces();
+    quitarEstadoDeSeleccionDelDom();
+    arrastreEnCurso = null;
+  };
 
   /* Los tres drops comparten camino: validar rol y estado, resolver qué movimiento corresponde
      con la función pura, y aplicarlo por la ruta de escritura que ya existía.
@@ -5802,6 +5865,9 @@
     e.preventDefault();
     e.stopPropagation();
     limpiarRealces();
+    // Un drop que no escribe no repinta: los candidatos marcados al empezar se quitan acá.
+    quitarEstadoDeSeleccionDelDom();
+    arrastreEnCurso = null;
     if(!isAdmin()) return;                                   // TC-040, FR-042
     const m = matches.find(mm => mm.id === matchId);
     if(!m || !m.equipos || !esFilaEditable(m)) return;        // TC-040
@@ -5816,6 +5882,16 @@
       partidoDelEquipoVisible = matchId;
     }
     if(mov.tipo === 'intercambiar'){
+      /* La misma regla que el toque (TC-010). Un rechazo no escribe nada y dice por qué; el de un
+         compañero del mismo puesto, o el del propio equipo sin puestos, no tiene nada que explicar
+         y `textoAvisoIntercambio` devuelve null (FR-042 a FR-042d, FR-045, FR-045b). */
+      const porId = Object.fromEntries(players.map(p => [p.id, p]));
+      const evaluacion = evaluarIntercambio(m, idArrastrado, mov.idDestino, porId);
+      if(!evaluacion.valido){
+        const aviso = tienePuestos(m) ? avisoDeRechazo(m, idArrastrado, mov.idDestino, evaluacion.motivo, porId) : null;
+        if(aviso) window.__showToast(aviso);
+        return;
+      }
       intercambiarUnidades(m, idArrastrado, mov.idDestino);
       saveMatches();
       renderMatchesTab();
@@ -5839,6 +5915,15 @@
   window.__dragStartJugador = function(e, playerId){
     if(!isAdmin()) return; // FR-008: edición manual de equipos, exclusiva de admin.
     e.dataTransfer.setData('text/plain', playerId);
+    quitarEstadoDeSeleccionDelDom();
+    arrastreEnCurso = null;
+    // La cancha que se arrastra es la del partido abierto: es el único que dibuja camisetas.
+    const m = matches.find(mm => mm.id === currentMatchId);
+    if(!m || !m.equipos || !esFilaEditable(m) || !unidadDelPartido(m, playerId)) return;
+    const candidatos = tienePuestos(m)
+      ? candidatosDeIntercambio(m, playerId, Object.fromEntries(players.map(p => [p.id, p]))) : null;
+    arrastreEnCurso = { matchId: m.id, id: playerId, candidatos };
+    if(candidatos) marcarArrastreEnDom(m, playerId, candidatos);
   };
 
   /* Mueve un único id de un equipo a otro. Extraída de __moverJugadorManual para poder aplicarla

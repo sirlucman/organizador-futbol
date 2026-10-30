@@ -69,6 +69,8 @@ const DECLARACIONES = [
   'ICON_CHEVRON_RECEIPT',
   'unidadDelPartido',
   'moverUnJugadorDeEquipo',
+  'tienePuestos',
+  'mismaUnidad',
   'intercambiarUnidades',
   'resumenDiferenciaEquipos',
   'conteoSinPuntajePorEquipo',

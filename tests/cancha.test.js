@@ -42,6 +42,8 @@ const DECLARACIONES = [
   'getDuplaPartner',
   'moverUnJugadorDeEquipo',
   'unidadDelPartido',
+  'tienePuestos',
+  'mismaUnidad',
   'resolverDestinoDrop',
   'intercambiarUnidades',
   // El total de cada equipo, que desde el arreglo de la sumatoria se recalcula del reparto en
@@ -260,25 +262,32 @@ console.log('\n\x1b[1mEL ARRASTRE\x1b[0m — rebanada 2\n');
 const JP = (id, pos, pts) => ({ id, principal: pos, nombre: id, apellido: '',
   scores: { Arquero: null, Defensor: null, Volante: null, Delantero: null, [pos]: pts } });
 
-/* Un partido con reparto. `asignada` se completa sola con la posición principal de cada uno,
-   que es lo que hace la Estrategia 1. */
+/* Un partido con reparto. `asignada` se completa sola con la posición principal de cada uno.
+
+   `sinPuestos` arma un partido "Solo por puntaje", sin `posicionAsignada`: desde
+   posiciones-del-jugador, un intercambio en un partido con puestos también intercambia los
+   puestos (FR-030), y los casos de la rebanada 2 que intercambian unidades de puestos distintos
+   —un Volante con un Defensor— verían cambiar sus números por eso. Sin puestos el intercambio es
+   exactamente el que la rebanada 2 especificó y el que `FR-045` conserva, así que esos casos
+   siguen probando lo mismo (Implementation Plan de posiciones-del-jugador, TD-18). */
 function P(blanco, negro, opciones) {
   const o = opciones || {};
   const todos = [...blanco, ...negro];
   const asignada = {};
   todos.forEach(j => { asignada[j.id] = j.principal; });
   C.__setPlayers(todos);
+  const equipos = {
+    blanco: blanco.map(j => j.id),
+    negro: negro.map(j => j.id),
+    sumaBlanco: blanco.reduce((s, j) => s + (j.scores[j.principal] || 0), 0),
+    sumaNegro: negro.reduce((s, j) => s + (j.scores[j.principal] || 0), 0),
+  };
+  if (!o.sinPuestos) equipos.posicionAsignada = asignada;
   return {
     id: 'm1',
     duplas: o.duplas || [],
     bloqueados: o.bloqueados || [],
-    equipos: {
-      blanco: blanco.map(j => j.id),
-      negro: negro.map(j => j.id),
-      sumaBlanco: blanco.reduce((s, j) => s + (j.scores[j.principal] || 0), 0),
-      sumaNegro: negro.reduce((s, j) => s + (j.scores[j.principal] || 0), 0),
-      posicionAsignada: asignada,
-    },
+    equipos,
   };
 }
 /* Ocho contra ocho, con un arquero por lado y el resto repartido. */
@@ -317,10 +326,13 @@ prueba('"arrastre/S-02b" soltar sobre la cancha contraria, y no sobre una camise
      { tipo: 'mover', equipo: 'negro' }, 'debería resolver un movimiento al Negro');
 });
 
-prueba('"arrastre/S-02c" soltar sobre una camiseta del propio equipo no produce ningún movimiento', () => {
+prueba('"arrastre/S-02c" reemplazado por S-03 de la Spec de posiciones-del-jugador: soltar sobre una camiseta propia es un intercambio a evaluar', () => {
+  /* Hasta posiciones-del-jugador esto no producía ningún movimiento. Ahora la camiseta propia es
+     destino como la del otro equipo, y si el intercambio vale lo decide después `evaluarIntercambio`
+     (TD-05). Lo que se sigue rechazando acá es soltar sobre la propia unidad (FR-044). */
   const m = ochoContraOcho();
-  eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'camiseta', id: 'b-def1' }), null,
-     'dos camisetas del mismo equipo no se intercambian: haría falta escribir la posición asignada');
+  eq(C.resolverDestinoDrop(m, 'b-vol1', { clase: 'camiseta', id: 'b-def1' }), { tipo: 'intercambiar', idDestino: 'b-def1' },
+     'la camiseta de un compañero es un intercambio a evaluar, no un drop sin efecto');
 });
 
 prueba('"arrastre/S-02d" soltar sobre la cancha del propio equipo no produce ningún movimiento', () => {
@@ -404,7 +416,7 @@ prueba('"arrastre/S-01f" cualquier movimiento conserva la cantidad total de unid
 /* ---------- el intercambio ---------- */
 
 prueba('"arrastre/S-02a" el intercambio se aplica aunque la camiseta de destino esté fijada', () => {
-  const m = ochoContraOcho({ bloqueados: ['n-def1'] });
+  const m = ochoContraOcho({ bloqueados: ['n-def1'], sinPuestos: true });
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   ok(m.equipos.negro.includes('b-vol1'), 'el arrastrado pasa al Negro');
   ok(m.equipos.blanco.includes('n-def1'), 'el de destino pasa al Blanco');
@@ -412,7 +424,7 @@ prueba('"arrastre/S-02a" el intercambio se aplica aunque la camiseta de destino 
 });
 
 prueba('"arrastre/S-02e" cualquier intercambio deja a cada equipo con la misma cantidad que antes', () => {
-  const m = ochoContraOcho();
+  const m = ochoContraOcho({ sinPuestos: true });
   const antes = [m.equipos.blanco.length, m.equipos.negro.length];
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   soltar(m, 'b-del', { clase: 'camiseta', id: 'n-arq' });
@@ -423,7 +435,7 @@ prueba('"arrastre/S-02e" cualquier intercambio deja a cada equipo con la misma c
 /* El total sale de `sumasVigentes` —el reparto que está en pantalla— y no de `sumaBlanco`, que
    quedó como registro de la generación y ya no se parchea en cada movimiento. */
 prueba('"arrastre/S-02e" el intercambio recalcula los totales de los dos equipos', () => {
-  const m = ochoContraOcho();
+  const m = ochoContraOcho({ sinPuestos: true });
   const antes = C.sumasVigentes(m);
   soltar(m, 'b-del', { clase: 'camiseta', id: 'n-arq' });   // 8 pts contra 6 pts
   const despues = C.sumasVigentes(m);
@@ -443,7 +455,7 @@ prueba('"arrastre/S-03" la dupla de rotación viaja entera al otro equipo', () =
 });
 
 prueba('"arrastre/S-03a" al intercambiar dos duplas, las cuatro personas cambian de equipo', () => {
-  const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2'], ['n-def1', 'n-def2']] });
+  const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2'], ['n-def1', 'n-def2']], sinPuestos: true });
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   ['b-vol1', 'b-vol2'].forEach(id => ok(m.equipos.negro.includes(id), `${id} debería estar en el Negro`));
   ['n-def1', 'n-def2'].forEach(id => ok(m.equipos.blanco.includes(id), `${id} debería estar en el Blanco`));
@@ -451,7 +463,7 @@ prueba('"arrastre/S-03a" al intercambiar dos duplas, las cuatro personas cambian
 });
 
 prueba('"arrastre/S-03b" al intercambiar una dupla con un jugador, las UNIDADES quedan parejas y las personas no', () => {
-  const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2']] });
+  const m = ochoContraOcho({ duplas: [['b-vol1', 'b-vol2']], sinPuestos: true });
   soltar(m, 'b-vol1', { clase: 'camiseta', id: 'n-def1' });
   eq([m.equipos.blanco.length, m.equipos.negro.length], [7, 9],
      'la dupla ocupa un lugar de armado pero son dos personas: el conteo de personas se desbalancea a propósito');
