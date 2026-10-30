@@ -5596,6 +5596,90 @@
     return null;
   }
 
+  /* --- EL INTERCAMBIO DE PUESTO (posiciones-del-jugador) ---
+     docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md
+
+     Una sola regla decide si dos unidades pueden intercambiar puesto, y la consultan el toque, el
+     resaltado durante el arrastre y el drop (TC-010, Implementation Plan TD-02). Como la decisión
+     del drop de la rebanada 2, vive separada de los manejadores: sin DOM y sin efectos. */
+
+  // Un partido "con puestos" guarda el puesto asignado de cada uno; "Solo por puntaje", no. Es el
+  // mismo criterio con el que `valorDePuntaje` decide si suma el puesto o el promedio general.
+  function tienePuestos(m){
+    return !!(m && m.equipos && m.equipos.posicionAsignada);
+  }
+
+  /* La unidad que se evalúa contra un puesto, armada EXACTAMENTE como la arma
+     `colapsarDuplasParaLinea` antes de que "lugares sin cubrir" pregunte a `cubrePosicionGuardada`:
+     el jugador, o la unidad sintética de la dupla si su pareja está en el mismo equipo. Armarla
+     igual es lo que hace que "es candidato" y "este lugar está cubierto" no puedan disentir para
+     la misma dupla (TD-03, AC-33). */
+  function unidadDeCobertura(m, id, porId){
+    const equipo = unidadDelPartido(m, id);
+    const p = porId[id];
+    if(!equipo || !p) return null;
+    const parId = getDuplaPartner(m, id);
+    if(parId && porId[parId] && m.equipos[equipo].includes(parId)) return construirUnidadDupla(p, porId[parId]);
+    return p;
+  }
+
+  // Dos identificadores nombran la misma unidad si son el mismo jugador o la pareja de su dupla.
+  function mismaUnidad(m, idA, idB){
+    return idA === idB || (!!idA && getDuplaPartner(m, idA) === idB);
+  }
+
+  /* ¿Pueden intercambiar puesto las unidades de `idA` e `idB`? El motivo sale de la MISMA
+     evaluación que decide la validez, así el aviso no puede contradecir la decisión (TD-02):
+       'ajeno'         alguna no está en el reparto (TC-042)
+       'misma'         es la misma unidad
+       'mismo-equipo'  sin puestos, sólo se intercambia con el otro equipo (FR-024)
+       'mismo-puesto'  mismo equipo y mismo puesto: no cambiaría nada (FR-023)
+       'b-no-cubre' / 'a-no-cubre' / 'ninguno-cubre'   quién no juega el puesto del otro (FR-021) */
+  function evaluarIntercambio(m, idA, idB, porId){
+    const equipoA = unidadDelPartido(m, idA), equipoB = unidadDelPartido(m, idB);
+    if(!equipoA || !equipoB || !porId[idA] || !porId[idB]) return { valido: false, motivo: 'ajeno' };
+    if(mismaUnidad(m, idA, idB)) return { valido: false, motivo: 'misma' };
+    const mismoEquipo = equipoA === equipoB;
+    if(!tienePuestos(m)) return mismoEquipo ? { valido: false, motivo: 'mismo-equipo' } : { valido: true, motivo: null };
+    const puestoA = posicionAsignadaDe(porId[idA], m), puestoB = posicionAsignadaDe(porId[idB], m);
+    if(mismoEquipo && puestoA === puestoB) return { valido: false, motivo: 'mismo-puesto' };
+    const aCubre = cubrePosicionGuardada(unidadDeCobertura(m, idA, porId), puestoB) < COSTO_DESCUBIERTA;
+    const bCubre = cubrePosicionGuardada(unidadDeCobertura(m, idB, porId), puestoA) < COSTO_DESCUBIERTA;
+    if(aCubre && bCubre) return { valido: true, motivo: null };
+    if(!aCubre && !bCubre) return { valido: false, motivo: 'ninguno-cubre' };
+    return { valido: false, motivo: aCubre ? 'b-no-cubre' : 'a-no-cubre' };
+  }
+
+  /* Los candidatos de `idA`: el primer integrante (`grupo[0].id`) de cada unidad de los dos equipos
+     con la que el intercambio es válido. Las unidades salen de la misma agrupación que dibuja la
+     cancha, así el id que devuelve es el mismo que lleva la camiseta (FR-011). */
+  function candidatosDeIntercambio(m, idA, porId){
+    const eq = (m && m.equipos) || {};
+    return ['blanco', 'negro']
+      .flatMap(equipo => agruparFilasDeEquipo(m, jugadoresDeEquipoOrdenados(m, eq[equipo])))
+      .map(grupo => grupo[0].id)
+      .filter(id => evaluarIntercambio(m, idA, id, porId).valido);
+  }
+
+  // El nombre de una unidad, el mismo que la camiseta ya usa en su `title` y en el candado (TD-12).
+  function nombreDeGrupo(grupo){
+    return grupo.map(fullName).join(' / ');
+  }
+
+  /* El texto de cada aviso, en texto plano: quien lo muestre lo pone con `textContent`, nunca como
+     HTML (TC-041). `null` es "sin aviso": el drop sobre un compañero del mismo puesto no tiene nada
+     que explicar (FR-042), y sin puestos el drop sobre el propio equipo tampoco (FR-045b). Ningún
+     texto lleva puntajes (TC-043). */
+  function textoAvisoIntercambio(clave, datos){
+    const d = datos || {};
+    if(clave === 'sin-candidatos') return 'Nadie puede intercambiar puesto con ' + d.a;
+    if(clave === 'reparto-cambio') return 'Ya no se puede intercambiar: el reparto cambió';
+    if(clave === 'b-no-cubre') return d.b + ' no juega de ' + nombreDe(d.puestoA);
+    if(clave === 'a-no-cubre') return d.a + ' no juega de ' + nombreDe(d.puestoB);
+    if(clave === 'ninguno-cubre') return 'Ninguno de los dos juega en el puesto del otro';
+    return null;
+  }
+
   /* Qué movimiento corresponde a soltar `idArrastrado` sobre `destino`, o null si no
      corresponde ninguno. `destino` es { clase: 'cancha' | 'camiseta' | 'pestana', equipo, id }.
 
