@@ -340,7 +340,7 @@ Fuera de puesto y candidato con costo (`TD-23` a `TD-25`), del 19a y el 20b:
 | `.camiseta-fuera` | `position:absolute; top:-3px; left:var(--fuera-edge); display:flex; align-items:center; justify-content:center; width:var(--fuera-w); height:var(--fuera-h); padding:0; border-radius:var(--radius-pill); background:var(--brick-light); color:var(--ink); font:900 var(--fuera-fs)/var(--fuera-h) var(--font-display); box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.72), 0 2px 6px rgb(17 24 39 / 0.45)` |
 | `--fuera-w`, `--fuera-h`, `--fuera-fs`, `--fuera-edge` | 26 px, 20 px, 13 px y −5 px en escritorio con camiseta de 56 y 52 px; en la vista de una columna (`@media (max-width: 1099px)`) y con 48 y 44 px, los de la «2º» de ese escalón (`--sec-w`, `--sec-h`, `--sec-fs`, `--sec-edge`). El borde, acotado al de la columna cuando flex la angosta (`TD-24`) |
 | `.camiseta.candidata.con-costo .camiseta-placa` | `background:rgb(239 68 68 / 0.18); box-shadow:inset 0 0 0 1.5px var(--brick-light)` |
-| `.camiseta-puntaje.de-principal` | `background:var(--brick-light)`: el puntaje de una unidad fuera de puesto, que es el de su principal (`TD-26`); el `title` dice de qué puesto es |
+| `.camiseta-puntaje.de-principal` | Sin estilo propio: el puntaje de una unidad fuera de puesto, que es el de su principal (`TD-26`), lleva el color de todos los puntajes (decisión del propietario del 2026-10-30, que retiró el rojo); la clase sólo lo marca, y el `title` dice de qué puesto es |
 | hover / drag-over de cualquier candidato | el del 18h, sin cambios |
 | `.equipo-tab-fuera` | `flex:none; display:flex; align-items:center; justify-content:center; width:26px; height:20px; border-radius:var(--radius-pill); background:var(--brick-light); color:var(--ink); font:900 13px/20px var(--font-display); box-shadow:inset 0 0 0 1.5px rgb(255 255 255 / 0.72)` |
 | `.equipo-tab` | suma `display:inline-flex; align-items:center; justify-content:center; gap:6px`; la cuenta de candidatos pierde su `margin-left` |
@@ -502,7 +502,7 @@ Implementation tasks (agrupadas en commits atómicos):
 - [ ] T-1.32 Agregar `estadoDePuesto`, las pastillas de `TD-24` y `TD-25`, y el recuadro con costo en el toque y en el arrastre, según §7.2.3 (`FR-021b`, `FR-025`, `FR-025b`), con sus casos de unidad y de layout, vistos fallar antes
 - [ ] T-1.33 Verificar a 390 px y en escritorio contra las capturas del 19a y el 20b
 - [ ] T-1.C14 Commit — `feat(posiciones): fuera de puesto y candidato con costo (FR-025)`
-- [ ] T-1.34 Agregar `puestoQueSuma` y `valorEnPuesto` y usarlas en los lugares de suma de `TD-26`; sumarlas a la lista `DECLARACIONES` de `tests/harness.js` y de cada test que recorta `valorDePuntaje` (`TC-032`); el puntaje en rojo y la «!» de la vista de una columna igual a la «2º»; adaptar el caso de `014` de `tests/motor.test.js` y escribir `S-01p` y `S-07b`, vistos fallar (`FR-025c`)
+- [ ] T-1.34 Agregar `puestoQueSuma` y `valorEnPuesto` y usarlas en los lugares de suma de `TD-26`; sumarlas a la lista `DECLARACIONES` de `tests/harness.js` y de cada test que recorta `valorDePuntaje` (`TC-032`); el puntaje de la principal con su `title`; adaptar el caso de `014` de `tests/motor.test.js` y escribir `S-01p` y `S-07b`, vistos fallar (`FR-025c`)
 - [ ] T-1.C15 Commit — `feat(posiciones): fuera de puesto suma su principal (FR-025c)`
 
 DoD verification (§6). Todo cambio de código hecho durante esta verificación va en su propio
@@ -606,7 +606,7 @@ Ninguno (`TD-19`).
 | S-01m `[property]` misma cantidad de unidades | `tests/intercambio.test.js` `"intercambio/S-01m"` | unit + property | Branch 1 |
 | S-01n `[boundary]` candidato con costo | `tests/intercambio.test.js` `"intercambio/S-01n"` + `intercambio-toque` | unit + e2e | Branch 1 |
 | S-01o `[boundary]` el estado de puesto se recalcula | `tests/intercambio.test.js` `"intercambio/S-01o"` + `intercambio-toque` | unit + e2e | Branch 1 |
-| S-01p `[boundary]` fuera de puesto suma su principal, en rojo | `tests/intercambio.test.js` `"intercambio/S-01p"` + `intercambio-toque` | unit + e2e | Branch 1 |
+| S-01p `[boundary]` fuera de puesto suma su principal | `tests/intercambio.test.js` `"intercambio/S-01p"` + `intercambio-toque` | unit + e2e | Branch 1 |
 | S-02 (parent) entre equipos en el celular | `intercambio-toque` a 360 px (`intercambio/S-02`) | e2e | Branch 1 |
 | S-02a `[boundary]` las dos canchas a la vez | `intercambio-toque` a 1200 px (`intercambio/S-02a`) | e2e | Branch 1 |
 | S-02b `[boundary]` mismo puesto entre equipos | `tests/intercambio.test.js` `"intercambio/S-02b"` | unit | Branch 1 |
@@ -881,6 +881,7 @@ claude-sonnet-5-5). Para cada uno, por qué se cumple y qué lo verifica:
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, el puntaje del fuera de puesto pasa a tener el color de todos los puntajes, sin el rojo (§7.2.3, Spec `FR-025c`, Concept Note `D-36`). Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-36` (fuera de puesto se suma la principal, en la pantalla y en el motor) con la nueva `TD-26`, y la corrección de lo que es el compacto en `TD-24` (la vista de una columna, en cualquier camiseta). §2 declara la excepción al no-objetivo del motor; §7.2.3 suma el puntaje en rojo y la regla de una columna; §7.2.5 suma `puestoQueSuma` y `valorEnPuesto`; tarea `T-1.34` y commit `T-1.C15`; §12.1 suma `S-01p` y `S-07b` (60 filas); §12.6.1, dos mutaciones. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: en el compacto —la vista de una columna, en cualquier camiseta, y en escritorio con camiseta de 48 y 44 px— la «!» toma el tamaño y el lugar de la «2º» en vez de los 26×20 en −12 px del 19a (`TD-24`, §7.2.3). Cierra la decisión abierta de OPEN-Q-05b. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-34` y `D-35` (diseños 19a y 20b). Nuevas `TD-22` a `TD-25`; `TD-02` y la forma de la evaluación pierden `'b-no-cubre'` y `'ninguno-cubre'`; §7.2.3 suma la «!», `--fuera-edge` por escalón, el recuadro con costo y la «!» de la pestaña, con `239 68 68` como excepción de alfa; §7.2.5 suma `estadoDePuesto` e `intercambioConCosto`; tareas `T-1.31` a `T-1.33` y commits `T-1.C13` y `T-1.C14`; §12.1 suma `S-01n`, `S-01o`, `S-02i` y `S-22c` (58 filas); §12.6.1, dos mutaciones. Self-critique: skipped (cambio acotado a pedido explícito) |

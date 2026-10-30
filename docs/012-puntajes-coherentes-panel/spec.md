@@ -89,7 +89,7 @@ Un "admin" mira el panel de equipos generados y puede sumar mentalmente los punt
 4. **Given** una dupla en la que ninguno de los dos tiene puntaje cargado, **When** el "admin" mira el panel, **Then** la columna de puntaje muestra "sin puntaje" una sola vez para el par.
 5. **Given** un integrante de una dupla sin nota cargada en la posición asignada, **When** el "admin" mira el panel, **Then** al lado de su nombre ve que no tiene nota, pero la columna de puntaje sigue mostrando el valor de la unidad (que puede tener puntaje igual).
 6. **Given** un jugador individual sin nota en su posición asignada, **When** el "admin" mira el panel, **Then** sigue viéndose como "sin puntaje", igual que hoy.
-   **Reemplazado en parte el 2026-10-30 por `FR-025c` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** si el jugador no juega esa posición (fuera de puesto), suma y muestra su nota en la principal, en rojo. Si la juega de secundaria y no tiene nota, este escenario sigue vigente.
+   **Reemplazado en parte el 2026-10-30 por `FR-025c` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** si el jugador no juega esa posición (fuera de puesto), suma y muestra su nota en la principal. Si la juega de secundaria y no tiene nota, este escenario sigue vigente.
 
 ---
 

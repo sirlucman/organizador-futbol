@@ -434,7 +434,8 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   pestaña (`D-35`).
 - **FR-025c** — When una unidad está fuera de puesto (`FR-025`), el sistema la valuará con su
   nota en la principal —la de su unidad, si es una dupla— en vez de su nota en el puesto que
-  ocupa: en el número de su camiseta, que irá en el rojo de la «!», en los totales, en la
+  ocupa: en el número de su camiseta, con el color de todos los puntajes y un `title` que dice de
+  qué puesto es, en los totales, en la
   diferencia por línea y al generar. Una unidad que juega el puesto de secundaria y no tiene nota
   ahí se sigue valuando como hoy. Cómo el motor elige a quién poner en cada lugar no cambia
   (`D-36`).
@@ -589,7 +590,7 @@ stateDiagram-v2
 - `S-01l [property]` — para todo intercambio aplicado en un partido con puestos, la seleccionada queda en un puesto que cubre, y el candidato también salvo que fuera con costo (`FR-021`, `FR-021b`)
 - `S-01m [property]` — la cantidad de unidades de cada equipo es la misma antes y después de todo intercambio (`FR-032`)
 - `S-01n [boundary]` — con Juan seleccionado, Nico (LI, que no juega DC) se resalta como candidato con costo y Pedro sin costo; al intercambiar con Nico, Nico queda de DC con la pastilla «!» y Juan de LI con la «2º» (`FR-021`, `FR-021b`, `FR-025`)
-- `S-01p [boundary]` — Juan intercambia con Nico, que queda de DC sin jugarlo: su camiseta muestra su 6 de LI en rojo y el Blanco suma 51 en vez de 45; un jugador en una secundaria sin nota sigue "sin puntaje" (`FR-025c`)
+- `S-01p [boundary]` — Juan intercambia con Nico, que queda de DC sin jugarlo: su camiseta muestra su 6 de LI, con el color de siempre, y el Blanco suma 51 en vez de 45; un jugador en una secundaria sin nota sigue "sin puntaje" (`FR-025c`)
 - `S-01o [boundary]` — el estado de puesto de cada camiseta se recalcula con cada intercambio: la «2º» y la «!» siguen al puesto del lugar, no a un dato fijo del jugador, y nunca se muestran las dos (`FR-025`)
 
 #### Scenario S-02 — Intercambio entre equipos en el celular (covers FR-012, FR-021, FR-031, FR-032)
