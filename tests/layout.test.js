@@ -24,7 +24,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
-const { docsDesde, fakeFirebase } = require('./fixtures-app.js');
+const { docsDesde, fakeFirebase, agregarDatosDeIntercambio } = require('./fixtures-app.js');
 
 const RAIZ = path.join(__dirname, '..');
 
@@ -480,6 +480,222 @@ async function abrirOtraPagina(page, { rol, datos, doble = {}, ancho = 1200 }) {
   await irAPestania(otra, 'Jugadores');
   return otra;
 }
+
+/* ------------------------------------------------ el intercambio de puesto (posiciones-del-jugador)
+   docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md
+
+   Los siete escenarios `intercambio-*` corren sobre los partidos `m-int-*` que agrega
+   `agregarDatosDeIntercambio` (tests/fixtures-app.js, TD-17), nunca sobre los de `docsDesde`.
+   Los toques van con `page.click` sobre el dibujo de la camiseta —ni el nombre ni el candado,
+   salvo donde se prueba el candado— y los arrastres despachando `DragEvent` con su
+   `DataTransfer`, como `arrastre-drop`: el drop nativo no se puede conducir con el mouse de
+   Playwright. Lo escrito se lee de `window.__ultimosDocs`. */
+const PARTIDO_INTERCAMBIO = id => JSON.parse(agregarDatosDeIntercambio(docsDesde()).partidos).find(m => m.id === id);
+const CAMISETA = id => `.camiseta[data-id="${id}"]`;
+// Un evento mínimo para invocar `__tocarCamiseta` desde la consola, como lo haría alguien a mano.
+const EVENTO_FALSO = '({ stopPropagation(){} })';
+
+/* No tira si la camiseta no está a la vista: devuelve false y el escenario sigue, para que lo que
+   falle sea la afirmación que nombra el requisito y no un timeout de Playwright. */
+async function tocarCamiseta(page, id, opciones = {}) {
+  try { await page.click(`${CAMISETA(id)} .camiseta-fig > svg`, { timeout: 3000, ...opciones }); }
+  catch (e) { return false; }
+  await page.waitForTimeout(250);
+  return true;
+}
+// Abre otro partido desde adentro de uno: la lista no está a la vista, así que `abrirPartido` no sirve.
+async function cambiarDePartido(page, matchId) {
+  await page.evaluate(id => window.__openMatch(id), matchId);
+  await page.waitForTimeout(300);
+  await mostrarEquiposMobile(page);
+}
+const leerSeleccion = page => page.evaluate(() => ({
+  seleccionadas: [...document.querySelectorAll('.camiseta.seleccionada')].map(c => c.dataset.id),
+  candidatas: [...document.querySelectorAll('.camiseta.candidata')].map(c => c.dataset.id).sort(),
+  atenuadas: document.querySelectorAll('.camiseta.atenuada').length,
+  camisetas: document.querySelectorAll('.cancha .camiseta').length,
+  conSeleccion: document.querySelectorAll('.cancha.con-seleccion').length,
+  candidatasQueNoSonCamiseta: document.querySelectorAll('.candidata:not(.camiseta)').length,
+}));
+const haySeleccion = s => s.seleccionadas.length + s.candidatas.length + s.atenuadas + s.conSeleccion > 0;
+// El texto del aviso a la vista, o null. La región existe siempre (TD-14): sólo cuenta con `.show`.
+const textoDelAviso = page => page.evaluate(() => {
+  const t = document.getElementById('appToast');
+  if (!t || !t.classList.contains('show')) return null;
+  return (t.querySelector('.toast-texto') || t).textContent;
+});
+// El aviso se queda 3 s y tapa lo que tenga abajo: los escenarios lo despejan antes de seguir tocando.
+const despejarAviso = page => page.evaluate(() => { const t = document.getElementById('appToast'); if (t) t.classList.remove('show'); });
+const docsGuardados = page => page.evaluate(() => ({
+  partidos: (window.__ultimosDocs || {}).partidos || null,
+  armado: (window.__ultimosDocs || {}).partidosArmado || null,
+  n: (window.__escrituras || []).filter(k => k === 'partidos').length,
+}));
+const partidoDe = (doc, id) => (doc ? JSON.parse(doc).find(m => m.id === id) : null);
+
+/* La línea de base de lo guardado. Antes del primer gesto todavía no se escribió nada, así que se
+   alterna dos veces un candado —una escritura neutra, que deja el partido como estaba— para que
+   `__ultimosDocs` tenga el partido tal cual queda en memoria. Con eso el diff de NFR-005 compara
+   dos escrituras de la aplicación real, y no lo escrito contra el fixture, que tiene otra forma
+   (`saveMatches` parte el partido en dos documentos). */
+async function lineaDeBase(page, matchId, playerId) {
+  await page.evaluate(([m, p]) => window.__toggleBloqueo(m, p), [matchId, playerId]);
+  await page.waitForTimeout(200);
+  await page.evaluate(([m, p]) => window.__toggleBloqueo(m, p), [matchId, playerId]);
+  await page.waitForTimeout(300);
+  return docsGuardados(page);
+}
+
+/* NFR-005: un intercambio escribe SÓLO `equipos.blanco`, `equipos.negro` y las entradas de
+   `posicionAsignada` de los integrantes de las dos unidades. Ningún otro campo del partido, ningún
+   otro partido, y nada de `partidosArmado` —donde viven `sumaBlanco`/`sumaNegro`—. */
+function revisarEscrituraDeIntercambio(antes, despues, matchId, idsUnidades, etiqueta) {
+  if (!antes.partidos || !despues.partidos) return [`${etiqueta}: no hay escritura que comparar (NFR-005)`];
+  const a = JSON.parse(antes.partidos), d = JSON.parse(despues.partidos);
+  const ma = a.find(m => m.id === matchId), md = d.find(m => m.id === matchId);
+  if (!ma || !md) return [`${etiqueta}: no se pudo leer ${matchId} de lo escrito (NFR-005)`];
+  const problemas = [];
+  const sinReparto = m => {
+    const c = JSON.parse(JSON.stringify(m));
+    ['blanco', 'negro', 'posicionAsignada'].forEach(k => delete c.equipos[k]);
+    return JSON.stringify(c);
+  };
+  if (sinReparto(ma) !== sinReparto(md)) {
+    problemas.push(`${etiqueta}: el intercambio cambió algo fuera de equipos.blanco, equipos.negro y equipos.posicionAsignada (NFR-005)`);
+  }
+  const pa = ma.equipos.posicionAsignada || {}, pd = md.equipos.posicionAsignada || {};
+  const ajenas = [...new Set([...Object.keys(pa), ...Object.keys(pd)])].filter(k => pa[k] !== pd[k] && !idsUnidades.includes(k));
+  if (ajenas.length) problemas.push(`${etiqueta}: cambió el puesto asignado de quien no intercambió: ${ajenas.join(', ')} (NFR-005)`);
+  const otros = lista => JSON.stringify(lista.filter(m => m.id !== matchId));
+  if (otros(a) !== otros(d)) problemas.push(`${etiqueta}: el intercambio modificó otro partido (NFR-005)`);
+  const armado = doc => JSON.stringify((JSON.parse(doc || '{}'))[matchId] || null);
+  if (armado(antes.armado) !== armado(despues.armado)) {
+    problemas.push(`${etiqueta}: el intercambio escribió en partidosArmado (sumaBlanco/sumaNegro u otro campo de la generación) (NFR-005)`);
+  }
+  return problemas;
+}
+
+/* Un arrastre de punta a punta, despachado: `dragstart` sobre la camiseta, `dragover` y `drop`
+   sobre el destino, `dragend` sobre la camiseta. Devuelve una foto tomada justo después del
+   `dragstart` —qué quedó marcado y si el nodo arrastrado sigue siendo el mismo— y lo que quedó
+   después de `dragend`. `destino` es { camiseta: id } | { panel: 'blanco'|'negro' } (la cancha
+   de ese equipo, fuera de toda camiseta) | { arcoVacio: 'blanco'|'negro' } (la línea del Arco). */
+async function arrastrarSobre(page, idOrigen, destino, { soltar = true } = {}) {
+  return page.evaluate(({ idOrigen, destino, soltar }) => {
+    const cam = document.querySelector(`.camiseta[data-id="${idOrigen}"]`);
+    if (!cam) return { error: `no está la camiseta de ${idOrigen}` };
+    const dt = new DataTransfer();
+    cam.dispatchEvent(new DragEvent('dragstart', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    const foto = {
+      mismoNodo: cam.isConnected,
+      seleccionadas: [...document.querySelectorAll('.camiseta.seleccionada')].map(c => c.dataset.id),
+      candidatas: [...document.querySelectorAll('.camiseta.candidata')].map(c => c.dataset.id).sort(),
+      conSeleccion: document.querySelectorAll('.cancha.con-seleccion').length,
+    };
+    const zona = destino.camiseta ? document.querySelector(`.camiseta[data-id="${destino.camiseta}"]`)
+      : destino.panel ? document.querySelector(`.team-panel.${destino.panel} .cancha`)
+      : destino.arcoVacio ? document.querySelector(`.team-panel.${destino.arcoVacio} .cancha .cancha-linea:last-child .cancha-subfila`)
+      : null;
+    if (!zona) return { ...foto, error: `no está el destino ${JSON.stringify(destino)}` };
+    const over = new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: dt });
+    zona.dispatchEvent(over);
+    foto.dropAceptado = over.defaultPrevented;
+    foto.realzado = zona.classList.contains('drop-activo');
+    if (soltar) zona.dispatchEvent(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }));
+    cam.dispatchEvent(new DragEvent('dragend', { bubbles: true, dataTransfer: dt }));
+    foto.marcasQueQuedan = document.querySelectorAll(
+      '.camiseta.seleccionada, .camiseta.candidata, .camiseta.atenuada, .cancha.con-seleccion, .drop-activo').length;
+    return foto;
+  }, { idOrigen, destino, soltar });
+}
+
+/* Toca la camiseta desde adentro de la página y mide hasta el cuadro siguiente: es el ciclo
+   tocar-decidir-repintar de NFR-004, sin la latencia de Playwright en el medio. */
+const medirToque = (page, id) => page.evaluate(async sel => {
+  const c = document.querySelector(sel);
+  if (!c) return null;
+  const t0 = performance.now();
+  c.click();
+  await new Promise(r => requestAnimationFrame(r));
+  return performance.now() - t0;
+}, CAMISETA(id));
+
+// Recarga la aplicación con los datos de arranque (el doble se reinstala) y abre un partido.
+async function recargarEn(page, ancho, fechaIso) {
+  await page.setViewportSize({ width: ancho, height: 900 });
+  await page.reload({ waitUntil: 'networkidle' });
+  await page.waitForSelector('#appRoot', { state: 'attached' });
+  await page.waitForTimeout(600);
+  await abrirPartido(page, fechaIso);
+  await mostrarEquiposMobile(page);
+}
+
+/* La cancha con una selección activa (S-22, NFR-001 a NFR-003). El desborde y la superposición
+   de las camisetas los miden MEDIR e INVARIANTE_CANCHA; esto mira lo que es de la selección: que
+   haya una, que cada estado tenga su señal no cromática EN EL DOM (TC-020), que los recuadros no
+   se salgan del campo ni se pisen, el área tocable y su anuncio, y la región del aviso. */
+const INVARIANTE_INTERCAMBIO = () => {
+  const canchas = [...document.querySelectorAll('.cancha')];
+  if (!canchas.length) return ['no se encontró ninguna .cancha'];
+  const problemas = [];
+  const nombre = c => ((c.querySelector('.camiseta-nombre') || {}).textContent || c.dataset.id || '?');
+  if (!document.querySelector('.cancha.con-seleccion')) {
+    problemas.push('la cancha no muestra ninguna selección activa: el escenario no mide lo que dice (S-22)');
+  }
+  const tocada = document.querySelector('.camiseta.seleccionada');
+  const candidatas = [...document.querySelectorAll('.camiseta.candidata')];
+  if (!tocada && !candidatas.length) problemas.push('no hay camiseta tocada ni candidatos a la vista (S-22)');
+  if (tocada) {
+    const t = getComputedStyle(tocada.querySelector('.camiseta-fig')).transform;
+    if (!t || t === 'none') problemas.push('la camiseta tocada no se eleva: le queda una sola señal, el color (TC-020, NFR-003)');
+  }
+  for (const c of candidatas) {
+    const placa = c.querySelector('.camiseta-placa');
+    if (!placa || getComputedStyle(placa).display === 'none') {
+      problemas.push(`el candidato "${nombre(c)}" no dibuja su recuadro: le queda una sola señal (TC-020, NFR-003)`);
+    }
+  }
+  const atenuada = document.querySelector('.camiseta.atenuada');
+  if (atenuada && parseFloat(getComputedStyle(atenuada).opacity) >= 1) problemas.push('las camisetas que no son candidatas no se atenúan (NFR-003)');
+  for (const cancha of canchas) {
+    const campo = cancha.getBoundingClientRect();
+    for (const fila of cancha.querySelectorAll('.cancha-subfila')) {
+      const placas = [...fila.querySelectorAll(':scope > .camiseta')]
+        .map(c => ({ c, p: c.querySelector(':scope > .camiseta-placa') }))
+        .filter(x => x.p && getComputedStyle(x.p).display !== 'none')
+        .map(x => ({ n: nombre(x.c), b: x.p.getBoundingClientRect() }));
+      for (const { n, b } of placas) {
+        if (b.left < campo.left - 0.5 || b.right > campo.right + 0.5 || b.top < campo.top - 0.5 || b.bottom > campo.bottom + 0.5) {
+          problemas.push(`el recuadro de "${n}" se sale de la cancha (${Math.round(b.left)}..${Math.round(b.right)} contra ${Math.round(campo.left)}..${Math.round(campo.right)}) (S-22)`);
+        }
+      }
+      for (let i = 1; i < placas.length; i++) {
+        if (placas[i].b.left < placas[i - 1].b.right - 0.5) problemas.push(`los recuadros de "${placas[i - 1].n}" y "${placas[i].n}" se pisan (NFR-001)`);
+      }
+    }
+  }
+  const tocables = [...document.querySelectorAll('.cancha .camiseta.tocable')];
+  if (!tocables.length) problemas.push('ninguna camiseta de la cancha quedó tocable (FR-001)');
+  for (const c of tocables) {
+    const b = c.getBoundingClientRect();
+    if (b.width < 44 - 0.5 || b.height < 44 - 0.5) {
+      problemas.push(`la camiseta de "${nombre(c)}" mide ${Math.round(b.width)}x${Math.round(b.height)}px tocables, por debajo de 44x44 (NFR-002)`);
+    }
+    if (!(c.getAttribute('title') || '').includes('tocala para intercambiar puesto')) {
+      problemas.push(`la camiseta de "${nombre(c)}" no anuncia el gesto en su title (NFR-003)`);
+    }
+  }
+  if (document.querySelector('.cancha .camiseta[role="button"]')) {
+    problemas.push('una camiseta se anuncia como botón sin poder enfocarse ni activarse con el teclado (TD-20)');
+  }
+  const aviso = document.getElementById('appToast');
+  if (!aviso || aviso.getAttribute('role') !== 'status' || aviso.getAttribute('aria-live') !== 'polite') {
+    problemas.push('la región del aviso no existe con role="status" y aria-live="polite" antes del primer aviso (NFR-003, TD-14)');
+  } else if (aviso.textContent.trim()) {
+    problemas.push('la región del aviso tiene texto sin ningún aviso a la vista (TD-14)');
+  }
+  return [...new Set(problemas)].slice(0, 6);
+};
 
 /* Los datos de prueba con la preferencia de una cuenta sembrada, como la dejaría Firestore. */
 function datosConPreferencia(valor, uid = 'u-test') {
@@ -1916,6 +2132,491 @@ const ESCENARIOS = [
         if (!caso.pid) problemas.push(`no se pudo leer el reparto de ${caso.matchId} para la prueba`);
       }
       if (escrituras) problemas.push(`invocar los manejadores sobre un partido cerrado o finalizado produjo ${escrituras} escritura(s): la guarda de estado no corrió (S-20a, S-20b, TC-040)`);
+      return problemas;
+    } },
+
+  /* --- el intercambio de puesto (posiciones-del-jugador) ---
+     Todos sobre los partidos `m-int-*` (TD-17). Los de comportamiento declaran dos anchos y
+     `comprobar` corre en el primero, así que el segundo tramo se recorre redimensionando y
+     recargando adentro de `comprobar` (`recargarEn`), que además deja el partido como al
+     arrancar. */
+
+  { clave: 'intercambio-toque', rol: 'admin', nombre: 'intercambiar puesto tocando: en el equipo, entre equipos y los avisos',
+    anchos: [360, 1200],
+    spec: ['intercambio/S-01', 'intercambio/S-01b', 'intercambio/S-01c', 'intercambio/S-01d', 'intercambio/S-01e',
+      'intercambio/S-01g', 'intercambio/S-01k', 'intercambio/S-02', 'intercambio/S-02a', 'intercambio/S-02e',
+      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      const fijo = PARTIDO_INTERCAMBIO('m-int-8');
+      const puestosDe = (m, equipo) => m.equipos[equipo].map(id => m.equipos.posicionAsignada[id]).sort().join(',');
+
+      /* --- a 360 px, una columna: S-02 --- */
+      let base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
+      await tocarCamiseta(page, 'int-lucas');
+      let s = await leerSeleccion(page);
+      if (s.seleccionadas.join() !== 'int-lucas') problemas.push(`tocar a Lucas dejó seleccionadas ${JSON.stringify(s.seleccionadas)} (S-02, FR-010)`);
+      await page.click('.equipo-tab[aria-pressed="false"]');
+      await page.waitForTimeout(300);
+      s = await leerSeleccion(page);
+      if (!s.candidatas.includes('int-tomas')) problemas.push('al cambiar al Negro, Tomás no aparece resaltado: la selección no sobrevivió al cambio de pestaña (S-02, FR-012)');
+      if (!s.conSeleccion) problemas.push('al cambiar al Negro la cancha no muestra que hay una selección viva (S-02, FR-012)');
+      await tocarCamiseta(page, 'int-tomas');
+      await page.waitForTimeout(300);
+      let tras = await docsGuardados(page);
+      let m = partidoDe(tras.partidos, 'm-int-8');
+      if (!m || !m.equipos.negro.includes('int-lucas') || m.equipos.posicionAsignada['int-lucas'] !== 'MD') {
+        problemas.push('después del segundo toque Lucas no quedó en el Negro de MD (S-02, FR-030, FR-031)');
+      }
+      if (!m || !m.equipos.blanco.includes('int-tomas') || m.equipos.posicionAsignada['int-tomas'] !== 'MC') {
+        problemas.push('después del segundo toque Tomás no quedó en el Blanco de MC (S-02, FR-030, FR-031)');
+      }
+      if (m && (puestosDe(m, 'blanco') !== puestosDe(fijo, 'blanco') || puestosDe(m, 'negro') !== puestosDe(fijo, 'negro'))) {
+        problemas.push('después del intercambio algún equipo no conserva sus puestos de campo (S-02, FR-032)');
+      }
+      if (m) problemas.push(...revisarEscrituraDeIntercambio(base, tras, 'm-int-8', ['int-lucas', 'int-tomas'], 'S-02'));
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('la selección no desapareció después del intercambio (S-02, FR-013)');
+
+      /* S-02e: con una selección viva se cierra la inscripción; al reabrir, la selección no vuelve. */
+      await tocarCamiseta(page, 'int-lucas');
+      await page.evaluate(() => window.__toggleInscripcion('m-int-8'));
+      await page.waitForTimeout(300);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('cerrar la inscripción dejó la selección dibujada (S-02e, FR-003)');
+      await page.evaluate(() => window.__toggleInscripcion('m-int-8'));
+      await page.waitForTimeout(300);
+      await mostrarEquiposMobile(page);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('al reabrir la inscripción la selección volvió: no se había descartado (S-02e, FR-003)');
+
+      /* --- a 1200 px, las dos canchas, desde los datos de arranque --- */
+      await recargarEn(page, 1200, '2026-10-13');
+      base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
+      const resumen = () => page.evaluate(() => ({
+        unica: document.querySelectorAll('.panel-receipt-lista--unica').length,
+        vigentes: document.querySelectorAll('.panel-receipt-lista--vigentes').length,
+        texto: (document.querySelector('.panel-receipt') || {}).textContent || '',
+      }));
+      if (!(await resumen()).unica) problemas.push('el partido recién armado ya muestra el resumen dividido: no sirve para S-07');
+
+      /* S-07a: Mateo y Bruno, MI de 6 en equipos distintos. */
+      await tocarCamiseta(page, 'int-mateo');
+      await tocarCamiseta(page, 'int-bruno');
+      await page.waitForTimeout(300);
+      m = partidoDe((await docsGuardados(page)).partidos, 'm-int-8');
+      if (!m || !m.equipos.negro.includes('int-mateo') || !m.equipos.blanco.includes('int-bruno')) problemas.push('Mateo y Bruno no se intercambiaron (S-07a)');
+      if (!(await resumen()).unica) problemas.push('intercambiar dos del mismo puesto y el mismo puntaje dividió el resumen (S-07a, FR-071)');
+
+      /* S-01e: sin candidatos, el aviso. */
+      const n0 = (await docsGuardados(page)).n;
+      await tocarCamiseta(page, 'int-img');
+      s = await leerSeleccion(page);
+      const aviso = await textoDelAviso(page);
+      if (s.seleccionadas.join() !== 'int-img' || s.candidatas.length) problemas.push(`tocar a quien no tiene candidatos dejó ${JSON.stringify(s)} (S-01e)`);
+      if (aviso !== 'Nadie puede intercambiar puesto con <img src=x onerror=alert(1)>') problemas.push(`sin candidatos el aviso fue ${JSON.stringify(aviso)} (S-01e, FR-018)`);
+      await despejarAviso(page);
+
+      /* S-01b: tocar a quien no es candidato lo selecciona en lugar del anterior, sin escribir. */
+      await tocarCamiseta(page, 'int-juan');
+      s = await leerSeleccion(page);
+      if (s.seleccionadas.join() !== 'int-juan') problemas.push(`tocar a un no candidato dejó seleccionadas ${JSON.stringify(s.seleccionadas)} (S-01b, FR-014)`);
+      if ((await docsGuardados(page)).n !== n0) problemas.push('seleccionar escribió el partido (S-01b, NFR-005)');
+      /* S-01 y S-02a: los candidatos de Juan, de los dos equipos a la vez. */
+      if (s.candidatas.join() !== 'int-diego,int-pedro') {
+        problemas.push(`los candidatos de Juan son ${JSON.stringify(s.candidatas)}, y la regla da a Pedro en el Blanco y a Diego en el Negro, a la vez (S-01, S-02a, FR-011)`);
+      }
+      if (s.atenuadas !== s.camisetas - 1 - s.candidatas.length) problemas.push(`con Juan seleccionado hay ${s.atenuadas} atenuadas de ${s.camisetas - 1 - s.candidatas.length} que no son candidatas (FR-011)`);
+
+      /* S-01g: el candado alterna el bloqueo y no toca la selección. */
+      const fijado = () => page.evaluate(sel => !!document.querySelector(sel + ' .camiseta-candado.fijado'), CAMISETA('int-pedro'));
+      const fijadoAntes = await fijado();
+      await page.click(`${CAMISETA('int-pedro')} .camiseta-candado`);
+      await page.waitForTimeout(300);
+      if ((await fijado()) === fijadoAntes) problemas.push('tocar el candado de Pedro no alternó el bloqueo (S-01g, FR-017)');
+      if ((await leerSeleccion(page)).seleccionadas.join() !== 'int-juan') problemas.push('tocar el candado de Pedro cambió la selección (S-01g, FR-017)');
+      await page.click(`${CAMISETA('int-pedro')} .camiseta-candado`);
+      await page.waitForTimeout(300);
+
+      /* S-01d: tocar el césped, fuera de toda camiseta, cancela. */
+      const campo = await page.$eval('.team-panel.blanco .cancha', c => { const b = c.getBoundingClientRect(); return { x: b.left + 8, y: b.top + 8 }; });
+      await page.mouse.click(campo.x, campo.y);
+      await page.waitForTimeout(250);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('tocar el fondo de la cancha no canceló la selección (S-01d, FR-016)');
+
+      /* S-01c: tocar dos veces la misma camiseta selecciona y cancela. */
+      await tocarCamiseta(page, 'int-juan');
+      await tocarCamiseta(page, 'int-juan');
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('volver a tocar la camiseta seleccionada no canceló (S-01c, FR-015)');
+
+      /* S-01 y NFR-004: Juan con Pedro, midiendo los dos ciclos. */
+      base = await docsGuardados(page);
+      const msSeleccionar = await medirToque(page, 'int-juan');
+      await page.waitForTimeout(150);
+      const msIntercambiar = await medirToque(page, 'int-pedro');
+      await page.waitForTimeout(350);
+      if (msSeleccionar === null || msSeleccionar > 100) problemas.push(`seleccionar y repintar tardó ${Math.round(msSeleccionar)}ms, por encima de 100ms (NFR-004)`);
+      if (msIntercambiar === null || msIntercambiar > 150) problemas.push(`intercambiar, guardar y repintar tardó ${Math.round(msIntercambiar)}ms, por encima de 150ms (NFR-004)`);
+      tras = await docsGuardados(page);
+      m = partidoDe(tras.partidos, 'm-int-8');
+      const pa = m ? m.equipos.posicionAsignada : {};
+      if (pa['int-juan'] !== 'LD' || pa['int-pedro'] !== 'DC' || !m.equipos.blanco.includes('int-juan') || !m.equipos.blanco.includes('int-pedro')) {
+        problemas.push(`después de tocar a Juan y a Pedro quedaron ${pa['int-juan']} y ${pa['int-pedro']}: se esperaba LD y DC, los dos en el Blanco (S-01, FR-030)`);
+      }
+      const totalBlanco = await page.$eval('#totalBlancoSpan', e => e.textContent).catch(() => null);
+      if (totalBlanco !== '49 pts') problemas.push(`el total del Blanco dice ${JSON.stringify(totalBlanco)} y tenía que bajar 4, de 53 a 49 (S-01, FR-070)`);
+      problemas.push(...revisarEscrituraDeIntercambio(base, tras, 'm-int-8', ['int-juan', 'int-pedro'], 'S-01'));
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('la selección no desapareció después del intercambio (S-01)');
+
+      /* S-07: el total cambió, así que el resumen se divide, sin nombrar el intercambio. */
+      const r = await resumen();
+      if (r.unica || !r.vigentes) problemas.push('el total del Blanco cambió y el resumen no se dividió en "Con tus cambios" y "Como lo armó el motor" (S-07, FR-071)');
+      if (/intercambi/i.test(r.texto)) problemas.push('el resumen nombra el intercambio (S-07, FR-071)');
+
+      /* S-01k: dos toques rápidos sobre el candidato aplican un intercambio, no dos. Juan está en
+         LD y Pedro en DC: Pedro es candidato. El segundo toque cae sobre la camiseta que quedó en
+         ese lugar después de repintar, que ya no es candidata. */
+      await tocarCamiseta(page, 'int-juan');
+      const n1 = (await docsGuardados(page)).n;
+      await page.dblclick(`${CAMISETA('int-pedro')} .camiseta-fig > svg`);
+      await page.waitForTimeout(400);
+      tras = await docsGuardados(page);
+      m = partidoDe(tras.partidos, 'm-int-8');
+      if (tras.n - n1 !== 1) problemas.push(`dos toques rápidos sobre Pedro escribieron ${tras.n - n1} veces (S-01k)`);
+      if (!m || m.equipos.posicionAsignada['int-juan'] !== 'DC' || m.equipos.posicionAsignada['int-pedro'] !== 'LD') {
+        problemas.push('dos toques rápidos sobre Pedro no dejaron aplicado un solo intercambio (S-01k)');
+      }
+
+      /* S-02f: intercambiar colores descarta la selección. */
+      if (!(await leerSeleccion(page)).seleccionadas.length) await tocarCamiseta(page, 'int-juan');
+      await page.click('.panel-icono-intercambiar');
+      await page.waitForTimeout(300);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('intercambiar colores no descartó la selección (S-02f, FR-019b)');
+
+      /* S-02g: una camiseta de otro partido. Se abre con `__openMatch` y no con la lista: el clic
+         en la solapa ya cancela la selección (FR-016) y el escenario no probaría FR-019. */
+      await tocarCamiseta(page, 'int-juan');
+      await page.evaluate(`window.__tocarCamiseta && window.__tocarCamiseta(${EVENTO_FALSO}, 'm-int-9', 'int-lucas')`);
+      await page.waitForTimeout(250);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('seleccionar en otro partido dejó dibujada la selección del primero (S-02g, FR-019)');
+      await page.evaluate(() => window.__openMatch('m-int-9'));
+      await page.waitForTimeout(300);
+      if ((await leerSeleccion(page)).seleccionadas.join() !== 'int-lucas') problemas.push('en el otro partido no quedó seleccionado Lucas (S-02g, FR-019)');
+      await page.evaluate(() => window.__openMatch('m-int-8'));
+      await page.waitForTimeout(300);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('volver al primer partido mostró su selección: hay más de una en la pantalla (S-02g, FR-019)');
+      return problemas;
+    } },
+
+  { clave: 'intercambio-arrastre', rol: 'admin', nombre: 'arrastrar una camiseta sobre otra: candidatos, intercambio, aviso y pase',
+    anchos: [360, 1200],
+    spec: ['intercambio/S-03', 'intercambio/S-03a', 'intercambio/S-03b', 'intercambio/S-03c', 'intercambio/S-03d',
+      'intercambio/S-03e', 'intercambio/S-03f', 'intercambio/S-03g', 'intercambio/S-04b', 'intercambio/NFR-005'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      const sinEscribir = async (n, etiqueta) => { if ((await docsGuardados(page)).n !== n) problemas.push(`${etiqueta}: hubo escritura y no debía haberla`); };
+
+      /* S-03g: a 360 px, sobre un candidato del propio equipo. */
+      let base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
+      let f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-pedro' });
+      if (f.error) return [`S-03g: ${f.error}`];
+      if (!f.mismoNodo) problemas.push('empezar el arrastre reemplazó la camiseta: el navegador abortaría el gesto (TD-09, S-03g)');
+      if (!f.candidatas.includes('int-pedro')) problemas.push('al empezar a arrastrar a Juan, Pedro no aparece resaltado (S-03g, FR-040)');
+      await page.waitForTimeout(300);
+      let tras = await docsGuardados(page);
+      let m = partidoDe(tras.partidos, 'm-int-8');
+      if (!m || m.equipos.posicionAsignada['int-juan'] !== 'LD' || m.equipos.posicionAsignada['int-pedro'] !== 'DC') {
+        problemas.push('a 360 px soltar a Juan sobre Pedro no aplicó el intercambio (S-03g, FR-041)');
+      } else problemas.push(...revisarEscrituraDeIntercambio(base, tras, 'm-int-8', ['int-juan', 'int-pedro'], 'S-03g'));
+
+      /* --- a 1200 px, desde los datos de arranque --- */
+      await recargarEn(page, 1200, '2026-10-13');
+      base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
+
+      /* S-03a: un compañero que no cubre DC. */
+      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-nico' });
+      await page.waitForTimeout(250);
+      if (!f.dropAceptado) problemas.push('soltar sobre una camiseta incompatible no se acepta, y así el aviso nunca llegaría (FR-042, TD-10)');
+      if (f.realzado) problemas.push('una camiseta que no es candidata se realzó bajo el puntero (TD-10)');
+      let aviso = await textoDelAviso(page);
+      if (aviso !== 'Nicolás Lagos no juega de Defensor Central') problemas.push(`soltar a Juan sobre Nico avisó ${JSON.stringify(aviso)} (S-03a, FR-042b)`);
+      await sinEscribir(base.n, 'soltar sobre un compañero que no cubre DC (S-03a, FR-042)');
+      if (f.marcasQueQuedan) problemas.push(`después de soltar quedaron ${f.marcasQueQuedan} marcas del arrastre (S-03a)`);
+      await despejarAviso(page);
+
+      /* S-03b: una camiseta del otro equipo que no es candidata. Hasta esta feature se aplicaba. */
+      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-hernan' });
+      await page.waitForTimeout(250);
+      aviso = await textoDelAviso(page);
+      if (aviso !== 'Hernán Vega no juega de Defensor Central') problemas.push(`soltar a Juan sobre Hernán avisó ${JSON.stringify(aviso)} (S-03b, FR-042b)`);
+      await sinEscribir(base.n, 'soltar sobre un no candidato del otro equipo (S-03b, D-08)');
+      await despejarAviso(page);
+
+      /* S-03d: la cancha propia y la propia camiseta. */
+      await arrastrarSobre(page, 'int-juan', { panel: 'blanco' });
+      await arrastrarSobre(page, 'int-juan', { camiseta: 'int-juan' });
+      await page.waitForTimeout(250);
+      await sinEscribir(base.n, 'soltar sobre la cancha propia o sobre sí misma (S-03d, FR-044)');
+
+      /* S-03 y S-03e: con Lucas seleccionado por toque, se arrastra a Juan sobre Pedro. */
+      await tocarCamiseta(page, 'int-lucas');
+      if ((await leerSeleccion(page)).seleccionadas.join() !== 'int-lucas') problemas.push('tocar a Lucas no lo seleccionó: S-03e no tiene una selección previa que descartar (S-03e, FR-010)');
+      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-pedro' });
+      if (f.seleccionadas.join() !== 'int-juan') problemas.push(`al empezar a arrastrar con Lucas seleccionado quedaron seleccionadas ${JSON.stringify(f.seleccionadas)} (S-03e, FR-046)`);
+      if (f.candidatas.join() !== 'int-diego,int-pedro') problemas.push(`al empezar a arrastrar a Juan se resaltaron ${JSON.stringify(f.candidatas)}, y sus candidatos son Pedro y Diego (S-03, FR-040)`);
+      if (!f.mismoNodo) problemas.push('empezar el arrastre reemplazó la camiseta (TD-09, S-03)');
+      if (!f.realzado) problemas.push('Pedro, candidato, no se realzó bajo el puntero (S-03, FR-040)');
+      await page.waitForTimeout(300);
+      tras = await docsGuardados(page);
+      m = partidoDe(tras.partidos, 'm-int-8');
+      if (!m || m.equipos.posicionAsignada['int-juan'] !== 'LD' || m.equipos.posicionAsignada['int-pedro'] !== 'DC') {
+        problemas.push('soltar a Juan sobre Pedro no dio el resultado de S-01 (S-03, FR-041)');
+      } else problemas.push(...revisarEscrituraDeIntercambio(base, tras, 'm-int-8', ['int-juan', 'int-pedro'], 'S-03'));
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('después del arrastre quedó una selección dibujada (S-03e, FR-046)');
+
+      /* S-03f: el arrastre se cancela. */
+      const n0 = (await docsGuardados(page)).n;
+      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-pedro' }, { soltar: false });
+      await page.waitForTimeout(250);
+      if (f.marcasQueQuedan) problemas.push(`un arrastre cancelado dejó ${f.marcasQueQuedan} resaltados (S-03f)`);
+      await sinEscribir(n0, 'un arrastre cancelado (S-03f)');
+
+      /* S-03c: sobre la cancha del otro equipo, el pase de siempre, que conserva el puesto. */
+      await arrastrarSobre(page, 'int-juan', { panel: 'negro' });
+      await page.waitForTimeout(300);
+      m = partidoDe((await docsGuardados(page)).partidos, 'm-int-8');
+      if (!m || !m.equipos.negro.includes('int-juan') || m.equipos.posicionAsignada['int-juan'] !== 'LD') {
+        problemas.push('soltar a Juan sobre la cancha del Negro no hizo el pase conservando su puesto (S-03c, FR-043)');
+      }
+
+      /* S-04b: sobre el arco vacío del propio equipo, nada. */
+      await cambiarDePartido(page, 'm-int-sin-arquero');
+      const n2 = (await docsGuardados(page)).n;
+      f = await arrastrarSobre(page, 'int-nico', { arcoVacio: 'blanco' });
+      if (f.error) problemas.push(`S-04b: ${f.error}`);
+      await page.waitForTimeout(250);
+      await sinEscribir(n2, 'soltar sobre el arco vacío del propio equipo (S-04b, FR-050)');
+      return problemas;
+    } },
+
+  { clave: 'intercambio-solo-puntaje', rol: 'admin', nombre: 'el intercambio en un partido "Solo por puntaje"',
+    anchos: [1200],
+    spec: ['intercambio/S-04c', 'intercambio/S-05', 'intercambio/S-05a', 'intercambio/S-05b', 'intercambio/S-05c'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-16'); },
+    async comprobar(page) {
+      const problemas = [];
+      const fijo = PARTIDO_INTERCAMBIO('m-int-puntaje');
+      const base = await lineaDeBase(page, 'm-int-puntaje', 'int-juan');
+      const lineaDe = id => page.evaluate(sel => {
+        const c = document.querySelector(sel);
+        if (!c) return null;
+        const linea = c.closest('.cancha-linea');
+        return { equipo: c.closest('.team-panel').classList.contains('blanco') ? 'blanco' : 'negro',
+          indice: [...linea.parentElement.children].indexOf(linea) };
+      }, CAMISETA(id));
+
+      /* S-05, S-04c y S-05b: todas las del Negro y ninguna del Blanco; nada que no sea camiseta. */
+      await tocarCamiseta(page, 'int-juan');
+      let s = await leerSeleccion(page);
+      if (s.candidatas.join() !== [...fijo.equipos.negro].sort().join()) {
+        problemas.push(`en "Solo por puntaje" los candidatos de Juan son ${JSON.stringify(s.candidatas)}: deberían ser todas las del Negro y ninguna del Blanco (S-05, FR-024)`);
+      }
+      if (s.candidatasQueNoSonCamiseta) problemas.push('algo que no es una camiseta aparece como destino: el arco vacío no se ofrece (S-04c, S-05b, FR-050)');
+
+      /* S-05a: un compañero pasa a ser la seleccionada. */
+      await tocarCamiseta(page, 'int-nico');
+      s = await leerSeleccion(page);
+      if (s.seleccionadas.join() !== 'int-nico') problemas.push(`tocar a un compañero dejó seleccionadas ${JSON.stringify(s.seleccionadas)} (S-05a, FR-014)`);
+      if ((await docsGuardados(page)).n !== base.n) problemas.push('tocar a un compañero escribió el partido: dentro del equipo no se intercambia (S-05a)');
+
+      /* S-05: con el Negro, cambian de equipo y cada uno se dibuja en la línea de antes. */
+      const antesNico = await lineaDe('int-nico'), antesDiego = await lineaDe('int-diego');
+      await tocarCamiseta(page, 'int-diego');
+      await page.waitForTimeout(300);
+      const tras = await docsGuardados(page);
+      const m = partidoDe(tras.partidos, 'm-int-puntaje');
+      if (!m || !m.equipos.negro.includes('int-nico') || !m.equipos.blanco.includes('int-diego')) problemas.push('Nico y Diego no cambiaron de equipo (S-05, FR-033)');
+      if (m && m.equipos.posicionAsignada) problemas.push('el intercambio en "Solo por puntaje" escribió un puesto asignado (S-05, FR-033, NFR-005)');
+      if (m) problemas.push(...revisarEscrituraDeIntercambio(base, tras, 'm-int-puntaje', ['int-nico', 'int-diego'], 'S-05'));
+      const despuesNico = await lineaDe('int-nico'), despuesDiego = await lineaDe('int-diego');
+      if (!antesNico || !despuesNico || antesNico.indice !== despuesNico.indice || despuesNico.equipo !== 'negro') problemas.push('Nico no se dibuja en la misma línea en el otro equipo (S-05)');
+      if (!antesDiego || !despuesDiego || antesDiego.indice !== despuesDiego.indice || despuesDiego.equipo !== 'blanco') problemas.push('Diego no se dibuja en la misma línea en el otro equipo (S-05)');
+
+      /* S-05c y S-05b: el arrastre como hoy. */
+      let f = await arrastrarSobre(page, 'int-mateo', { camiseta: 'int-bruno' });
+      if (f.conSeleccion) problemas.push('en "Solo por puntaje" el arrastre marcó candidatos: tiene que ser el de siempre (S-05c, FR-045)');
+      await page.waitForTimeout(300);
+      const m2 = partidoDe((await docsGuardados(page)).partidos, 'm-int-puntaje');
+      if (!m2 || !m2.equipos.negro.includes('int-mateo') || !m2.equipos.blanco.includes('int-bruno') || m2.equipos.posicionAsignada) {
+        problemas.push('soltar a Mateo sobre Bruno no los intercambió de equipo sin puestos (S-05c, FR-045)');
+      }
+      await despejarAviso(page);
+      const n0 = (await docsGuardados(page)).n;
+      await arrastrarSobre(page, 'int-juan', { camiseta: 'int-pedro' });
+      await page.waitForTimeout(250);
+      if ((await docsGuardados(page)).n !== n0) problemas.push('soltar sobre un compañero escribió el partido (S-05c, FR-045b)');
+      if ((await textoDelAviso(page)) !== null) problemas.push('soltar sobre un compañero sin puestos mostró un aviso (S-05c, FR-045b)');
+      await arrastrarSobre(page, 'int-juan', { arcoVacio: 'blanco' });
+      await page.waitForTimeout(250);
+      if ((await docsGuardados(page)).n !== n0) problemas.push('soltar sobre el arco vacío del propio equipo escribió (S-05b, FR-050)');
+      return problemas;
+    } },
+
+  { clave: 'intercambio-regenerar', rol: 'admin', nombre: 'regenerar después de intercambiar: el candado conserva el equipo',
+    anchos: [1200],
+    spec: ['intercambio/S-04', 'intercambio/S-06', 'intercambio/S-06a', 'intercambio/S-06b'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-13'); },
+    async comprobar(page) {
+      const problemas = [];
+      const partido = async id => partidoDe((await docsGuardados(page)).partidos, id);
+      const regenerar = async id => { await page.evaluate(i => window.__generarEquipos(i), id); await page.waitForTimeout(800); };
+
+      /* S-06 y S-06a: Juan intercambió con Pedro y tiene candado; Fermín, arquero, también. */
+      await tocarCamiseta(page, 'int-juan');
+      await tocarCamiseta(page, 'int-pedro');
+      await page.evaluate(() => { window.__toggleBloqueo('m-int-8', 'int-juan'); window.__toggleBloqueo('m-int-8', 'int-fermin'); });
+      await page.waitForTimeout(400);
+      let m = await partido('m-int-8');
+      if (!m || m.equipos.posicionAsignada['int-juan'] !== 'LD') {
+        problemas.push('antes de regenerar, lo guardado de Juan no es LD: el motor arrancaría del puesto de antes del intercambio (S-06, FR-061)');
+      }
+      await regenerar('m-int-8');
+      m = await partido('m-int-8');
+      if (!m || !m.equipos.blanco.includes('int-juan')) problemas.push('después de regenerar, Juan, con candado, no siguió en el Blanco (S-06, FR-061)');
+      if (!m || !m.equipos.blanco.includes('int-fermin') || m.equipos.posicionAsignada['int-fermin'] !== 'Arquero') {
+        problemas.push('después de regenerar, Fermín, arquero con candado, no siguió en el arco del Blanco (S-06a, FR-061)');
+      }
+
+      /* S-06b: la dupla intercambia con Ezequiel (pasa al Negro), se fija, y se regenera. */
+      await cambiarDePartido(page, 'm-int-9');
+      const idDupla = await page.evaluate(() => (document.querySelector('.camiseta[data-id="int-ramiro"]') ? 'int-ramiro' : 'int-esteban'));
+      await tocarCamiseta(page, idDupla);
+      await tocarCamiseta(page, 'int-ezequiel');
+      m = await partido('m-int-9');
+      if (!m || !m.equipos.negro.includes('int-ramiro') || !m.equipos.negro.includes('int-esteban')) problemas.push('la dupla no pasó al Negro al intercambiar con Ezequiel (S-06b)');
+      await page.evaluate(() => window.__toggleBloqueo('m-int-9', 'int-ramiro'));
+      await page.waitForTimeout(300);
+      await regenerar('m-int-9');
+      m = await partido('m-int-9');
+      if (!m || !m.equipos.negro.includes('int-ramiro') || !m.equipos.negro.includes('int-esteban')) problemas.push('después de regenerar, la dupla con candado no siguió en su equipo (S-06b, FR-061)');
+
+      /* S-04: el Blanco sin arquero. Tocar no ofrece el arco; regenerar vuelve a ubicar arqueros. */
+      await cambiarDePartido(page, 'm-int-sin-arquero');
+      await tocarCamiseta(page, 'int-nico');
+      const s = await leerSeleccion(page);
+      if (!s.seleccionadas.length) problemas.push('tocar a Nico en el partido sin arquero no lo seleccionó (S-04)');
+      if (s.candidatasQueNoSonCamiseta) problemas.push('el arco vacío aparece como destino (S-04, FR-050)');
+      await regenerar('m-int-sin-arquero');
+      m = await partido('m-int-sin-arquero');
+      if (!m || !m.equipos.blanco.some(id => m.equipos.posicionAsignada[id] === 'Arquero')) problemas.push('después de regenerar, el Blanco sigue sin arquero: el motor no volvió a ubicar los arqueros (S-04)');
+      if (!m || !m.equipos.blanco.includes('int-julian')) problemas.push('después de regenerar, Julián, con candado, no siguió en el Blanco (S-04a, FR-061)');
+      return problemas;
+    } },
+
+  { clave: 'intercambio-cancha', rol: 'admin', nombre: 'la cancha con una selección activa no rompe el layout',
+    spec: ['intercambio/S-22', 'intercambio/S-22a', 'intercambio/S-22b', 'intercambio/NFR-001', 'intercambio/NFR-002', 'intercambio/NFR-003'],
+    transformarDatos: agregarDatosDeIntercambio,
+    invariantes: [INVARIANTE_CANCHA, INVARIANTE_CANCHA_A11Y, INVARIANTE_SELECTOR, INVARIANTE_INTERCAMBIO],
+    /* Fútbol 9 con la dupla en la fila de cuatro, y Lucas seleccionado: tiene candidatos en los dos
+       equipos. A 360 px se cambia al Negro con la selección viva (S-22a); en el resto de los anchos
+       de una columna se mide el Blanco, donde están la tocada, un candidato y las atenuadas. */
+    async preparar(page) {
+      await abrirPartido(page, '2026-10-14');
+      await mostrarEquiposMobile(page);
+      await tocarCamiseta(page, 'int-lucas');
+      if (page.viewportSize().width === 360) {
+        await page.click('.equipo-tab[aria-pressed="false"]');
+        await page.waitForTimeout(300);
+      }
+      await page.waitForTimeout(250);
+    } },
+
+  { clave: 'intercambio-permisos', rol: 'admin', nombre: 'nadie fuera de admin ni fuera de la ventana de edición intercambia',
+    anchos: [1200],
+    spec: ['intercambio/S-20', 'intercambio/S-20a', 'intercambio/S-20b', 'intercambio/S-20c', 'intercambio/NFR-007'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-13'); },
+    async comprobar(page) {
+      const problemas = [];
+      /* Invoca los dos manejadores con identificadores VÁLIDOS del reparto —si fueran inventados,
+         la prueba pasaría por la validación de identificador y no por la guarda que dice probar— y
+         devuelve cuántas escrituras hubo. `saveMatches` es async: hay que esperarla. */
+      const invocar = (pagina, matchId, a, b) => pagina.evaluate(async ([matchId, a, b, ev]) => {
+        const n = (window.__escrituras || []).length;
+        const falso = eval(ev);
+        window.__tocarCamiseta && window.__tocarCamiseta(falso, matchId, a);
+        window.__tocarCamiseta && window.__tocarCamiseta(falso, matchId, b);
+        const dt = new DataTransfer();
+        dt.setData('text/plain', a);
+        window.__dropEnCamiseta(new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: dt }), matchId, b);
+        await new Promise(r => setTimeout(r, 400));
+        return (window.__escrituras || []).length - n;
+      }, [matchId, a, b, EVENTO_FALSO]);
+
+      /* S-20: rol jugador. Tocar no dibuja nada y los manejadores no escriben. */
+      const jugador = await abrirOtraPagina(page, { rol: 'jugador', datos: agregarDatosDeIntercambio(docsDesde()) });
+      await abrirPartido(jugador, '2026-10-13');
+      await tocarCamiseta(jugador, 'int-juan');
+      if (haySeleccion(await leerSeleccion(jugador))) problemas.push('con rol jugador tocar una camiseta dibujó una selección (S-20, FR-002)');
+      if (await jugador.$('.cancha .camiseta.tocable')) problemas.push('con rol jugador hay camisetas tocables (S-20, FR-002)');
+      let n = await invocar(jugador, 'm-int-8', 'int-juan', 'int-pedro');
+      if (n) problemas.push(`invocar los manejadores con rol jugador produjo ${n} escritura(s) (S-20, TC-040, NFR-007)`);
+      await jugador.close();
+
+      /* S-20b: identificadores ajenos al reparto y un dataTransfer arbitrario. */
+      n = await invocar(page, 'm-int-8', 'no-existe', 'int-pedro');
+      n += await invocar(page, 'm-int-8', 'int-juan', 'no-existe');
+      n += await invocar(page, 'no-existe', 'int-juan', 'int-pedro');
+      n += await invocar(page, 'm-int-8', 'int-agustin', 'int-juan');   // del plantel, pero no de este partido
+      n += await invocar(page, 'm-int-8', '{"id":"int-juan"}', 'int-pedro');
+      if (n) problemas.push(`invocar los manejadores con identificadores ajenos produjo ${n} escritura(s) (S-20b, TC-042, NFR-007)`);
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('un identificador ajeno dejó una selección dibujada (S-20b, TC-042)');
+
+      /* S-20a y S-20c: inscripción cerrada y partido finalizado. */
+      for (const [id, etiqueta] of [['m-int-cerrado', 'S-20a'], ['m-int-finalizado', 'S-20c']]) {
+        await cambiarDePartido(page, id);
+        await tocarCamiseta(page, 'int-juan');
+        if (haySeleccion(await leerSeleccion(page))) problemas.push(`en ${id} tocar una camiseta dibujó una selección (${etiqueta}, FR-001)`);
+        n = await invocar(page, id, 'int-juan', 'int-pedro');
+        if (n) problemas.push(`invocar los manejadores sobre ${id} produjo ${n} escritura(s) (${etiqueta}, TC-040)`);
+      }
+      return problemas;
+    } },
+
+  { clave: 'intercambio-escapado', rol: 'admin', nombre: 'el nombre de un jugador en un aviso se ve como texto',
+    anchos: [1200],
+    spec: ['intercambio/S-21', 'intercambio/S-21a'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-13'); },
+    async comprobar(page) {
+      const problemas = [];
+      const dialogos = [];
+      page.on('dialog', d => { dialogos.push(d.message()); d.dismiss().catch(() => {}); });
+      const NOMBRE = '<img src=x onerror=alert(1)>';
+      const leer = () => page.evaluate(() => {
+        const t = document.getElementById('appToast');
+        return { texto: t ? (t.querySelector('.toast-texto') || t).textContent : null, imgs: t ? t.querySelectorAll('img').length : 0 };
+      });
+
+      /* S-21a: el aviso de FR-018. */
+      await tocarCamiseta(page, 'int-img');
+      await page.waitForTimeout(150);
+      let a = await leer();
+      if (a.texto !== `Nadie puede intercambiar puesto con ${NOMBRE}`) problemas.push(`el aviso sin candidatos dice ${JSON.stringify(a.texto)} (S-21a, FR-018)`);
+      if (a.imgs) problemas.push('el nombre del aviso sin candidatos se interpretó como HTML: hay un img dentro del aviso (S-21a, TC-041)');
+      await despejarAviso(page);
+      await tocarCamiseta(page, 'int-img');   // cancela la selección
+
+      /* S-21: el aviso de FR-042. Diego (DC; DEL) cubre el puesto del jugador y él no cubre DC. */
+      await arrastrarSobre(page, 'int-diego', { camiseta: 'int-img' });
+      await page.waitForTimeout(250);
+      a = await leer();
+      if (a.texto !== `${NOMBRE} no juega de Defensor Central`) problemas.push(`el aviso del drop rechazado dice ${JSON.stringify(a.texto)} (S-21, FR-042b)`);
+      if (a.imgs) problemas.push('el nombre del aviso del drop se interpretó como HTML (S-21, TC-041)');
+      if (dialogos.length) problemas.push(`se ejecutó código del nombre del jugador: ${dialogos.length} diálogo(s) (S-21, TC-041)`);
       return problemas;
     } },
 
