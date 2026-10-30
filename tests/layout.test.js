@@ -2286,9 +2286,11 @@ const ESCENARIOS = [
         problemas.push('dos toques rápidos sobre Pedro no dejaron aplicado un solo intercambio (S-01k)');
       }
 
-      /* S-02f: intercambiar colores descarta la selección. */
+      /* S-02f: intercambiar colores descarta la selección. Se invoca el manejador y no el botón: el
+         clic en el botón es además un toque fuera de las camisetas, que ya cancela por FR-016, y
+         taparía que el manejador no la descarta (lo mostró la mutación de T-1.28). */
       if (!(await leerSeleccion(page)).seleccionadas.length) await tocarCamiseta(page, 'int-juan');
-      await page.click('.panel-icono-intercambiar');
+      await page.evaluate(() => window.__intercambiarColores('m-int-8'));
       await page.waitForTimeout(300);
       if (haySeleccion(await leerSeleccion(page))) problemas.push('intercambiar colores no descartó la selección (S-02f, FR-019b)');
 
@@ -2566,7 +2568,13 @@ const ESCENARIOS = [
       if (n) problemas.push(`invocar los manejadores con rol jugador produjo ${n} escritura(s) (S-20, TC-040, NFR-007)`);
       await jugador.close();
 
-      /* S-20b: identificadores ajenos al reparto y un dataTransfer arbitrario. */
+      /* S-20b: identificadores ajenos al reparto y un dataTransfer arbitrario. Un toque con un
+         identificador ajeno, solo, no puede ni seleccionar ni avisar: si llegara a la regla,
+         "seleccionaría" a nadie y avisaría que nadie puede intercambiar con un nombre vacío. */
+      await page.evaluate(`window.__tocarCamiseta && window.__tocarCamiseta(${EVENTO_FALSO}, 'm-int-8', 'no-existe')`);
+      await page.waitForTimeout(250);
+      if ((await textoDelAviso(page)) !== null) problemas.push('un toque con un identificador ajeno mostró un aviso: llegó a la regla sin validarse (S-20b, TC-042)');
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('un toque con un identificador ajeno dejó una selección (S-20b, TC-042)');
       n = await invocar(page, 'm-int-8', 'no-existe', 'int-pedro');
       n += await invocar(page, 'm-int-8', 'int-juan', 'no-existe');
       n += await invocar(page, 'no-existe', 'int-juan', 'int-pedro');
