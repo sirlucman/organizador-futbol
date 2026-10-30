@@ -1,6 +1,6 @@
 # Posiciones del jugador — Spec
 
-> **Status:** Draft · **Date:** 2026-10-28 · **Última revisión:** 2026-10-29 · **Owner:** Lucas Manoukian (claude-opus-5-5)
+> **Status:** Draft · **Date:** 2026-10-28 · **Última revisión:** 2026-10-30 · **Owner:** Lucas Manoukian (claude-opus-5-5)
 >
 > **Reviewers:** *pending*
 >
@@ -50,6 +50,9 @@
 > | `CANCHA_SPEC.md` | Glosario "Posición asignada" (l. 279) | la fija el motor o una override | Glosario de esta Spec ("Puesto asignado") |
 > | `CANCHA_SPEC.md` | `A-04` (l. 764-766) | el candado es el único elemento interactivo de la cancha | `FR-010` |
 > | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) | §3.3, línea de `D-19`/`D-20` (l. 217-220) y `A-03` (l. 1147) | un movimiento manual no cambia el puesto asignado de nadie | `FR-030`, `FR-070`: el recálculo vigente ya lee el puesto asignado en vivo (`A-03` de esta Spec) |
+> | [`012-puntajes-coherentes-panel/spec.md`](../012-puntajes-coherentes-panel/spec.md) | Contexto (l. 54) y escenario 6 (l. 91), **sólo para un puesto que el jugador no juega** | el jugador sin nota en su posición asignada suma 0 y se ve "sin puntaje" | `FR-025c` (`D-36`, 2026-10-30): fuera de puesto suma su nota en la principal. Quien juega el puesto de secundaria y no tiene nota ahí sigue como hoy |
+> | [`014-puntaje-dupla-por-posicion/spec.md`](../014-puntaje-dupla-por-posicion/spec.md) | `FR-003` y `FR-007`, **sólo para un puesto que la unidad no juega** | la dupla sin nota en la posición vale el promedio de los promedios generales; el valor de un jugador individual en una posición sin nota no cambia | `FR-025c` (`D-36`): fuera de puesto, la unidad vale su nota en la principal |
+> | [`011-encaje-optimo-formacion/spec.md`](../011-encaje-optimo-formacion/spec.md) | Assumptions, l. 180, **sólo para un puesto que el jugador no juega** | el puntaje de un jugador en una posición que no tiene cargada sigue valiendo lo que vale hoy | `FR-025c` (`D-36`) |
 >
 > **Complementa sin reemplazar:**
 >
@@ -147,7 +150,7 @@ toque (`Roadmap.md` § Mejoras de UX).
 - **D-01** (sólo `admin`) — heredada; `FR-002`, `TC-040`.
 - **D-02** (se resaltan sólo los candidatos válidos) — heredada; `FR-011`.
 - **D-03** (principal o secundaria) — heredada; `FR-020`.
-- **D-04** (los dos quedan en un puesto suyo) — heredada; `FR-021`. La excepción del arco
+- **D-04** (los dos quedan en un puesto suyo) — **reemplazada por `D-34`** (2026-10-30): alcanza con que la seleccionada cubra el puesto del otro; `FR-021`, `FR-021b`. La excepción del arco
   vacío se retiró con `D-31`.
 - **D-05** (gestos del toque y aviso sin candidatos) — heredada; `FR-013` a `FR-018`.
 - **D-06** (intercambio entre equipos con puestos; en una columna sobrevive al cambio de
@@ -182,13 +185,26 @@ Decisiones que el propietario tomó al escribir esta Spec (2026-10-28), registra
   puntaje"), **D-23** (volver del arco al puesto anterior) y **D-24** (el arco por
   arrastre) — **retiradas** por `D-30` y `D-31`.
 
+Decisiones que el propietario tomó al probar la rama de código (2026-10-30), registradas como
+`D-33` a `D-35` en la §10 del Concept Note:
+
+- **D-33** (cuenta de candidatos en cada pestaña) — `FR-012b`.
+- **D-34** (el candidato depende sólo de los puestos de la seleccionada; reemplaza `D-04`) —
+  `FR-021`, `FR-042`.
+- **D-35** (estado de puesto por camiseta y candidato con costo, diseños 19a y 20b) —
+  `FR-021b`, `FR-025`, `FR-025b`, y la excepción a `TC-020` que se declara ahí.
+- **D-36** (fuera de puesto, una unidad suma su nota en la principal, en la pantalla y en el
+  motor; reemplaza en parte `D-30`) — `FR-025c`, `TC-011`, `TC-012`.
+
 Decisiones que el propietario tomó al atender las revisiones de la Spec (2026-10-29),
 registradas como `D-25` a `D-32` en la §10 del Concept Note:
 
 - **D-25** a **D-29** (valor, marca de dibujo, candado, prioridad y vuelta del arquero
   puesto a mano) — **retiradas** por `D-30` y `D-31`.
 - **D-30** (la feature no cambia cómo el motor elige los arqueros ni cómo se calculan los
-  puntajes) — §3.2, `TC-011`, `TC-012`. Lo que decía del arco vacío lo reemplaza `D-31`.
+  puntajes) — §3.2, `TC-011`, `TC-012`. Lo que decía del arco vacío lo reemplaza `D-31`. Lo
+  que decía de cómo se calculan los puntajes lo reemplaza `D-36` en un solo caso, el de una
+  unidad fuera de puesto (2026-10-30).
 - **D-31** (la feature no ocupa el arco vacío: un equipo sin arquero se resuelve
   regenerando, como hoy; al regenerar, el candado conserva el equipo y no el puesto, como
   dice la Spec del motor) — `FR-050`, `FR-061`, §3.2.
@@ -225,10 +241,15 @@ registradas como `D-25` a `D-32` en la §10 del Concept Note:
   [index.html:5635-5777](../../index.html#L5635-L5777)). Totales, diferencia entre
   equipos, diferencia por línea, lugares sin cubrir y el resumen se leerán de las
   funciones vigentes (`sumasVigentes`, `balanceLineasVigente`,
-  `faltantesDeFormacionVigente`), sin cálculo nuevo (`D-10`, `D-30`).
+  `faltantesDeFormacionVigente`), sin cálculo nuevo (`D-10`, `D-30`), salvo el valor de una
+  unidad fuera de puesto (`FR-025c`, `D-36`), que cambia en una sola función compartida por
+  la pantalla y el motor.
 - **TC-012** — Ninguna estrategia del motor se modificará, y al regenerar se le pasará lo
   guardado, como hoy ([index.html:4694](../../index.html#L4694)): el intercambio sólo
-  cambia qué puesto está guardado (`D-30`, `D-31`). Se mantiene la separación interfaz /
+  cambia qué puesto está guardado (`D-30`, `D-31`). **Excepción (`D-36`, 2026-10-30):** donde
+  el motor suma el valor de una unidad ya ubicada, una fuera de puesto suma su principal
+  (`FR-025c`). Cómo elige a quién poner en cada lugar no cambia: los candidatos al arco y la
+  secundaria de un arquero desplazado se siguen eligiendo por su nota en ese puesto. Se mantiene la separación interfaz /
   motor / persistencia de `AGENTS.md`.
 - **TC-013** — La selección es estado de pantalla: no se persistirá ni se compartirá
   entre sesiones.
@@ -238,7 +259,12 @@ registradas como `D-25` a `D-32` en la §10 del Concept Note:
 - **TC-020** — Los estados nuevos de la camiseta (seleccionada, candidata) se distinguirán por más de una señal, nunca sólo
   por color (WCAG 2.1, criterio 1.4.1 *Use of Color*, ya citado por `TC-020` de
   `DESGLOSE_POSICIONES_SPEC.md`; mismo criterio que `NFR-003` de
-  `CARGA_POR_TOQUE_SPEC.md`, l. 544).
+  `CARGA_POR_TOQUE_SPEC.md`, l. 544). **Excepción declarada (`D-35`, 2026-10-30):** el
+  candidato con costo (`FR-021b`) se distingue del candidato sin costo sólo por el color del
+  recuadro, más el texto de su `title`, que en un teléfono no se ve. Es una decisión del
+  propietario sobre el diseño 20b, que pide no atenuar ni marcar de otro modo al candidato con
+  costo; se registra como riesgo de accesibilidad. Respecto de los demás estados, el candidato
+  con costo sí tiene sus dos señales: el recuadro propio y la opacidad plena.
 
 ### 4.4 Conventions to follow
 
@@ -310,7 +336,7 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
 | ID | Story | Implements |
 |---|---|---|
 | US-01 | Como administrador, quiero intercambiar el puesto de dos compañeros de equipo, para corregir el reparto sin regenerar. | FR-010 a FR-021, FR-030, FR-034 |
-| US-02 | Como administrador, quiero ver con quién puedo intercambiar a un jugador sin ir a la solapa Jugadores. | FR-011, FR-018, FR-020 a FR-024 |
+| US-02 | Como administrador, quiero ver con quién puedo intercambiar a un jugador sin ir a la solapa Jugadores. | FR-011, FR-012b, FR-018, FR-020 a FR-024 |
 | US-03 | Como administrador, quiero intercambiar jugadores de equipos distintos sin desarmar las formaciones, también desde el celular. | FR-012, FR-021, FR-030 a FR-032 |
 | US-04 | Como administrador, quiero que arrastrar una camiseta sobre otra haga lo mismo que tocarlas. | FR-040 a FR-046 |
 | US-05 | *Retirada el 2026-10-29 (`D-31`): poner en el arco vacío a un jugador.* | — |
@@ -358,6 +384,10 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
 - **FR-012** — While haya una selección y la tarjeta esté en una columna, cuando el
   administrador cambie de equipo con el selector, el sistema conservará la selección y
   resaltará a los candidatos del equipo que pasa a verse.
+- **FR-012b** — While haya una selección y la tarjeta esté en una columna, el sistema
+  mostrará en cada pestaña del selector de equipo cuántos candidatos tiene ese equipo,
+  también cuando son cero, y esa cuenta formará parte del nombre accesible de la pestaña.
+  Sin selección, no mostrará ninguna cuenta (`D-33`).
 - **FR-013** — When el administrador toca un candidato, el sistema aplicará el
   intercambio entre la seleccionada y ese candidato.
 - **FR-014** — When el administrador toca una camiseta que no es candidata ni la
@@ -384,7 +414,31 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   glosario ("Cubrir un puesto"), el mismo que usa el motor (`TC-010`).
 - **FR-021** — While el partido tenga puestos, el sistema tratará como candidata a toda
   unidad B del partido distinta de la seleccionada A tal que A cubra el puesto asignado de
-  B y B cubra el puesto asignado de A, salvo lo que fija `FR-023`.
+  B, salvo lo que fija `FR-023`. No exige que B cubra el puesto asignado de A (`D-34`,
+  reemplaza la versión del 2026-10-28, que exigía las dos cosas).
+- **FR-021b** — While haya una selección, el sistema dibujará como **candidato con costo** a
+  todo candidato B que no cubra el puesto asignado de la seleccionada A, con el recuadro del
+  diseño 20b, y como candidato sin costo al resto. Los dos tienen la misma fuerza: sólo cambia
+  el color del recuadro, y el `title` del candidato con costo dice que quedaría fuera de
+  puesto. Aplicar el intercambio con costo no pide confirmación ni muestra aviso (`D-35`).
+- **FR-025** — El sistema mostrará en cada camiseta, en cualquier estado del partido con
+  puestos, su estado de puesto, calculado en cada repintado a partir del puesto asignado de su
+  lugar y de los puestos declarados de la unidad (la principal primero): **natural** si es su
+  principal, sin pastilla; **secundario** si es otro puesto que la unidad cubre, con la
+  pastilla «2º»; **fuera de puesto** si la unidad no lo cubre (el mismo criterio que "lugares
+  sin cubrir", `TC-010`), con la pastilla «!» del diseño 19a. Las dos pastillas son
+  excluyentes y ocupan el mismo lugar (`D-35`).
+- **FR-025b** — While la tarjeta esté en una columna, el sistema mostrará en la pestaña de
+  cada equipo con al menos una unidad fuera de puesto la pastilla «!», con o sin selección,
+  calculada para los dos equipos, y la cantidad formará parte del nombre accesible de la
+  pestaña (`D-35`).
+- **FR-025c** — When una unidad está fuera de puesto (`FR-025`), el sistema la valuará con su
+  nota en la principal —la de su unidad, si es una dupla— en vez de su nota en el puesto que
+  ocupa: en el número de su camiseta, con el color de todos los puntajes y un `title` que dice de
+  qué puesto es, en los totales, en la
+  diferencia por línea y al generar. Una unidad que juega el puesto de secundaria y no tiene nota
+  ahí se sigue valuando como hoy. Cómo el motor elige a quién poner en cada lugar no cambia
+  (`D-36`).
 - **FR-022** — *Retirado el 2026-10-29* (`D-30`, `D-31`): trataba del intercambio con un
   arquero puesto a mano.
 - **FR-023** — El sistema no tratará como candidata a una unidad del mismo equipo y con el
@@ -423,14 +477,14 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   equipo o del otro, el sistema aplicará el mismo intercambio de `FR-030` a `FR-036`.
 - **FR-042** — When una camiseta arrastrada A en un partido con puestos se suelta sobre otra
   camiseta B que no es candidata, el sistema no modificará el partido y mostrará el aviso
-  que corresponda de `FR-042b` a `FR-042d`. Si B no es candidata sólo por `FR-023` (mismo
-  equipo y mismo puesto asignado), no mostrará ningún aviso: no hay nada que intercambiar.
-- **FR-042b** — If sólo B no cubre el puesto de A, then el aviso será "{B} no juega de
-  {puesto de A}".
-- **FR-042c** — If sólo A no cubre el puesto de B, then el aviso será "{A} no juega de
+  de `FR-042c`. Si B no es candidata sólo por `FR-023` (mismo equipo y mismo puesto
+  asignado), no mostrará ningún aviso: no hay nada que intercambiar.
+- **FR-042b** — *Retirado el 2026-10-30* (`D-34`): que B no cubra el puesto de A ya no impide
+  el intercambio; lo marca como candidato con costo (`FR-021b`).
+- **FR-042c** — If A no cubre el puesto de B, then el aviso será "{A} no juega de
   {puesto de B}".
-- **FR-042d** — If ninguno de los dos cubre el puesto del otro, then el aviso será "Ninguno
-  de los dos juega en el puesto del otro".
+- **FR-042d** — *Retirado el 2026-10-30* (`D-34`): con una sola condición, el caso de
+  "ninguno de los dos" es el de `FR-042c`.
 - **FR-043** — When una camiseta arrastrada se suelta sobre la cancha o la pestaña del
   otro equipo, y no sobre una camiseta, el sistema aplicará el pase de hoy: cambia de
   equipo y conserva el puesto asignado (`D-09`).
@@ -514,7 +568,7 @@ stateDiagram-v2
   en LD) y Pedro tiene asignado LD (principal LD, secundaria DC, 8 en LD y 5 en DC)
 - **When** el administrador toca la camiseta de Juan
 - **Then** la camiseta de Juan queda marcada como seleccionada y la de Pedro resaltada
-- **And** no se resalta ningún jugador que no cubra DC o cuyo puesto Juan no cubra
+- **And** no se resalta ningún jugador cuyo puesto Juan no cubra
 - **When** el administrador toca la camiseta de Pedro
 - **Then** Juan queda en LD y Pedro en DC, los dos en el Blanco
 - **And** el total del Blanco baja 4 puntos —lo que suman Juan y Pedro pasa de 15 (7 + 8)
@@ -533,8 +587,11 @@ stateDiagram-v2
 - `S-01h [boundary]` — un compañero tiene el mismo puesto asignado que Juan: no se resalta (`FR-023`)
 - `S-01j [concurrency]` — entre el primer y el segundo toque el reparto cambia (otra sesión guarda y Pedro deja de ser candidato): el segundo toque no escribe nada, aparece "Ya no se puede intercambiar: el reparto cambió" y la selección se descarta (`FR-034`, `FR-034b`)
 - `S-01k [concurrency]` — dos toques rápidos sobre Pedro: se aplica un solo intercambio, no dos
-- `S-01l [property]` — para todo intercambio aplicado en un partido con puestos, cada unidad queda en un puesto que cubre (`FR-021`)
+- `S-01l [property]` — para todo intercambio aplicado en un partido con puestos, la seleccionada queda en un puesto que cubre, y el candidato también salvo que fuera con costo (`FR-021`, `FR-021b`)
 - `S-01m [property]` — la cantidad de unidades de cada equipo es la misma antes y después de todo intercambio (`FR-032`)
+- `S-01n [boundary]` — con Juan seleccionado, Nico (LI, que no juega DC) se resalta como candidato con costo y Pedro sin costo; al intercambiar con Nico, Nico queda de DC con la pastilla «!» y Juan de LI con la «2º» (`FR-021`, `FR-021b`, `FR-025`)
+- `S-01p [boundary]` — Juan intercambia con Nico, que queda de DC sin jugarlo: su camiseta muestra su 6 de LI, con el color de siempre, y el Blanco suma 51 en vez de 45; un jugador en una secundaria sin nota sigue "sin puntaje" (`FR-025c`)
+- `S-01o [boundary]` — el estado de puesto de cada camiseta se recalcula con cada intercambio: la «2º» y la «!» siguen al puesto del lugar, no a un dato fijo del jugador, y nunca se muestran las dos (`FR-025`)
 
 #### Scenario S-02 — Intercambio entre equipos en el celular (covers FR-012, FR-021, FR-031, FR-032)
 
@@ -556,6 +613,8 @@ stateDiagram-v2
 - `S-02e [failure]` — con Lucas seleccionado se cierra la inscripción: la selección desaparece y no queda ningún resaltado (`FR-003`)
 - `S-02f [boundary]` — con Lucas seleccionado se toca "Intercambiar colores": se aplica y la selección se descarta (`FR-019b`)
 - `S-02g [boundary]` — con Lucas seleccionado se toca una camiseta de otro partido: esa queda seleccionada y la de Lucas no (`FR-019`)
+- `S-02h [boundary]` — con Lucas seleccionado, cada pestaña muestra cuántos de sus candidatos son de ese equipo, aunque sean cero; al intercambiar o cancelar, la cuenta desaparece (`FR-012b`)
+- `S-02i [boundary]` — un equipo con una unidad fuera de puesto muestra la «!» en su pestaña aunque se esté viendo el otro, con o sin selección; si el intercambio la deja en su puesto, la pastilla desaparece (`FR-025b`)
 
 #### Scenario S-03 — El arrastre sobre una camiseta propia intercambia puestos (covers FR-040, FR-041, FR-042, FR-044, FR-046)
 
@@ -567,7 +626,7 @@ stateDiagram-v2
 
 **Variants:**
 
-- `S-03a [failure]` — la suelta sobre un compañero que no cubre DC: no cambia nada y aparece "{compañero} no juega de Defensor Central" (`FR-042`)
+- `S-03a [failure]` — la suelta sobre un compañero cuyo puesto Juan no juega: no cambia nada y aparece "Juan … no juega de {puesto del compañero}" (`FR-042`, `FR-042c`)
 - `S-03b [failure]` — la suelta sobre una camiseta del otro equipo que no es candidata: no cambia nada y aparece el aviso; hoy ese intercambio se aplicaba (`D-08`)
 - `S-03c [boundary]` — la suelta sobre la cancha del otro equipo: pase, Juan conserva DC (`FR-043`)
 - `S-03d [failure]` — la suelta sobre la cancha propia o sobre sí misma: no cambia nada (`FR-044`)
@@ -587,7 +646,7 @@ stateDiagram-v2
 
 **Variants:**
 
-- `S-04a [boundary]` — el Blanco tiene un jugador con Arquero de secundaria y candado, que el motor no movió al arco ([index.html:3376](../../index.html#L3376)): al seleccionarlo, tampoco aparece el arco; sus candidatos son los de su puesto asignado (`FR-050`, `FR-021`)
+- `S-04a [boundary]` — el Blanco tiene un jugador con Arquero de secundaria y candado, que el motor no movió al arco ([index.html:3376](../../index.html#L3376)): al seleccionarlo, tampoco aparece el arco como lugar; sus candidatos son las unidades que ocupan un puesto que él declara, incluidos los arqueros del otro equipo (`FR-050`, `FR-021`)
 - `S-04b [failure]` — se arrastra una camiseta del Blanco y se la suelta sobre su arco vacío: no cambia nada (`FR-044`, `FR-050`)
 - `S-04c [boundary]` — en un partido "Solo por puntaje" sin arquero en el Blanco: el arco tampoco se ofrece (`FR-050`)
 - `S-04d [property]` — para todo cambio de esta feature, la ventaja por no tener arquero fijo es la misma antes y después (`FR-057`)
@@ -633,6 +692,7 @@ stateDiagram-v2
 **Variants:**
 
 - `S-07a [boundary]` — un intercambio entre equipos de dos jugadores del mismo puesto y el mismo puntaje: el resumen no se divide
+- `S-07b [boundary]` — recién generado, con un equipo que no tiene a nadie para un puesto de la formación: quien queda ahí fuera de puesto suma su principal también para el motor, el total guardado coincide con el de la pantalla y el resumen no se divide (`FR-025c`, `TC-012`)
 
 ### 9.2 Edge cases
 
@@ -674,6 +734,7 @@ Ninguno sin escenario padre: los bordes viven como variantes en §9.1.
 
 - `S-22a [boundary]` — 360 px, una columna, después de cambiar de pestaña con la selección viva
 - `S-22b [boundary]` — 700 y 701 px, a los dos lados del paso de una a dos columnas
+- `S-22c [boundary]` — con una unidad fuera de puesto en la fila de cuatro y candidatos con costo: en cada ancho, la pastilla «!» y el recuadro rojo quedan dentro de su columna y de la cancha, y la «!» no pisa el puntaje (`FR-021b`, `FR-025`)
 
 ## 10. Data model & external contracts
 
@@ -736,10 +797,11 @@ Ninguno.
   (revisión de código con `grep`).
 - **AC-33** — `TC-010`: un test verifica que la compatibilidad y "lugares sin cubrir"
   coinciden para un mismo par (unidad, puesto), con y sin duplas.
-- **AC-34** — `TC-011`: revisión de que no hay cálculo nuevo y de que
-  `tests/motor.test.js` pasa sin cambios.
-- **AC-35** — `TC-012`: el diff no toca las funciones de estrategia del motor (revisión
-  de código); `tests/motor.test.js` pasa sin cambios.
+- **AC-34** — `TC-011`: revisión de que no hay cálculo nuevo salvo el de `FR-025c`, y de que
+  `tests/motor.test.js` pasa, con un solo caso cambiado: el de `014` que `D-36` reemplaza.
+- **AC-35** — `TC-012`: el diff no toca las funciones de estrategia del motor salvo para sumar
+  con el valor de `FR-025c`, ni ninguna elección de candidatos (revisión de código);
+  `tests/motor.test.js` pasa con el caso de `AC-34`.
 - **AC-36** — `TC-013`: revisión de que la selección no se escribe (cubierto además por
   `AC-13`).
 - **AC-37** — `TC-020`: revisión de que cada estado tiene una señal no cromática.
@@ -870,6 +932,9 @@ La aplicación no tiene telemetría de uso; la fuente es el uso del propietario.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-36`, fuera de puesto una unidad suma su nota en la principal, en la pantalla y en el motor. Nueva `FR-025c`; `TC-011`, `TC-012`, `AC-34` y `AC-35` declaran la excepción; `D-30` queda reemplazada en ese caso. Nuevas `S-01p` y `S-07b`. La declaración de reemplazo suma `012` (contexto y escenario 6), `014` (`FR-003`, `FR-007`) y `011` (l. 180), en los tres casos sólo para un puesto que el jugador no juega. Verificado contra la copia de producción en staging: ninguno de los 12 partidos finalizados tiene a alguien fuera de puesto (192 camisetas), así que ningún total histórico cambia hoy. Self-critique: skipped (cambio acotado a pedido explícito) |
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras probar la rama de código: `D-34` (el candidato depende sólo de los puestos de la seleccionada; reemplaza `D-04`) y `D-35` (estado de puesto por camiseta y candidato con costo, diseños 19a y 20b en `diseño/intercambio de jugadores sin puesto/`). `FR-021` se reescribe; nuevas `FR-021b`, `FR-025` y `FR-025b`; se retiran `FR-042b` y `FR-042d`, y `FR-042` remite sólo a `FR-042c`. `TC-020` declara la excepción del candidato con costo, que se distingue sólo por color: decisión del propietario sobre 20b, registrada como riesgo de accesibilidad. Variantes reescritas: `S-01l`, `S-03a`, `S-04a`; nuevas: `S-01n`, `S-01o`, `S-02i`, `S-22c`. §3.3 suma `D-33` a `D-35`. Self-critique: skipped (cambio acotado a pedido explícito) |
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras probar la rama de código en un iPhone (`D-33`): en una columna, si todos los candidatos están en el otro equipo, la cancha a la vista no muestra ninguno y la selección parece no haber hecho nada. Nueva `FR-012b`: cada pestaña del selector muestra cuántos candidatos tiene ese equipo, como en el diseño 18h, que el Implementation Plan había dejado afuera. Nueva variante `S-02h`; `US-02` suma `FR-012b`. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Revisión corta del propio autor sobre los cambios de `fb880df..f85689d`, a pedido del propietario. Self-critique (Step 5, sólo sobre ese diff): passed (0🔴 / 1🟡 / 3🔵), todos resueltos: `FR-042` no decía qué pasa al soltar sobre un compañero del mismo puesto (no es candidato por `FR-023` y ninguno de `FR-042b` a `FR-042d` aplica; ahora: sin aviso); `FR-034b` se acota al toque; `S-03h` se declara de verificación manual; el encabezado menciona la nota en `CARGA_POR_TOQUE_SPEC.md`. Verificado en el código que el control de `A-07` está en `__generarEquipos` ([index.html:4670-4676](../../index.html#L4670-L4676)). |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Atiende la crítica [`POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-sonnet-5.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-sonnet-5.md) (1🔴 / 2🟡 / 2🔵) y la de [`…_claude-haiku-5-5.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-haiku-5-5.md) (0🔴 / 5🟡 / 7🔵; no leyó el Concept Note ni las críticas previas ni hizo los chequeos pedidos, así que sólo se tomaron sus hallazgos verificados). El 🔴 de claude-sonnet-5 (`FR-061` falso para puestos del catálogo viejo, verificado en [index.html:3105-3111](../../index.html#L3105-L3111)) deja de aplicar por `D-32`, decisión del propietario: la feature no contempla puestos viejos, porque generar exige revisar las fichas ([index.html:4676](../../index.html#L4676)); queda como supuesto `A-07` `[UNVERIFIED]`. Se retiran `D-20`, `S-01i`, `S-06c` y la mención en §3.1 y el glosario; `FR-061` cita `FR-015` de la Spec del motor (l. 288). Se restituye "Arco vacío" en el glosario. Nuevas `FR-034b` (aviso "Ya no se puede intercambiar: el reparto cambió", texto aprobado por el propietario), `FR-042b` a `FR-042d`, `FR-045b`, `FR-045c` y `S-03h` (toque y arrastre a la vez). El diagrama de §9 suma `FR-019`, `FR-019b` y `FR-034b`; `NFR-002` cita su origen; §17 aclara que las funciones de `TC-010`/`TC-011` no se renombran; encabezado con fecha de última revisión. Pendientes de claude-fable-5-1: el 3 se resuelve (aviso del encabezado con `CANCHA_SPEC.md`), el 11 se resuelve (`FR-042` partido), el 12 se resuelve (nota en el glosario de `CARGA_POR_TOQUE_SPEC.md`); el 6 y el 7 no estaban pendientes: dejaron de aplicar con `D-31`, como señaló claude-sonnet-5. No se tomaron de claude-haiku-5-5: quitar `TC-001`, `TC-030` a `TC-032` (son recordatorios de `AGENTS.md` que gatean `AC-30`, `AC-38` a `AC-40`), unificar `TC-020` con `NFR-003` (uno es la norma y el otro la mide) y traducir `AC-50` (texto del template). Self-critique: skipped |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras la crítica de claude-fable-5-1 ([`POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-fable-5-1.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-fable-5-1.md), 0🔴 / 5🟡 / 8🔵): la feature deja de ocupar el arco vacío (`D-31`). Un equipo sin arquero se resuelve regenerando, como hoy, y la idea de ocuparlo a mano pasa a `Roadmap.md`. Se retiran `FR-047` a `FR-049`, `FR-050b`, `FR-051` a `FR-056`, `FR-058`, `FR-058b`, `FR-059`, `FR-062`, `FR-063`, `US-05`, `A-04`, `A-05` y el glosario del arquero puesto a mano; `FR-050` pasa a decir que el arco vacío no se ofrece; `TC-002`, `TC-042` y `TC-043` dejan de hablar de un dato nuevo en `data/partidosArmado`. Además, `FR-061` se corrige contra la Spec del motor (`003`, l. 231): el candado fija el equipo y no el puesto, lo que cierra `OPEN-Q-12`; y con candado y ARQ guardado el motor ya deja al arquero en el arco (hallazgo 1 de la crítica, verificado en [index.html:3364-3366](../../index.html#L3364-L3366)). `S-04` y `S-06` se reescriben con sus variantes; se retira `S-21b`. Con el arco vacío fuera, dejan de aplicar los hallazgos 1, 2, 4, 5, 8, 9 y 10 de esa crítica, y el 13 se resolvió en la nota de `FR-022` de `ARRASTRE_SPEC.md`; los 🔵 3, 6, 7, 11 y 12 quedan para la revisión siguiente. Self-critique: skipped |

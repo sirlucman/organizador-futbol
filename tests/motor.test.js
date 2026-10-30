@@ -574,12 +574,19 @@ test('014: la Estrategia 1 no cambia: sigue usando el promedio de los promedios'
 // FR-011: la columna de puntajes del panel muestra el número siempre que la unidad tenga valor,
 // incluso en una posición que ninguno de los dos integrantes cubre (donde el número sale del
 // promedio de los promedios generales). "Sin puntaje" en la columna queda solo para FR-004.
-test('014: el panel muestra el número aunque ninguno cubra la posición', () => {
+/* Reemplazado en parte por posiciones-del-jugador (D-36, FR-025c): en una posición que ninguno de
+   los dos juega, la dupla está fuera de puesto y vale lo de la principal de su unidad, no el
+   promedio de los promedios generales (5.8) que daba la fórmula de 014. Sigue mostrando un
+   número y no "sin puntaje", que es lo que este caso cuidaba. */
+test('014 (reemplazado en parte por posiciones-del-jugador): fuera de puesto, la dupla vale lo de su principal', () => {
   const motor = cargarMotor();
   const [[claudio, juan]] = F.PARTIDO_TESTIGO.duplas;
-  // Delantero: ninguno de los dos tiene nota cargada ahí.
+  // Delantero: ninguno de los dos lo juega ni tiene nota cargada ahí.
   const m = { equipos: { posicionAsignada: { [claudio.id]: 'Delantero', [juan.id]: 'Delantero' } } };
-  eq(motor.valorDePuntaje([claudio, juan], m), 5.8, 'la columna debe mostrar el número, no "sin puntaje"');
+  const unidad = motor.construirUnidadDupla(claudio, juan);
+  eq(motor.valorDePuntaje([claudio, juan], m), motor.puntajeEnPosicion(unidad, unidad.principal),
+    'la columna muestra el valor de la unidad en su principal, no "sin puntaje"');
+  ok(motor.valorDePuntaje([claudio, juan], m) !== 5.8, 'y ya no el promedio general de 014');
 });
 
 test('014: el panel muestra "sin puntaje" solo cuando la unidad no tiene ningún valor', () => {

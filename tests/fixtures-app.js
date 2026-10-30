@@ -288,6 +288,133 @@ function docsDesde(fixture = PARTIDO_TESTIGO, { reclasificados = true, aRevisar 
   };
 }
 
+/* Los datos del intercambio de puesto (posiciones-del-jugador, Implementation Plan TD-17).
+
+   Se SUMAN a los de `docsDesde` y no se escriben sobre ellos: los partidos de `docsDesde` guardan
+   posiciones del catálogo viejo a propósito (ver `reclasificados`), y `D-32` dice que un partido
+   editable ya no las tiene. Escribir los escenarios del intercambio sobre esos datos probaría un
+   estado que la feature declara inexistente. Agregarlos aparte no cambia ninguno de los escenarios
+   que ya pasan. Se engancha con el `transformarDatos` de `tests/layout.test.js`.
+
+   El plantel está armado para que cada escenario de la Spec tenga su caso exacto:
+     - Juan (DC; LD y LI) y Pedro (LD; DC) son los de `S-01`: intercambiarlos baja 4 el Blanco.
+       Nico, LI puro, es el candidato con costo de Juan: Juan cubre LI y Nico no cubre DC (`S-01n`).
+     - Lucas (MC; MD) y Tomás (MD; MC) son los de `S-02`, en equipos distintos.
+     - Mateo y Bruno, MI puros de 6 en equipos distintos, son el intercambio de `S-07a`.
+     - El jugador `<img …>` es el DEL del Blanco y no tiene candidatos en `m-int-8`: el Negro juega
+       sin DEL —Ramón, su DEL de Fútbol 9, está de MC, un lugar de más—, así que no hay ningún otro
+       DEL con quien intercambiar. Él no cubre DC: soltarlo sobre Diego produce el aviso de `S-21`
+       con su nombre. En `m-int-9` Ramón sí está de DEL, sin declararlo: fuera de puesto (`S-02i`).
+     - Julián (MI; Arquero de secundaria) es el de `S-04a`, con candado en `m-int-sin-arquero`.
+     - La dupla Ramiro (LD; MC) + Esteban (MC) va en la fila de cuatro de Fútbol 9, que es el caso
+       más ancho de la cancha (`S-22`).
+   Cada jugador tiene puntaje en el puesto que se le asigna, así los totales son las sumas a mano
+   que se anotan abajo y el resumen de un partido recién armado no aparece dividido (`S-07`). */
+function agregarDatosDeIntercambio(datos) {
+  const J = (id, nombre, apellido, principal, scores, secundarias = []) => ({
+    id, nombre, apellido, estado: 'Activo', principal, secundarias, scores,
+    partidosJugados: 10, partidosGanados: 5, partidosEmpatados: 2, partidosPerdidos: 3, goles: 3, asistencias: 2,
+  });
+  const nuevos = [
+    J('int-fermin', 'Fermín', 'Arce', 'Arquero', { Arquero: 6 }),
+    J('int-nico', 'Nicolás', 'Lagos', 'LI', { LI: 6 }),
+    J('int-juan', 'Juan', 'Pérez', 'DC', { DC: 7, LD: 6, LI: 5 }, ['LD', 'LI']),
+    J('int-pedro', 'Pedro', 'Gómez', 'LD', { LD: 8, DC: 5 }, ['DC']),
+    J('int-mateo', 'Mateo', 'Ruiz', 'MI', { MI: 6 }),
+    J('int-lucas', 'Lucas', 'Herrera', 'MC', { MC: 7, MD: 6 }, ['MD']),
+    J('int-martin', 'Martín', 'Sosa', 'MD', { MD: 6 }),
+    J('int-img', '<img src=x onerror=alert(1)>', '', 'DEL', { DEL: 7 }),
+    J('int-gabriel', 'Gabriel', 'Ortiz', 'Arquero', { Arquero: 6 }),
+    J('int-sergio', 'Sergio', 'Paz', 'LI', { LI: 6 }),
+    J('int-diego', 'Diego', 'Ramos', 'DC', { DC: 6, DEL: 5 }, ['DEL']),
+    J('int-hernan', 'Hernán', 'Vega', 'LD', { LD: 7 }),
+    J('int-bruno', 'Bruno', 'Díaz', 'MI', { MI: 6 }),
+    J('int-ezequiel', 'Ezequiel', 'Romero', 'MC', { MC: 6 }),
+    J('int-tomas', 'Tomás', 'Silva', 'MD', { MD: 6, MC: 7 }, ['MC']),
+    J('int-ramon', 'Ramón', 'Acosta', 'MC', { MC: 7 }),
+    J('int-agustin', 'Agustín', 'Molina', 'MC', { MC: 6 }),
+    J('int-ramiro', 'Ramiro', 'Castro', 'LD', { LD: 6, MC: 6 }, ['MC']),
+    J('int-esteban', 'Esteban', 'Luna', 'MC', { MC: 6 }),
+    J('int-julian', 'Julián', 'Torres', 'MI', { MI: 5, Arquero: 4 }, ['Arquero']),
+  ];
+
+  /* Un reparto con puestos: `[id, puesto]` por equipo. */
+  const reparto = (blanco, negro, extra = {}) => ({
+    blanco: blanco.map(([id]) => id),
+    negro: negro.map(([id]) => id),
+    posicionAsignada: Object.fromEntries([...blanco, ...negro]),
+    esPrimeraGeneracion: true, cambios: 0,
+    estrategia: 'Por posición y puntaje', estrategiaKey: 'estrategia2',
+    duplasSnapshot: '[]',
+    ...extra,
+  });
+  const BLANCO_8 = [['int-fermin', 'Arquero'], ['int-nico', 'LI'], ['int-juan', 'DC'], ['int-pedro', 'LD'],
+    ['int-mateo', 'MI'], ['int-lucas', 'MC'], ['int-martin', 'MD'], ['int-img', 'DEL']];
+  const NEGRO_8 = [['int-gabriel', 'Arquero'], ['int-sergio', 'LI'], ['int-diego', 'DC'], ['int-hernan', 'LD'],
+    ['int-bruno', 'MI'], ['int-ezequiel', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'MC']];
+  // Blanco 6+6+7+8+6+7+6+7 = 53. Negro 6+6+6+7+6+6+6+7 = 50.
+  const equipos8 = reparto(BLANCO_8, NEGRO_8, { sumaBlanco: 53, sumaNegro: 50 });
+  const ids8 = [...equipos8.blanco, ...equipos8.negro];
+
+  /* Fútbol 9: la fila de cuatro del Medio con la dupla adentro. Juan, Pedro, Lucas y Tomás
+     siguen donde estaban, así que la selección de Lucas tiene candidatos en los dos equipos:
+     Martín en el propio, con costo —no juega MC—, y Ezequiel, Agustín y Tomás en el otro. En el
+     Negro hay tres fuera de puesto, para el diseño 19a: Ramón de DEL, Hernán (LD) de MI, en la fila
+     de cuatro, y Bruno (MI) de LD (`S-02i`, `S-22c`). */
+  const BLANCO_9 = [['int-fermin', 'Arquero'], ['int-nico', 'LI'], ['int-juan', 'DC'], ['int-pedro', 'LD'],
+    ['int-mateo', 'MI'], ['int-lucas', 'MC'], ['int-ramiro', 'MC'], ['int-esteban', 'MC'], ['int-martin', 'MD'], ['int-img', 'DEL']];
+  const NEGRO_9 = [['int-gabriel', 'Arquero'], ['int-sergio', 'LI'], ['int-diego', 'DC'], ['int-hernan', 'MI'],
+    ['int-bruno', 'LD'], ['int-ezequiel', 'MC'], ['int-agustin', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'DEL']];
+  const duplas9 = [['int-ramiro', 'int-esteban']];
+  /* La dupla vale 6 en MC (los dos tienen 6): Blanco 53 + 6 = 59. Negro 6+6+6+6+6+6 = 36: Ramón,
+     Hernán y Bruno no tienen puntaje en el puesto que ocupan. */
+  const equipos9 = reparto(BLANCO_9, NEGRO_9, { sumaBlanco: 59, sumaNegro: 36,
+    duplasSnapshot: JSON.stringify(duplas9.map(par => [...par].sort())) });
+  const ids9 = [...equipos9.blanco, ...equipos9.negro];
+
+  /* El arquero del Blanco pasó al Negro por un pase hecho a mano (conserva ARQ, `FR-043`), y el
+     Blanco quedó con el arco vacío y siete unidades. Julián, con Arquero de secundaria, tiene
+     candado: el motor no lo mueve al arco al regenerar (`S-04a`). */
+  const BLANCO_SA = [['int-nico', 'LI'], ['int-julian', 'MI'], ['int-juan', 'DC'], ['int-pedro', 'LD'],
+    ['int-lucas', 'MC'], ['int-martin', 'MD'], ['int-img', 'DEL']];
+  const NEGRO_SA = [...NEGRO_8, ['int-fermin', 'Arquero']];
+  // Blanco 6+5+7+8+7+6+7 = 46. Negro 50 + 6 (Fermín) = 56.
+  const equiposSA = reparto(BLANCO_SA, NEGRO_SA, { sumaBlanco: 46, sumaNegro: 56 });
+
+  /* "Solo por puntaje": sin `posicionAsignada`. El motor sólo marca al arquero que ubicó en el arco
+     (`posicionOverride`); los demás se dibujan en la línea de su principal. El Blanco no tiene a
+     nadie en el arco (`S-04c`, `S-05b`). Los totales son la suma de los promedios generales, que
+     es lo que suma un partido sin puestos (`valorDePuntaje`). */
+  const BLANCO_P = ['int-nico', 'int-julian', 'int-juan', 'int-pedro', 'int-lucas', 'int-martin', 'int-mateo', 'int-img'];
+  const NEGRO_P = ['int-gabriel', 'int-sergio', 'int-diego', 'int-hernan', 'int-bruno', 'int-ezequiel', 'int-tomas', 'int-ramon'];
+  const equiposP = { blanco: BLANCO_P, negro: NEGRO_P, sumaBlanco: 48, sumaNegro: 50,
+    posicionOverride: { 'int-gabriel': 'Arquero' }, esPrimeraGeneracion: true, cambios: 0,
+    estrategia: 'Solo por puntaje', estrategiaKey: 'estrategia1', duplasSnapshot: '[]' };
+
+  const partido = (id, fecha, cancha, equipos, convocados, extra = {}) => ({
+    id, fecha, cancha, estado: 'Inscripción abierta', convocados, inscripcionCerrada: false,
+    estrategia: equipos.estrategiaKey, bloqueados: [], duplas: [], equipos, ...extra,
+  });
+  const copia = x => JSON.parse(JSON.stringify(x));
+  /* Fechas propias, con días que no usa ningún partido de `docsDesde`: `abrirPartido` encuentra la
+     tarjeta por el día del mes. */
+  const nuevosPartidos = [
+    partido('m-int-8', '2026-10-13', 'futbol8', equipos8, ids8, { bloqueados: ['int-pedro'] }),
+    partido('m-int-9', '2026-10-14', 'futbol9', equipos9, ids9, { duplas: duplas9 }),
+    partido('m-int-sin-arquero', '2026-10-15', 'futbol8', equiposSA, [...equiposSA.blanco, ...equiposSA.negro],
+      { bloqueados: ['int-julian'] }),
+    partido('m-int-puntaje', '2026-10-16', 'futbol8', equiposP, [...BLANCO_P, ...NEGRO_P]),
+    partido('m-int-cerrado', '2026-10-18', 'futbol8', copia(equipos8), ids8,
+      { estado: 'Equipos generados', inscripcionCerrada: true }),
+    partido('m-int-finalizado', '2026-10-19', 'futbol8', copia(equipos8), ids8,
+      { estado: 'Finalizado', inscripcionCerrada: true, resultado: { finalizadoEn: 1760900000000, eventos: [] } }),
+  ];
+
+  datos.players = JSON.stringify(JSON.parse(datos.players).concat(nuevos));
+  datos.partidos = JSON.stringify(JSON.parse(datos.partidos).concat(nuevosPartidos));
+  return datos;
+}
+
 /* Se inyecta con page.addInitScript ANTES de que corra el script de index.html,
    y los tres <script> del CDN de Firebase se bloquean con page.route. Tiene que
    ser una función serializable —nada de closures sobre el módulo— y recibir un
@@ -397,4 +524,4 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
   };
 }
 
-module.exports = { docsDesde, fakeFirebase };
+module.exports = { docsDesde, fakeFirebase, agregarDatosDeIntercambio };

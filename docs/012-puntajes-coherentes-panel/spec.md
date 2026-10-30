@@ -51,7 +51,7 @@
 
 En el panel de equipos generados, cada jugador muestra su puntaje en la posición asignada, y el encabezado del equipo muestra el total. Con las Estrategias 2 y 3, un jugador sin nota cargada en esa posición se muestra como "sin puntaje", y hay dos contadores ("Sin puntaje — Blanco: N", "Sin puntaje — Negro: N").
 
-Para los jugadores individuales eso es coherente: el motor también los cuenta como 0 en una posición que no tienen cargada. **Para las duplas de rotación no.** El motor no evalúa a los dos integrantes por separado: los convierte en una unidad con un único valor combinado, el mismo en las cuatro posiciones. El panel, en cambio, muestra a cada integrante como jugador real y busca su nota en la posición asignada.
+Para los jugadores individuales eso es coherente: el motor también los cuenta como 0 en una posición que no tienen cargada. *(Reemplazado en parte el 2026-10-30 por `FR-025c` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md): en una posición que el jugador no juega, el motor y el panel cuentan su nota en la principal.)* **Para las duplas de rotación no.** El motor no evalúa a los dos integrantes por separado: los convierte en una unidad con un único valor combinado, el mismo en las cuatro posiciones. El panel, en cambio, muestra a cada integrante como jugador real y busca su nota en la posición asignada.
 
 Consecuencia concreta, verificada en un partido real:
 
@@ -89,6 +89,7 @@ Un "admin" mira el panel de equipos generados y puede sumar mentalmente los punt
 4. **Given** una dupla en la que ninguno de los dos tiene puntaje cargado, **When** el "admin" mira el panel, **Then** la columna de puntaje muestra "sin puntaje" una sola vez para el par.
 5. **Given** un integrante de una dupla sin nota cargada en la posición asignada, **When** el "admin" mira el panel, **Then** al lado de su nombre ve que no tiene nota, pero la columna de puntaje sigue mostrando el valor de la unidad (que puede tener puntaje igual).
 6. **Given** un jugador individual sin nota en su posición asignada, **When** el "admin" mira el panel, **Then** sigue viéndose como "sin puntaje", igual que hoy.
+   **Reemplazado en parte el 2026-10-30 por `FR-025c` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** si el jugador no juega esa posición (fuera de puesto), suma y muestra su nota en la principal. Si la juega de secundaria y no tiene nota, este escenario sigue vigente.
 
 ---
 

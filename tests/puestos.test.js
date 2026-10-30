@@ -374,6 +374,8 @@ const { execFileSync } = require('child_process');
 const DECLARACIONES_LECTURA = [
   ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'lineaDeUnSoloLugar',
   'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'valorDePuntaje', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo', 'agruparEnLineasDeCancha',
   'MAX_POR_SUBFILA', 'partirLineaEnSubfilas',
   'sumasPorLinea', 'balanceLineasDe', 'balanceGuardadoPorLinea', 'colapsarDuplasParaLinea', 'balanceLineasVigente',

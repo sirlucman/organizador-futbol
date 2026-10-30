@@ -83,6 +83,8 @@ const DECLARACIONES = [
   'COSTO_DESCUBIERTA',
   'costoEncaje',
   'cubrePosicionGuardada',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'asignarPosicionesOptimo',
   'enumerarAsignacionesOptimas',
   'MAX_COMBINACIONES_LINEAS',
