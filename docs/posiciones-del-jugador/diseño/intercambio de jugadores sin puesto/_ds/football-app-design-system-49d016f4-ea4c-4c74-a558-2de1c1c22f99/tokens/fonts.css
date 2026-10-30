@@ -1,0 +1,13 @@
+/* Inter — the system's single face, CONFIRMED by the brand owner (display 900 + UI/body 400–600).
+   Not a substitution: the spec's "proprietary Inter" display face IS Inter. Loaded from Google
+   Fonts; to vendor it, drop .woff2 files into assets/fonts/ and swap this @import for local
+   @font-face rules. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap");
+:root {
+  --font-family-inter: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace;
+  --font-display: var(--font-family-inter);
+  --font-sans: var(--font-family-inter);
+  --font-mono: var(--font-family-mono);
+  --font-feature-body: "calt"; /* @kind other */
+}
