@@ -2163,10 +2163,10 @@ const ESCENARIOS = [
       await tocarCamiseta(page, 'int-lucas');
       let s = await leerSeleccion(page);
       if (s.seleccionadas.join() !== 'int-lucas') problemas.push(`tocar a Lucas dejó seleccionadas ${JSON.stringify(s.seleccionadas)} (S-02, FR-010)`);
-      /* S-02h: Martín en el Blanco; Ezequiel y Tomás en el Negro. */
+      /* S-02h: Martín en el Blanco; Ezequiel, Ramón y Tomás en el Negro. */
       let p = await pestanias();
-      if (p.map(x => x.cuenta).join() !== '1,2') problemas.push(`con Lucas seleccionado las pestañas cuentan ${JSON.stringify(p.map(x => x.cuenta))}, y son 1 en el Blanco y 2 en el Negro (S-02h, FR-012b)`);
-      if (!p[1] || !/2 candidatos/.test(p[1].etiqueta)) problemas.push(`la pestaña del Negro no dice la cuenta en su nombre accesible: ${JSON.stringify(p[1] && p[1].etiqueta)} (S-02h, NFR-003)`);
+      if (p.map(x => x.cuenta).join() !== '1,3') problemas.push(`con Lucas seleccionado las pestañas cuentan ${JSON.stringify(p.map(x => x.cuenta))}, y son 1 en el Blanco y 3 en el Negro (S-02h, FR-012b)`);
+      if (!p[1] || !/3 candidatos/.test(p[1].etiqueta)) problemas.push(`la pestaña del Negro no dice la cuenta en su nombre accesible: ${JSON.stringify(p[1] && p[1].etiqueta)} (S-02h, NFR-003)`);
       await page.click('.equipo-tab[aria-pressed="false"]');
       await page.waitForTimeout(300);
       s = await leerSeleccion(page);
@@ -2241,9 +2241,10 @@ const ESCENARIOS = [
       s = await leerSeleccion(page);
       if (s.seleccionadas.join() !== 'int-juan') problemas.push(`tocar a un no candidato dejó seleccionadas ${JSON.stringify(s.seleccionadas)} (S-01b, FR-014)`);
       if ((await docsGuardados(page)).n !== n0) problemas.push('seleccionar escribió el partido (S-01b, NFR-005)');
-      /* S-01 y S-02a: los candidatos de Juan, de los dos equipos a la vez. */
-      if (s.candidatas.join() !== 'int-diego,int-pedro') {
-        problemas.push(`los candidatos de Juan son ${JSON.stringify(s.candidatas)}, y la regla da a Pedro en el Blanco y a Diego en el Negro, a la vez (S-01, S-02a, FR-011)`);
+      /* S-01 y S-02a: los candidatos de Juan, de los dos equipos a la vez: todos los que ocupan un
+         puesto que él juega (LI, DC, LD). */
+      if (s.candidatas.join() !== 'int-diego,int-hernan,int-nico,int-pedro,int-sergio') {
+        problemas.push(`los candidatos de Juan son ${JSON.stringify(s.candidatas)}, y la regla da a Nico y Pedro en el Blanco y a Sergio, Diego y Hernán en el Negro, a la vez (S-01, S-02a, FR-011)`);
       }
       if (s.atenuadas !== s.camisetas - 1 - s.candidatas.length) problemas.push(`con Juan seleccionado hay ${s.atenuadas} atenuadas de ${s.camisetas - 1 - s.candidatas.length} que no son candidatas (FR-011)`);
 
@@ -2356,22 +2357,22 @@ const ESCENARIOS = [
       await recargarEn(page, 1200, '2026-10-13');
       base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
 
-      /* S-03a: un compañero que no cubre DC. */
-      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-nico' });
+      /* S-03a: un compañero cuyo puesto Juan no juega. */
+      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-mateo' });
       await page.waitForTimeout(250);
       if (!f.dropAceptado) problemas.push('soltar sobre una camiseta incompatible no se acepta, y así el aviso nunca llegaría (FR-042, TD-10)');
       if (f.realzado) problemas.push('una camiseta que no es candidata se realzó bajo el puntero (TD-10)');
       let aviso = await textoDelAviso(page);
-      if (aviso !== 'Nicolás Lagos no juega de Defensor Central') problemas.push(`soltar a Juan sobre Nico avisó ${JSON.stringify(aviso)} (S-03a, FR-042b)`);
-      await sinEscribir(base.n, 'soltar sobre un compañero que no cubre DC (S-03a, FR-042)');
+      if (aviso !== 'Juan Pérez no juega de Mediocampista Izquierdo') problemas.push(`soltar a Juan sobre Mateo avisó ${JSON.stringify(aviso)} (S-03a, FR-042c)`);
+      await sinEscribir(base.n, 'soltar sobre un compañero cuyo puesto Juan no juega (S-03a, FR-042)');
       if (f.marcasQueQuedan) problemas.push(`después de soltar quedaron ${f.marcasQueQuedan} marcas del arrastre (S-03a)`);
       await despejarAviso(page);
 
       /* S-03b: una camiseta del otro equipo que no es candidata. Hasta esta feature se aplicaba. */
-      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-hernan' });
+      f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-ezequiel' });
       await page.waitForTimeout(250);
       aviso = await textoDelAviso(page);
-      if (aviso !== 'Hernán Vega no juega de Defensor Central') problemas.push(`soltar a Juan sobre Hernán avisó ${JSON.stringify(aviso)} (S-03b, FR-042b)`);
+      if (aviso !== 'Juan Pérez no juega de Mediocampista Central') problemas.push(`soltar a Juan sobre Ezequiel avisó ${JSON.stringify(aviso)} (S-03b, FR-042c)`);
       await sinEscribir(base.n, 'soltar sobre un no candidato del otro equipo (S-03b, D-08)');
       await despejarAviso(page);
 
@@ -2386,7 +2387,7 @@ const ESCENARIOS = [
       if ((await leerSeleccion(page)).seleccionadas.join() !== 'int-lucas') problemas.push('tocar a Lucas no lo seleccionó: S-03e no tiene una selección previa que descartar (S-03e, FR-010)');
       f = await arrastrarSobre(page, 'int-juan', { camiseta: 'int-pedro' });
       if (f.seleccionadas.join() !== 'int-juan') problemas.push(`al empezar a arrastrar con Lucas seleccionado quedaron seleccionadas ${JSON.stringify(f.seleccionadas)} (S-03e, FR-046)`);
-      if (f.candidatas.join() !== 'int-diego,int-pedro') problemas.push(`al empezar a arrastrar a Juan se resaltaron ${JSON.stringify(f.candidatas)}, y sus candidatos son Pedro y Diego (S-03, FR-040)`);
+      if (f.candidatas.join() !== 'int-diego,int-hernan,int-nico,int-pedro,int-sergio') problemas.push(`al empezar a arrastrar a Juan se resaltaron ${JSON.stringify(f.candidatas)}, y sus candidatos son Nico, Pedro, Sergio, Diego y Hernán (S-03, FR-040)`);
       if (!f.mismoNodo) problemas.push('empezar el arrastre reemplazó la camiseta (TD-09, S-03)');
       if (!f.realzado) problemas.push('Pedro, candidato, no se realzó bajo el puntero (S-03, FR-040)');
       await page.waitForTimeout(300);
@@ -2638,11 +2639,11 @@ const ESCENARIOS = [
       await despejarAviso(page);
       await tocarCamiseta(page, 'int-img');   // cancela la selección
 
-      /* S-21: el aviso de FR-042. Diego (DC; DEL) cubre el puesto del jugador y él no cubre DC. */
-      await arrastrarSobre(page, 'int-diego', { camiseta: 'int-img' });
+      /* S-21: el aviso de FR-042c. El jugador no juega DC: soltarlo sobre Diego se rechaza. */
+      await arrastrarSobre(page, 'int-img', { camiseta: 'int-diego' });
       await page.waitForTimeout(250);
       a = await leer();
-      if (a.texto !== `${NOMBRE} no juega de Defensor Central`) problemas.push(`el aviso del drop rechazado dice ${JSON.stringify(a.texto)} (S-21, FR-042b)`);
+      if (a.texto !== `${NOMBRE} no juega de Defensor Central`) problemas.push(`el aviso del drop rechazado dice ${JSON.stringify(a.texto)} (S-21, FR-042c)`);
       if (a.imgs) problemas.push('el nombre del aviso del drop se interpretó como HTML (S-21, TC-041)');
       if (dialogos.length) problemas.push(`se ejecutó código del nombre del jugador: ${dialogos.length} diálogo(s) (S-21, TC-041)`);
       return problemas;

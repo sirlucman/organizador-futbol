@@ -298,13 +298,13 @@ function docsDesde(fixture = PARTIDO_TESTIGO, { reclasificados = true, aRevisar 
 
    El plantel está armado para que cada escenario de la Spec tenga su caso exacto:
      - Juan (DC; LD y LI) y Pedro (LD; DC) son los de `S-01`: intercambiarlos baja 4 el Blanco.
-       Juan suma LI de secundaria para que `S-03a` tenga un compañero —Nico, LI puro— cuyo puesto
-       Juan cubre y que no cubre DC: es lo que produce "Nico … no juega de Defensor Central".
+       Nico, LI puro, es el candidato con costo de Juan: Juan cubre LI y Nico no cubre DC (`S-01n`).
      - Lucas (MC; MD) y Tomás (MD; MC) son los de `S-02`, en equipos distintos.
      - Mateo y Bruno, MI puros de 6 en equipos distintos, son el intercambio de `S-07a`.
-     - El jugador `<img …>` es el DEL del Blanco y no tiene candidatos: el DEL del Negro, Ramón,
-       juega ahí sin declararlo (un lugar sin cubrir), así que nadie puede tomarle el puesto. Diego
-       (DC; DEL) cubre el suyo y él no cubre DC: el aviso de `S-21` sale con su nombre.
+     - El jugador `<img …>` es el DEL del Blanco y no tiene candidatos en `m-int-8`: el Negro juega
+       sin DEL —Ramón, su DEL de Fútbol 9, está de MC, un lugar de más—, así que no hay ningún otro
+       DEL con quien intercambiar. Él no cubre DC: soltarlo sobre Diego produce el aviso de `S-21`
+       con su nombre. En `m-int-9` Ramón sí está de DEL, sin declararlo: fuera de puesto (`S-02i`).
      - Julián (MI; Arquero de secundaria) es el de `S-04a`, con candado en `m-int-sin-arquero`.
      - La dupla Ramiro (LD; MC) + Esteban (MC) va en la fila de cuatro de Fútbol 9, que es el caso
        más ancho de la cancha (`S-22`).
@@ -351,9 +351,9 @@ function agregarDatosDeIntercambio(datos) {
   const BLANCO_8 = [['int-fermin', 'Arquero'], ['int-nico', 'LI'], ['int-juan', 'DC'], ['int-pedro', 'LD'],
     ['int-mateo', 'MI'], ['int-lucas', 'MC'], ['int-martin', 'MD'], ['int-img', 'DEL']];
   const NEGRO_8 = [['int-gabriel', 'Arquero'], ['int-sergio', 'LI'], ['int-diego', 'DC'], ['int-hernan', 'LD'],
-    ['int-bruno', 'MI'], ['int-ezequiel', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'DEL']];
-  // Blanco 6+6+7+8+6+7+6+7 = 53. Negro 6+6+6+7+6+6+6 = 43: Ramón no tiene puntaje de DEL.
-  const equipos8 = reparto(BLANCO_8, NEGRO_8, { sumaBlanco: 53, sumaNegro: 43 });
+    ['int-bruno', 'MI'], ['int-ezequiel', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'MC']];
+  // Blanco 6+6+7+8+6+7+6+7 = 53. Negro 6+6+6+7+6+6+6+7 = 50.
+  const equipos8 = reparto(BLANCO_8, NEGRO_8, { sumaBlanco: 53, sumaNegro: 50 });
   const ids8 = [...equipos8.blanco, ...equipos8.negro];
 
   /* Fútbol 9: la fila de cuatro del Medio con la dupla adentro. Juan, Pedro, Lucas y Tomás
@@ -364,7 +364,7 @@ function agregarDatosDeIntercambio(datos) {
   const NEGRO_9 = [['int-gabriel', 'Arquero'], ['int-sergio', 'LI'], ['int-diego', 'DC'], ['int-hernan', 'LD'],
     ['int-bruno', 'MI'], ['int-ezequiel', 'MC'], ['int-agustin', 'MC'], ['int-tomas', 'MD'], ['int-ramon', 'DEL']];
   const duplas9 = [['int-ramiro', 'int-esteban']];
-  // La dupla vale 6 en MC (los dos tienen 6): Blanco 53 + 6 = 59. Negro 43 + 6 (Agustín) = 49.
+  // La dupla vale 6 en MC (los dos tienen 6): Blanco 53 + 6 = 59. Negro 6+6+6+7+6+6+6+6 = 49: Ramón no tiene puntaje de DEL.
   const equipos9 = reparto(BLANCO_9, NEGRO_9, { sumaBlanco: 59, sumaNegro: 49,
     duplasSnapshot: JSON.stringify(duplas9.map(par => [...par].sort())) });
   const ids9 = [...equipos9.blanco, ...equipos9.negro];
@@ -375,8 +375,8 @@ function agregarDatosDeIntercambio(datos) {
   const BLANCO_SA = [['int-nico', 'LI'], ['int-julian', 'MI'], ['int-juan', 'DC'], ['int-pedro', 'LD'],
     ['int-lucas', 'MC'], ['int-martin', 'MD'], ['int-img', 'DEL']];
   const NEGRO_SA = [...NEGRO_8, ['int-fermin', 'Arquero']];
-  // Blanco 6+5+7+8+7+6+7 = 46. Negro 43 + 6 (Fermín) = 49.
-  const equiposSA = reparto(BLANCO_SA, NEGRO_SA, { sumaBlanco: 46, sumaNegro: 49 });
+  // Blanco 6+5+7+8+7+6+7 = 46. Negro 50 + 6 (Fermín) = 56.
+  const equiposSA = reparto(BLANCO_SA, NEGRO_SA, { sumaBlanco: 46, sumaNegro: 56 });
 
   /* "Solo por puntaje": sin `posicionAsignada`. El motor sólo marca al arquero que ubicó en el arco
      (`posicionOverride`); los demás se dibujan en la línea de su principal. El Blanco no tiene a

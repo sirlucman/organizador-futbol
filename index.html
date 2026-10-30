@@ -5815,7 +5815,9 @@
        'misma'         es la misma unidad
        'mismo-equipo'  sin puestos, sólo se intercambia con el otro equipo (FR-024)
        'mismo-puesto'  mismo equipo y mismo puesto: no cambiaría nada (FR-023)
-       'b-no-cubre' / 'a-no-cubre' / 'ninguno-cubre'   quién no juega el puesto del otro (FR-021) */
+       'a-no-cubre'    A no juega el puesto de B (FR-021)
+     Sólo se pregunta si A cubre el puesto de B: que B cubra el de A ya no es condición (D-34). Si
+     no lo cubre, el intercambio vale igual y es "con costo" (`intercambioConCosto`, FR-021b). */
   function evaluarIntercambio(m, idA, idB, porId){
     const equipoA = unidadDelPartido(m, idA), equipoB = unidadDelPartido(m, idB);
     if(!equipoA || !equipoB || !porId[idA] || !porId[idB]) return { valido: false, motivo: 'ajeno' };
@@ -5824,11 +5826,17 @@
     if(!tienePuestos(m)) return mismoEquipo ? { valido: false, motivo: 'mismo-equipo' } : { valido: true, motivo: null };
     const puestoA = posicionAsignadaDe(porId[idA], m), puestoB = posicionAsignadaDe(porId[idB], m);
     if(mismoEquipo && puestoA === puestoB) return { valido: false, motivo: 'mismo-puesto' };
-    const aCubre = cubrePosicionGuardada(unidadDeCobertura(m, idA, porId), puestoB) < COSTO_DESCUBIERTA;
-    const bCubre = cubrePosicionGuardada(unidadDeCobertura(m, idB, porId), puestoA) < COSTO_DESCUBIERTA;
-    if(aCubre && bCubre) return { valido: true, motivo: null };
-    if(!aCubre && !bCubre) return { valido: false, motivo: 'ninguno-cubre' };
-    return { valido: false, motivo: aCubre ? 'b-no-cubre' : 'a-no-cubre' };
+    if(cubrePosicionGuardada(unidadDeCobertura(m, idA, porId), puestoB) >= COSTO_DESCUBIERTA) return { valido: false, motivo: 'a-no-cubre' };
+    return { valido: true, motivo: null };
+  }
+
+  /* ¿El intercambio de A con B deja a B fuera de puesto? Se mide contra el puesto del lugar QUE
+     DEJA A, que es el que B pasa a ocupar, y con la misma función que cuenta "lugares sin cubrir":
+     el candidato que se dibuja con costo es exactamente el que después queda contado así
+     (FR-021b, TD-22). Sin puestos no hay costo: no se escribe ningún puesto. */
+  function intercambioConCosto(m, idA, idB, porId){
+    if(!tienePuestos(m) || !porId[idA] || !unidadDeCobertura(m, idB, porId)) return false;
+    return cubrePosicionGuardada(unidadDeCobertura(m, idB, porId), posicionAsignadaDe(porId[idA], m)) >= COSTO_DESCUBIERTA;
   }
 
   /* Los candidatos de `idA`: el primer integrante (`grupo[0].id`) de cada unidad de los dos equipos
@@ -5864,14 +5872,13 @@
   /* El texto de cada aviso, en texto plano: quien lo muestre lo pone con `textContent`, nunca como
      HTML (TC-041). `null` es "sin aviso": el drop sobre un compañero del mismo puesto no tiene nada
      que explicar (FR-042), y sin puestos el drop sobre el propio equipo tampoco (FR-045b). Ningún
-     texto lleva puntajes (TC-043). */
+     texto lleva puntajes (TC-043). Con la regla de un solo lado (D-34) queda un único rechazo, el
+     de FR-042c. */
   function textoAvisoIntercambio(clave, datos){
     const d = datos || {};
     if(clave === 'sin-candidatos') return 'Nadie puede intercambiar puesto con ' + d.a;
     if(clave === 'reparto-cambio') return 'Ya no se puede intercambiar: el reparto cambió';
-    if(clave === 'b-no-cubre') return d.b + ' no juega de ' + nombreDe(d.puestoA);
     if(clave === 'a-no-cubre') return d.a + ' no juega de ' + nombreDe(d.puestoB);
-    if(clave === 'ninguno-cubre') return 'Ninguno de los dos juega en el puesto del otro';
     return null;
   }
 
@@ -6083,7 +6090,7 @@
     if(mov.tipo === 'intercambiar'){
       /* La misma regla que el toque (TC-010). Un rechazo no escribe nada y dice por qué; el de un
          compañero del mismo puesto, o el del propio equipo sin puestos, no tiene nada que explicar
-         y `textoAvisoIntercambio` devuelve null (FR-042 a FR-042d, FR-045, FR-045b). */
+         y `textoAvisoIntercambio` devuelve null (FR-042, FR-042c, FR-045, FR-045b). */
       const porId = Object.fromEntries(players.map(p => [p.id, p]));
       const evaluacion = evaluarIntercambio(m, idArrastrado, mov.idDestino, porId);
       if(!evaluacion.valido){

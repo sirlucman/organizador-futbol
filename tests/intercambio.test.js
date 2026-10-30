@@ -54,6 +54,7 @@ const DECLARACIONES = [
   'mismaUnidad',
   'evaluarIntercambio',
   'candidatosDeIntercambio',
+  'intercambioConCosto',
   'nombreDeGrupo',
   'grupoDeUnidad',
   'avisoDeRechazo',
@@ -128,9 +129,18 @@ function conDupla(m, id, a, b) {
 console.log(`\nEl intercambio de puesto — ${SPEC}\n`);
 console.log('\x1b[1mLA REGLA\x1b[0m — quién es candidato de quién\n');
 
-prueba('"intercambio/S-01" los candidatos de Juan son Pedro en su equipo y Diego en el otro, y nadie más', () => {
-  eq(I.candidatosDeIntercambio(partido('m-int-8'), 'int-juan', porId), ['int-pedro', 'int-diego'],
-    'Juan (DC; LD, LI) cubre el puesto de los dos y los dos cubren DC');
+prueba('"intercambio/S-01" los candidatos de Juan son todos los que ocupan un puesto que él juega, de los dos equipos', () => {
+  eq(I.candidatosDeIntercambio(partido('m-int-8'), 'int-juan', porId), ['int-nico', 'int-pedro', 'int-sergio', 'int-diego', 'int-hernan'],
+    'Juan (DC; LD, LI) juega LI, DC y LD: que ellos jueguen DC ya no es condición (D-34)');
+});
+
+prueba('"intercambio/S-01n" el candidato que no juega el puesto que deja Juan es con costo; el que lo juega, no', () => {
+  const m = partido('m-int-8');
+  const conCosto = id => I.intercambioConCosto(m, 'int-juan', id, porId);
+  eq(['int-nico', 'int-pedro', 'int-sergio', 'int-diego', 'int-hernan'].filter(conCosto), ['int-nico', 'int-sergio', 'int-hernan'],
+    'Nico, Sergio y Hernán no juegan DC; Pedro y Diego sí (FR-021b)');
+  ok(!I.intercambioConCosto(m, 'int-nico', 'int-juan', porId), 'el costo se mide contra el lugar que deja el elegido: Juan sí juega LI');
+  ok(!I.intercambioConCosto(partido('m-int-puntaje'), 'int-juan', 'int-ramon', porId), 'sin puestos no hay costo');
 });
 
 prueba('"intercambio/S-01a" una dupla con un integrante que cubre LD es candidata de Pedro, como lo sería para el motor', () => {
@@ -161,7 +171,7 @@ prueba('"intercambio/S-02b" mismo puesto en equipos distintos es candidato, y el
 });
 
 prueba('"intercambio/S-02d" un jugador del otro equipo que cubre MC, pero cuyo puesto Lucas no cubre, no es candidato', () => {
-  const m = partido('m-int-8');   // Ramón: principal MC, juega de DEL
+  const m = partido('m-int-9');   // Ramón: principal MC, juega de DEL
   eq(I.evaluarIntercambio(m, 'int-lucas', 'int-ramon', porId), { valido: false, motivo: 'a-no-cubre' },
     'Lucas (MC; MD) no cubre DEL');
   ok(!I.candidatosDeIntercambio(m, 'int-lucas', porId).includes('int-ramon'), 'y no se resalta');
@@ -172,10 +182,10 @@ prueba('"intercambio/S-01e" quien no tiene candidatos recibe el aviso con su nom
   eq(I.textoAvisoIntercambio('sin-candidatos', { a: 'Juan Pérez' }), 'Nadie puede intercambiar puesto con Juan Pérez', 'el texto de FR-018');
 });
 
-prueba('"intercambio/S-04a" el arquero de secundaria con candado tiene los candidatos de su puesto asignado, nunca el arco', () => {
+prueba('"intercambio/S-04a" el arquero de secundaria con candado tiene por candidatos a los arqueros del otro equipo, nunca al arco vacío', () => {
   const m = partido('m-int-sin-arquero');   // Julián: MI, con Arquero de secundaria y candado
   const c = I.candidatosDeIntercambio(m, 'int-julian', porId);
-  eq(c, ['int-bruno'], 'sus candidatos son los que cubren MI y cuyo puesto él cubre');
+  eq(c, ['int-gabriel', 'int-fermin', 'int-bruno'], 'los que ocupan un puesto que él juega: Arquero y MI (D-34)');
   ok(c.every(id => I.unidadDelPartido(m, id)), 'todo candidato es una unidad del reparto, no un lugar: el arco vacío no se ofrece (FR-050)');
 });
 
@@ -201,7 +211,7 @@ console.log('\n\x1b[1mEL TOQUE\x1b[0m — resolverToqueCamiseta\n');
 
 prueba('"intercambio/S-01b" tocar a un compañero que no es candidato lo selecciona, sin intercambiar', () => {
   const m = partido('m-int-8');
-  eq(I.resolverToqueCamiseta(m, seleccion(m, 'int-juan'), 'int-nico', porId), { accion: 'seleccionar', id: 'int-nico' }, 'FR-014');
+  eq(I.resolverToqueCamiseta(m, seleccion(m, 'int-juan'), 'int-mateo', porId), { accion: 'seleccionar', id: 'int-mateo' }, 'Juan no juega MI (FR-014)');
 });
 
 prueba('"intercambio/S-01c" tocar la seleccionada, o la pareja de su dupla, cancela', () => {
@@ -308,23 +318,25 @@ prueba('"intercambio/S-03d" soltar sobre sí misma, sobre su pareja de dupla o s
 
 console.log('\n\x1b[1mLOS AVISOS\x1b[0m — textoAvisoIntercambio\n');
 
-prueba('"intercambio/S-03a" soltar sobre un compañero que no cubre DC avisa quién no juega de qué', () => {
+prueba('"intercambio/S-03a" soltar sobre un compañero cuyo puesto Juan no juega avisa qué no juega', () => {
   const m = partido('m-int-8');
-  const e = I.evaluarIntercambio(m, 'int-juan', 'int-nico', porId);
-  eq(e, { valido: false, motivo: 'b-no-cubre' }, 'Juan cubre LI y Nico no cubre DC');
-  eq(I.avisoDeRechazo(m, 'int-juan', 'int-nico', e.motivo, porId), 'Nicolás Lagos no juega de Defensor Central', 'FR-042b');
+  const e = I.evaluarIntercambio(m, 'int-juan', 'int-mateo', porId);
+  eq(e, { valido: false, motivo: 'a-no-cubre' }, 'Juan no juega MI');
+  eq(I.avisoDeRechazo(m, 'int-juan', 'int-mateo', e.motivo, porId), 'Juan Pérez no juega de Mediocampista Izquierdo', 'FR-042c');
+  ok(I.evaluarIntercambio(m, 'int-juan', 'int-nico', porId).valido, 'sobre Nico, en cambio, vale: Juan juega LI aunque Nico no juegue DC (D-34)');
 });
 
-prueba('"intercambio/S-03b" los otros dos textos del rechazo, y ninguno para el mismo puesto', () => {
+prueba('"intercambio/S-03b" el único texto de rechazo es el de FR-042c, y no hay ninguno para el mismo puesto', () => {
   eq(I.textoAvisoIntercambio('a-no-cubre', { a: 'Lucas Herrera', puestoB: 'DEL' }), 'Lucas Herrera no juega de Delantero Central', 'FR-042c');
-  eq(I.textoAvisoIntercambio('ninguno-cubre', {}), 'Ninguno de los dos juega en el puesto del otro', 'FR-042d');
+  eq(I.textoAvisoIntercambio('b-no-cubre', {}), null, 'FR-042b se retiró (D-34)');
+  eq(I.textoAvisoIntercambio('ninguno-cubre', {}), null, 'FR-042d se retiró (D-34)');
   eq(I.textoAvisoIntercambio('mismo-puesto', {}), null, 'un compañero del mismo puesto no tiene nada que explicar (FR-042)');
   eq(I.textoAvisoIntercambio('mismo-equipo', {}), null, 'sin puestos, el propio equipo tampoco (FR-045b)');
 });
 
 prueba('"intercambio/S-21" el nombre del aviso de un drop rechazado va tal cual, como texto, para insertarse con textContent', () => {
   const m = partido('m-int-8');
-  eq(I.avisoDeRechazo(m, 'int-diego', 'int-img', 'b-no-cubre', porId), '<img src=x onerror=alert(1)> no juega de Defensor Central',
+  eq(I.avisoDeRechazo(m, 'int-img', 'int-diego', 'a-no-cubre', porId), '<img src=x onerror=alert(1)> no juega de Defensor Central',
     'texto plano: escaparlo acá lo mostraría con entidades, porque el aviso usa textContent (TC-041)');
 });
 
@@ -338,9 +350,7 @@ prueba('"intercambio/TC-043" ningún aviso lleva puntajes: no hay dígitos fuera
   const textos = [
     I.textoAvisoIntercambio('sin-candidatos', { a: 'Juan Pérez' }),
     I.textoAvisoIntercambio('reparto-cambio'),
-    I.textoAvisoIntercambio('b-no-cubre', { b: 'Pedro Gómez', puestoA: 'DC' }),
     I.textoAvisoIntercambio('a-no-cubre', { a: 'Juan Pérez', puestoB: 'LD' }),
-    I.textoAvisoIntercambio('ninguno-cubre', {}),
   ];
   textos.forEach(t => ok(!/\d/.test(t), `"${t}" tiene un número`));
 });
@@ -404,20 +414,20 @@ function intercambiosAlAzar(semilla, cuantos, verificar) {
     const a = todos[Math.floor(r() * todos.length)], b = todos[Math.floor(r() * todos.length)];
     if (!I.evaluarIntercambio(m, a, b, pid).valido) continue;
     const antes = JSON.parse(JSON.stringify(m));
+    const conCosto = I.intercambioConCosto(m, a, b, pid);
     I.intercambiarUnidades(m, a, b);
-    verificar({ m, antes, a, b, pid });
+    verificar({ m, antes, a, b, pid, conCosto });
     aplicados++;
   }
   usarPlantel();
   ok(aplicados === cuantos, `sólo se encontraron ${aplicados} intercambios válidos en ${intentos} intentos`);
 }
 
-prueba('"intercambio/S-01l" tras todo intercambio válido, cada una de las dos unidades queda en un puesto que cubre', () => {
-  intercambiosAlAzar(0x5eed01, 500, ({ m, a, b, pid }) => {
-    [a, b].forEach(id => {
-      const costo = I.cubrePosicionGuardada(I.unidadDeCobertura(m, id, pid), m.equipos.posicionAsignada[id]);
-      ok(costo < I.COSTO_DESCUBIERTA, `${id} quedó de ${m.equipos.posicionAsignada[id]}, que no cubre (FR-021)`);
-    });
+prueba('"intercambio/S-01l" tras todo intercambio válido, la seleccionada queda en un puesto que cubre, y el candidato también salvo que fuera con costo', () => {
+  intercambiosAlAzar(0x5eed01, 500, ({ m, a, b, pid, conCosto }) => {
+    const cubre = id => I.cubrePosicionGuardada(I.unidadDeCobertura(m, id, pid), m.equipos.posicionAsignada[id]) < I.COSTO_DESCUBIERTA;
+    ok(cubre(a), `${a} quedó de ${m.equipos.posicionAsignada[a]}, que no cubre (FR-021)`);
+    eq(cubre(b), !conCosto, `${b} quedó de ${m.equipos.posicionAsignada[b]}: con costo tenía que quedar fuera de puesto, y sin costo, en un puesto suyo (FR-021b)`);
   });
 });
 
