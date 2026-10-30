@@ -1,0 +1,58 @@
+:root {
+  /* ── Sizes ────────────────────────────────────────────────────── */
+  --font-size-display-mega: 126px;
+  --font-size-display-xxl: 96px;
+  --font-size-display-xl: 64px;
+  --font-size-display-lg: 47px;
+  --font-size-display-md: 40px;
+  --font-size-display-sm: 32px;
+  --font-size-display-xs: 24px;
+  --font-size-body-lg: 20px;
+  --font-size-body-md: 16px;
+  --font-size-body-sm: 14px;
+  --font-size-caption: 12px;
+
+  /* ── Line heights (absolute, as authored in the source spec) ──── */
+  --line-height-display-mega: 107.1px;
+  --line-height-display-xxl: 81.6px;
+  --line-height-display-xl: 54.4px;
+  --line-height-display-lg: 70.5px;
+  --line-height-display-md: 34px;
+  --line-height-display-sm: 38.4px;
+  --line-height-display-xs: 31.2px;
+  --line-height-body-lg: 30px;
+  --line-height-body-md: 24px;
+  --line-height-body-sm: 20px;
+  --line-height-caption: 16px;
+
+  /* ── Weights ──────────────────────────────────────────────────── */
+  --font-weight-black: 900;
+  --font-weight-semibold: 600;
+  --font-weight-regular: 400;
+
+  /* ── Letter spacing ──────────────────────────────────────────── */
+  --letter-spacing-display-lg: -0.108px;
+  --letter-spacing-display-sm: -0.96px;
+  --letter-spacing-display-xs: -0.48px;
+  --letter-spacing-none: 0;
+  --letter-spacing-eyebrow: 0.08em;
+
+  /* ── Composed type tokens: `font: var(--type-…)` ─────────────── */
+  --type-display-mega: 900 126px/107.1px var(--font-display);
+  --type-display-xxl: 900 96px/81.6px var(--font-display);
+  --type-display-xl: 900 64px/54.4px var(--font-display);
+  --type-display-lg: 400 47px/70.5px var(--font-display);
+  --type-display-md: 900 40px/34px var(--font-display);
+  --type-display-sm: 600 32px/38.4px var(--font-sans);
+  --type-display-xs: 600 24px/31.2px var(--font-sans);
+  --type-body-lg: 400 20px/30px var(--font-sans);
+  --type-body-md: 400 16px/24px var(--font-sans);
+  --type-body-md-strong: 600 16px/24px var(--font-sans);
+  --type-body-sm: 400 14px/20px var(--font-sans);
+  --type-body-sm-strong: 600 14px/20px var(--font-sans);
+  --type-caption: 400 12px/16px var(--font-sans);
+  --type-button-md: 600 16px/24px var(--font-sans);
+  /* Derived: the data-table header / eyebrow treatment described in the source
+     (caption size, uppercase, tracked out). Pair with --letter-spacing-eyebrow. */
+  --type-eyebrow: 600 12px/16px var(--font-sans);
+}

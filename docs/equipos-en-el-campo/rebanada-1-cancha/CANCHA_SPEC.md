@@ -167,6 +167,8 @@ límites propios de esta rebanada:
   conserva es la del candado, que sigue pasando por `window.__toggleBloqueo`
   ([`index.html:3679-3700`](../../../index.html#L3679-L3700)) sin cambios de
   contrato (Principio IV).
+  **Reemplazado el 2026-10-29 por `FR-030` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** fuera del modo de carga, el toque sobre una
+  camiseta también escribe: intercambia puestos.
 - **TC-013** — El escalón de medidas **no** se seleccionará en función del ancho de
   la ventana: ninguna media query de viewport podrá decidirlo. La selección debe
   depender del ancho del propio panel de equipo. Qué mecanismo de CSS lo resuelve
@@ -276,7 +278,7 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
 | Dupla de rotación | Dos jugadores que el motor trata como una unidad: siempre en el mismo equipo y en la misma posición, con un puntaje único que es el de la unidad. |
 | Línea | El conjunto de camisetas de un equipo que comparten posición asignada. Son cuatro: Ataque, Medio, Defensa y Arco (`LABEL_LINEA`, [`index.html:2259`](../../../index.html#L2259)). **Reemplazada el 2026-09-30 por el Glosario de [`DESGLOSE_POSICIONES_SPEC.md`](../../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md):** una línea son las camisetas cuyos puestos asignados pertenecen a ella; los nombres no cambian. |
 | Sub-fila | Cada uno de los dos renglones en que se parte una línea cuando tiene cinco o más camisetas. |
-| Posición asignada | La posición que la camiseta ocupa en la cancha: la que fijó el motor, si no la override manual, si no la posición principal declarada del jugador. |
+| Posición asignada | La posición que la camiseta ocupa en la cancha: la que fijó el motor, si no la override manual, si no la posición principal declarada del jugador. **Reemplazado el 2026-10-29 por el Glosario ("Puesto asignado") de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** lo fija el motor al generar y también el administrador, al intercambiar. |
 | Panel de equipo | El contenedor de un equipo dentro de la tarjeta (`.team-panel`). Es el elemento cuyo ancho útil elige el escalón de medidas. |
 | Ancho útil del panel | El ancho de contenido del panel de equipo: su `clientWidth` menos su padding izquierdo y derecho. Es lo que mide `tests/layout.test.js` y lo que evalúa una container query. |
 | Escalón de medidas | El juego de valores (`--chip-w`, `--chip-size`, `--chip-name`, `--row-pad`, `--row-gap`) que se aplica a la cancha para un rango de ancho útil del panel. |
@@ -764,6 +766,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 - **A-04** — El único elemento interactivo que la cancha incorpora en esta rebanada
   es el candado. Cualquier otro control sobre la camiseta pertenece a rebanadas
   posteriores.
+  **Reemplazado el 2026-10-29 por `FR-010` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md):** la camiseta también responde al toque.
 - **A-05** — Los partidos ya guardados tienen su reparto en el mismo formato que
   los nuevos: la cancha los dibuja sin conversión.
 - **A-06** — El navegador de referencia soporta container queries. Es la misma
@@ -817,6 +820,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo declarado en el encabezado de `POSICIONES_DEL_JUGADOR_SPEC.md` (`AC-02` de esa Spec, todavía en borrador): quedan marcados `TC-012`, la fila "Posición asignada" del glosario y `A-04`. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). Ajustada el mismo día, cuando esa Spec retiró el arco vacío (`D-31` de su Concept Note). |
 | 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marca `FR-042` como reemplazado —y ya sin ningún estado en el que aplique— por `FR-001`/`FR-002` de la rebanada 6, que es la que cierra los dos estados que quedaban (la rebanada 4 había cerrado el tercero). Arrastra a `S-10`, `S-10a`, `S-10b` y `AC-03`. Lo detectó la auditoría de conformidad del 2026-09-23: la declaración existía de un solo lado. No cambia ningún otro requisito ni el comportamiento de la aplicación. |
 | 2026-09-02 | Lucas Manoukian | `FR-012` se invierte: una línea del catálogo sin unidades ahora se dibuja igual, vacía, en vez de omitirse. Reportado desde la rebanada 2 (el arrastre): mover a mano un jugador entre equipos puede dejar a uno sin nadie en una línea (p. ej. sin Ataque), y con el comportamiento original la línea de al lado subía a ocupar ese lugar — un volante terminaba viéndose donde antes estaba el delantero, dando la impresión de que jugaba ahí. Se ajustan `S-01b`, `S-02` y `S-02c`, que describían el comportamiento viejo como el correcto. `S-01a` de `ARRASTRE_SPEC.md` (rebanada 2) queda igual de afectado; se anota ahí también. Self-critique: no corresponde (enmienda posterior a la implementación, a pedido explícito de una corrección puntual). |
 | 2026-08-31 | Lucas Manoukian | `FR-054` y el último *Then* de `S-06` quedan reemplazados por la rebanada 2: en una sola columna los equipos dejan de apilarse y pasan al selector segmentado. Cierra además la `OPEN-Q-01` de esta Spec, cuyo *target stage* era la Spec de la rebanada 2 o la 3. Self-critique: no corresponde (enmienda desde otra rebanada). |

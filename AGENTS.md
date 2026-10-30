@@ -164,9 +164,14 @@ tipo(scope): asunto en minúscula, ≤ 72 caracteres (IDs de la Spec)
 - **Scope:** la feature o la zona tocada — `cancha`, `equipos-en-el-campo`,
   `motor`, `tests`. Se omite cuando el cambio es transversal.
 - **Asunto:** en español, en imperativo o en infinitivo, sin punto final.
+- **Los 72 caracteres cuentan la línea entera**, tipo y scope incluidos: es
+  donde GitHub corta el título. Con un nombre de feature largo, el scope usa
+  una forma corta (`posiciones` para `posiciones-del-jugador`). Aclarado el
+  2026-10-30: hasta entonces la regla se leía de varias formas y una parte del
+  historial la excede.
 - **IDs de la Spec** entre paréntesis al final del asunto cuando el commit
   implementa requisitos concretos: `feat(cancha): dibuja el campo y sus marcas
-  (FR-001, FR-002)`.
+  (FR-001, FR-002)`. Si no entran en los 72, van al cuerpo del commit.
 - **Un cambio lógico por commit.** Cada commit compila y pasa lint por separado,
   para que `git bisect` sirva.
 - El cuerpo explica el *por qué* cuando no es obvio del asunto.
