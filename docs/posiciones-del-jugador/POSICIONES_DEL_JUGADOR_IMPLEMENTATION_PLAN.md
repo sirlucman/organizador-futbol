@@ -54,8 +54,9 @@ mostraba (`TD-14`).
 - No se agrega equivalente de teclado (Spec §3.2, `OPEN-Q-03`), aunque el diseño 18h lo dibuje.
 - No se adoptan las conductas del 18h que contradicen la Spec: tocar el pasto **sí** cancela
   (`FR-016`); se puede soltar fuera de un candidato, con el pase y el aviso de hoy (`FR-042`,
-  `FR-043`); la pestaña **no** se abre al pasar arrastrando; no hay contador de candidatos en las
-  pestañas. Decisión del propietario, 2026-10-30.
+  `FR-043`); la pestaña **no** se abre al pasar arrastrando. Decisión del propietario, 2026-10-30.
+  El contador de candidatos en las pestañas también había quedado afuera, y el propietario lo
+  sumó el mismo día al probar la rama en un iPhone (`D-33`, `FR-012b`, `TD-21`).
 - No se agrega ningún feature flag: el proyecto no tiene, y la simplicidad lo prohíbe
   (`AGENTS.md`, Principios).
 - No se migra ningún partido ni se agrega ningún campo (`TC-002`).
@@ -115,6 +116,7 @@ sigue entrando por `saveMatches` y `window.storage` (`TC-002`).
 | TD-18 | Cinco casos de `tests/cancha.test.js` (`"arrastre/S-02a"`, los dos `"arrastre/S-02e"`, `"arrastre/S-03a"`, `"arrastre/S-03b"`) pasan a correr sobre un partido **sin puestos**, con una opción nueva `sinPuestos` en `P()`. `"arrastre/S-02c"` se reescribe: su comportamiento lo reemplazó `S-03` de esta Spec, y el título lo dice | Declaración de reemplazo de la Spec, `FR-045` | Esos casos intercambian unidades incompatibles (un Volante con un Defensor). Con puestos, el intercambio ahora también mueve los puestos y sus números cambian. Sin puestos es exactamente lo que la rebanada 2 especificó y lo que `FR-045` conserva, así que el caso sigue probando lo mismo |
 | TD-19 | Sin feature flag | §2 Non-goals | Heredado de las rebanadas anteriores; el proyecto publica por merge a `main` |
 | TD-20 | La camiseta tocable **no** se anuncia como botón: sin `role="button"`, sin `tabindex` y sin `aria-pressed`. Lleva la clase `tocable`, que toma el cursor y el bloqueo del menú de "copiar" que hoy tiene `.camiseta[role="button"]` en el modo de carga ([index.html:542-544](../../index.html#L542-L544)). El gesto lo anuncia el `title` | `NFR-003`, `OPEN-Q-03`, §3.2 | Decisión del propietario, 2026-10-30 (hallazgo 13 de la crítica de claude-sonnet-5-5): anunciar un botón que no se puede enfocar ni activar con teclado confunde más que no anunciarlo, y el teclado quedó fuera de esta versión. `aria-pressed` sólo vale sobre un botón, así que se va con él. Del 18h se descarta por eso su `aria-pressed="true"`; se agrega todo junto cuando se resuelva `OPEN-Q-03` |
+| TD-21 | **El contador de candidatos del 18h, en cada pestaña del selector.** `renderSelectorEquipo` cuenta los candidatos de `seleccionVigente(m)` por equipo —son los `candidatos` que la selección ya guarda (`TD-01`), así que no evalúa nada nuevo— y dibuja una `span.equipo-tab-cuenta` en cada pestaña, también con cero. La cuenta va en el `aria-label` de la pestaña ("Equipo Negro, 3 candidatos") y la cápsula visible va con `aria-hidden`. Sólo con una selección por toque: durante un arrastre la selección se descarta (`FR-046`) y el selector no se repinta (`TD-09`) | `FR-012b`, `NFR-003`, `TC-030` | Decisión del propietario, 2026-10-30, al probar la rama en un iPhone: con todos los candidatos de un jugador en el otro equipo, la cancha a la vista no mostraba ninguno (`D-33`). El dibujo es el del 18h; los colores, `--ink` y `--chalk` |
 
 ## 4. Module map
 
@@ -135,7 +137,8 @@ sigue entrando por `saveMatches` y `window.storage` (`TC-002`).
 | `index.html` — CSS de la cancha: escalones `data-max-fila="4"` ([index.html:616](../../index.html#L616), [619](../../index.html#L619)), `.camiseta-sec` ([index.html:567](../../index.html#L567)), `.drop-realce` ([index.html:715-729](../../index.html#L715-L729)) y reglas nuevas de los tres estados | Dibujo del 18h (`TD-13`) | modified |
 | `index.html` — `cubrePosicionGuardada`, `costoEncaje`, `construirUnidadDupla`, `getDuplaPartner`, `unidadDelPartido`, `moverUnJugadorDeEquipo`, `posicionAsignadaDe`, `valorDePuntaje`, `esFilaEditable`, `sumasVigentes`, `balanceLineasVigente`, `faltantesDeFormacionVigente`, `colapsarDuplasParaLinea`, `saveMatches` | Se consultan; no cambian (`TC-010`, `TC-011`) | untouched |
 | `index.html` — estrategias del motor, `resolverArqueros`, `expandirUnidadesEnResultado`, `posicionesPreviasVigentes` | El motor (`TC-012`) | untouched |
-| `index.html` — `renderSelectorEquipo`, `__verEquipo` | Cambiar de pestaña repinta y la selección sobrevive por `TD-01` (`FR-012`) | untouched |
+| `index.html` — `renderSelectorEquipo` | Cuenta de candidatos por pestaña (`TD-21`, `FR-012b`) | modified |
+| `index.html` — `__verEquipo` | Cambiar de pestaña repinta y la selección sobrevive por `TD-01` (`FR-012`) | untouched |
 | `tests/intercambio.test.js` | Archivo nuevo, unidad y propiedad (`TD-16`) | new |
 | `tests/fixtures-app.js` | `agregarDatosDeIntercambio` (`TD-17`) | modified |
 | `tests/layout.test.js` | Siete escenarios nuevos (§12.6) | modified |
@@ -319,6 +322,10 @@ Del 18h no se toma su `aria-pressed="true"` (`TD-20`).
 | `.toast.toast--error .toast-franja` | `background: var(--brick-light)` (`--color-negative`, la franja de error del `Toast`) |
 | `.toast.show` | `opacity:1; pointer-events:auto; transform:translateX(-50%) translateY(0)` |
 
+Contador de candidatos en la pestaña (`TD-21`), del 18h: `.equipo-tab-cuenta` con
+`display:inline-block; margin-left:6px; min-width:20px; padding:0 6px; border-radius:var(--radius-pill);
+background:var(--ink); color:var(--chalk); font:900 11px/20px var(--font-display); text-align:center`.
+
 Excepción documentada (`TC-030`): el `Toast` del design system tiene título y botón de cerrar
 opcionales; los avisos de la aplicación son de una línea y se van solos, así que no llevan
 ninguno de los dos. No es una desviación de token: es usar el componente sin sus partes
@@ -348,6 +355,7 @@ File: `index.html`
 | `aplicarDrop` | *(firma sin cambios)* | Para `'intercambiar'`: `evaluarIntercambio`; inválido → aviso por `textoAvisoIntercambio(motivo)` sólo si `tienePuestos(m)` (`FR-042`, `FR-045b`); válido → `intercambiarUnidades`, `saveMatches`, `renderMatchesTab`. En todos los casos descarta la selección (`FR-019b`) |
 | `window.__dragStartJugador` | *(firma sin cambios)* | Además: guarda de `esFilaEditable`; quita del DOM las clases de la selección previa; descarta la selección (`FR-046`); `arrastreEnCurso`; clases del arrastre por `classList` (`TD-09`) |
 | `window.__dragFin` | *(firma sin cambios)* | Además: quita las clases de estado y pone `arrastreEnCurso = null` (`S-03f`) |
+| `renderSelectorEquipo` | *(firma sin cambios)* | `TD-21`: con `seleccionVigente(m)`, cada pestaña suma `span.equipo-tab-cuenta` (`aria-hidden`) con la cantidad de sus candidatos y un `aria-label` con el nombre del equipo y la cuenta (`FR-012b`) |
 | `window.__dragSobre` | *(firma sin cambios)* | `TD-10`: sobre una `.camiseta` no candidata cancela el `dragover` sin realzar |
 | `renderCamiseta` | *(firma sin cambios)* | `data-id="{p.id}"` en `.camiseta`; con `arrastrable`, la clase `tocable` y `onclick="window.__tocarCamiseta(event,'{m.id}','{p.id}')"`, sin `role` ni `tabindex` ni `aria-pressed` (`TD-20`); un `span.camiseta-placa` vacío antes de `.camiseta-fig`; clases `seleccionada`/`candidata`/`atenuada` según `seleccionVigente(m)` y `candidatosDeIntercambio`; el `title` suma "tocala para intercambiar puesto" (`NFR-003`); el candado suma `event.stopPropagation();` a su `onclick` (`FR-017`); `completos` pasa a `nombreDeGrupo(grupo)` |
 | `renderCanchaEquipo` | *(firma sin cambios)* | Clase `con-seleccion` cuando `seleccionVigente(m)` no es `null` |
@@ -459,6 +467,9 @@ Implementation tasks (agrupadas en commits atómicos):
 - [ ] T-1.28 **Ver fallar cada escenario por lo que lo motiva (`TC-033`, `AGENTS.md`):** con todo en verde, aplicar una por una las mutaciones de la tabla de §12.6.1, correr el escenario con `--solo`, confirmar que falla con el mensaje esperado, revertir la mutación y confirmar que vuelve a verde. Pegar las catorce salidas en el PR. Las mutaciones no se commitean. Si un escenario no falla con su mutación, no mide lo que dice: se corrige el escenario, en un commit `test(layout): …`, y se repite
 - [ ] T-1.29 **Chequeo de `A-07`:** sincronizar staging desde producción con `tools/sync-staging-data.html`, correr `node tools/revisar-historial.js` con las credenciales de admin de staging, y pegar la salida en el PR. Si encuentra un partido, **se detiene la rama**: la premisa de `D-32` es falsa y se vuelve a la Spec
 
+- [ ] T-1.30 Agregar a `renderSelectorEquipo` la cuenta de candidatos por pestaña y su CSS, según `TD-21` y §7.2.3 (`FR-012b`), y a `intercambio-toque` la afirmación de `S-02h` a 360 px, vista fallar antes del cambio
+- [ ] T-1.C12 Commit — `feat(posiciones): candidatos por equipo en las pestañas (FR-012b)`
+
 DoD verification (§6). Todo cambio de código hecho durante esta verificación va en su propio
 commit de arreglo, nunca doblado dentro de uno anterior:
 
@@ -566,6 +577,7 @@ Ninguno (`TD-19`).
 | S-02e `[failure]` se cierra la inscripción | `intercambio-toque` (`intercambio/S-02e`), vía `__toggleInscripcion` ([index.html:4760](../../index.html#L4760)) | e2e | Branch 1 |
 | S-02f `[boundary]` intercambiar colores descarta | `intercambio-toque` (`intercambio/S-02f`) | e2e | Branch 1 |
 | S-02g `[boundary]` camiseta de otro partido | `intercambio-toque` (`intercambio/S-02g`), abriendo `m-int-9` después de `m-int-8` | e2e | Branch 1 |
+| S-02h `[boundary]` cuenta de candidatos en cada pestaña | `intercambio-toque` a 360 px (`intercambio/S-02h`) | e2e | Branch 1 |
 | S-03 (parent) el arrastre sobre una camiseta propia | `intercambio-arrastre` (`intercambio/S-03`) | e2e | Branch 1 |
 | S-03a `[failure]` compañero que no cubre: aviso | `intercambio-arrastre` (`intercambio/S-03a`) | e2e | Branch 1 |
 | S-03b `[failure]` no candidato del otro equipo: aviso | `intercambio-arrastre` (`intercambio/S-03b`) | e2e | Branch 1 |
@@ -602,8 +614,8 @@ Ninguno (`TD-19`).
 `S-22b` dice "700 y 701 px"; la lista de anchos de `tests/layout.test.js` mide 699 y 701, que son
 los dos lados del corte. El escenario usa esos dos, y se anota así.
 
-Reparto: 53 filas, una por escenario o variante definidos en la Spec. 18 llevan `unit` (3 de ellas
-`property`), 41 llevan `e2e` (7 de ellas también `unit`) y 1 es manual. No se declara proporción
+Reparto: 54 filas, una por escenario o variante definidos en la Spec. 18 llevan `unit` (3 de ellas
+`property`), 42 llevan `e2e` (7 de ellas también `unit`) y 1 es manual. No se declara proporción
 objetivo.
 
 ### 12.2 Impact Traceability
@@ -643,7 +655,7 @@ nombre ni el candado, salvo donde se prueba el candado). Arrastres despachando `
 
 | Escenario | Anchos | Qué hace | IDs |
 |---|---|---|---|
-| `intercambio-toque` | 360, 1200 | `S-01` completo con sus toques y el total; fondo, candado, doble toque, sin candidatos; a 360 el intercambio entre equipos con cambio de pestaña; cerrar inscripción, intercambiar colores, otro partido; el resumen dividido o no; medición de tiempos; diff de lo escrito | `S-01`, `S-01b`–`S-01e`, `S-01g`, `S-01k`, `S-02`, `S-02a`, `S-02e`–`S-02g`, `S-07`, `S-07a`, `NFR-004`, `NFR-005` |
+| `intercambio-toque` | 360, 1200 | `S-01` completo con sus toques y el total; fondo, candado, doble toque, sin candidatos; a 360 el intercambio entre equipos con cambio de pestaña; cerrar inscripción, intercambiar colores, otro partido; el resumen dividido o no; medición de tiempos; diff de lo escrito | `S-01`, `S-01b`–`S-01e`, `S-01g`, `S-01k`, `S-02`, `S-02a`, `S-02e`–`S-02h`, `S-07`, `S-07a`, `NFR-004`, `NFR-005` |
 | `intercambio-arrastre` | 360, 1200 | Al `dragstart`, candidatos resaltados sin repintar; soltar sobre candidato, sobre incompatible (aviso, sin escritura), sobre la cancha contraria (pase, puesto conservado), sobre la propia y sobre sí misma, sobre el arco vacío propio; cancelar; con selección previa; diff de lo escrito | `S-03`, `S-03a`–`S-03g`, `S-04b`, `NFR-005` |
 | `intercambio-solo-puntaje` | 1200 | `m-int-puntaje`: candidatos todos del otro equipo; intercambio sin `posicionAsignada`; arrastre como hoy; sin arco como destino | `S-04c`, `S-05`, `S-05a`–`S-05c` |
 | `intercambio-regenerar` | 1200 | Intercambiar en `m-int-8` y `m-int-sin-arquero` y llamar a `__generarEquipos`: la unidad con candado sigue en su equipo, el arquero con candado y ARQ sigue en el arco, la dupla con candado sigue en su equipo; antes de regenerar, lo guardado de Juan en `posicionAsignada` es LD (lo que el motor recibe como punto de partida); sin arco como destino antes de regenerar | `S-04`, `S-06`, `S-06a`, `S-06b` |
@@ -662,6 +674,7 @@ temporal en `index.html` que deshace lo que el escenario protege. Ninguna se com
 | `intercambio-toque` | Quitar `event.stopPropagation()` de `__tocarCamiseta` | La escucha de `document` cancela la selección en el mismo toque: `S-01` no ve a Juan seleccionado |
 | `intercambio-toque` | Quitar la revalidación de `resolverToqueCamiseta` y devolver siempre `'intercambiar'` sobre un tocado marcado | `S-01b` intercambia con un no candidato |
 | `intercambio-toque` | Quitar `seleccionIntercambio = null;` de `__intercambiarColores` | `S-02f`: la selección sobrevive |
+| `intercambio-toque` | `renderSelectorEquipo` sin la cuenta de candidatos (`TD-21`) | `S-02h`: las pestañas no dicen cuántos candidatos tienen |
 | `intercambio-arrastre` | En `aplicarDrop`, aplicar `intercambiarUnidades` sin consultar `evaluarIntercambio` | `S-03a`: hay escritura y no hay aviso |
 | `intercambio-arrastre` | En `__dragStartJugador`, no quitar las clases de la selección previa | `S-03e`: dos camisetas con `.seleccionada` |
 | `intercambio-arrastre` | `resolverDestinoDrop` sin el rechazo de la propia unidad | `S-03d`: soltar sobre sí misma escribe |
@@ -823,6 +836,7 @@ claude-sonnet-5-5). Para cada uno, por qué se cumple y qué lo verifica:
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, al probar la rama de código en un iPhone (`D-33`): el contador de candidatos del 18h entra en esta versión. Se retira de los non-goals de §2; nueva `TD-21` (cuenta por pestaña, en el nombre accesible); `renderSelectorEquipo` pasa a modified; §7.2.3 suma la cápsula, §7.2.5 la firma, §7.2.9 las tareas `T-1.30` y `T-1.C12`, §12.1 la fila de `S-02h` (54 filas), §12.6 el ID en `intercambio-toque` y §12.6.1 su mutación. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | Atiende la crítica [`POSICIONES_DEL_JUGADOR_PLAN_CRITIQUE_2026-10-30_claude-sonnet-5-5.md`](./POSICIONES_DEL_JUGADOR_PLAN_CRITIQUE_2026-10-30_claude-sonnet-5-5.md) (0🔴 / 9🟡 / 5🔵). Se verificaron con comandos los hallazgos 1, 3, 4, 5 y 11 antes de corregirlos. 🟡: la región del `Toast` existe vacía desde el arranque y el texto llega después, con verificación manual con lector de pantalla (2, `TD-14`, §12.7); `resolverDestinoDrop` y `aplicarDrop` pasan al mismo commit (3, §7.2.1); `T-1.D10b` declara su salida exacta, `TC-041` y `TC-042` (4); nueva §16.1 con los `FR` sin tarea propia (5); `dragstart` limpia la selección previa del DOM (6, `TD-09`); la deuda `[UNVERIFIED]` queda en una lista en §15 (7); `T-1.D8b`, `T-1.D18`, `T-1.D18b` y `T-1.D19` llevan su comando (8); nueva §12.6.1 con una mutación por escenario y la tarea `T-1.28` para verlos fallar por lo que los motiva, y la placa pasa a ser un elemento medible (10, `TD-13`); los asuntos de commit se acortan a 72 caracteres de línea entera con scope `posiciones`, por decisión del propietario, que se aclara en `AGENTS.md` § Commits (11). 🔵: dieciséis `TC`, ocho funciones (1); `T-1.27` dice qué hacer (9); la justificación del arco se reescribe (12); la camiseta deja de anunciarse como botón, por decisión del propietario (13, nueva `TD-20`); el rojo de `T-1.C4` se declara excepción al criterio de bisect y el título reescrito de `"arrastre/S-02c"` pierde el prefijo de binding (14). No se tomó el cambio de arco a `single-branch` del hallazgo 12: ese arco es para hasta 3 FR y esta feature tiene más de 40. Las tareas de §7.2.9 se renumeraron. Self-critique (Step 5, sobre la versión corregida): passed (0🔴 / 3🟡 / 3🔵), todos resueltos. 🟡: la extensión de `intercambiarUnidades` había quedado en `T-1.C1`, donde el arrastre entre equipos ya la llama sin regla; pasa a `T-1.C2` junto con `resolverDestinoDrop` y `aplicarDrop` (el mismo defecto del hallazgo 3, en el otro caso); el rango de commits en rojo de §7.2.1 llegaba a `T-1.C6` y el aviso llega en `T-1.C7`; `T-1.D16` y `T-1.D17` no tenían comando. 🔵: `T-1.D5` con comando exacto; los candidatos se calculan una vez por render, no por camiseta (`NFR-004`); marcadores `[P]` en `T-1.20` y `T-1.26`. |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | Initial draft, derivado de la Spec revisada. Modelo de ramas `trunk-based`, detectado con el script de la metodología y confirmado por el propietario. Resuelve `OPEN-Q-05` con el diseño 18h, del que el propietario eligió tomar sólo el dibujo y dejar el comportamiento de la Spec (`TD-13`; quedan fuera tocar el pasto sin cancelar, soltar sólo sobre candidatos, abrir la pestaña al pasar, teclado y contador de candidatos), y `OPEN-Q-09` con el `Toast` del design system para todos los avisos de la app (`TD-14`, opción elegida por el propietario). El nombre de una dupla en los avisos es el que la app ya usa (`TD-12`), lo que cierra el hallazgo 🔵 10 de la crítica de claude-fable-5-1 sin tocar la Spec. Hallazgos al leer el código: el `.toast` actual no tiene `aria-live`; los partidos de prueba guardan puestos viejos (`TD-17`); seis casos de `cancha.test.js` prueban comportamiento reemplazado (`TD-18`); `S-01j` sólo es reproducible en unidad porque la app no escucha cambios en vivo (§7.2.1). Verificado con `comm`: los 53 escenarios y variantes de la Spec tienen fila en §12.1, y todo `FR`/`NFR`/`TC`/`AC`/`S`/`D` citado existe en la Spec o el Concept Note; los dos diagramas se renderizaron con mermaid-cli y se revisó el PNG. Self-critique: skipped (el propietario pidió el commit antes de decidir; si se corre, va en una fila nueva). |
 

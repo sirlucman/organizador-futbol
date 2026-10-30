@@ -1,6 +1,6 @@
 # Posiciones del jugador — Spec
 
-> **Status:** Draft · **Date:** 2026-10-28 · **Última revisión:** 2026-10-29 · **Owner:** Lucas Manoukian (claude-opus-5-5)
+> **Status:** Draft · **Date:** 2026-10-28 · **Última revisión:** 2026-10-30 · **Owner:** Lucas Manoukian (claude-opus-5-5)
 >
 > **Reviewers:** *pending*
 >
@@ -310,7 +310,7 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
 | ID | Story | Implements |
 |---|---|---|
 | US-01 | Como administrador, quiero intercambiar el puesto de dos compañeros de equipo, para corregir el reparto sin regenerar. | FR-010 a FR-021, FR-030, FR-034 |
-| US-02 | Como administrador, quiero ver con quién puedo intercambiar a un jugador sin ir a la solapa Jugadores. | FR-011, FR-018, FR-020 a FR-024 |
+| US-02 | Como administrador, quiero ver con quién puedo intercambiar a un jugador sin ir a la solapa Jugadores. | FR-011, FR-012b, FR-018, FR-020 a FR-024 |
 | US-03 | Como administrador, quiero intercambiar jugadores de equipos distintos sin desarmar las formaciones, también desde el celular. | FR-012, FR-021, FR-030 a FR-032 |
 | US-04 | Como administrador, quiero que arrastrar una camiseta sobre otra haga lo mismo que tocarlas. | FR-040 a FR-046 |
 | US-05 | *Retirada el 2026-10-29 (`D-31`): poner en el arco vacío a un jugador.* | — |
@@ -358,6 +358,10 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
 - **FR-012** — While haya una selección y la tarjeta esté en una columna, cuando el
   administrador cambie de equipo con el selector, el sistema conservará la selección y
   resaltará a los candidatos del equipo que pasa a verse.
+- **FR-012b** — While haya una selección y la tarjeta esté en una columna, el sistema
+  mostrará en cada pestaña del selector de equipo cuántos candidatos tiene ese equipo,
+  también cuando son cero, y esa cuenta formará parte del nombre accesible de la pestaña.
+  Sin selección, no mostrará ninguna cuenta (`D-33`).
 - **FR-013** — When el administrador toca un candidato, el sistema aplicará el
   intercambio entre la seleccionada y ese candidato.
 - **FR-014** — When el administrador toca una camiseta que no es candidata ni la
@@ -556,6 +560,7 @@ stateDiagram-v2
 - `S-02e [failure]` — con Lucas seleccionado se cierra la inscripción: la selección desaparece y no queda ningún resaltado (`FR-003`)
 - `S-02f [boundary]` — con Lucas seleccionado se toca "Intercambiar colores": se aplica y la selección se descarta (`FR-019b`)
 - `S-02g [boundary]` — con Lucas seleccionado se toca una camiseta de otro partido: esa queda seleccionada y la de Lucas no (`FR-019`)
+- `S-02h [boundary]` — con Lucas seleccionado, cada pestaña muestra cuántos de sus candidatos son de ese equipo, aunque sean cero; al intercambiar o cancelar, la cuenta desaparece (`FR-012b`)
 
 #### Scenario S-03 — El arrastre sobre una camiseta propia intercambia puestos (covers FR-040, FR-041, FR-042, FR-044, FR-046)
 
@@ -870,6 +875,7 @@ La aplicación no tiene telemetría de uso; la fuente es el uso del propietario.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras probar la rama de código en un iPhone (`D-33`): en una columna, si todos los candidatos están en el otro equipo, la cancha a la vista no muestra ninguno y la selección parece no haber hecho nada. Nueva `FR-012b`: cada pestaña del selector muestra cuántos candidatos tiene ese equipo, como en el diseño 18h, que el Implementation Plan había dejado afuera. Nueva variante `S-02h`; `US-02` suma `FR-012b`. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Revisión corta del propio autor sobre los cambios de `fb880df..f85689d`, a pedido del propietario. Self-critique (Step 5, sólo sobre ese diff): passed (0🔴 / 1🟡 / 3🔵), todos resueltos: `FR-042` no decía qué pasa al soltar sobre un compañero del mismo puesto (no es candidato por `FR-023` y ninguno de `FR-042b` a `FR-042d` aplica; ahora: sin aviso); `FR-034b` se acota al toque; `S-03h` se declara de verificación manual; el encabezado menciona la nota en `CARGA_POR_TOQUE_SPEC.md`. Verificado en el código que el control de `A-07` está en `__generarEquipos` ([index.html:4670-4676](../../index.html#L4670-L4676)). |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Atiende la crítica [`POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-sonnet-5.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-sonnet-5.md) (1🔴 / 2🟡 / 2🔵) y la de [`…_claude-haiku-5-5.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-haiku-5-5.md) (0🔴 / 5🟡 / 7🔵; no leyó el Concept Note ni las críticas previas ni hizo los chequeos pedidos, así que sólo se tomaron sus hallazgos verificados). El 🔴 de claude-sonnet-5 (`FR-061` falso para puestos del catálogo viejo, verificado en [index.html:3105-3111](../../index.html#L3105-L3111)) deja de aplicar por `D-32`, decisión del propietario: la feature no contempla puestos viejos, porque generar exige revisar las fichas ([index.html:4676](../../index.html#L4676)); queda como supuesto `A-07` `[UNVERIFIED]`. Se retiran `D-20`, `S-01i`, `S-06c` y la mención en §3.1 y el glosario; `FR-061` cita `FR-015` de la Spec del motor (l. 288). Se restituye "Arco vacío" en el glosario. Nuevas `FR-034b` (aviso "Ya no se puede intercambiar: el reparto cambió", texto aprobado por el propietario), `FR-042b` a `FR-042d`, `FR-045b`, `FR-045c` y `S-03h` (toque y arrastre a la vez). El diagrama de §9 suma `FR-019`, `FR-019b` y `FR-034b`; `NFR-002` cita su origen; §17 aclara que las funciones de `TC-010`/`TC-011` no se renombran; encabezado con fecha de última revisión. Pendientes de claude-fable-5-1: el 3 se resuelve (aviso del encabezado con `CANCHA_SPEC.md`), el 11 se resuelve (`FR-042` partido), el 12 se resuelve (nota en el glosario de `CARGA_POR_TOQUE_SPEC.md`); el 6 y el 7 no estaban pendientes: dejaron de aplicar con `D-31`, como señaló claude-sonnet-5. No se tomaron de claude-haiku-5-5: quitar `TC-001`, `TC-030` a `TC-032` (son recordatorios de `AGENTS.md` que gatean `AC-30`, `AC-38` a `AC-40`), unificar `TC-020` con `NFR-003` (uno es la norma y el otro la mide) y traducir `AC-50` (texto del template). Self-critique: skipped |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras la crítica de claude-fable-5-1 ([`POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-fable-5-1.md`](./POSICIONES_DEL_JUGADOR_SPEC_CRITIQUE_2026-10-29_claude-fable-5-1.md), 0🔴 / 5🟡 / 8🔵): la feature deja de ocupar el arco vacío (`D-31`). Un equipo sin arquero se resuelve regenerando, como hoy, y la idea de ocuparlo a mano pasa a `Roadmap.md`. Se retiran `FR-047` a `FR-049`, `FR-050b`, `FR-051` a `FR-056`, `FR-058`, `FR-058b`, `FR-059`, `FR-062`, `FR-063`, `US-05`, `A-04`, `A-05` y el glosario del arquero puesto a mano; `FR-050` pasa a decir que el arco vacío no se ofrece; `TC-002`, `TC-042` y `TC-043` dejan de hablar de un dato nuevo en `data/partidosArmado`. Además, `FR-061` se corrige contra la Spec del motor (`003`, l. 231): el candado fija el equipo y no el puesto, lo que cierra `OPEN-Q-12`; y con candado y ARQ guardado el motor ya deja al arquero en el arco (hallazgo 1 de la crítica, verificado en [index.html:3364-3366](../../index.html#L3364-L3366)). `S-04` y `S-06` se reescriben con sus variantes; se retira `S-21b`. Con el arco vacío fuera, dejan de aplicar los hallazgos 1, 2, 4, 5, 8, 9 y 10 de esa crítica, y el 13 se resolvió en la nota de `FR-022` de `ARRASTRE_SPEC.md`; los 🔵 3, 6, 7, 11 y 12 quedan para la revisión siguiente. Self-critique: skipped |
