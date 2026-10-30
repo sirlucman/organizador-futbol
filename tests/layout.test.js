@@ -688,8 +688,10 @@ const INVARIANTE_INTERCAMBIO = () => {
   if (document.querySelector('.cancha .camiseta[role="button"]')) {
     problemas.push('una camiseta se anuncia como botón sin poder enfocarse ni activarse con el teclado (TD-20)');
   }
-  /* Fuera de puesto (19a) y candidato con costo (20b), S-22c. La «!» va en −5 px, y en −12 px con la
-     camiseta de 48 y 44 px; no se sale de su columna ni pisa el puntaje, y nunca convive con la «2º». */
+  /* Fuera de puesto (19a) y candidato con costo (20b), S-22c. Con la camiseta de 56 y 52 px la «!» es
+     la del diseño, 26x20 en −5 px; con la de 48 y 44 px —el compacto— toma el tamaño y el lugar de
+     la «2º» de esa camiseta (decisión del propietario, 2026-10-30). No se sale de su columna ni pisa
+     el puntaje, y nunca convive con la «2º». */
   const fueras = [...document.querySelectorAll('.cancha .camiseta-fuera')];
   const seVeElNegro = !document.querySelector('.equipo-tabs') || document.querySelector('.equipo-tabs').dataset.visible === 'negro';
   if (seVeElNegro && !fueras.length) problemas.push('no hay ninguna pastilla «!» a la vista: el Negro de m-int-9 tiene tres fuera de puesto (S-22c)');
@@ -697,10 +699,14 @@ const INVARIANTE_INTERCAMBIO = () => {
   for (const f of fueras) {
     const c = f.closest('.camiseta'), fig = c.querySelector('.camiseta-fig');
     const lado = fig.getBoundingClientRect().width;
-    /* −12 con la camiseta de 48 y 44 px, −5 con las demás; salvo que la columna esté angostada,
-       donde va justo en su borde. */
+    // El compacto es la vista de una columna, en cualquier camiseta, y además la de 48 y 44 px.
+    const compacto = lado < 50 || window.innerWidth < 1100;
+    const variable = v => parseFloat(getComputedStyle(c).getPropertyValue(v));
+    const como2 = { w: variable('--sec-w'), h: variable('--sec-h'), edge: variable('--sec-edge') };
+    const medida = compacto ? como2 : { w: 26, h: 20, edge: -5 };
+    // Salvo que la columna esté angostada, donde va justo en su borde.
     const borde = (lado - c.getBoundingClientRect().width) / 2;
-    const esperado = Math.max(lado < 50 ? -12 : -5, borde);
+    const esperado = Math.max(medida.edge, borde);
     const left = parseFloat(getComputedStyle(f).left);
     if (Math.abs(left - esperado) > 0.5) problemas.push(`la «!» de "${nombre(c)}" va en ${left}px con camiseta de ${Math.round(lado)}px, y tiene que ir en ${Math.round(esperado * 10) / 10}px (S-22c)`);
     const b = f.getBoundingClientRect(), col = c.getBoundingClientRect();
@@ -708,7 +714,7 @@ const INVARIANTE_INTERCAMBIO = () => {
     const pts = c.querySelector('.camiseta-puntaje');
     if (pts && b.right > pts.getBoundingClientRect().left - 0.5) problemas.push(`la «!» de "${nombre(c)}" pisa el puntaje (S-22c)`);
     if (c.querySelector('.camiseta-sec')) problemas.push(`"${nombre(c)}" lleva la «2º» y la «!» a la vez (FR-025)`);
-    if (b.width !== 26 || b.height !== 20) problemas.push(`la «!» de "${nombre(c)}" mide ${b.width}x${b.height}px y son 26x20 (FR-025)`);
+    if (Math.abs(b.width - medida.w) > 0.5 || Math.abs(b.height - medida.h) > 0.5) problemas.push(`la «!» de "${nombre(c)}" mide ${b.width}x${b.height}px con camiseta de ${Math.round(lado)}px, y son ${medida.w}x${medida.h}${compacto ? ', como la «2º»' : ''} (FR-025)`);
   }
   const tab = document.querySelector('.equipo-tab');
   if (tab && !document.querySelector('.equipo-tab .equipo-tab-fuera')) problemas.push('en una columna, ninguna pestaña lleva la «!» y el Negro tiene tres fuera de puesto (S-02i)');
