@@ -1,0 +1,84 @@
+:root {
+  /* ── Base palette ─────────────────────────────────────────────── */
+  /* Football green — the sole brand accent. Sampled from pitch turf:
+     corner vignette (900) through to the bright centre stripe (100). */
+  --green-900: #2a5d0a;
+  --green-700: #417513;
+  --green-600: #609023;
+  --green-500: #85b632;
+  --green-400: #a4cf49;
+  --green-300: #c3e07c;
+  --green-100: #e4f0c4;
+  /* Ink & neutrals */
+  --ink-900: #111827;
+  --gray-700: #374151;
+  --gray-500: #6b7280;
+  --white: #ffffff;
+  --slate-100: #f1f5f9;
+  /* Semantic families */
+  --positive-600: #16a34a;
+  --positive-800: #166534;
+  --warning-400: #facc15;
+  --warning-700: #a16207;
+  --warning-900: #713f12;
+  --negative-500: #ef4444;
+  --negative-600: #dc2626;
+  --negative-700: #b91c1c;
+  --negative-950: #450a0a;
+  /* Tertiary illustration accents */
+  --orange-400: #fb923c;
+  --cyan-400: #38bdf8;
+
+  /* ── Semantic aliases ─────────────────────────────────────────── */
+  --color-primary: var(--green-500);
+  --color-on-primary: var(--ink-900);
+  --color-primary-active: var(--green-400);
+  --color-primary-neutral: var(--green-300);
+  --color-primary-pale: var(--green-100);
+
+  --color-ink: var(--ink-900);
+  --color-ink-deep: var(--green-900);
+  --color-body: var(--gray-700);
+  --color-mute: var(--gray-500);
+
+  --color-canvas: var(--white);
+  --color-canvas-soft: var(--slate-100);
+
+  --color-positive: var(--positive-600);
+  --color-positive-deep: var(--positive-800);
+  --color-warning: var(--warning-400);
+  --color-warning-deep: var(--warning-700);
+  --color-warning-content: var(--warning-900);
+  --color-negative: var(--negative-500);
+  --color-negative-deep: var(--negative-600);
+  --color-negative-darkest: var(--negative-700);
+  --color-negative-bg: var(--negative-950);
+
+  --color-primary-deep: var(--green-600);
+  --color-primary-darkest: var(--green-700);
+
+  --color-accent-orange: var(--orange-400);
+  --color-accent-cyan: var(--cyan-400);
+
+  /* ── Role aliases (use these in components) ───────────────────── */
+  --text-heading: var(--color-ink);
+  --text-body: var(--color-body);
+  --text-muted: var(--color-mute);
+  --text-on-primary: var(--color-on-primary);
+  --text-on-dark: var(--color-canvas-soft);
+  --text-accent: var(--color-primary);
+
+  --surface-page: var(--color-canvas-soft);
+  --surface-card: var(--color-canvas);
+  --surface-card-sage: var(--color-canvas-soft);
+  --surface-card-green: var(--color-primary-pale);
+  --surface-card-dark: var(--color-ink);
+  --surface-inverse: var(--color-ink);
+
+  --border-strong: var(--color-ink);
+  --border-hairline: var(--color-ink);
+  --border-subtle: var(--color-canvas-soft);
+  --border-mute: var(--color-mute);
+
+  --focus-ring: var(--color-ink);
+}
