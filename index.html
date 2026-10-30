@@ -664,6 +664,9 @@
   .equipo-tab{ position: relative; z-index: 1; padding: 10px 0; min-height: 44px; border: none; background: none; color: var(--ink); font-family: var(--font-display); font-weight: 600; font-size: 14px; line-height: 20px; cursor: pointer; border-radius: var(--radius-pill); }
   .equipo-tab:hover{ opacity: 0.7; }
   .equipo-tab:active{ opacity: 0.7; transform: scale(0.97); }
+  /* Cuántos candidatos tiene el equipo de la pestaña, con una selección viva: la cápsula del diseño
+     18h (posiciones-del-jugador, TD-21). */
+  .equipo-tab-cuenta{ display: inline-block; margin-left: 6px; min-width: 20px; padding: 0 6px; border-radius: var(--radius-pill); background: var(--ink); color: var(--chalk); font: 900 11px/20px var(--font-display); text-align: center; vertical-align: 1px; }
 
   /* --- La carga por toque (rebanada 6): selector de evento y Deshacer ---
      Mismo patrón de selector segmentado que `.equipo-tabs` (TC-010), con cuatro columnas en vez
@@ -5679,18 +5682,28 @@
      aunque no pueda mover a nadie (FR-038). */
   function renderSelectorEquipo(m){
     const editable = esFilaEditable(m);
+    /* Con una selección viva, cada pestaña dice cuántos candidatos tiene ese equipo, también cero:
+       en una columna, sin esto, los candidatos que están en el otro equipo no se ven y la selección
+       parece no haber hecho nada (posiciones-del-jugador, FR-012b, TD-21). Los candidatos ya están
+       en la selección; acá sólo se cuentan. */
+    const sel = editable ? seleccionVigente(m) : null;
+    const cuentaDe = equipo => sel.candidatos.filter(id => unidadDelPartido(m, id) === equipo).length;
     const tab = (equipo, etiqueta) => {
       const activo = equipoVisibleCancha === equipo;
+      const cuenta = sel ? cuentaDe(equipo) : null;
+      const cuentaAttrs = cuenta === null ? ''
+        : ' aria-label="' + etiqueta + ', ' + cuenta + (cuenta === 1 ? ' candidato' : ' candidatos') + '"';
+      const cuentaHtml = cuenta === null ? '' : '<span class="equipo-tab-cuenta" aria-hidden="true">' + cuenta + '</span>';
       /* Sólo la pestaña del equipo que NO se está viendo recibe el drop: soltar sobre la propia
          no hace nada (FR-013), y con rol jugador no hay drop en ninguna (FR-038b). */
       const dropAttrs = (editable && !activo)
         ? ' ondragover="window.__dragSobre(event,this)"'
           + ' ondrop="window.__dropEnPestana(event,\'' + m.id + '\',\'' + equipo + '\')"'
         : '';
-      return '<button type="button" class="equipo-tab"' + dropAttrs
+      return '<button type="button" class="equipo-tab"' + dropAttrs + cuentaAttrs
         + ' aria-pressed="' + (activo ? 'true' : 'false') + '"'
         + ' onclick="window.__verEquipo(\'' + m.id + '\',\'' + equipo + '\')">'
-        + etiqueta + '<span class="drop-realce"></span></button>';
+        + etiqueta + cuentaHtml + '<span class="drop-realce"></span></button>';
     };
     return '<div class="equipo-tabs" data-visible="' + equipoVisibleCancha + '">'
       + '<span class="equipo-tabs-thumb"></span>'

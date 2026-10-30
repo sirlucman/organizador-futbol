@@ -2145,19 +2145,28 @@ const ESCENARIOS = [
     anchos: [360, 1200],
     spec: ['intercambio/S-01', 'intercambio/S-01b', 'intercambio/S-01c', 'intercambio/S-01d', 'intercambio/S-01e',
       'intercambio/S-01g', 'intercambio/S-01k', 'intercambio/S-02', 'intercambio/S-02a', 'intercambio/S-02e',
-      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
+      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-02h', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
     transformarDatos: agregarDatosDeIntercambio,
     async preparar(page) { await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
       const problemas = [];
       const fijo = PARTIDO_INTERCAMBIO('m-int-8');
       const puestosDe = (m, equipo) => m.equipos[equipo].map(id => m.equipos.posicionAsignada[id]).sort().join(',');
+      /* Lo que dice cada pestaña: la cuenta visible y el nombre accesible (FR-012b). */
+      const pestanias = () => page.evaluate(() => [...document.querySelectorAll('.equipo-tab')].map(t => ({
+        cuenta: (t.querySelector('.equipo-tab-cuenta') || {}).textContent || null,
+        etiqueta: t.getAttribute('aria-label') || t.textContent.trim(),
+      })));
 
       /* --- a 360 px, una columna: S-02 --- */
       let base = await lineaDeBase(page, 'm-int-8', 'int-pedro');
       await tocarCamiseta(page, 'int-lucas');
       let s = await leerSeleccion(page);
       if (s.seleccionadas.join() !== 'int-lucas') problemas.push(`tocar a Lucas dejó seleccionadas ${JSON.stringify(s.seleccionadas)} (S-02, FR-010)`);
+      /* S-02h: Martín en el Blanco; Ezequiel y Tomás en el Negro. */
+      let p = await pestanias();
+      if (p.map(x => x.cuenta).join() !== '1,2') problemas.push(`con Lucas seleccionado las pestañas cuentan ${JSON.stringify(p.map(x => x.cuenta))}, y son 1 en el Blanco y 2 en el Negro (S-02h, FR-012b)`);
+      if (!p[1] || !/2 candidatos/.test(p[1].etiqueta)) problemas.push(`la pestaña del Negro no dice la cuenta en su nombre accesible: ${JSON.stringify(p[1] && p[1].etiqueta)} (S-02h, NFR-003)`);
       await page.click('.equipo-tab[aria-pressed="false"]');
       await page.waitForTimeout(300);
       s = await leerSeleccion(page);
@@ -2178,6 +2187,17 @@ const ESCENARIOS = [
       }
       if (m) problemas.push(...revisarEscrituraDeIntercambio(base, tras, 'm-int-8', ['int-lucas', 'int-tomas'], 'S-02'));
       if (haySeleccion(await leerSeleccion(page))) problemas.push('la selección no desapareció después del intercambio (S-02, FR-013)');
+      if ((await pestanias()).some(x => x.cuenta !== null)) problemas.push('después del intercambio las pestañas siguen mostrando una cuenta (S-02h, FR-012b)');
+      /* S-02h, con cero: el jugador <img …> no tiene candidatos en ningún equipo. */
+      await page.click('.equipo-tab[aria-pressed="false"]');
+      await page.waitForTimeout(300);
+      await tocarCamiseta(page, 'int-img');
+      p = await pestanias();
+      if (p.map(x => x.cuenta).join() !== '0,0') problemas.push(`sin candidatos las pestañas cuentan ${JSON.stringify(p.map(x => x.cuenta))}, y tienen que decir 0 y 0 (S-02h, FR-012b)`);
+      await tocarCamiseta(page, 'int-img');
+      await despejarAviso(page);
+      await page.click('.equipo-tab[aria-pressed="false"]');   // de vuelta al Negro, donde quedó Lucas
+      await page.waitForTimeout(300);
 
       /* S-02e: con una selección viva se cierra la inscripción; al reabrir, la selección no vuelve. */
       await tocarCamiseta(page, 'int-lucas');
