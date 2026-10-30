@@ -2206,6 +2206,22 @@
     const v = p.scores && p.scores[pos];
     return (v !== null && v !== undefined && v !== '') ? Number(v) : 0;
   }
+  /* El puesto cuya nota cuenta para una unidad en un lugar (posiciones-del-jugador, D-36,
+     FR-025c): el del lugar si lo juega, de principal o de secundaria; si no lo juega —fuera de
+     puesto, la «!» de la camiseta—, el de su principal. Antes contaba la nota del lugar, y quien
+     no la tenía sumaba 0. Quien juega el lugar de secundaria y no tiene nota ahí sigue sumando 0:
+     eso no cambia (012-puntajes-coherentes-panel, escenario 6). "Lo juega" es la misma pregunta que
+     la «!» y que "lugares sin cubrir" (`cubrePosicionGuardada`), con la unidad de la dupla. */
+  function puestoQueSuma(u, pos){
+    return cubrePosicionGuardada(u, pos) >= COSTO_DESCUBIERTA ? u.principal : pos;
+  }
+  /* Lo que vale una unidad YA UBICADA en un lugar: es lo que suman los totales, las líneas y el
+     motor al balancear. Para ELEGIR a quién poner en un lugar —los candidatos al arco, la mejor
+     secundaria de un arquero desplazado— el motor sigue mirando la nota de ese puesto
+     (`puntajeEnPosicion`): elegir por la principal metería en el arco a quien no ataja. */
+  function valorEnPuesto(u, pos){
+    return puntajeEnPosicion(u, puestoQueSuma(u, pos));
+  }
   function formatFecha(fechaISO){
     if(!fechaISO) return '';
     const d = new Date(fechaISO + 'T00:00:00');
@@ -3491,12 +3507,12 @@
     if(arq.slotBlancoLibre && !titularBlancoArq && secundarioPool[iSec]){ titularBlancoArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularBlancoArq.id }); }
     if(arq.slotNegroLibre && !titularNegroArq && secundarioPool[iSec]){ titularNegroArq = secundarioPool[iSec++]; arquerosPorSecundaria.push({ playerId: titularNegroArq.id }); }
     arq.bloqueados.forEach(p => {
-      const valor = puntajeEnPosicion(p, 'Arquero');
+      const valor = valorEnPuesto(p, 'Arquero');
       if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
       else{ negro.push(p.id); sumaNegro += valor; }
     });
-    if(titularBlancoArq){ posicionAsignada[titularBlancoArq.id] = 'Arquero'; blanco.push(titularBlancoArq.id); sumaBlanco += puntajeEnPosicion(titularBlancoArq,'Arquero'); }
-    if(titularNegroArq){ posicionAsignada[titularNegroArq.id] = 'Arquero'; negro.push(titularNegroArq.id); sumaNegro += puntajeEnPosicion(titularNegroArq,'Arquero'); }
+    if(titularBlancoArq){ posicionAsignada[titularBlancoArq.id] = 'Arquero'; blanco.push(titularBlancoArq.id); sumaBlanco += valorEnPuesto(titularBlancoArq,'Arquero'); }
+    if(titularNegroArq){ posicionAsignada[titularNegroArq.id] = 'Arquero'; negro.push(titularNegroArq.id); sumaNegro += valorEnPuesto(titularNegroArq,'Arquero'); }
     // Los naturales excedentes (no ganaron un slot entre los naturales) se reubican en su mejor posición
     // secundaria; si no tienen, a Delantero.
     arq.excedentes.forEach(p => {
@@ -3584,7 +3600,7 @@
       const bloqueadosDeEste = lista.filter(sonBloqueados);
       const libresDeEste = lista.filter(p => !sonBloqueados(p));
       bloqueadosDeEste.forEach(p => {
-        const valor = puntajeEnPosicion(p, posicionAsignada[p.id]);
+        const valor = valorEnPuesto(p, posicionAsignada[p.id]);
         if(prevTeamOf[p.id] === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; }
         else{ negro.push(p.id); sumaNegro += valor; }
       });
@@ -3600,8 +3616,8 @@
 
       let jugadores = libresDeEste.map(p => {
         const pos = posicionAsignada[p.id];
-        const valor = puntajeEnPosicion(p, pos);
-        return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[pos] === 0), esDupla: esDupla(p) };
+        const valor = valorEnPuesto(p, pos);
+        return { id: p.id, valor, tieneScore: valor > 0 || (p.scores && p.scores[puestoQueSuma(p, pos)] === 0), esDupla: esDupla(p) };
       });
       if(usaPuntaje){
         if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
@@ -3671,7 +3687,7 @@
           });
         });
         if(!mejor) break;
-        const delta = puntajeEnPosicion(porId[mejor.id], mejor.hacia) - puntajeEnPosicion(porId[mejor.id], mejor.desde);
+        const delta = valorEnPuesto(porId[mejor.id], mejor.hacia) - valorEnPuesto(porId[mejor.id], mejor.desde);
         if(equipoDe[mejor.id] === 'blanco') sumaBlanco += delta; else sumaNegro += delta;
         posicionAsignada[mejor.id] = mejor.hacia;
         swaps.push({ playerId: mejor.id, desde: mejor.desde, hacia: mejor.hacia });
@@ -4013,7 +4029,7 @@
       // Cada unidad suma en la LÍNEA de su puesto (desglose-posiciones FR-053); un valor que no es
       // puesto ni posición vieja queda bajo su propio nombre, como antes.
       const linea = lineaDe(pos) || pos;
-      out[linea] = (out[linea] || 0) + puntajeEnPosicion(u, pos);
+      out[linea] = (out[linea] || 0) + valorEnPuesto(u, pos);
     });
     return out;
   }
@@ -4091,14 +4107,14 @@
         unidades.forEach((u, i) => {
           const equipo = enBlanco.has(i) ? 'blanco' : 'negro';
           const pos = posDe(u);
-          const valor = puntajeEnPosicion(u, pos);
+          const valor = valorEnPuesto(u, pos);
           const linea = lineaDe(pos) || pos;
           o[equipo].push(u.id);
           if(!o.porLinea[linea]) o.porLinea[linea] = { blanco: 0, negro: 0 };
           o.porLinea[linea][equipo] += valor;
           if(equipo === 'blanco') o.sumaBlanco += valor; else o.sumaNegro += valor;
           if(esDupla(u)) o[equipo === 'blanco' ? 'duplasBlanco' : 'duplasNegro']++;
-          if(!tieneScoreEnPosicion(u, pos)) o[equipo === 'blanco' ? 'sinPuntajeBlanco' : 'sinPuntajeNegro']++;
+          if(!tieneScoreEnPosicion(u, puestoQueSuma(u, pos))) o[equipo === 'blanco' ? 'sinPuntajeBlanco' : 'sinPuntajeNegro']++;
           const previo = prevTeamOf && prevTeamOf[u.id];
           if(previo && previo !== equipo) o.cambios++;
         });
@@ -4302,7 +4318,7 @@
       else equipo = ajustadoBlanco <= ajustadoNegro ? 'blanco' : 'negro';
       cupoDuplas[equipo]--;
       if(descuentaCupo) cupoEquipo[equipo][pos] = Math.max(0, cupoEquipo[equipo][pos] - 1);
-      const valor = puntajeEnPosicion(u, pos);
+      const valor = valorEnPuesto(u, pos);
       if(equipo === 'blanco'){ blanco.push(u.id); sumaBlanco += valor; } else { negro.push(u.id); sumaNegro += valor; }
     }
     if(balancePorLinea){
@@ -4315,12 +4331,12 @@
       // reparto del resto se decida sabiendo con qué puntaje arranca cada línea de cada equipo.
       bloqueadosDeEste.forEach(p => {
         const equipo = prevTeamOf[p.id];
-        const valor = puntajeEnPosicion(p, posicionAsignada[p.id]);
+        const valor = valorEnPuesto(p, posicionAsignada[p.id]);
         if(equipo === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; } else { negro.push(p.id); sumaNegro += valor; }
       });
       /* La base del reparto: lo que ya está decidido y no depende del escenario de posiciones que
          se pruebe abajo (el arco y los bloqueados). Se calcula una sola vez. */
-      const sinPuntajeDe = (ids, posDe) => ids.filter(id => !tieneScoreEnPosicion(porId[id], posDe[id])).length;
+      const sinPuntajeDe = (ids, posDe) => ids.filter(id => !tieneScoreEnPosicion(porId[id], puestoQueSuma(porId[id], posDe[id]))).length;
       const baseReparto = {
         cantBlanco: blanco.length, cantNegro: negro.length,
         sumaBlanco, sumaNegro,
@@ -4384,8 +4400,8 @@
       if(mejor){
         Object.assign(posicionAsignada, mejor.posCand);
         (mejor.opciones || []).forEach(o => {
-          o.blanco.forEach(id => { blanco.push(id); sumaBlanco += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
-          o.negro.forEach(id => { negro.push(id); sumaNegro += puntajeEnPosicion(porId[id], posicionAsignada[id]); });
+          o.blanco.forEach(id => { blanco.push(id); sumaBlanco += valorEnPuesto(porId[id], posicionAsignada[id]); });
+          o.negro.forEach(id => { negro.push(id); sumaNegro += valorEnPuesto(porId[id], posicionAsignada[id]); });
         });
       }
       pendientes = [];
@@ -4403,10 +4419,10 @@
     puestosFormacion.forEach(pos => {
       bloqueadosDeEste.filter(p => posicionAsignada[p.id] === pos).forEach(p => {
         const equipo = prevTeamOf[p.id];
-        const valor = puntajeEnPosicion(p, pos);
+        const valor = valorEnPuesto(p, pos);
         if(equipo === 'blanco'){ blanco.push(p.id); sumaBlanco += valor; } else { negro.push(p.id); sumaNegro += valor; }
       });
-      const jugadores = buckets[pos].map(p => ({ id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) }));
+      const jugadores = buckets[pos].map(p => ({ id: p.id, valor: valorEnPuesto(p, pos), tieneScore: tieneScoreEnPosicion(p, puestoQueSuma(p, pos)) }));
       if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
       else jugadores.sort((a,b) => b.valor - a.valor);
       const resultado = repartirBucketBalanceado(jugadores, cupoEquipo.blanco[pos], cupoEquipo.negro[pos], blanco, negro, sumaBlanco, sumaNegro, usaPuntaje, { equipoCompensado: arquerosInfo.equipoCompensado, compensacion: arquerosInfo.compensacion });
@@ -4428,7 +4444,7 @@
       const cupoNegro = total - cupoBlanco;
       const jugadores = pendientes.map(p => {
         const pos = posicionAsignada[p.id];
-        return { id: p.id, valor: puntajeEnPosicion(p, pos), tieneScore: tieneScoreEnPosicion(p, pos) };
+        return { id: p.id, valor: valorEnPuesto(p, pos), tieneScore: tieneScoreEnPosicion(p, puestoQueSuma(p, pos)) };
       });
       if(separaSinPuntaje) jugadores.sort((a,b) => (b.tieneScore?b.valor:-1) - (a.tieneScore?a.valor:-1));
       else jugadores.sort((a,b) => b.valor - a.valor);
@@ -4462,7 +4478,7 @@
         // en la posición que traía, igual que en el Paso 4.
         if(!pos){ remanenteFinal.add(u.id); return; }
         if(pos === posicionAsignada[u.id]) return;
-        const delta = puntajeEnPosicion(u, pos) - puntajeEnPosicion(u, posicionAsignada[u.id]);
+        const delta = valorEnPuesto(u, pos) - valorEnPuesto(u, posicionAsignada[u.id]);
         if(equipo === 'blanco') sumaBlanco += delta; else sumaNegro += delta;
         posicionAsignada[u.id] = pos;
       });
@@ -4529,9 +4545,9 @@
     if(balancePorLinea){
       const objetivo = objetivoDiferencia(arquerosInfo);
       const banda = margenTotalPorLinea();
-      const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
+      const valorDe = id => valorEnPuesto(porId[id], posicionAsignada[id]);
       const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
-      const sinPuntajeDe = ids => ids.filter(id => !tieneScoreEnPosicion(porId[id], posicionAsignada[id])).length;
+      const sinPuntajeDe = ids => ids.filter(id => !tieneScoreEnPosicion(porId[id], puestoQueSuma(porId[id], posicionAsignada[id]))).length;
       // Mismos criterios y mismo orden que la enumeración, sin los dos que un intercambio de igual
       // posición no puede cambiar (cantidad de integrantes y cupo de duplas).
       const costoActual = () => {
@@ -4631,7 +4647,7 @@
       if(huboCambioDePosicion){ faltantes = calcularFaltantes(); swaps = calcularSwaps(); }
     }else{
       const objetivo = objetivoDiferencia(arquerosInfo);
-      const valorDe = id => puntajeEnPosicion(porId[id], posicionAsignada[id]);
+      const valorDe = id => valorEnPuesto(porId[id], posicionAsignada[id]);
       const intercambiable = id => !bloqueadosSet.has(id) && posicionAsignada[id] !== 'Arquero';
       const MAX_VUELTAS = 50; // tope defensivo: cada vuelta reduce el desvío, así que siempre corta antes
       for(let vuelta = 0; vuelta < MAX_VUELTAS; vuelta++){
@@ -5174,7 +5190,7 @@
     const unidad = grupo.length === 2 ? construirUnidadDupla(grupo[0], grupo[1]) : grupo[0];
     // Sin posiciones asignadas (Estrategia 1) el panel muestra el promedio general, como siempre.
     if(!m.equipos.posicionAsignada) return valorGeneralDe(unidad);
-    const valor = puntajeEnPosicion(unidad, posicionAsignadaDe(grupo[0], m));
+    const valor = valorEnPuesto(unidad, posicionAsignadaDe(grupo[0], m));
     return valor > 0 ? valor : null;
   }
 
@@ -5369,8 +5385,13 @@
     if(puedeTocarCamiseta) partes.push('tocá para sumar un evento del tipo activo');
     const titulo = escaparHtml(partes.join(' · '));
 
+    /* Fuera de puesto el número es el de su principal (`valorEnPuesto`, D-36), con el mismo color que
+       todos los puntajes; su `title` dice de qué puesto es (FR-025c). */
+    const principalQueSuma = fueraDePuesto ? (esUnidadDupla ? construirUnidadDupla(grupo[0], grupo[1]).principal : p.principal) : null;
     const puntajeHtml = (admin && valor !== null)
-      ? '<span class="camiseta-puntaje">' + valor + '</span>' : '';
+      ? '<span class="camiseta-puntaje' + (fueraDePuesto
+          ? ' de-principal" title="' + escaparHtml('Suma su puntaje de ' + nombreDe(principalQueSuma) + ', su puesto') + '"'
+          : '"') + '>' + valor + '</span>' : '';
 
     // El candado es sólo de admin y sólo con el partido abierto: el mismo predicado que gobierna
     // la fila de la lista. La guarda de rol está además dentro de `__toggleBloqueo` (FR-034).

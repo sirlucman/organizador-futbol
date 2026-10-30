@@ -42,6 +42,11 @@ const RUTA = doc => `https://firestore.googleapis.com/v1/projects/${PROYECTO}/da
 const DECLARACIONES = [
   ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'lineaDeUnSoloLugar',
   'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
+  'COSTO_DESCUBIERTA',
+  'costoEncaje',
+  'cubrePosicionGuardada',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'valorDePuntaje', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo', 'agruparEnLineasDeCancha',
   'sumasPorLinea', 'balanceLineasDe', 'colapsarDuplasParaLinea', 'sumaVigenteDeEquipo', 'sumasVigentes',
 ];

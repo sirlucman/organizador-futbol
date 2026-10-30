@@ -19,7 +19,7 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { extraer, DECLARACIONES_CATALOGO } = require('./harness');
+const { extraer, DECLARACIONES_CATALOGO, cargarMotor } = require('./harness');
 const { docsDesde, agregarDatosDeIntercambio } = require('./fixtures-app');
 
 const SPEC = 'docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md';
@@ -37,6 +37,8 @@ const DECLARACIONES = [
   'getDuplaPartner',
   'construirUnidadDupla',
   'posicionAsignadaDe',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'valorDePuntaje',
   'unidadDelPartido',
   'moverUnJugadorDeEquipo',
@@ -421,6 +423,43 @@ prueba('"intercambio/S-01n" el candidato con costo se mide contra el lugar que d
   ok(!I.intercambioConCosto(m, 'int-lucas', 'int-tomas', porId), 'Tomás (MD; MC) sí');
   ok(!I.intercambioConCosto(m, 'int-ezequiel', 'int-ramiro', porId), 'la dupla cubre MC por los dos');
   ok(I.intercambioConCosto(m, 'int-sergio', 'int-nico', porId) === false, 'Nico juega LI, el lugar de Sergio');
+});
+
+console.log('\n\x1b[1mEL PUNTAJE FUERA DE PUESTO\x1b[0m — suma su principal, en la pantalla y en el motor (D-36)\n');
+
+prueba('"intercambio/S-01p" fuera de puesto suma su principal; en una secundaria sin nota sigue "sin puntaje"', () => {
+  const m = partido('m-int-8');
+  I.intercambiarUnidades(m, 'int-juan', 'int-nico');   // Nico (LI, 6) queda de DC, que no juega
+  eq(I.valorDePuntaje([porId['int-nico']], m), 6, 'Nico suma su 6 de LI, no 0 (FR-025c)');
+  eq(I.valorDePuntaje([porId['int-juan']], m), 5, 'Juan, de LI, su secundaria, suma su nota de LI');
+  eq(I.sumasVigentes(m).blanco, 53 - 7 - 6 + 5 + 6, 'el Blanco baja de 53 a 51: antes Nico sumaba 0 y bajaba a 45');
+  const lucasSinNotaDeMD = { ...porId['int-lucas'], scores: { MC: 7 } };
+  m.equipos.posicionAsignada['int-lucas'] = 'MD';
+  eq(I.valorDePuntaje([lucasSinNotaDeMD], m), null, 'Lucas juega MD de secundaria y no tiene nota ahí: "sin puntaje", como siempre (012, escenario 6)');
+  eq(I.puestoQueSuma(porId['int-ramon'], 'DEL'), 'MC', 'el puesto que cuenta para Ramón de DEL es su principal');
+});
+
+prueba('"intercambio/S-07b" recién generado con alguien fuera de puesto, el total del motor es el de la pantalla', () => {
+  /* Nadie juega LI: la formación no se puede completar y cada equipo pone a alguien ahí, fuera de
+     puesto. El motor tiene que sumarle su principal, como la pantalla; si sumara 0, el total
+     guardado no coincidiría y el resumen aparecería dividido sin que nadie tocara nada. */
+  const motor = cargarMotor();
+  const Pj = (id, principal, nota) => ({ id, nombre: id, apellido: '', principal, secundarias: [], scores: { [principal]: nota } });
+  const plantel = [Pj('a1', 'Arquero', 6), Pj('a2', 'Arquero', 6), Pj('dc1', 'DC', 7), Pj('dc2', 'DC', 6),
+    Pj('ld1', 'LD', 5), Pj('ld2', 'LD', 6), Pj('mi1', 'MI', 7), Pj('mi2', 'MI', 6), Pj('mc1', 'MC', 8), Pj('mc2', 'MC', 7),
+    Pj('mc3', 'MC', 5), Pj('mc4', 'MC', 6), Pj('md1', 'MD', 6), Pj('md2', 'MD', 7), Pj('del1', 'DEL', 8), Pj('del2', 'DEL', 7)];
+  const res = motor.generarEquiposEstrategia4(plantel, [], {}, null, motor.CANCHAS.futbol8.formacion);
+  const m = { equipos: { posicionAsignada: res.posicionAsignada } };
+  const deId = Object.fromEntries(plantel.map(p => [p.id, p]));
+  ['blanco', 'negro'].forEach(equipo => {
+    const enLI = res[equipo].filter(id => res.posicionAsignada[id] === 'LI');
+    eq(enLI.length, 1, `el ${equipo} pone a alguien de LI`);
+    ok(motor.cubrePosicionGuardada(deId[enLI[0]], 'LI') >= motor.COSTO_DESCUBIERTA, `y no lo juega: está fuera de puesto`);
+    ok(motor.valorDePuntaje([deId[enLI[0]]], m) > 0, `suma su principal (${deId[enLI[0]].principal}), no 0`);
+    const pantalla = res[equipo].reduce((t, id) => t + (motor.valorDePuntaje([deId[id]], m) || 0), 0);
+    const guardado = equipo === 'blanco' ? res.sumaBlanco : res.sumaNegro;
+    eq(Math.round(guardado * 10) / 10, Math.round(pantalla * 10) / 10, `el total del ${equipo} que guarda el motor es el de la pantalla`);
+  });
 });
 
 /* ---------- propiedades ---------- */

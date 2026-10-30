@@ -41,6 +41,8 @@ const DECLARACIONES = [
   'getDuplaPartner',
   'posicionAsignadaDe',
   'construirUnidadDupla',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'valorDePuntaje',
   'jugadoresDeEquipoOrdenados',
   'agruparFilasDeEquipo',

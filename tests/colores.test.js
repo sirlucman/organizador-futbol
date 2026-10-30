@@ -247,6 +247,8 @@ console.log('\nLo que el panel dice después de intercambiar');
 const DECLARACIONES_PANEL = [
   ...DECLARACIONES_CATALOGO, 'computeAvg', 'valorGeneralDe', 'puntajeEnPosicion', 'lineaDeUnSoloLugar',
   'objetivoDiferencia', 'esDupla', 'getDuplaPartner', 'posicionAsignadaDe', 'construirUnidadDupla',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'valorDePuntaje', 'jugadoresDeEquipoOrdenados', 'agruparFilasDeEquipo',
   'sumasPorLinea', 'balanceLineasDe', 'balanceGuardadoPorLinea', 'colapsarDuplasParaLinea', 'balanceLineasVigente',
   'celdasDiferenciaPorLinea', 'sumaVigenteDeEquipo', 'sumasVigentes', 'COSTO_DESCUBIERTA',

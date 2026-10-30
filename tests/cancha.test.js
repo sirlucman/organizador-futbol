@@ -50,6 +50,11 @@ const DECLARACIONES = [
   // pantalla en vez de leerse del valor guardado al generar.
   'valorGeneralDe',
   'construirUnidadDupla',
+  'COSTO_DESCUBIERTA',
+  'costoEncaje',
+  'cubrePosicionGuardada',
+  'puestoQueSuma',
+  'valorEnPuesto',
   'valorDePuntaje',
   'jugadoresDeEquipoOrdenados',
   'agruparFilasDeEquipo',

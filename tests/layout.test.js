@@ -714,7 +714,15 @@ const INVARIANTE_INTERCAMBIO = () => {
     const pts = c.querySelector('.camiseta-puntaje');
     if (pts && b.right > pts.getBoundingClientRect().left - 0.5) problemas.push(`la «!» de "${nombre(c)}" pisa el puntaje (S-22c)`);
     if (c.querySelector('.camiseta-sec')) problemas.push(`"${nombre(c)}" lleva la «2º» y la «!» a la vez (FR-025)`);
+    /* Fuera de puesto, el puntaje es el de su principal, con el color de todos los puntajes y un
+       title que dice de qué puesto es (D-36, FR-025c). */
+    if (pts && !/^Suma su puntaje de .+, su puesto$/.test(pts.getAttribute('title') || '')) problemas.push(`el puntaje de "${nombre(c)}", fuera de puesto, no dice en su title de qué puesto es (FR-025c)`);
+    const comun = [...document.querySelectorAll('.cancha .camiseta-puntaje')].find(x => !x.closest('.camiseta').querySelector('.camiseta-fuera'));
+    if (pts && comun && getComputedStyle(pts).backgroundColor !== getComputedStyle(comun).backgroundColor) problemas.push(`el puntaje de "${nombre(c)}" no tiene el color de los demás puntajes (FR-025c)`);
     if (Math.abs(b.width - medida.w) > 0.5 || Math.abs(b.height - medida.h) > 0.5) problemas.push(`la «!» de "${nombre(c)}" mide ${b.width}x${b.height}px con camiseta de ${Math.round(lado)}px, y son ${medida.w}x${medida.h}${compacto ? ', como la «2º»' : ''} (FR-025)`);
+  }
+  for (const pts of document.querySelectorAll('.cancha .camiseta-puntaje.de-principal')) {
+    if (!pts.closest('.camiseta').querySelector('.camiseta-fuera')) problemas.push('un puntaje se marca como de la principal en una camiseta que no está fuera de puesto (FR-025c)');
   }
   const tab = document.querySelector('.equipo-tab');
   if (tab && !document.querySelector('.equipo-tab .equipo-tab-fuera')) problemas.push('en una columna, ninguna pestaña lleva la «!» y el Negro tiene tres fuera de puesto (S-02i)');
@@ -1815,17 +1823,25 @@ const ESCENARIOS = [
       const por = Object.fromEntries(celdas.map(c => [c.linea, c]));
       /* El plantel testigo tiene un solo candidato a arquero (Nilo, por posición secundaria) y
          ningún candidato a delantero fuera de Esteban, así que el Arco y el Ataque quedan
-         desparejos: el Arco por 0.3 (a la dupla que le toca de arquero se le promedia el
-         puntaje, FR-036) y el Ataque por 6. Aunque son líneas de un solo lugar por equipo (esa
-         diferencia sigue siendo inevitable y el receipt la sigue explicando así), el color no
-         las distingue de las demás: con el umbral por debajo de las cuatro diferencias, las
-         cuatro líneas se marcan igual. */
+         desparejo: el Arco por 0.3 (a la dupla que le toca de arquero se le promedia el
+         puntaje, FR-036). Aunque es una línea de un solo lugar por equipo (esa diferencia sigue
+         siendo inevitable y el receipt la sigue explicando así), el color no la distingue de las
+         demás: con el umbral por debajo de su diferencia, se marca igual. El Ataque ya no queda
+         desparejo: ver abajo. */
       if (!por.Defensa || !por.Defensa.excedida) problemas.push('la Defensa supera el desvío y podía repartirse: debería quedar marcada (FR-033)');
       if (!por.Medio || !por.Medio.excedida) problemas.push('el Medio supera el desvío y podía repartirse: debería quedar marcado (FR-033)');
       if (!por.Arco) problemas.push('el Arco no se dibujó: el fixture debería dejarlo con puntaje');
       else if (!por.Arco.excedida) problemas.push(`el Arco supera el desvío (${por.Arco.texto}): debería quedar marcado igual que Defensa y Medio`);
+      /* El Ataque quedaba desparejo por 6 porque el delantero del otro equipo juega ahí sin
+         declararlo y sumaba 0. Desde posiciones-del-jugador (D-36, FR-025c) un fuera de puesto suma
+         su principal, y en este fixture el Ataque queda parejo. La línea de un solo lugar marcada
+         igual que las demás la sigue probando el Arco; del Ataque se afirma la regla misma: se
+         marca si y sólo si supera el desvío. */
       if (!por.Ataque) problemas.push('el Ataque no se dibujó: el fixture debería dejarlo con puntaje');
-      else if (!por.Ataque.excedida) problemas.push(`el Ataque supera el desvío (${por.Ataque.texto}): debería quedar marcado igual que Defensa y Medio`);
+      else {
+        const supera = por.Ataque.texto !== 'Parejo' && parseFloat(por.Ataque.texto.replace('+', '')) > 0.2;
+        if (supera !== por.Ataque.excedida) problemas.push(`el Ataque (${por.Ataque.texto}) ${supera ? 'supera' : 'no supera'} el desvío de 0.2 y ${por.Ataque.excedida ? 'quedó' : 'no quedó'} marcado (FR-033)`);
+      }
       return problemas;
     } },
 
@@ -2175,7 +2191,7 @@ const ESCENARIOS = [
     anchos: [360, 1200],
     spec: ['intercambio/S-01', 'intercambio/S-01b', 'intercambio/S-01c', 'intercambio/S-01d', 'intercambio/S-01e',
       'intercambio/S-01g', 'intercambio/S-01k', 'intercambio/S-02', 'intercambio/S-02a', 'intercambio/S-02e',
-      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-02h', 'intercambio/S-02i', 'intercambio/S-01n', 'intercambio/S-01o', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
+      'intercambio/S-02f', 'intercambio/S-02g', 'intercambio/S-02h', 'intercambio/S-02i', 'intercambio/S-01n', 'intercambio/S-01o', 'intercambio/S-01p', 'intercambio/S-07', 'intercambio/S-07a', 'intercambio/NFR-004', 'intercambio/NFR-005'],
     transformarDatos: agregarDatosDeIntercambio,
     async preparar(page) { await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page); },
     async comprobar(page) {
@@ -2261,6 +2277,11 @@ const ESCENARIOS = [
       await page.waitForTimeout(250);
       if ((await pastilla('int-nico')) !== '!') problemas.push(`Nico quedó de DC, que no juega, y su pastilla es ${JSON.stringify(await pastilla('int-nico'))} (S-01n, S-01o, FR-025)`);
       if ((await pastilla('int-juan')) !== '2º') problemas.push(`Juan quedó de LI, su secundaria, y su pastilla es ${JSON.stringify(await pastilla('int-juan'))} (S-01o, FR-025)`);
+      /* S-01p: Nico suma su 6 de LI, con el color de siempre, y el Blanco pasa de 53 a 51 (antes sumaba 0 y daba 45). */
+      const puntajeNico = await page.evaluate(sel => { const x = document.querySelector(sel + ' .camiseta-puntaje'); return x ? { n: x.textContent, title: x.getAttribute('title') } : null; }, CAMISETA('int-nico'));
+      if (!puntajeNico || puntajeNico.n !== '6' || puntajeNico.title !== 'Suma su puntaje de Lateral Izquierdo, su puesto') problemas.push(`fuera de puesto, Nico tiene que mostrar 6, el de LI, y muestra ${JSON.stringify(puntajeNico)} (S-01p, FR-025c)`);
+      const totalTrasNico = await page.$eval('#totalBlancoSpan', e => e.textContent).catch(() => null);
+      if (totalTrasNico !== '51 pts') problemas.push(`con Nico fuera de puesto el Blanco dice ${JSON.stringify(totalTrasNico)}, y son 51: suma su principal (S-01p, FR-025c)`);
       p = await pestanias();
       if (!p[0] || p[0].fuera !== '1 fuera de puesto') problemas.push(`la pestaña del Blanco no lleva la «!» con "1 fuera de puesto": ${JSON.stringify(p[0])} (S-02i, FR-025b)`);
       if (!p[0] || !/1 fuera de puesto/.test(p[0].etiqueta)) problemas.push(`la pestaña del Blanco no dice "1 fuera de puesto" en su nombre accesible (S-02i, NFR-003)`);
