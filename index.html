@@ -48,6 +48,11 @@
     --radius-sm: 8px;
     --radius-field: 16px;   /* radius-lg — la cancha */
     --radius-pill: 9999px;
+    /* Elevación y movimiento, copiados de tokens/elevation.css y tokens/motion.css. Los usan el
+       aviso y la camiseta tocada (posiciones-del-jugador, TD-15). */
+    --shadow-floating: 0 12px 32px -8px rgb(17 24 39 / 0.18);
+    --duration-fast: 140ms;
+    --ease-out: cubic-bezier(0.22, 0.61, 0.36, 1);
   }
 
   *{ box-sizing: border-box; }
@@ -561,8 +566,11 @@
      Claude Design (proyecto "Diseño de equipos en cancha", turnos 10d — partido finalizado — y
      11c — armado). Antes de la cancha (rebanada 1) esto vivía en un tag de texto al lado del
      nombre, visible para cualquier rol; la cancha lo dejó sólo en el `title` (FR-023b), invisible
-     en touch. El handoff sólo mide la camiseta de 56px (26×20px, fuente 10px, `left:-11px`); los
-     demás `--chip-size` de este archivo escalan esa misma proporción, que el handoff no cubre.
+     en touch. El handoff sólo mide la camiseta de 56px (26×20px, fuente 10px); los demás
+     `--chip-size` de este archivo escalan esa misma proporción, que el handoff no cubre. El borde
+     izquierdo pasó de −11px a −5px con el diseño 18h de posiciones-del-jugador, para que la
+     pastilla no toque el recuadro del candidato; los escalones chicos se corren lo mismo, 6px
+     (TD-13, `[INFERRED]` de §7.2.3, a confirmar en la revisión visual).
      Ocupa la esquina arriba-izquierda que el candado deja libre al bajarse (ver `.camiseta-candado`
      más abajo) — las dos cosas nunca conviven: el candado sólo sale con `esFilaEditable` (equipos
      sin finalizar) y la pastilla es un dato de la posición asignada, presente en cualquier estado. */
@@ -614,14 +622,14 @@
      `container-type: inline-size` para los inputs de carga.
      Todas las reglas usan `:is()` para que la especificidad sea idéntica (0,2,0) y mande el orden
      del archivo; si alguna quedara en (0,1,0) no podría pisar a las de atributo. */
-  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -11px; }
-  .cancha:is([data-max-fila="4"]){ --chip-w: 88px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 3px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -11px; }
-  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 20px; --sec-h: 16px; --sec-fs: 8.5px; --sec-edge: -8px; }
+  .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 96px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 20px; --row-gap: 6px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -5px; }
+  .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 56px; --chip-name: 11.5px; --row-pad: 8px; --row-gap: 4px; --cand-size: 22px; --pill-min: 26px; --pill-fs: 12px; --stat-h: 19px; --stat-icon: 13px; --stat-fs: 11px; --stat-edge: -9px; --stat-group-gap: 6px; --sec-w: 26px; --sec-h: 20px; --sec-fs: 10px; --sec-edge: -5px; }
+  .cancha:is([data-max-fila="5"]){ --chip-w: 70px; --chip-size: 44px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 17px; --pill-min: 20px; --pill-fs: 10px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 20px; --sec-h: 16px; --sec-fs: 8.5px; --sec-edge: -2px; }
   @container (max-width: 380px){
-    .cancha:is([data-max-fila="4"]){ --chip-w: 80px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 2px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 22px; --sec-h: 17px; --sec-fs: 9px; --sec-edge: -9px; }
+    .cancha:is([data-max-fila="4"]){ --chip-w: 72px; --chip-size: 48px; --chip-name: 10.5px; --row-pad: 6px; --row-gap: 3px; --cand-size: 19px; --pill-min: 22px; --pill-fs: 10.5px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 22px; --sec-h: 17px; --sec-fs: 9px; --sec-edge: -3px; }
   }
   @container (max-width: 360px){
-    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 24px; --sec-h: 18px; --sec-fs: 9.5px; --sec-edge: -10px; }
+    .cancha:is([data-max-fila="1"], [data-max-fila="2"], [data-max-fila="3"]){ --chip-w: 92px; --chip-size: 52px; --chip-name: 11px; --row-pad: 8px; --row-gap: 4px; --cand-size: 20px; --pill-min: 24px; --pill-fs: 11px; --stat-h: 17px; --stat-icon: 10px; --stat-fs: 10px; --stat-edge: -8px; --stat-group-gap: 4px; --sec-w: 24px; --sec-h: 18px; --sec-fs: 9.5px; --sec-edge: -4px; }
   }
   /* NO hay escalón propio por debajo de los ~340px de panel útil, y eso es un hallazgo, no un
      olvido. El Concept Note (D-03) daba por sentado que la cancha de 9 desbordaba a 360px y que
@@ -731,6 +739,40 @@
   .camiseta{ position: relative; }
   .camiseta[draggable="true"]{ cursor: grab; }
   .camiseta[draggable="true"]:active{ cursor: grabbing; }
+
+  /* --- La camiseta tocada y sus candidatos (posiciones-del-jugador) ---
+     docs/posiciones-del-jugador/POSICIONES_DEL_JUGADOR_IMPLEMENTATION_PLAN.md, TD-13 y §7.2.3
+
+     El dibujo es el del diseño 18h, aprobado por el propietario el 2026-10-30; el comportamiento
+     es el de la Spec. Cada estado tiene dos señales y una no es color (TC-020): la tocada se eleva,
+     el candidato tiene su recuadro y el resto baja de opacidad. Los colores son tokens; los alfas
+     sobre blanco y tinta son las excepciones que el caso "NFR-007" de tests/cancha.test.js ya
+     permite en este bloque.
+
+     La placa es un elemento real y no un `::before` para que tests/layout.test.js pueda medirla:
+     un pseudo-elemento no tiene rectángulo propio. Va DEBAJO de la figura y del nombre: la
+     camiseta abre su propio contexto de apilado (`isolation`) y la placa se pinta en el fondo de
+     ese contexto. Sin eso, un elemento posicionado se pinta encima del nombre, que no lo está. */
+  .camiseta{ isolation: isolate; transition: opacity var(--duration-fast) var(--ease-out); }
+  .camiseta-fig{ transition: transform var(--duration-fast) var(--ease-out); }
+  .camiseta-placa{ position: absolute; inset: -11px 1px -4px; z-index: -1; border-radius: var(--radius-control); pointer-events: none; display: none; }
+  .camiseta.seleccionada .camiseta-placa{ display: block; background: var(--pitch-pale); box-shadow: 0 6px 16px rgb(17 24 39 / 0.35); }
+  .camiseta.seleccionada .camiseta-fig{ transform: translateY(-3px) scale(1.06); }
+  /* El nombre suelto pasa a tinta sobre la placa clara. El de la dupla no: va sobre su cápsula,
+     que se oscurece para seguir leyéndose sobre la placa. */
+  .camiseta.seleccionada > .camiseta-nombre{ color: var(--ink); text-shadow: none; }
+  .camiseta.seleccionada .camiseta-dupla{ background: rgb(17 24 39 / 0.82); }
+  /* Un recuadro por camiseta, nunca una franja por línea. */
+  .camiseta.candidata .camiseta-placa{ display: block; background: rgb(255 255 255 / 0.16); box-shadow: inset 0 0 0 1.5px var(--pitch-light); }
+  .camiseta.candidata:hover .camiseta-placa,
+  .camiseta.candidata.drop-activo .camiseta-placa{ background: rgb(255 255 255 / 0.22); box-shadow: inset 0 0 0 2px #ffffff; }
+  /* Con una selección viva el realce del arrastre sobre una camiseta lo hace su recuadro, no el
+     tinte verde de la rebanada 2: los dos juntos se pisaban. */
+  .cancha.con-seleccion .camiseta .drop-realce{ display: none; }
+  .camiseta.atenuada{ opacity: 0.3; }
+  /* El velo va sobre las marcas de cal y debajo de las camisetas: es el primer hijo pintado de la
+     capa de jugadores, y las camisetas, posicionadas, se pintan encima. */
+  .cancha.con-seleccion .cancha-lineas::before{ content: ''; position: absolute; inset: 0; background: rgb(17 24 39 / 0.32); pointer-events: none; }
 
   /* Antes: @media (max-width: 900px) caía a una columna dentro de `.teams-wrap` porque a partir
      de ahí cada panel quedaba con 328px útiles. NAVEGACION_PARTIDOS_SPEC.md TC-007 reemplaza esa
@@ -5348,6 +5390,7 @@
     // `data-id` deja al arrastre marcar candidatos sobre las camisetas ya dibujadas (TD-09).
     return '<div class="camiseta ' + equipo + '-eq' + (arrastrable ? ' tocable' : '') + estado + '"'
       + ' data-id="' + escaparHtml(p.id) + '"' + arrastreAttrs + ' title="' + titulo + '">'
+      + '<span class="camiseta-placa"></span>'
       + '<div class="camiseta-fig">'
       + '<svg viewBox="0 0 48 44" aria-hidden="true"><path d="' + CAMISETA_PATH + '"/></svg>'
       + puntajeHtml + secHtml + candadoHtml + chipsHtml
