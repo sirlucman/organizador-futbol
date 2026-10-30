@@ -14,6 +14,11 @@
  *   2. Que los totales de cada partido finalizado cuyo armado asignó posiciones sean los mismos
  *      con el plantel tal cual y con el plantel reclasificado. La reclasificación se hace EN
  *      MEMORIA, con la misma traducción determinista de los tests (`aPuestos`): no toca la base.
+ *   3. Que ningún partido en la ventana de edición —con equipos, la inscripción abierta y sin
+ *      finalizar— guarde un puesto asignado del catálogo viejo. Es la Assumption `A-07` de
+ *      posiciones-del-jugador (Spec §14, Implementation Plan T-1.25, T-1.29): el intercambio de
+ *      puesto no contempla posiciones viejas porque `D-32` da por sentado que un partido editable
+ *      no las tiene. Si alguno las tiene, esa premisa es falsa y la feature vuelve a la Spec.
  *
  * Sólo hace GET: entra por la API REST de Identity Toolkit con la cuenta admin de staging (la
  * misma que usa tests/reglas.test.js) y lee los cuatro documentos de `data/` por la API REST de
@@ -129,9 +134,19 @@ async function main() {
     if (a[0] !== b[0] || a[1] !== b[1]) problemas.push(`${m.id} (${m.fecha}): totales ${a.join('–')} antes y ${b.join('–')} después de reclasificar`);
   });
 
+  // Puestos viejos en los partidos que todavía se pueden editar (posiciones-del-jugador, A-07).
+  const editables = conEquipos.filter(m => !m.inscripcionCerrada && m.estado !== 'Finalizado');
+  const conPuestosViejos = editables.filter(m => Object.values(m.equipos.posicionAsignada || {}).some(APP.esPosicionVieja));
+  conPuestosViejos.forEach(m => {
+    const viejos = Object.entries(m.equipos.posicionAsignada).filter(([, pos]) => APP.esPosicionVieja(pos));
+    problemas.push(`${m.id} (${m.fecha}): en la ventana de edición con ${viejos.length} puesto(s) viejo(s): ` +
+      viejos.map(([id, pos]) => `${id} → ${pos}`).join(', '));
+  });
+
   console.log(`puestos/NFR-005 · fila de "sin puesto reconocible": ${[...valoresRaros.values()].reduce((a, b) => a + b, 0)} camiseta(s) de ${camisetas}`);
   if (valoresRaros.size) console.log(`  valores guardados que no son puesto ni posición vieja (A-01): ${[...valoresRaros.keys()].map(v => JSON.stringify(v)).join(', ')}`);
   console.log(`puestos/NFR-005 · totales iguales antes y después de reclasificar: ${conPosiciones.length - problemas.filter(p => p.includes('totales')).length} de ${conPosiciones.length} partidos finalizados con posiciones`);
+  console.log(`intercambio/A-07 · partidos en la ventana de edición con puestos viejos: ${conPuestosViejos.length} de ${editables.length}`);
   if (problemas.length) {
     console.log('\nProblemas:');
     problemas.forEach(p => console.log('  - ' + p));
