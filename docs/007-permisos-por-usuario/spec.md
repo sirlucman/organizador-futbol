@@ -105,6 +105,12 @@ Un usuario con perfil "jugador" que está anotado en la convocatoria de un parti
 - **FR-012**: Una cuenta con perfil "jugador" MUST NOT poder ver la solapa de Configuración del motor de reglas; dicha solapa no debe ser accesible ni visible para ese perfil.
 - **FR-013**: Una cuenta con perfil "jugador" MUST poder ver el listado completo de jugadores, incluyendo a los que aún no tienen ningún puntaje cargado (sin mostrar el puntaje de ninguno), y MUST poder ver, para cualquier jugador, sus estadísticas acumuladas (partidos jugados, goles, asistencias, ganados/empatados/perdidos) incluso si esas estadísticas están vacías o en cero. También MUST poder ver el listado y estado de los partidos, y los equipos ya armados (sin puntajes, estrategia, diferencias, bloqueados ni explicación), dado que estas vistas no están explícitamente restringidas.
 - **FR-014**: Todas las restricciones anteriores MUST aplicarse también del lado de la persistencia de datos, no únicamente ocultando opciones en la interfaz, de forma que una cuenta "jugador" no pueda sortearlas accediendo u operando directamente sobre los datos.
+
+  > **⚠️ Ampliado (2026-11-06)** por [`docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md`](../editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md).
+  > La restricción nueva de esa Spec (una cuenta "jugador" no puede cambiar la fecha de un
+  > partido) cae, como las demás acciones sobre `data/partidos`, dentro de la limitación
+  > aceptada de [`research.md` §3](./research.md): se valida en la aplicación, no en las
+  > reglas. El resto de este requisito no cambia.
 - **FR-015**: El sistema MUST permitir que una cuenta con perfil "jugador" esté vinculada a un registro de jugador específico, de modo que pueda identificarse cuál es "el jugador que corresponde al usuario" a los efectos de la baja de convocatorias (FR-011).
 - **FR-016**: La asignación del perfil ("admin" o "jugador") de cada cuenta, y su vínculo con un jugador cuando corresponda, MUST realizarse manualmente en la base de datos de Firebase, dado que la plataforma aún no cuenta con una pantalla de registro o gestión de usuarios.
 
@@ -137,5 +143,10 @@ Un usuario con perfil "jugador" que está anotado en la convocatoria de un parti
 
 - El sistema de login existente (con una única cuenta "admin" fija) se extiende para admitir más de una cuenta, cada una cargada manualmente en Firebase con su usuario, contraseña, perfil ("admin" o "jugador") y, si corresponde, el vínculo al jugador asociado — no se agrega ninguna pantalla de registro o gestión de cuentas en esta versión.
 - La lista de acciones y vistas descriptas como "restricciones del perfil jugador" es una lista taxativa de lo que ese perfil NO puede hacer o ver. Lo que no está explícitamente restringido (ver listado de jugadores sin puntaje, ver sus estadísticas acumuladas de goles/asistencias/G-E-P, ver listado y estado de partidos, ver equipos ya armados sin los datos restringidos, anotarse/anotar a otros y darse de baja de la convocatoria propia) permanece disponible para "jugador" — con la excepción de crear o eliminar un partido, que se confirmó como exclusivo de "admin" por tratarse de una acción estructural y, en el caso de eliminar, irreversible (ver Clarifications).
+
+  > **⚠️ Ampliado (2026-11-06)** por [`docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md`](../editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md)
+  > (`FR-003`, `FR-004`, `FR-004b`): la lista suma una restricción — una cuenta "jugador"
+  > no puede cambiar la fecha de un partido ni ve el control para hacerlo. Sin esta marca,
+  > la regla de este punto la dejaría disponible por no estar en la lista.
 - Al igual que con el login básico, "restringir" implica impedir tanto la visualización en la interfaz como la lectura o escritura de esos datos del lado de la persistencia, para que la restricción sea real y no sorteable con acceso directo a los datos.
 - No hay revocación o actualización en tiempo real de una sesión ya iniciada cuando se cambia el perfil de esa cuenta en Firebase; el cambio aplica desde el próximo inicio de sesión.
