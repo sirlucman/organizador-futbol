@@ -1405,8 +1405,8 @@
 <!-- Modal: nuevo partido -->
 <div class="modal-overlay" id="newMatchModal">
   <div class="modal-card">
-    <h3>Nuevo partido</h3>
-    <div class="field" style="margin-bottom:12px;">
+    <h3 id="newMatchTitulo">Nuevo partido</h3>
+    <div class="field" id="mCanchaField" style="margin-bottom:12px;">
       <label>Cancha</label>
       <select id="mCancha">
         <option value="futbol8">Fútbol 8</option>
@@ -1960,6 +1960,9 @@
   let ordenManualCuenta = [];
 
   let currentMatchId = null;
+  // Id del partido cuya fecha se edita en la ventana de partido, o null = modo alta. Sólo lo
+  // escriben abrirVentanaPartido y cerrarVentanaPartido (EDITAR_FECHA_PARTIDO Plan TD-05).
+  let partidoEditandoFecha = null;
   let matchSearchTerm = '';
   let resultadoDraft = null; // { matchId, eventos: [{jugadorId, tipo}] } — borrador en memoria hasta "Finalizar partido" (rebanada 6, FR-005)
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
@@ -8140,14 +8143,27 @@
     if(currentMatchId) window.__toggleInscripcion(currentMatchId);
   });
 
-  /* ---- Nuevo partido ---- */
-  el('btnNuevoPartido').addEventListener('click', () => {
-    el('mFecha').value = '';
+  /* ---- Nuevo partido / Editar fecha ---- */
+  // La ventana de partido tiene dos modos, alta (m = null) y edición de la fecha de m. Todo lo
+  // que cambia entre modos sale de este único argumento, y éste es el único lugar que la abre,
+  // así que no puede mostrarse en un modo y guardar en el otro (EDITAR_FECHA_PARTIDO TC-011,
+  // Plan TD-04).
+  function abrirVentanaPartido(m){
+    partidoEditandoFecha = m ? m.id : null;
+    el('newMatchTitulo').textContent = m ? 'Editar fecha' : 'Nuevo partido';
+    el('mCanchaField').style.display = m ? 'none' : '';
+    el('btnMatchSave').textContent = m ? 'Guardar' : 'Crear partido';
+    el('mFecha').value = m ? m.fecha : '';
     el('mCancha').value = 'futbol8';
     el('matchError').textContent = '';
     el('newMatchModal').classList.add('open');
-  });
-  el('btnMatchCancel').addEventListener('click', () => el('newMatchModal').classList.remove('open'));
+  }
+  function cerrarVentanaPartido(){
+    el('newMatchModal').classList.remove('open');
+    partidoEditandoFecha = null;
+  }
+  el('btnNuevoPartido').addEventListener('click', () => abrirVentanaPartido(null));
+  el('btnMatchCancel').addEventListener('click', cerrarVentanaPartido);
   el('btnMatchSave').addEventListener('click', () => {
     if(!isAdmin()) return; // FR-009b
     const fecha = el('mFecha').value;
@@ -8156,7 +8172,7 @@
     const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [], duplas: [] };
     matches.push(nuevo);
     saveMatches();
-    el('newMatchModal').classList.remove('open');
+    cerrarVentanaPartido();
     currentMatchId = nuevo.id;
     matchSearchTerm = '';
     renderMatchesTab();
