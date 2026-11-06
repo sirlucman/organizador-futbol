@@ -7649,6 +7649,24 @@
     });
   };
 
+  // Editar la fecha (EDITAR_FECHA_PARTIDO_SPEC.md). Cada manejador valida el rol dentro de sí
+  // mismo, no sólo el botón (TC-040). Se repinta con renderMatchesTab y no con __openMatch, que
+  // borraría editandoResultadoFinalizado (FR-002b).
+  window.__abrirEditarFecha = function(id){
+    if(!isAdmin()) return; // FR-004
+    const m = matches.find(mm => mm.id === id);
+    if(!m) return; // FR-005
+    abrirVentanaPartido(m);
+  };
+  window.__guardarFecha = function(id, fecha){
+    if(!isAdmin()) return; // FR-004b
+    const m = matches.find(mm => mm.id === id);
+    if(!m) return; // FR-005
+    if(!cambiarFechaDelPartido(m, fecha)) return; // FR-022, FR-032
+    saveMatches();
+    renderMatchesTab();
+  };
+
   function renderMatchDetail(){
     const m = matches.find(mm => mm.id === currentMatchId);
     if(!m){ currentMatchId = null; renderMatchList(); return; }
@@ -8169,6 +8187,13 @@
     const fecha = el('mFecha').value;
     const cancha = el('mCancha').value;
     if(!esFechaValida(fecha)){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
+    if(partidoEditandoFecha){
+      // Se cierra antes de guardar para que la ventana ya no esté cuando renderMatchesTab repinte.
+      const id = partidoEditandoFecha;
+      cerrarVentanaPartido();
+      window.__guardarFecha(id, fecha);
+      return;
+    }
     const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [], duplas: [] };
     matches.push(nuevo);
     saveMatches();
