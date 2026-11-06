@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** [EDITAR_FECHA_PARTIDO_SPEC.md](./EDITAR_FECHA_PARTIDO_SPEC.md) · **Implementation plan:** *not yet written*
+> **Spec:** [EDITAR_FECHA_PARTIDO_SPEC.md](./EDITAR_FECHA_PARTIDO_SPEC.md) · **Implementation plan:** [EDITAR_FECHA_PARTIDO_IMPLEMENTATION_PLAN.md](./EDITAR_FECHA_PARTIDO_IMPLEMENTATION_PLAN.md)
 
 ## 1. TL;DR
 
