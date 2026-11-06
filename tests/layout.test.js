@@ -779,6 +779,69 @@ const estadoDelOrden = page => page.evaluate(() => {
 });
 const leerPreferencia = texto => { try { return JSON.parse(texto); } catch (e) { return null; } };
 
+/* ------------------------------------------------ editar la fecha (docs/editar-fecha-partido)
+   Los escenarios `fecha-*` siembran la fecha que necesitan con `transformarDatos` en UN solo
+   partido del fixture, para que `abrirPartido`, que busca la tarjeta por el día del mes, no
+   encuentre dos. `2026-09-30` —"miércoles, 30 de septiembre"— es la fecha de texto más larga
+   (NFR-001). */
+const FECHA_MAS_LARGA = '2026-09-30';
+const sembrarPartido = (id, cambios) => datos => {
+  const partidos = JSON.parse(datos.partidos);
+  Object.assign(partidos.find(m => m.id === id), cambios);
+  datos.partidos = JSON.stringify(partidos);
+};
+
+/* El lápiz de la fecha en el encabezado del detalle: está, en su lugar, con su nombre y con el
+   piso táctil de 44px (FR-001, TC-012, NFR-002). En el finalizado, además, el lápiz de "Editar
+   resultado" sigue a la vista y no se superpone con el de la fecha (S-06, S-06e). */
+const INVARIANTE_LAPIZ_FECHA = () => {
+  const btn = document.getElementById('btnEditarFecha');
+  if (!btn) return ['falta el lápiz de la fecha en el encabezado del detalle (FR-001)'];
+  const problemas = [];
+  if (!btn.closest('.detail-header-fecha')) problemas.push('el lápiz de la fecha no está dentro de .detail-header-fecha (TC-012)');
+  const r = btn.getBoundingClientRect();
+  if (r.width === 0 || r.height === 0 || getComputedStyle(btn).visibility === 'hidden') problemas.push('el lápiz de la fecha no está a la vista (FR-001)');
+  if (r.width < 44 - 0.5 || r.height < 44 - 0.5) problemas.push(`el lápiz de la fecha mide ${Math.round(r.width)}x${Math.round(r.height)}px, por debajo del piso de 44px (NFR-002)`);
+  if (btn.getAttribute('aria-label') !== 'Editar fecha') problemas.push(`el lápiz de la fecha se llama "${btn.getAttribute('aria-label')}" y tiene que llamarse "Editar fecha" (NFR-002)`);
+  if (btn.getAttribute('title') !== 'Editar fecha') problemas.push('el lápiz de la fecha no tiene el título "Editar fecha" (NFR-002)');
+  return problemas;
+};
+const INVARIANTE_DOS_LAPICES = () => {
+  const fecha = document.getElementById('btnEditarFecha');
+  const resultado = document.querySelector('.panel-icono-editar');
+  if (!resultado) return ['el partido finalizado perdió el lápiz de "Editar resultado" (S-06)'];
+  const problemas = [];
+  if (resultado.getAttribute('aria-label') !== 'Editar resultado') problemas.push('el lápiz del resultado dejó de llamarse "Editar resultado" (S-06)');
+  const b = resultado.getBoundingClientRect();
+  if (b.width === 0 || b.height === 0) problemas.push('el lápiz de "Editar resultado" no está a la vista (S-06e)');
+  if (fecha) {
+    const a = fecha.getBoundingClientRect();
+    const seCruzan = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    if (seCruzan) problemas.push('los lápices de la fecha y del resultado se superponen (S-06e)');
+  }
+  return problemas;
+};
+/* La ventana de partido en modo edición (FR-010, FR-011). */
+const INVARIANTE_VENTANA_FECHA = () => {
+  const modal = document.getElementById('newMatchModal');
+  if (!modal || !modal.classList.contains('open')) return ['no se abrió la ventana de partido en modo edición: no hay con qué abrirla (FR-010)'];
+  const problemas = [];
+  const titulo = modal.querySelector('h3');
+  if (!titulo || titulo.textContent.trim() !== 'Editar fecha') problemas.push(`la ventana se titula "${titulo && titulo.textContent.trim()}" y tiene que titularse "Editar fecha" (FR-010)`);
+  const cancha = document.getElementById('mCancha');
+  if (cancha && cancha.offsetParent !== null) problemas.push('la ventana en modo edición muestra el campo Cancha (FR-011)');
+  if (document.getElementById('mFecha').value !== '2026-09-30') problemas.push(`el campo Fecha dice "${document.getElementById('mFecha').value}" y tiene que traer la fecha del partido (FR-010)`);
+  const botones = [...modal.querySelectorAll('.card-actions button')].map(b => b.textContent.trim());
+  if (botones.join(',') !== 'Cancelar,Guardar') problemas.push(`los botones de la ventana son [${botones.join(', ')}] y tienen que ser Cancelar y Guardar (FR-010)`);
+  return problemas;
+};
+// Toca el lápiz de la fecha si está; si no, no tira, para que falle el invariante que nombra el requisito.
+async function tocarLapizFecha(page) {
+  const hay = await page.evaluate(() => { const b = document.getElementById('btnEditarFecha'); if (b && b.offsetParent !== null) { b.click(); return true; } return false; });
+  if (hay) await page.waitForTimeout(200);
+  return hay;
+}
+
 /* ----------------------------------------------------------------- escenarios */
 
 /* Cada escenario recibe la página con la aplicación ya cargada y logueada, y la
@@ -3837,6 +3900,40 @@ const ESCENARIOS = [
       if (errores.length) problemas.push(`el guardado fallido dejó una excepción sin capturar: ${errores[0]}`);
       return problemas;
     } },
+  /* ---- editar la fecha (docs/editar-fecha-partido) ----
+     Los cuatro `fecha-encabezado-*` y `fecha-ventana` son de layout: corren en los diecisiete
+     anchos, que cubren el piso de 360, los dos lados de 1099/1100 —el único breakpoint que cambia
+     el encabezado del detalle— y la franja de tablet (Plan §7.3.6). El desborde lo mide MEDIR;
+     el invariante propio mira el lápiz. */
+  { clave: 'fecha-encabezado-sin-equipos', rol: 'admin', nombre: 'el lápiz de la fecha · inscripción abierta sin equipos',
+    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
+    transformarDatos: sembrarPartido('m-sin-equipos', { fecha: FECHA_MAS_LARGA }),
+    invariantes: [INVARIANTE_LAPIZ_FECHA],
+    async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
+
+  { clave: 'fecha-encabezado-generados', rol: 'admin', nombre: 'el lápiz de la fecha · equipos generados',
+    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
+    transformarDatos: sembrarPartido('m-abierto', { fecha: FECHA_MAS_LARGA, estado: 'Equipos generados' }),
+    invariantes: [INVARIANTE_LAPIZ_FECHA],
+    async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
+
+  { clave: 'fecha-encabezado-cerrada', rol: 'admin', nombre: 'el lápiz de la fecha · inscripción cerrada',
+    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
+    transformarDatos: sembrarPartido('m-cerrado', { fecha: FECHA_MAS_LARGA }),
+    invariantes: [INVARIANTE_LAPIZ_FECHA],
+    async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
+
+  { clave: 'fecha-encabezado-finalizado', rol: 'admin', nombre: 'el lápiz de la fecha · partido finalizado',
+    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/S-06e', 'fecha/NFR-001', 'fecha/NFR-002'],
+    transformarDatos: sembrarPartido('m-finalizado', { fecha: FECHA_MAS_LARGA }),
+    invariantes: [INVARIANTE_LAPIZ_FECHA, INVARIANTE_DOS_LAPICES],
+    async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
+
+  { clave: 'fecha-ventana', rol: 'admin', nombre: 'la ventana de partido en modo edición',
+    spec: ['fecha/S-06c', 'fecha/NFR-001'],
+    transformarDatos: sembrarPartido('m-sin-equipos', { fecha: FECHA_MAS_LARGA }),
+    invariantes: [INVARIANTE_VENTANA_FECHA],
+    async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); await tocarLapizFecha(page); } },
 ];
 
 async function irAPestania(page, texto) {

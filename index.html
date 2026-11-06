@@ -1000,8 +1000,11 @@
   /* Mismo tono que `.panel-icono-copiar` (var(--muted)): los dos íconos del encabezado del
      partido finalizado tienen que verse con el mismo peso visual, ninguno más marcado que el
      otro con sólo un vistazo. */
-  .panel-icono-editar{ color: var(--muted); }
-  .panel-icono-editar:hover{ color: var(--pitch-deep); }
+  /* El lápiz de la fecha del encabezado del detalle tiene el mismo peso que el de "Editar
+     resultado" (EDITAR_FECHA_PARTIDO TC-030). Clase propia porque `partido-jugador` busca
+     `.panel-icono-editar` en todo el documento (Plan TD-09). */
+  .panel-icono-editar, .panel-icono-fecha{ color: var(--muted); }
+  .panel-icono-editar:hover, .panel-icono-fecha:hover{ color: var(--pitch-deep); }
 
   /* --- Chips de estadística (sobre la camiseta) ---
      Prefijo `stat-` y no `chip-`: `--chip-bg`/`--chip-w`/`--chip-size` ya los usa el dibujo de la
@@ -1325,6 +1328,7 @@
           <div class="detail-header-titulo">
             <div class="detail-header-fecha">
               <h2 id="detailFecha"></h2>
+              <button type="button" class="panel-icono panel-icono-fecha admin-only" id="btnEditarFecha" aria-label="Editar fecha" title="Editar fecha"></button>
               <div class="match-meta" id="detailMeta"></div>
             </div>
             <span class="status-chip" id="detailEstado"></span>
@@ -8156,6 +8160,10 @@
   });
   el('btnDeleteMatch').addEventListener('click', () => {
     if(currentMatchId) window.__deleteMatch(currentMatchId);
+  });
+  el('btnEditarFecha').innerHTML = ICON_LAPIZ;
+  el('btnEditarFecha').addEventListener('click', () => {
+    if(currentMatchId) window.__abrirEditarFecha(currentMatchId);
   });
   el('btnToggleInscripcion').addEventListener('click', () => {
     if(currentMatchId) window.__toggleInscripcion(currentMatchId);
