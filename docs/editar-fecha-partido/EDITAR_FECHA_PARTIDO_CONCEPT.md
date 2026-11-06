@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** *not yet written* · **Implementation plan:** *not yet written*
+> **Spec:** [EDITAR_FECHA_PARTIDO_SPEC.md](./EDITAR_FECHA_PARTIDO_SPEC.md) · **Implementation plan:** *not yet written*
 
 ## 1. TL;DR
 
@@ -422,6 +422,7 @@ grupo.
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Initial draft. |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Autocrítica contra la rúbrica, mismo modelo que el autor. 🟡 resueltos: "estado" usado para la inscripción cerrada, que en `001` es una condición y no un estado (TL;DR, `D-02`, §16); el primer non-goal repetía el tercer goal y se fundió en él; la probabilidad del riesgo de "gana el último que guarda" sube de Low a Med, con su motivo. 🔵 resueltos: WCAG 4.1.2 verificado en vivo y marcado como nivel A; nota para el Plan sobre un comentario desactualizado de `index.html:7429`. 🔵 aceptado sin cambio: `D-03` y `D-09` nombran símbolos del código (`ICON_LAPIZ`, `saveMatches()`), detalle de Plan más que de Concept Note, como ya lo hace `intercambiar-colores`. Self-critique: passed (0🔴 / 3🟡 / 3🔵). |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la crítica independiente [`EDITAR_FECHA_PARTIDO_CONCEPT_CRITIQUE_2026-11-06_sonnet-5-5.md`](./EDITAR_FECHA_PARTIDO_CONCEPT_CRITIQUE_2026-11-06_sonnet-5-5.md) (COMMENT, 0🔴 / 5🟡 / 3🔵), cada hallazgo verificado contra el código antes de aplicarlo. Se retira el riesgo "guardar la fecha descarta el resultado a medio cargar": era falso, el borrador vive en memoria y sobrevive al repintado (`index.html:1964`, `7143`); `OPEN-Q-02` queda en sólo visibilidad del lápiz. El riesgo de "gana el último que guarda" cubre las dos direcciones. Riesgo nuevo de guardado que falla sin aviso, con `OPEN-Q-05`. Cita corregida del lápiz de "Editar resultado" (`FR-006`–`FR-008`, `FR-061` de `PARTIDO_FINALIZADO_SPEC.md`). `OPEN-Q-03` reformulada: la restricción de `jugador` es nueva y puede ampliar la lista "taxativa" de `007`. `OPEN-Q-06` nueva (orden con fechas iguales). `D-03` y `D-09` redactadas por comportamiento. §12 aclara que las señales no tienen métrica. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
+| 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Precisiones decididas por el owner al derivar la Spec, señaladas por [`EDITAR_FECHA_PARTIDO_SPEC_CRITIQUE_2026-11-06_sonnet-5-5.md`](./EDITAR_FECHA_PARTIDO_SPEC_CRITIQUE_2026-11-06_sonnet-5-5.md) (hallazgo 10). `D-03`: la ventana no sólo tiene la forma de "Nuevo partido": es esa misma ventana, reutilizada, con el campo Cancha oculto (`TC-011` de la Spec). `D-04`: "la misma validación que al crear" pasa a ser una validación más estricta en los dos modos —fecha obligatoria y válida—, porque el selector acepta años de cinco cifras que hoy el alta guarda y se ven como "Invalid Date"; la Spec amplía `FR-001` de `001`. El texto de §10 se conserva tal como se aprobó; esta fila es la que manda. Self-critique: skipped (enmienda acotada). |
 
 ---
 
