@@ -13,7 +13,7 @@
  * `tests/harness.js` no cambia: el sandbox del motor no necesita estas funciones (Plan TD-10).
  *
  * Cada caso lleva su identificador de la Spec en el TÍTULO, entre comillas, con guion y con el
- * prefijo de la feature ("fecha/S-01f"): es la convención de binding de AGENTS.md, y los gates
+ * prefijo de la feature ("fecha/" y el ID): es la convención de binding de AGENTS.md, y los gates
  * del Implementation Plan (T-2.D8, T-2.D9) lo buscan con grep.
  */
 const fs = require('fs');
