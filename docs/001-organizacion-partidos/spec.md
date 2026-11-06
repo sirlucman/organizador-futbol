@@ -100,6 +100,12 @@ El administrador puede eliminar un partido completo de forma permanente, típica
 ### Functional Requirements
 
 - **FR-001**: El sistema MUST permitir crear un partido con fecha y cancha asignada; la fecha es obligatoria.
+
+  > **⚠️ Ampliado (2026-11-06)** por [`docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md`](../editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md)
+  > (`FR-020`, `TC-041`): la fecha, además de obligatoria, tiene que ser una fecha válida
+  > `YYYY-MM-DD`; un valor que el selector acepta pero no lo es (por ejemplo, un año de
+  > cinco cifras) se rechaza con el mismo mensaje. Esa Spec agrega también cambiar la fecha
+  > de un partido existente. El resto de este requisito no cambia.
 - **FR-002**: El sistema MUST ofrecer, como valores de cancha, al menos "Fútbol 8" (8 jugadores por equipo) y "Fútbol 9" (9 jugadores por equipo), y MUST permitir agregar nuevas canchas sin modificar la lógica existente.
 - **FR-003**: El sistema MUST calcular el cupo de titulares de un partido como el doble de la cantidad de jugadores por equipo de la cancha seleccionada (Fútbol 8 → 16, Fútbol 9 → 18).
 - **FR-004**: El sistema MUST permitir convocar jugadores mediante un buscador con autocompletado (incluyendo activación por tecla TAB), y MUST permitir crear un jugador nuevo sin abandonar el flujo de convocatoria.
