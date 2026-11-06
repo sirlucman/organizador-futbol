@@ -2227,6 +2227,24 @@
     const d = new Date(fechaISO + 'T00:00:00');
     return d.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
   }
+  // Una fecha válida es un texto YYYY-MM-DD que es un día real del calendario
+  // (EDITAR_FECHA_PARTIDO_SPEC.md TC-041). El regex cierra el año de cinco cifras que el
+  // selector deja pasar (A-01); la vuelta por el Date rechaza 2026-02-30. setUTCFullYear y no
+  // Date.UTC, que lleva los años 0000–0099 a 1900–1999 (Plan TD-02).
+  function esFechaValida(s){
+    if(typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const [a, me, di] = s.split('-').map(Number);
+    const d = new Date(0);
+    d.setUTCFullYear(a, me - 1, di);
+    return d.getUTCFullYear() === a && d.getUTCMonth() === me - 1 && d.getUTCDate() === di;
+  }
+  // Cambia sólo `fecha` (FR-030, FR-031). Devuelve true sólo si cambió: con una fecha inválida
+  // o con la misma que ya tiene no toca el partido (FR-022, FR-032). Sin I/O ni render.
+  function cambiarFechaDelPartido(m, fecha){
+    if(!esFechaValida(fecha) || fecha === m.fecha) return false;
+    m.fecha = fecha;
+    return true;
+  }
 
   /* ================= PERSISTENCIA ================= */
   // Documentos que solo "admin" puede leer (FR-004/FR-012/FR-014). Una cuenta "jugador" nunca los
@@ -8134,7 +8152,7 @@
     if(!isAdmin()) return; // FR-009b
     const fecha = el('mFecha').value;
     const cancha = el('mCancha').value;
-    if(!fecha){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
+    if(!esFechaValida(fecha)){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
     const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [], duplas: [] };
     matches.push(nuevo);
     saveMatches();
