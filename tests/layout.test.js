@@ -821,8 +821,9 @@ const INVARIANTE_DOS_LAPICES = () => {
   }
   return problemas;
 };
-/* La ventana de partido en modo edición (FR-010, FR-011). */
-const INVARIANTE_VENTANA_FECHA = () => {
+/* La ventana de partido en modo edición (FR-010, FR-011). Como invariante mira la fecha que
+   siembra `fecha-ventana`; los escenarios de comportamiento la llaman con la suya. */
+const INVARIANTE_VENTANA_FECHA = (fechaEsperada = '2026-09-30') => {
   const modal = document.getElementById('newMatchModal');
   if (!modal || !modal.classList.contains('open')) return ['no se abrió la ventana de partido en modo edición: no hay con qué abrirla (FR-010)'];
   const problemas = [];
@@ -830,11 +831,57 @@ const INVARIANTE_VENTANA_FECHA = () => {
   if (!titulo || titulo.textContent.trim() !== 'Editar fecha') problemas.push(`la ventana se titula "${titulo && titulo.textContent.trim()}" y tiene que titularse "Editar fecha" (FR-010)`);
   const cancha = document.getElementById('mCancha');
   if (cancha && cancha.offsetParent !== null) problemas.push('la ventana en modo edición muestra el campo Cancha (FR-011)');
-  if (document.getElementById('mFecha').value !== '2026-09-30') problemas.push(`el campo Fecha dice "${document.getElementById('mFecha').value}" y tiene que traer la fecha del partido (FR-010)`);
+  if (document.getElementById('mFecha').value !== fechaEsperada) problemas.push(`el campo Fecha dice "${document.getElementById('mFecha').value}" y tiene que traer la fecha del partido (FR-010)`);
   const botones = [...modal.querySelectorAll('.card-actions button')].map(b => b.textContent.trim());
   if (botones.join(',') !== 'Cancelar,Guardar') problemas.push(`los botones de la ventana son [${botones.join(', ')}] y tienen que ser Cancelar y Guardar (FR-010)`);
   return problemas;
 };
+/* La línea de base de lo guardado para los escenarios `fecha-*` (Plan §7.3.6). `lineaDeBase` alterna
+   un candado, que no existe en todos los estados que estos escenarios recorren; acá la escritura
+   neutra es un cambio de fecha de `m-finalizado-nueve`, un partido que ningún escenario `fecha-*`
+   mira. Desde ahí, "distinto sólo en fecha" compara contra esta base y los pedidos de guardado
+   (NFR-004) son la diferencia de `n`, no el total desde que cargó la página. */
+async function lineaDeBaseFecha(page) {
+  await page.evaluate(() => window.__guardarFecha('m-finalizado-nueve', '2026-01-01'));
+  await page.waitForTimeout(300);
+  return docsGuardados(page);
+}
+// Los partidos cuyo JSON cambió entre dos escrituras, con las claves que cambiaron (NFR-003).
+function partidosDistintos(antes, despues) {
+  const a = JSON.parse(antes.partidos || '[]'), d = JSON.parse(despues.partidos || '[]');
+  const ids = [...new Set([...a, ...d].map(m => m.id))];
+  return ids.map(id => {
+    const ma = a.find(m => m.id === id) || {}, md = d.find(m => m.id === id) || {};
+    const claves = [...new Set([...Object.keys(ma), ...Object.keys(md)])].filter(k => JSON.stringify(ma[k]) !== JSON.stringify(md[k])).sort();
+    return { id, claves };
+  }).filter(x => x.claves.length);
+}
+const ventanaAbierta = page => page.evaluate(() => document.getElementById('newMatchModal').classList.contains('open'));
+const textoDe = (page, sel) => page.evaluate(s => { const e = document.querySelector(s); return e ? e.textContent.trim() : null; }, sel);
+/* Toca el lápiz, escribe la fecha y toca Guardar. `fill` sobre un <input type="date"> acepta el
+   texto YYYY-MM-DD en Chromium. */
+async function editarFecha(page, fecha) {
+  await page.click('#btnEditarFecha');
+  await page.waitForSelector('#newMatchModal.open');
+  await page.fill('#mFecha', fecha);
+  await page.click('#btnMatchSave');
+  await page.waitForTimeout(400);
+}
+async function abrirNuevoPartido(page) {
+  await page.click('#btnVolverPartidos');
+  await page.waitForTimeout(300);
+  await page.click('#btnNuevoPartido');
+  await page.waitForSelector('#newMatchModal.open');
+}
+const leerVentana = page => page.evaluate(() => ({
+  titulo: document.getElementById('newMatchTitulo').textContent.trim(),
+  canchaVisible: document.getElementById('mCancha').offsetParent !== null,
+  fecha: document.getElementById('mFecha').value,
+  boton: document.getElementById('btnMatchSave').textContent.trim(),
+  error: document.getElementById('matchError').textContent.trim(),
+}));
+const MENSAJE_FECHA = 'Elegí una fecha para el partido.';
+
 // Toca el lápiz de la fecha si está; si no, no tira, para que falle el invariante que nombra el requisito.
 async function tocarLapizFecha(page) {
   const hay = await page.evaluate(() => { const b = document.getElementById('btnEditarFecha'); if (b && b.offsetParent !== null) { b.click(); return true; } return false; });
@@ -3934,6 +3981,364 @@ const ESCENARIOS = [
     transformarDatos: sembrarPartido('m-sin-equipos', { fecha: FECHA_MAS_LARGA }),
     invariantes: [INVARIANTE_VENTANA_FECHA],
     async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); await tocarLapizFecha(page); } },
+  /* Los de comportamiento corren a 1200, salvo `fecha-jugador`, que mira también 360 (S-21f). */
+  { clave: 'fecha-cambio', rol: 'admin', nombre: 'cambiar la fecha: ventana, pantalla y guardado',
+    anchos: [1200],
+    spec: ['fecha/S-01', 'fecha/S-01i', 'fecha/S-07', 'fecha/NFR-003', 'fecha/NFR-004'],
+    transformarDatos: sembrarPartido('m-abierto', { fecha: '2026-11-14', estado: 'Equipos generados' }),
+    async preparar(page) { await abrirPartido(page, '2026-11-14'); },
+    async comprobar(page) {
+      const problemas = [];
+      const base = await lineaDeBaseFecha(page);
+      const equiposAntes = await page.evaluate(() => document.getElementById('teamsSection').innerText);
+      await page.click('#btnEditarFecha');
+      await page.waitForTimeout(200);
+      problemas.push(...await page.evaluate(INVARIANTE_VENTANA_FECHA, '2026-11-14'));
+      await page.fill('#mFecha', '2026-11-15');
+      await page.click('#btnMatchSave');
+      await page.waitForTimeout(400);
+      if (await ventanaAbierta(page)) problemas.push('después de Guardar la ventana sigue abierta (FR-041)');
+      const fecha = await textoDe(page, '#detailFecha');
+      if (fecha !== 'domingo, 15 de noviembre') problemas.push(`el encabezado dice "${fecha}" y tiene que decir "domingo, 15 de noviembre" (FR-041b)`);
+      const equiposDespues = await page.evaluate(() => document.getElementById('teamsSection').innerText);
+      if (equiposDespues !== equiposAntes) problemas.push('la tarjeta de equipos cambió al cambiar la fecha (FR-031, S-07)');
+      const despues = await docsGuardados(page);
+      if (despues.n - base.n !== 1) problemas.push(`el cambio de fecha hizo ${despues.n - base.n} pedidos de guardado y tiene que hacer exactamente uno (NFR-004)`);
+      const distintos = partidosDistintos(base, despues);
+      if (JSON.stringify(distintos) !== JSON.stringify([{ id: 'm-abierto', claves: ['fecha'] }])) problemas.push(`lo guardado difiere de la base en ${JSON.stringify(distintos)} y tiene que diferir sólo en la fecha de m-abierto (NFR-003)`);
+      if (despues.armado !== base.armado) problemas.push('partidosArmado cambió: el cambio de fecha no regenera equipos (FR-060, S-07)');
+      if (JSON.parse(despues.partidos).length !== JSON.parse(base.partidos).length) problemas.push('cambió la cantidad de partidos');
+      if (await textoDelAviso(page) !== null) problemas.push(`apareció un aviso al cambiar la fecha: "${await textoDelAviso(page)}" (FR-046, S-01i)`);
+      return problemas;
+    } },
+
+  { clave: 'fecha-estados', rol: 'admin', nombre: 'cambiar la fecha en cada estado del partido',
+    anchos: [1200],
+    spec: ['fecha/S-01a', 'fecha/S-01b', 'fecha/S-01c', 'fecha/S-01d'],
+    async preparar(page) { await abrirPartido(page, '2026-09-17'); },
+    async comprobar(page) {
+      const problemas = [];
+      const lapizVisible = () => page.evaluate(() => { const b = document.getElementById('btnEditarFecha'); return !!b && b.offsetParent !== null; });
+      const equipos = () => page.evaluate(() => document.getElementById('teamsSection').innerText);
+
+      // S-01a: inscripción abierta sin equipos.
+      let base = await lineaDeBaseFecha(page);
+      await editarFecha(page, '2026-09-18');
+      let despues = await docsGuardados(page);
+      if (JSON.stringify(partidosDistintos(base, despues)) !== JSON.stringify([{ id: 'm-sin-equipos', claves: ['fecha'] }])) problemas.push('sin equipos: la fecha no cambió, o cambió algo más (S-01a)');
+
+      // S-01b: inscripción cerrada con un resultado a medio cargar.
+      await cambiarDePartido(page, 'm-cerrado');
+      const id = await page.evaluate(() => { const c = document.querySelector('.camiseta.blanco-eq:not(.camiseta-dupla)'); return c && c.dataset.id; });
+      const pastillas = () => page.evaluate(() => document.querySelectorAll('#teamsSection .stat-pill').length);
+      const pastillasAntes = await pastillas();
+      await tocarCamiseta(page, id);
+      const cargado = await pastillas() > pastillasAntes;
+      if (!cargado) problemas.push('no se pudo cargar un evento en m-cerrado: S-01b no tiene un resultado a medio cargar que conservar');
+      if (!await lapizVisible()) problemas.push('con un resultado a medio cargar no se ve el lápiz de la fecha (FR-002, S-01b)');
+      let antes = await equipos();
+      await editarFecha(page, '2026-08-28');
+      if (await equipos() !== antes) problemas.push('después de cambiar la fecha el resultado a medio cargar no sigue igual (FR-002b, S-01b)');
+
+      // S-01c: partido finalizado.
+      await cambiarDePartido(page, 'm-finalizado');
+      base = await docsGuardados(page);
+      const escriturasBase = await page.evaluate(() => window.__escrituras.length);
+      const plantel = await page.evaluate(() => { const r = document.querySelector('.roster'); return r ? r.textContent : null; });
+      await editarFecha(page, '2026-08-21');
+      despues = await docsGuardados(page);
+      const ra = partidoDe(base.partidos, 'm-finalizado'), rd = partidoDe(despues.partidos, 'm-finalizado');
+      if (!rd || rd.fecha !== '2026-08-21') problemas.push('el partido finalizado no cambió de fecha (S-01c)');
+      if (!ra || !rd || JSON.stringify(ra.resultado) !== JSON.stringify(rd.resultado)) problemas.push('el resultado del partido finalizado cambió (FR-031, S-01c)');
+      const escritas = await page.evaluate(b => window.__escrituras.slice(b), escriturasBase);
+      if (escritas.some(k => k === 'players' || k === 'playerScores')) problemas.push(`cambiar la fecha escribió [${escritas.join(', ')}]: las estadísticas de los jugadores no se tocan (FR-031, S-01c)`);
+      const plantelDespues = await page.evaluate(() => { const r = document.querySelector('.roster'); return r ? r.textContent : null; });
+      if (!plantel) problemas.push('no se encontró la tabla de Jugadores para comparar las estadísticas (S-01c)');
+      else if (plantelDespues !== plantel) problemas.push('la tabla de Jugadores cambió al cambiar la fecha (S-01c)');
+
+      // S-01d: partido finalizado con su resultado en edición.
+      await page.evaluate(() => window.__editarResultadoFinalizado('m-finalizado'));
+      await page.waitForTimeout(300);
+      await page.evaluate(() => { const n = [...document.querySelectorAll('.camiseta-nombre')].find(x => !x.closest('.camiseta-dupla')); if (n) n.click(); });
+      await page.waitForTimeout(200);
+      if (!await page.evaluate(() => !!document.querySelector('.carga-toolbar'))) problemas.push('no se abrió la edición del resultado (S-01d)');
+      if (!await lapizVisible()) problemas.push('editando el resultado no se ve el lápiz de la fecha (FR-002, S-01d)');
+      antes = await equipos();
+      await editarFecha(page, '2026-08-19');
+      if (!await page.evaluate(() => !!document.querySelector('.carga-toolbar'))) problemas.push('después de cambiar la fecha se cerró la edición del resultado (FR-002b, S-01d)');
+      if (await equipos() !== antes) problemas.push('después de cambiar la fecha la edición del resultado no sigue con lo que tenía (FR-002b, S-01d)');
+      return problemas;
+    } },
+
+  { clave: 'fecha-doble-toque', rol: 'admin', nombre: 'doble toque en Guardar',
+    anchos: [1200],
+    spec: ['fecha/S-01g', 'fecha/NFR-004'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const base = await lineaDeBaseFecha(page);
+      await page.click('#btnEditarFecha');
+      await page.waitForSelector('#newMatchModal.open');
+      await page.fill('#mFecha', '2026-09-04');
+      await page.dblclick('#btnMatchSave');
+      await page.waitForTimeout(500);
+      const despues = await docsGuardados(page);
+      if (partidoDe(despues.partidos, 'm-abierto').fecha !== '2026-09-04') problemas.push('el doble toque no dejó la fecha nueva (S-01g)');
+      if (despues.n - base.n !== 1) problemas.push(`el doble toque hizo ${despues.n - base.n} pedidos de guardado y tiene que hacer exactamente uno (NFR-004)`);
+      if (JSON.parse(despues.partidos).length !== JSON.parse(base.partidos).length) problemas.push('el doble toque cambió la cantidad de partidos: el segundo toque creó uno (S-01g)');
+      return problemas;
+    } },
+
+  { clave: 'fecha-guardado-falla', rol: 'admin', nombre: 'cambiar la fecha con el guardado fallando',
+    anchos: [1200], spec: ['fecha/S-01h'],
+    doble: { escrituraFalla: true },
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const errores = [], consola = [];
+      page.on('pageerror', e => errores.push(e.message));
+      page.on('console', m => { if (m.type() === 'error') consola.push(m.text()); });
+      await editarFecha(page, '2026-09-04');
+      const problemas = [];
+      const fecha = await textoDe(page, '#detailFecha');
+      if (fecha !== 'viernes, 4 de septiembre') problemas.push(`con el guardado fallando el encabezado dice "${fecha}" y tiene que mostrar la fecha nueva (FR-044)`);
+      if (await page.evaluate(() => window.__escrituras.length) !== 0) problemas.push('el doble registró escrituras que fallaron: al recargar no volvería la fecha anterior (S-01h)');
+      if (!consola.some(t => /no se pudo guardar/.test(t))) problemas.push('el error del guardado no quedó en la consola (FR-044)');
+      if (errores.length) problemas.push(`el guardado fallido dejó una excepción sin capturar: ${errores[0]} (S-01h)`);
+      return problemas;
+    } },
+
+  { clave: 'fecha-lista', rol: 'admin', nombre: 'la lista se reacomoda con la fecha nueva',
+    anchos: [1200],
+    spec: ['fecha/S-02', 'fecha/S-02a', 'fecha/S-02b'],
+    async preparar(page) { await abrirPartido(page, '2026-09-17'); },
+    async comprobar(page) {
+      const problemas = [];
+      /* Lo que la lista tiene que mostrar: lo guardado, ordenado por fecha descendente y, entre
+         iguales, por posición en el arreglo (A-02). */
+      const revisarOrden = async (etiqueta) => {
+        const r = await page.evaluate(() => {
+          const fmt = f => new Date(f + 'T00:00:00').toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
+          const guardados = JSON.parse(window.__ultimosDocs.partidos);
+          const esperado = guardados.map((m, i) => ({ m, i })).sort((a, b) => b.m.fecha.localeCompare(a.m.fecha) || a.i - b.i)
+            .map(({ m }) => `${fmt(m.fecha)}|${m.cancha === 'futbol9' ? 'Fútbol 9' : 'Fútbol 8'}`);
+          const visto = [...document.querySelectorAll('.match-card')].map(c => `${c.querySelector('.match-date').textContent.trim()}|${c.querySelector('.match-card-titulo .match-meta').textContent.trim()}`);
+          return { esperado, visto };
+        });
+        if (JSON.stringify(r.visto) !== JSON.stringify(r.esperado)) problemas.push(`${etiqueta}: la lista muestra ${JSON.stringify(r.visto)} y tiene que mostrar ${JSON.stringify(r.esperado)}`);
+        return r.visto;
+      };
+      await editarFecha(page, '2026-09-25');
+      await page.click('#btnVolverPartidos');
+      await page.waitForTimeout(300);
+      const visto = await revisarOrden('S-02 (FR-042)');
+      if (!visto.some(t => t.startsWith('viernes, 25 de septiembre'))) problemas.push('la tarjeta del partido movido no dice la fecha nueva (FR-043, S-02)');
+
+      // S-02a: m-nueve pasa a la fecha de m-abierto; quedan juntos, en el orden del arreglo.
+      await abrirPartido(page, '2026-09-10');
+      await editarFecha(page, '2026-09-03');
+      await page.click('#btnVolverPartidos');
+      await page.waitForTimeout(300);
+      const visto2 = await revisarOrden('S-02a (FR-050)');
+      const i8 = visto2.indexOf('jueves, 3 de septiembre|Fútbol 8'), i9 = visto2.indexOf('jueves, 3 de septiembre|Fútbol 9');
+      if (i8 < 0 || i9 !== i8 + 1) problemas.push('los dos partidos del 3 de septiembre no quedaron juntos, primero el creado antes (FR-050, S-02a)');
+
+      // S-02b: la confirmación de eliminar nombra la fecha nueva.
+      await page.evaluate(() => window.__deleteMatch('m-nueve'));
+      await page.waitForTimeout(200);
+      const mensaje = await textoDe(page, '#confirmMessage');
+      if (!mensaje || !mensaje.includes('jueves, 3 de septiembre')) problemas.push(`la confirmación de eliminar dice "${mensaje}" y tiene que nombrar la fecha nueva (FR-043, S-02b)`);
+      await page.click('#btnConfirmCancel');
+      return problemas;
+    } },
+
+  { clave: 'fecha-cancelar', rol: 'admin', nombre: 'arrepentirse: cancelar, reabrir y volver al alta',
+    anchos: [1200],
+    spec: ['fecha/S-03', 'fecha/S-03a', 'fecha/S-03b', 'fecha/S-03c', 'fecha/NFR-004'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const base = await lineaDeBaseFecha(page);
+      // S-03: cambiar el valor y cancelar.
+      await page.click('#btnEditarFecha');
+      await page.fill('#mFecha', '2026-09-05');
+      await page.click('#btnMatchCancel');
+      await page.waitForTimeout(300);
+      if (await ventanaAbierta(page)) problemas.push('Cancelar no cerró la ventana (FR-012)');
+      if (await textoDe(page, '#detailFecha') !== 'jueves, 3 de septiembre') problemas.push('después de Cancelar la fecha cambió (FR-012, S-03)');
+      const tras = await docsGuardados(page);
+      if (tras.n !== base.n) problemas.push(`Cancelar hizo ${tras.n - base.n} pedidos de guardado (NFR-004, S-03)`);
+      // S-03a: reabrir trae la fecha guardada.
+      await page.click('#btnEditarFecha');
+      if ((await leerVentana(page)).fecha !== '2026-09-03') problemas.push('al reabrir, la ventana no trae la fecha guardada (FR-010, S-03a)');
+      await page.click('#btnMatchCancel');
+      // S-03b: después de editar, "Nuevo partido" vuelve al modo alta.
+      await abrirNuevoPartido(page);
+      let v = await leerVentana(page);
+      if (v.titulo !== 'Nuevo partido' || !v.canchaVisible || v.fecha !== '' || v.boton !== 'Crear partido') problemas.push(`después de editar, "Nuevo partido" se abre como ${JSON.stringify(v)} (FR-013, S-03b)`);
+      await page.click('#btnMatchCancel');
+      // S-03c: el error de una fecha vacía no queda para la próxima apertura.
+      await abrirPartido(page, '2026-09-03');
+      await page.click('#btnEditarFecha');
+      await page.fill('#mFecha', '');
+      await page.click('#btnMatchSave');
+      if ((await leerVentana(page)).error !== MENSAJE_FECHA) problemas.push('guardar vacío no mostró el error que S-03c necesita de partida');
+      await page.click('#btnMatchCancel');
+      await abrirNuevoPartido(page);
+      if ((await leerVentana(page)).error) problemas.push('"Nuevo partido" muestra el error que quedó del modo edición (FR-011b, S-03c)');
+      await page.click('#btnMatchCancel');
+      await abrirPartido(page, '2026-09-03');
+      await page.click('#btnEditarFecha');
+      if ((await leerVentana(page)).error) problemas.push('el lápiz reabre la ventana con el error anterior (FR-011b, S-03c)');
+      await page.click('#btnMatchCancel');
+      /* R-02 del Plan: después de usar la ventana en edición, el alta de siempre crea un partido. */
+      await editarFecha(page, '2026-09-06');
+      const antesDelAlta = JSON.parse((await docsGuardados(page)).partidos).length;
+      await abrirNuevoPartido(page);
+      await page.selectOption('#mCancha', 'futbol9');
+      await page.fill('#mFecha', '2026-12-01');
+      await page.click('#btnMatchSave');
+      await page.waitForTimeout(400);
+      const guardados = JSON.parse((await docsGuardados(page)).partidos);
+      const nuevo = guardados.find(m => m.fecha === '2026-12-01');
+      if (guardados.length !== antesDelAlta + 1 || !nuevo) problemas.push('después de editar una fecha, "Crear partido" no creó un partido (FR-013)');
+      else if (nuevo.cancha !== 'futbol9') problemas.push(`el partido creado es de ${nuevo.cancha} y se eligió fútbol 9 (FR-013)`);
+      if (await textoDe(page, '#detailFecha') !== 'martes, 1 de diciembre') problemas.push('el partido creado no quedó abierto (FR-013)');
+      if ((guardados.find(m => m.id === 'm-abierto') || {}).fecha !== '2026-09-06') problemas.push('crear un partido cambió la fecha del partido editado antes (FR-013)');
+      return problemas;
+    } },
+
+  { clave: 'fecha-sin-cambios', rol: 'admin', nombre: 'guardar sin cambiar la fecha no escribe',
+    anchos: [1200],
+    spec: ['fecha/S-04', 'fecha/S-04a', 'fecha/NFR-004'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const base = await lineaDeBaseFecha(page);
+      await page.click('#btnEditarFecha');
+      await page.click('#btnMatchSave');
+      await page.waitForTimeout(300);
+      if (await ventanaAbierta(page)) problemas.push('Guardar sin cambios no cerró la ventana (FR-032)');
+      if ((await docsGuardados(page)).n !== base.n) problemas.push('Guardar sin cambios pidió un guardado (FR-032, NFR-004, S-04)');
+      await page.click('#btnEditarFecha');
+      await page.fill('#mFecha', '2026-09-07');
+      await page.fill('#mFecha', '2026-09-03');
+      await page.click('#btnMatchSave');
+      await page.waitForTimeout(300);
+      if (await ventanaAbierta(page)) problemas.push('volver a la fecha original y Guardar no cerró la ventana (FR-032, S-04a)');
+      if ((await docsGuardados(page)).n !== base.n) problemas.push('volver a la fecha original y Guardar pidió un guardado (NFR-004, S-04a)');
+      return problemas;
+    } },
+
+  { clave: 'fecha-invalida', rol: 'admin', nombre: 'fecha vacía o inválida, en los dos modos y por invocación directa',
+    anchos: [1200],
+    spec: ['fecha/S-20', 'fecha/S-20a', 'fecha/S-20b', 'fecha/S-20c', 'fecha/S-20d', 'fecha/NFR-004', 'fecha/TC-040', 'fecha/TC-041'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const base = await lineaDeBaseFecha(page);
+      const rechazada = async (etiqueta) => {
+        await page.click('#btnMatchSave');
+        await page.waitForTimeout(200);
+        if (!await ventanaAbierta(page)) problemas.push(`${etiqueta}: la ventana se cerró y tenía que seguir abierta (FR-020)`);
+        const v = await leerVentana(page);
+        if (v.error !== MENSAJE_FECHA) problemas.push(`${etiqueta}: el mensaje es "${v.error}" y tiene que ser "${MENSAJE_FECHA}" (FR-020)`);
+        await page.click('#btnMatchCancel');
+      };
+      // S-20: vacía.
+      await page.click('#btnEditarFecha');
+      await page.fill('#mFecha', '');
+      await rechazada('fecha vacía (S-20)');
+      // S-20b: año de cinco cifras, que el selector deja pasar (A-01).
+      await page.click('#btnEditarFecha');
+      const quedo = await page.evaluate(() => { const i = document.getElementById('mFecha'); i.value = '20260-11-15'; return i.value; });
+      if (quedo !== '20260-11-15') problemas.push(`Chromium no aceptó el año de cinco cifras ("${quedo}"): S-20b no prueba lo que dice (A-01 del Plan)`);
+      await rechazada('año de cinco cifras (S-20b)');
+      // S-20a: invocación directa con valores inválidos.
+      await page.evaluate(() => {
+        for (const v of ['2026-02-30', '15/11/2026', 'hola', '', '20260-11-15', null, 20261115]) window.__guardarFecha('m-abierto', v);
+        window.__guardarFecha('m-abierto');
+      });
+      // S-20d: un partido que no existe.
+      await page.evaluate(() => window.__abrirEditarFecha('no-existe'));
+      if (await ventanaAbierta(page)) { problemas.push('__abrirEditarFecha con un partido inexistente abrió la ventana (FR-005, S-20d)'); await page.click('#btnMatchCancel'); }
+      await page.evaluate(() => window.__guardarFecha('no-existe', '2026-10-01'));
+      await page.waitForTimeout(300);
+      if (await textoDe(page, '#detailFecha') !== 'jueves, 3 de septiembre') problemas.push('una invocación directa inválida cambió la fecha en pantalla (FR-022, S-20a)');
+      // S-20c: lo mismo en "Nuevo partido".
+      const tarjetas = async () => { await page.click('#btnVolverPartidos'); await page.waitForTimeout(300); return page.evaluate(() => document.querySelectorAll('.match-card').length); };
+      const nAntes = await tarjetas();
+      await page.click('#btnNuevoPartido');
+      await page.waitForSelector('#newMatchModal.open');
+      await page.evaluate(() => { document.getElementById('mFecha').value = '20260-11-15'; });
+      await rechazada('"Nuevo partido" con año de cinco cifras (S-20c)');
+      if (await page.evaluate(() => document.querySelectorAll('.match-card').length) !== nAntes) problemas.push('"Crear partido" con una fecha inválida creó un partido (FR-020, S-20c)');
+      const despues = await docsGuardados(page);
+      if (despues.n !== base.n) problemas.push(`las fechas inválidas hicieron ${despues.n - base.n} pedidos de guardado y tienen que hacer cero (NFR-004, TC-041)`);
+      if (despues.partidos !== base.partidos) problemas.push('las fechas inválidas cambiaron lo guardado (FR-022, TC-041)');
+      return problemas;
+    } },
+
+  { clave: 'fecha-jugador', rol: 'jugador', nombre: 'el rol jugador no ve ni puede usar el lápiz de la fecha',
+    anchos: [360, 1200],
+    spec: ['fecha/S-21', 'fecha/S-21a', 'fecha/S-21b', 'fecha/S-21c', 'fecha/S-21d', 'fecha/S-21e', 'fecha/S-21f', 'fecha/TC-040'],
+    /* Corre en los dos anchos (S-21f); `comprobar`, que recorre los cuatro estados, en el primero. */
+    invariantes: [() => {
+      const b = document.getElementById('btnEditarFecha');
+      return b && b.offsetParent !== null ? [`el rol jugador ve el lápiz de la fecha a ${window.innerWidth}px (FR-003, S-21f)`] : [];
+    }],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const lapices = async (id, etiqueta) => {
+        await cambiarDePartido(page, id);
+        const n = await page.getByRole('button', { name: 'Editar fecha', exact: true }).count();
+        if (n) problemas.push(`${etiqueta}: el rol jugador tiene el lápiz de la fecha a la vista o en el árbol de accesibilidad (FR-003)`);
+      };
+      await lapices('m-sin-equipos', 'inscripción abierta (S-21)');
+      await lapices('m-abierto', 'equipos generados (S-21c)');
+      await lapices('m-cerrado', 'inscripción cerrada (S-21d)');
+      await lapices('m-finalizado', 'finalizado (S-21e)');
+      if (await page.getByRole('button', { name: 'Editar resultado', exact: true }).count()) problemas.push('finalizado: el rol jugador ve "Editar resultado" (S-21e)');
+      await cambiarDePartido(page, 'm-abierto');
+      const r = await page.evaluate(async () => {
+        const base = window.__escrituras.length;
+        window.__abrirEditarFecha('m-abierto');
+        const abrio = document.getElementById('newMatchModal').classList.contains('open');
+        window.__guardarFecha('m-abierto', '2026-10-01');
+        await new Promise(res => setTimeout(res, 300));
+        return { abrio, escrituras: window.__escrituras.length - base, fecha: document.getElementById('detailFecha').textContent.trim() };
+      });
+      if (r.abrio) problemas.push('__abrirEditarFecha con sesión jugador abrió la ventana (FR-004, S-21a, TC-040)');
+      if (r.escrituras) problemas.push('__guardarFecha con sesión jugador pidió un guardado (FR-004b, S-21b, TC-040)');
+      if (r.fecha !== 'jueves, 3 de septiembre') problemas.push(`__guardarFecha con sesión jugador cambió la fecha a "${r.fecha}" (FR-004b, S-21b)`);
+      return problemas;
+    } },
+
+  { clave: 'fecha-jugador-ve', rol: 'admin', nombre: 'los jugadores ven la fecha nueva al cargar',
+    anchos: [1200],
+    spec: ['fecha/S-05', 'fecha/S-05a'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const vieja = await abrirOtraPagina(page, { rol: 'jugador', datos: docsDesde() });
+      await editarFecha(page, '2026-10-08');
+      const guardado = await page.evaluate(() => window.__ultimosDocs);
+      const datos = docsDesde();
+      datos.partidos = guardado.partidos;
+      datos.partidosArmado = guardado.partidosArmado;
+      const nueva = await abrirOtraPagina(page, { rol: 'jugador', datos });
+      try { await abrirPartido(nueva, '2026-10-08'); }
+      catch (e) { problemas.push('un jugador que carga después del cambio no encuentra el partido con la fecha nueva en la lista (FR-045, S-05)'); }
+      const fecha = await textoDe(nueva, '#detailFecha');
+      if (fecha !== 'jueves, 8 de octubre') problemas.push(`el jugador ve "${fecha}" en el encabezado y tiene que ver la fecha nueva (FR-045, S-05)`);
+      if (await nueva.getByRole('button', { name: 'Editar fecha', exact: true }).count()) problemas.push('el jugador ve el lápiz de la fecha (FR-003, S-05)');
+      if (await textoDelAviso(nueva) !== null) problemas.push('el jugador ve un aviso de que la fecha cambió (FR-046, S-05)');
+      await irAPestania(vieja, 'Partidos');
+      const enVieja = await vieja.evaluate(() => [...document.querySelectorAll('.match-date')].map(d => d.textContent.trim()));
+      if (!enVieja.includes('jueves, 3 de septiembre') || enVieja.includes('jueves, 8 de octubre')) problemas.push('la sesión de jugador abierta desde antes ya ve la fecha nueva sin recargar (A-03, S-05a)');
+      await vieja.close(); await nueva.close();
+      return problemas;
+    } },
 ];
 
 async function irAPestania(page, texto) {
