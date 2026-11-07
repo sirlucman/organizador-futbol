@@ -392,6 +392,25 @@
   .detail-header-actions{ display:flex; align-items:center; gap: 10px; flex-shrink:0; }
   @media (max-width: 1099px){
     .detail-header h2{ font-size: 24px; line-height: 31.2px; letter-spacing: -0.48px; }
+    /* Hasta 1099 px la fecha va sola en su renglón y debajo van la cancha y el lápiz a la izquierda
+       y la pastilla y las acciones a la derecha (EDITAR_FECHA_PARTIDO_SPEC.md §7.8, decisión del
+       propietario del 2026-11-07). Sólo CSS: con `display: contents` los grupos dejan de ser cajas
+       y sus hijos se acomodan como piezas sueltas de `.detail-header`, así que el HTML (y lo que
+       los tests buscan por selector) no cambia. El orden de lectura sigue siendo el del HTML. */
+    .detail-header-main, .detail-header-titulo, .detail-header-fecha, .detail-header-actions{ display: contents; }
+    .detail-header{ justify-content: flex-start; gap: 4px 10px; }
+    .detail-header h2{ flex-basis: 100%; }
+    #detailMeta{ order: 1; }
+    #btnEditarFecha{ order: 2; }
+    #detailEstado{ order: 3; margin-left: auto; }
+    #btnToggleInscripcion{ order: 4; }
+    #btnDeleteMatch{ order: 5; }
+  }
+  /* En un celular el botón de inscripción no entra en el renglón de la pastilla (recién desde unos
+     435 px) y baja solo; la papelera va antes que él para quedarse arriba (FR-074). */
+  @media (max-width: 480px){
+    #btnDeleteMatch{ order: 4; }
+    #btnToggleInscripcion{ order: 5; }
   }
 
   .autocomplete-wrap{ position: relative; margin-bottom: 16px; }

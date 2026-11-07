@@ -821,6 +821,52 @@ const INVARIANTE_DOS_LAPICES = () => {
   }
   return problemas;
 };
+/* El encabezado según el ancho (FR-070 a FR-075). Mide los rectángulos de las piezas a la
+   vista: dos piezas están en el mismo renglón si sus centros verticales difieren en menos de
+   12 px. Para `jugador` el lápiz y las acciones no están a la vista y sus chequeos se saltean. */
+const INVARIANTE_ENCABEZADO = () => {
+  const header = document.querySelector('.detail-header');
+  if (!header) return ['no hay encabezado del detalle'];
+  const aLaVista = id => { const e = document.getElementById(id); return e && e.offsetParent !== null && e.getBoundingClientRect().width > 0 ? e : null; };
+  const r = e => e.getBoundingClientRect();
+  const centro = e => (r(e).top + r(e).bottom) / 2;
+  const mismo = (a, b) => Math.abs(centro(a) - centro(b)) < 12;
+  const fecha = document.getElementById('detailFecha'), cancha = document.getElementById('detailMeta'), pastilla = document.getElementById('detailEstado');
+  const lapiz = aLaVista('btnEditarFecha'), inscripcion = aLaVista('btnToggleInscripcion'), papelera = aLaVista('btnDeleteMatch');
+  const estilo = getComputedStyle(header);
+  const izquierda = r(header).left + parseFloat(estilo.paddingLeft), derecha = r(header).right - parseFloat(estilo.paddingRight);
+  const ancho = window.innerWidth, problemas = [], en = `a ${ancho}px: `;
+  if (ancho <= 1099) {
+    for (const [nombre, e] of [['la cancha', cancha], ['el lápiz', lapiz], ['la pastilla', pastilla], ['el botón de inscripción', inscripcion], ['la papelera', papelera]]) {
+      if (e && r(e).top < r(fecha).bottom - 1) problemas.push(`${en}${nombre} comparte renglón con la fecha (FR-070)`);
+    }
+    if (Math.abs(r(cancha).left - izquierda) > 1) problemas.push(`${en}la cancha no está alineada a la izquierda (FR-071)`);
+    if (lapiz && !mismo(lapiz, cancha)) problemas.push(`${en}el lápiz no está en el renglón de la cancha (FR-071)`);
+    else if (lapiz && r(lapiz).left < r(cancha).right) problemas.push(`${en}el lápiz no va después de la cancha (FR-071)`);
+    if (!mismo(pastilla, cancha)) problemas.push(`${en}la pastilla no está en el renglón de la cancha (FR-072)`);
+    else if (r(pastilla).left < r(lapiz || cancha).right) problemas.push(`${en}la pastilla no va a la derecha de ${lapiz ? 'el lápiz' : 'la cancha'} (FR-072)`);
+    if (papelera && !mismo(papelera, pastilla)) problemas.push(`${en}la papelera no está en el renglón de la pastilla (FR-072)`);
+    else if (papelera && r(papelera).left < r(pastilla).right) problemas.push(`${en}la papelera no va después de la pastilla (FR-072)`);
+    const renglon = [cancha, lapiz, pastilla, inscripcion, papelera].filter(e => e && mismo(e, cancha));
+    const borde = Math.max(...renglon.map(e => r(e).right));
+    if (Math.abs(borde - derecha) > 1) problemas.push(`${en}el renglón de la cancha termina en ${Math.round(borde)}px y el encabezado en ${Math.round(derecha)}px: no queda alineado a la derecha (FR-072)`);
+    if (inscripcion && papelera) {
+      if (ancho >= 481) {
+        if (!mismo(inscripcion, pastilla)) problemas.push(`${en}el botón de inscripción no está en el renglón de la pastilla (FR-073)`);
+        else if (!(r(inscripcion).left > r(pastilla).right && r(inscripcion).right < r(papelera).left)) problemas.push(`${en}el botón de inscripción no va entre la pastilla y la papelera (FR-073)`);
+      } else if (mismo(inscripcion, pastilla)) {
+        if (r(inscripcion).left < r(papelera).right) problemas.push(`${en}el botón de inscripción no va después de la papelera (FR-074)`);
+      } else {
+        if (r(inscripcion).top < r(pastilla).bottom) problemas.push(`${en}el botón de inscripción no va en el renglón siguiente (FR-074)`);
+        if (Math.abs(r(inscripcion).left - izquierda) > 1) problemas.push(`${en}el botón de inscripción no está alineado a la izquierda en su renglón (FR-074)`);
+      }
+    }
+  } else if (lapiz) {
+    if (!mismo(lapiz, fecha) || r(lapiz).left < r(fecha).right) problemas.push(`${en}el lápiz no está pegado a la fecha, en su renglón (FR-075)`);
+    if (!mismo(cancha, lapiz) || r(cancha).left < r(lapiz).right) problemas.push(`${en}la cancha no va después del lápiz (FR-075)`);
+  }
+  return problemas;
+};
 /* La ventana de partido en modo edición (FR-010, FR-011). Como invariante mira la fecha que
    siembra `fecha-ventana`; los escenarios de comportamiento la llaman con la suya. */
 const INVARIANTE_VENTANA_FECHA = (fechaEsperada = '2026-09-30') => {
@@ -3953,27 +3999,33 @@ const ESCENARIOS = [
      el encabezado del detalle— y la franja de tablet (Plan §7.3.6). El desborde lo mide MEDIR;
      el invariante propio mira el lápiz. */
   { clave: 'fecha-encabezado-sin-equipos', rol: 'admin', nombre: 'el lápiz de la fecha · inscripción abierta sin equipos',
-    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
+    spec: ['fecha/S-06', 'fecha/S-08', 'fecha/S-08d', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
     transformarDatos: sembrarPartido('m-sin-equipos', { fecha: FECHA_MAS_LARGA }),
-    invariantes: [INVARIANTE_LAPIZ_FECHA],
+    invariantes: [INVARIANTE_LAPIZ_FECHA, INVARIANTE_ENCABEZADO],
     async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
 
   { clave: 'fecha-encabezado-generados', rol: 'admin', nombre: 'el lápiz de la fecha · equipos generados',
-    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
+    spec: ['fecha/S-06', 'fecha/S-08c', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
     transformarDatos: sembrarPartido('m-abierto', { fecha: FECHA_MAS_LARGA, estado: 'Equipos generados' }),
-    invariantes: [INVARIANTE_LAPIZ_FECHA],
+    invariantes: [INVARIANTE_LAPIZ_FECHA, INVARIANTE_ENCABEZADO],
     async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
 
   { clave: 'fecha-encabezado-cerrada', rol: 'admin', nombre: 'el lápiz de la fecha · inscripción cerrada',
-    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
+    spec: ['fecha/S-06', 'fecha/S-08a', 'fecha/S-08b', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002'],
     transformarDatos: sembrarPartido('m-cerrado', { fecha: FECHA_MAS_LARGA }),
-    invariantes: [INVARIANTE_LAPIZ_FECHA],
+    invariantes: [INVARIANTE_LAPIZ_FECHA, INVARIANTE_ENCABEZADO],
     async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
 
   { clave: 'fecha-encabezado-finalizado', rol: 'admin', nombre: 'el lápiz de la fecha · partido finalizado',
-    spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/S-06e', 'fecha/NFR-001', 'fecha/NFR-002'],
+    spec: ['fecha/S-06', 'fecha/S-08', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/S-06e', 'fecha/NFR-001', 'fecha/NFR-002'],
     transformarDatos: sembrarPartido('m-finalizado', { fecha: FECHA_MAS_LARGA }),
-    invariantes: [INVARIANTE_LAPIZ_FECHA, INVARIANTE_DOS_LAPICES],
+    invariantes: [INVARIANTE_LAPIZ_FECHA, INVARIANTE_DOS_LAPICES, INVARIANTE_ENCABEZADO],
+    async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
+
+  { clave: 'fecha-encabezado-jugador', rol: 'jugador', nombre: 'el encabezado según el ancho · jugador, inscripción cerrada',
+    spec: ['fecha/S-08e', 'fecha/NFR-001'],
+    transformarDatos: sembrarPartido('m-cerrado', { fecha: FECHA_MAS_LARGA }),
+    invariantes: [INVARIANTE_ENCABEZADO],
     async preparar(page) { await abrirPartido(page, FECHA_MAS_LARGA); } },
 
   { clave: 'fecha-ventana', rol: 'admin', nombre: 'la ventana de partido en modo edición',
