@@ -179,7 +179,7 @@ Custom arc: 2 branches — AGENTS.md § Ramas fija dos ramas por entrega: docs/<
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
 | 1 | `docs/editar-fecha-partido` | `main` | In progress | — | — | Concept Note, Spec, sus críticas y las marcas en `001`/`007` ya commiteadas (`004529c`, `6d5d692`, `cbed6ae`); falta este Plan |
-| 2 | `feature/editar-fecha-partido` | `main` | In progress — lista para PR | — | `fecha` 7/7; layout 89 escenarios y 688 mediciones (`LAYOUT_STRICT=1`); el resto de la suite verde, sin `reglas.test.js` (necesita credenciales) | Probada contra staging (`T-2.11`); `OPEN-Q-07` con la opción A; encabezado reacomodado por decisión del owner (`TD-13`, `T-2.13`–`T-2.18`). Revisiones `T-2.D6`/`T-2.D7` hechas por un agente independiente (sin revisor humano). Falta: PR (`T-2.D12`, `T-2.D14`) |
+| 2 | `feature/editar-fecha-partido` | `main` | Merged (2026-11-07), rama borrada | — (merge directo, sin PR) | `fecha` 7/7; layout 89 escenarios y 688 mediciones (`LAYOUT_STRICT=1`); el resto de la suite verde, sin `reglas.test.js` (necesita credenciales) | Probada contra staging (`T-2.11`); `OPEN-Q-07` con la opción A; encabezado reacomodado por decisión del owner (`TD-13`, `T-2.13`–`T-2.18`). Revisiones `T-2.D6`/`T-2.D7` hechas por un agente independiente (sin revisor humano). Sin PR por decisión del owner: el resumen va en el commit de merge |
 
 ```mermaid
 flowchart LR
@@ -461,9 +461,9 @@ con un número de `T-2.C*` nuevo y tipo `fix(...)`:
 - [x] T-2.D10b Mismo comando que `T-1.D10b`, vacío
 - [x] T-2.D10c Cada TC que §12.9 verifica con un test lleva su etiqueta en `tests/` (`TC-031`) — `comm -23 <(printf 'TC-013\nTC-040\nTC-041\n') <(grep -rEho "fecha/TC-[0-9]+" tests/ | sed 's#fecha/##' | sort -u)` vacío. Los demás TC de §12.9 se verifican por revisión, `diff` o `grep` del código, no por un test
 - [x] T-2.D11 Historial limpio — `git log --oneline main..HEAD`, cada commit con formato §5 y la línea entera ≤ 72 caracteres: `git log --format=%s main..HEAD | awk 'length > 72'` vacío
-- [ ] T-2.D12 Descripción del PR: resumen, IDs de la Spec, `TD-*` tomadas, salidas rojas de `T-2.6`, `T-2.8b`, `T-2.13`, `T-2.14b` y `T-2.17`, resolución de `OPEN-Q-07`, las revisiones de `T-2.D6` y `T-2.D7`
+- [x] T-2.D12 Descripción del PR: resumen, IDs de la Spec, `TD-*` tomadas, salidas rojas de `T-2.6`, `T-2.8b`, `T-2.13`, `T-2.14b` y `T-2.17`, resolución de `OPEN-Q-07`, las revisiones de `T-2.D6` y `T-2.D7` — **no aplica como PR** (2026-11-07): el owner eligió mergear directo a `main` sin PR; el mismo contenido va en el cuerpo del commit de merge
 - [x] T-2.D13 Gate propio: `T-2.11`, `T-2.12` y `T-2.16` hechos
-- [ ] T-2.D14 PR abierto contra `main`
+- [x] T-2.D14 PR abierto contra `main` — **no aplica** (2026-11-07): merge directo a `main` por decisión del owner, sin PR; la rama se borra después del merge
 - [x] T-2.D15 Mismo comando que `T-1.D15`, ≥ 1
 - [x] T-2.D16 Mismo comando que `T-1.D16`, vacío
 - [x] T-2.D17 Mismo comando que `T-1.D17`, vacío
@@ -710,6 +710,7 @@ ninguna abierta a este Plan (§17).
 | 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Enmienda durante la rama 2 por decisiones del owner del 2026-11-07 (Spec §3.3 y §7.8). `OPEN-Q-07` resuelta con la opción A. `TD-13` nueva: reacomodo del encabezado hasta 1099 px sólo con CSS, con el corte de 480 px para el orden de la papelera; fila nueva en el mapa de módulos. Tareas nuevas `T-2.13` a `T-2.16` y `T-2.C7`, con dos corridas rojas (`T-2.13`, `T-2.14b`) que suman a `TC-032` y a `T-2.D12`; `T-2.D13` suma `T-2.16`. §7.3.6 suma `INVARIANTE_ENCABEZADO` y `fecha-encabezado-jugador`; §12.1 suma `S-08` a `S-08e`; `IMP-07`, `OBS-05` y `R-07` nuevos; la cobertura de la rama 2 pasa a `FR-075` y `S-08`. Self-critique: skipped (enmienda acotada). |
 | 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Enmienda por la decisión del owner que cambia `FR-075` de la Spec: el lápiz va después de la cancha también desde 1100 px. `TD-08` mueve el botón al final de `.detail-header-fecha`, así que el orden del HTML pasa a ser el que se ve; `TD-13` deja de reordenar la cancha y el lápiz. Tareas `T-2.17`, `T-2.18` y `T-2.C8`, con una corrida roja más para `TC-032` y `T-2.D12`. Self-critique: skipped (enmienda acotada). |
 | 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | `T-2.D6` y `T-2.D7` piden revisión humana, pero el proyecto tiene una sola persona: el owner eligió reemplazarlas por una revisión independiente hecha por un agente nuevo de otro modelo (Sonnet), sin la conversación de la rama. Resultado: §5 todas PASS o N/A; §7.3.5 y `TD-13` todos IMPLEMENTED; cuatro hallazgos bajos o nit, verificados por el autor y aceptados sin cambio (480 px exacto no medido, pero sí 479 y 481 como pide `NFR-001`; IDs en comentarios explicativos, práctica del repo, que los gates no cuentan; confianza en el cliente ya aceptada en `D-06`; `OPEN-Q-07` decidida). Self-critique: skipped (registro de verificación). |
+| 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Cierre de la rama 2: el owner eligió mergear directo a `main`, sin PR, y borrar la rama. `T-2.D12` queda en el cuerpo del commit de merge y `T-2.D14` no aplica; el tracker (§7.1) marca la rama 2 como mergeada. Self-critique: skipped (registro de cierre). |
 
 ---
 
