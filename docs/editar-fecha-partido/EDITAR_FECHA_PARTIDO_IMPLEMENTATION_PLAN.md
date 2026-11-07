@@ -95,6 +95,7 @@ usa `window.storage`. El motor de generación no participa.
 | TD-10 | Tests unitarios en un archivo nuevo, `tests/fecha.test.js`, con su propia lista `DECLARACIONES = ['esFechaValida', 'cambiarFechaDelPartido']`; `tests/harness.js` no cambia | TC-031 | Mismo criterio que `tests/colores.test.js` (su cabecera, líneas 1-17): el sandbox del motor no necesita estas funciones. Las propiedades corren sobre los partidos de `docsDesde()` ([tests/fixtures-app.js:527](../../tests/fixtures-app.js#L527)), que cubren los tres estados y la inscripción cerrada |
 | TD-11 | Un *pedido de guardado* (`NFR-004`) se cuenta en los escenarios como una escritura de la clave `partidos` en `window.__escrituras`, como hace `tests/layout.test.js:532` | NFR-004 | `saveMatches()` escribe `partidos` exactamente una vez por invocación y antes que nada ([index.html:2492](../../index.html#L2492)); `partidosArmado` es la segunda escritura de la misma invocación y no se cuenta aparte, como fija la Spec |
 | TD-12 | Sin resguardo propio contra el doble toque en "Guardar": el primer clic cierra la ventana de forma sincrónica (`TD-06`), así que el segundo ya no cae sobre el botón; y si un segundo pedido llegara con la misma fecha, `cambiarFechaDelPartido` devuelve `false` (`TD-03`) | NFR-004, S-01g | Las dos barreras salen de decisiones que ya hacían falta; un candado más sería código sin requisito. El escenario automático usa el doble clic del mouse de Playwright; el doble toque real en un celular, donde el segundo toque cae sobre lo que queda debajo de la ventana (igual que en el alta de hoy), se mira a mano en `T-2.11` |
+| TD-13 | El reacomodo de la Spec §7.8 es sólo CSS: no cambia el HTML ni `renderMatchDetail`. Dentro del `@media (max-width: 1099px)` del encabezado ([index.html:393-395](../../index.html#L393-L395)): `.detail-header-main, .detail-header-titulo, .detail-header-fecha, .detail-header-actions{ display: contents; }`, así sus hijos pasan a ser piezas de `.detail-header`, que ya es flex con `flex-wrap: wrap` ([index.html:374](../../index.html#L374)); `.detail-header{ justify-content: flex-start; gap: 4px 10px; }`; `.detail-header h2{ flex-basis: 100%; }`; y `order` 1 a la cancha, 2 al lápiz, 3 a la pastilla (con `margin-left: auto`), 4 al botón de inscripción y 5 a la papelera. En un `@media (max-width: 480px)` junto al anterior, 4 a la papelera y 5 al botón de inscripción | FR-070, FR-071, FR-072, FR-073, FR-074, FR-075, TC-012, NFR-001 | Con el DOM intacto, `TC-012` sigue valiendo (el lápiz es hijo de `.detail-header-fecha`) y ningún escenario que busca piezas del encabezado por selector se entera. `4px 10px` es el `gap` que ya usa `.detail-header-titulo` ([index.html:387](../../index.html#L387)); `display`, `order`, `flex-basis` y `margin-left: auto` acomodan piezas sin agregar valores visuales, así que no hace falta una excepción al design system. Un lector de pantalla lee en el orden del DOM (fecha, lápiz, cancha, pastilla, inscripción, papelera), el mismo de computadora: que el lápiz se vea después de la cancha no cambia el sentido (WCAG 1.3.2). El corte de 480 px ya existe ([index.html:369](../../index.html#L369)); sin él, entre 391 y 434 px la papelera bajaría junto con el botón (medido el 2026-11-07, Spec `A-04`). Anclas de `deebce3` |
 
 ## 4. Module map
 
@@ -109,6 +110,7 @@ usa `window.storage`. El motor de generación no participa.
 | HTML — `.detail-header-fecha` ([index.html:1326-1329](../../index.html#L1326-L1329)) | Suma `#btnEditarFecha` después del `<h2>` (`TD-08`) | modified |
 | HTML — `#newMatchModal` ([index.html:1406-1426](../../index.html#L1406-L1426)) | Suma `id="newMatchTitulo"` al `<h3>` y `id="mCanchaField"` al `.field` de Cancha; nada más | modified |
 | CSS — `.panel-icono-editar` ([index.html:1003-1004](../../index.html#L1003-L1004)) | Selector ampliado con `.panel-icono-fecha` (`TD-09`) | modified |
+| CSS — `@media (max-width: 1099px)` del encabezado ([index.html:393-395](../../index.html#L393-L395)) y un `@media (max-width: 480px)` junto a él | Reacomodo del encabezado de la Spec §7.8 (`TD-13`) | modified |
 | `index.html` — `ICON_LAPIZ` ([index.html:6865](../../index.html#L6865)) | Glifo reutilizado | untouched (`TC-002`) |
 | `index.html` — `saveMatches`, `window.storage` | Persistencia | untouched (`TC-001`) |
 | `index.html` — `renderMatchDetail`, `renderMatchList`, `formatFecha`, `openConfirm` | Leen `m.fecha` y siguen al cambio sin modificarse (`FR-042`, `FR-043`) | untouched |
@@ -268,15 +270,15 @@ DoD verification (§6):
 partido validando igual, todos los escenarios de la Spec cubiertos por tests, probado
 contra staging.
 
-**Spec coverage:** FR-001 a FR-060 (incluidos los `b`), NFR-001 a NFR-004, TC-001 a
-TC-041, AC-01 a AC-55, S-01 a S-07, S-20, S-21 y sus variantes.
+**Spec coverage:** FR-001 a FR-075 (incluidos los `b`), NFR-001 a NFR-004, TC-001 a
+TC-041, AC-01 a AC-55, S-01 a S-08, S-20, S-21 y sus variantes.
 
 #### 7.3.1 Design decisions specific to this branch
 
-`TD-02` a `TD-12` (§3.1). El orden de las tareas pone el escenario responsive del
-encabezado antes del botón para poder verlo fallar (`TC-032`), sin commitear el estado rojo.
-La única decisión visual que queda abierta es `OPEN-Q-07` (§15.1), que se resuelve midiendo
-en `T-2.12`.
+`TD-02` a `TD-13` (§3.1). El orden de las tareas pone el escenario responsive del
+encabezado antes del botón para poder verlo fallar (`TC-032`), sin commitear el estado rojo;
+lo mismo vale para el reacomodo de `TD-13` (`T-2.13` antes de `T-2.14`). `OPEN-Q-07` (§15.1)
+quedó resuelta en `T-2.12`, con la opción A.
 
 #### 7.3.5 New / modified interfaces
 
@@ -334,7 +336,9 @@ el `<h2>` de 32 a 24 px ([index.html:393-395](../../index.html#L393-L395)); que 
 baje de línea junto a la fecha depende del largo del texto y no de un breakpoint
 ([index.html:320-323](../../index.html#L320-L323)). `ANCHOS` mide los dos lados de ese
 corte (1099 y 1100), el piso de 360 y la franja de tablet (760, 768, 900), así que los
-escenarios de layout corren en los diecisiete y no en una lista propia.
+escenarios de layout corren en los diecisiete y no en una lista propia. Desde `TD-13`
+también cambia el encabezado el corte de 480 px; `ANCHOS` ya mide sus dos lados (479 y
+481).
 
 Escenarios que ya existen y cambian con esta rama:
 
@@ -347,6 +351,8 @@ Escenarios que ya existen y cambian con esta rama:
   `intercambio-*`, `colores-*`, …) tiene ahora el botón dentro de lo que mide `MEDIR`. Si el
   lápiz desarma el encabezado en alguno, sólo se sabe corriendo la suite de layout: por eso
   `T-2.9b` la corre después del commit del botón.
+- Desde `TD-13`, todo escenario que abre un detalle a 1099 px o menos ve el encabezado
+  reacomodado, `admin` o `jugador`. Por eso `T-2.15` vuelve a correr la suite completa.
 - `modal-nuevo-partido` ([tests/layout.test.js:3203-3208](../../tests/layout.test.js#L3203-L3208))
   es el único test que ya abría la ventana de alta: es la red de seguridad del refactor de
   `T-2.5`.
@@ -359,6 +365,7 @@ Escenarios que ya existen y cambian con esta rama:
 | `tests/fecha.test.js` | `'fecha/S-04: …'` | Con la misma fecha que el partido ya tiene, `cambiarFechaDelPartido` devuelve `false` y `m` queda idéntico (`FR-032`) |
 | `tests/layout.test.js` | cuatro escenarios de layout, `fecha-encabezado-sin-equipos`, `-generados`, `-cerrada`, `-finalizado`, admin, `anchos: ANCHOS` (los diecisiete, [tests/layout.test.js:45](../../tests/layout.test.js#L45)), `spec: ['fecha/S-06', 'fecha/S-06a', 'fecha/S-06b', 'fecha/S-06d', 'fecha/NFR-001', 'fecha/NFR-002']` (el finalizado suma `'fecha/S-06e'`) | Cada uno siembra `2026-09-30` —"miércoles, 30 de septiembre", la fecha de texto más larga— en un solo partido: `m-sin-equipos`, `m-abierto` con `estado: 'Equipos generados'`, `m-cerrado` (pastilla "Inscripción cerrada", la más larga junto a "Inscripción abierta") y `m-finalizado`. Invariante propio: `#btnEditarFecha` dentro de `.detail-header-fecha`, visible, `aria-label` y `title` "Editar fecha", ≥ 44 × 44 px. En el finalizado, además, el botón "Editar resultado" existe y los rectángulos de los dos lápices no se intersecan. El desborde lo mide `MEDIR` ([tests/layout.test.js:3891](../../tests/layout.test.js#L3891)) en cada ancho |
 | `tests/layout.test.js` | `clave: 'fecha-ventana'`, admin, `anchos: ANCHOS`, `spec: ['fecha/S-06c', 'fecha/NFR-001']` | Con la ventana abierta en modo edición: título "Editar fecha", `#mCanchaField` oculto, `#mFecha` con la fecha del partido, botones "Cancelar" y "Guardar"; sin desborde en ningún ancho |
+| `tests/layout.test.js` | los cuatro `fecha-encabezado-*` suman el invariante `INVARIANTE_ENCABEZADO` y estos IDs a su `spec`: `-sin-equipos` `'fecha/S-08'` y `'fecha/S-08d'`; `-generados` `'fecha/S-08c'`; `-cerrada` `'fecha/S-08a'` y `'fecha/S-08b'`; `-finalizado` `'fecha/S-08'`. Escenario nuevo `fecha-encabezado-jugador`, `rol: 'jugador'`, `m-cerrado` con la fecha más larga, `anchos: ANCHOS`, `spec: ['fecha/S-08e', 'fecha/NFR-001']` | `INVARIANTE_ENCABEZADO` mide los rectángulos de las piezas visibles en cada ancho. Hasta 1099 px: ninguna pieza comparte renglón con el `<h2>`; la cancha y, si está, el lápiz van en el renglón siguiente, la cancha más a la izquierda; la pastilla, en ese renglón, a la derecha del lápiz o de la cancha; la última pieza de ese renglón llega al borde derecho de `.detail-header`. De 481 a 1099 px, si está el botón de inscripción: en ese renglón, entre la pastilla y la papelera. Hasta 480 px: la papelera en ese renglón, y el botón de inscripción después de ella en el mismo renglón o solo en el siguiente, alineado a la izquierda. Desde 1100 px: el lápiz en el renglón del `<h2>`, a su derecha, y la cancha a la derecha del lápiz. Dos renglones son el mismo si sus centros verticales difieren en menos de 12 px |
 | `tests/layout.test.js` | `clave: 'fecha-cambio'`, admin, `anchos: [1200]`, `spec: ['fecha/S-01', 'fecha/S-01i', 'fecha/S-07', 'fecha/NFR-003', 'fecha/NFR-004']` | Cubre además `FR-046` (sin aviso) con la última aserción. `m-abierto` sembrado con `fecha: '2026-11-14'` y `estado: 'Equipos generados'`: clic en el lápiz, ventana como en `fecha-ventana`, `2026-11-15` y "Guardar". Después: la ventana cerrada, `#detailFecha` dice "domingo, 15 de noviembre" (el `::first-letter` la muestra con mayúscula), `#teamsSection` con el mismo `innerText` que antes, un pedido de guardado, `partidos` de `__ultimosDocs` distinto del inicial sólo en `fecha` de `m-abierto`, `partidosArmado` idéntico (sin generación, `FR-060`), mismo número de partidos, y `#appToast` sin `.show` |
 | `tests/layout.test.js` | `clave: 'fecha-estados'`, admin, `anchos: [1200]`, `spec: ['fecha/S-01a', 'fecha/S-01b', 'fecha/S-01c', 'fecha/S-01d']` | Cuatro recorridos con `cambiarDePartido` ([tests/layout.test.js:507-511](../../tests/layout.test.js#L507-L511)): `m-sin-equipos` cambia de fecha; `m-cerrado` con un evento cargado por `tocarCamiseta` ([tests/layout.test.js:500-505](../../tests/layout.test.js#L500-L505)): el lápiz está, y después de guardar la fecha `#teamsSection` conserva el mismo `innerText`; `m-finalizado`: `resultado` queda idéntico en `__ultimosDocs`, no hay ninguna escritura de `players` ni de `playerScores` (las estadísticas acumuladas viven ahí y se recalculan desde el historial, [index.html:2436-2442](../../index.html#L2436-L2442)), y el texto de la tabla de la pestaña Jugadores (`.roster`) es el mismo antes y después; `m-finalizado` con "Editar resultado" abierto y un toque: el lápiz está, y después de guardar sigue `.carga-toolbar` y el mismo `innerText` |
 | `tests/layout.test.js` | `clave: 'fecha-doble-toque'`, admin, `anchos: [1200]`, `spec: ['fecha/S-01g', 'fecha/NFR-004']` | `page.dblclick('#btnMatchSave')` con una fecha nueva: la fecha cambia, exactamente un pedido de guardado, y la cantidad de partidos no cambia (el segundo toque no crea un partido) |
@@ -425,6 +432,15 @@ Implementation tasks (grouped into atomic commits):
 - [ ] T-2.11 Abrir `index.html` localmente contra staging como admin: cambiar la fecha de un partido temporal en cada estado, recargar y confirmar que persiste y que la lista lo reubica; entrar como jugador y confirmar la fecha nueva y la ausencia del lápiz; borrar el partido temporal (credenciales de staging fuera del repositorio)
 - [ ] T-2.12 [P] Mirar el encabezado a 360 y 1200 px en los tres estados con la fecha más larga, compararlo contra la variante "sólo lápiz" que eligió el owner (Spec §3.3) y resolver `OPEN-Q-07` con él
 
+Agregadas el 2026-11-07 por el reacomodo del encabezado (Spec §7.8, `TD-13`):
+
+- [ ] T-2.13 Escribir `INVARIANTE_ENCABEZADO`, sumarlo a los cuatro `fecha-encabezado-*` con sus IDs `S-08*` y crear `fecha-encabezado-jugador` (§7.3.6), y **correrlos antes de `T-2.14`**: tienen que fallar en los anchos de 1099 px o menos, porque la fecha comparte renglón con otras piezas, y pasar desde 1100. Guardar la salida para el PR (`TC-032`). No se commitea todavía
+- [ ] T-2.14 Agregar el CSS de `TD-13` y ver pasar los escenarios de `T-2.13`
+- [ ] T-2.14b Ver que el corte de 480 px hace falta: quitar a mano el `@media (max-width: 480px)` de `TD-13`, correr `fecha-encabezado-cerrada` y `fecha-encabezado-generados`, confirmar que fallan entre 360 y 430 px porque la papelera baja con el botón, y revertir. Guardar esa salida también. El cambio temporal no se commitea
+- [ ] T-2.15 Correr la suite de layout completa (`LAYOUT_STRICT=1 node tests/layout.test.js`): el reacomodo toca el encabezado de todo detalle
+- [ ] T-2.C7 Commit — `feat(editar-fecha): reacomoda el encabezado hasta 1099 px (FR-070)`, incluye `T-2.13` y `T-2.14`
+- [ ] T-2.16 Capturas del encabezado reacomodado a 360, 768 y 1200 px en los cuatro estados con la fecha más larga, para que el owner lo apruebe
+
 DoD verification (§6). Todo arreglo hecho durante la verificación va en un commit propio,
 con un número de `T-2.C*` nuevo y tipo `fix(...)`:
 
@@ -442,8 +458,8 @@ con un número de `T-2.C*` nuevo y tipo `fix(...)`:
 - [ ] T-2.D10b Mismo comando que `T-1.D10b`, vacío
 - [ ] T-2.D10c Cada TC que §12.9 verifica con un test lleva su etiqueta en `tests/` (`TC-031`) — `comm -23 <(printf 'TC-013\nTC-040\nTC-041\n') <(grep -rEho "fecha/TC-[0-9]+" tests/ | sed 's#fecha/##' | sort -u)` vacío. Los demás TC de §12.9 se verifican por revisión, `diff` o `grep` del código, no por un test
 - [ ] T-2.D11 Historial limpio — `git log --oneline main..HEAD`, cada commit con formato §5 y la línea entera ≤ 72 caracteres: `git log --format=%s main..HEAD | awk 'length > 72'` vacío
-- [ ] T-2.D12 Descripción del PR: resumen, IDs de la Spec, `TD-*` tomadas, salidas rojas de `T-2.6` y `T-2.8b`, resolución de `OPEN-Q-07`, las revisiones de `T-2.D6` y `T-2.D7`
-- [ ] T-2.D13 Gate propio: `T-2.11` y `T-2.12` hechos
+- [ ] T-2.D12 Descripción del PR: resumen, IDs de la Spec, `TD-*` tomadas, salidas rojas de `T-2.6`, `T-2.8b`, `T-2.13` y `T-2.14b`, resolución de `OPEN-Q-07`, las revisiones de `T-2.D6` y `T-2.D7`
+- [ ] T-2.D13 Gate propio: `T-2.11`, `T-2.12` y `T-2.16` hechos
 - [ ] T-2.D14 PR abierto contra `main`
 - [ ] T-2.D15 Mismo comando que `T-1.D15`, ≥ 1
 - [ ] T-2.D16 Mismo comando que `T-1.D16`, vacío
@@ -483,6 +499,7 @@ cambiada.
 | OBS-02 | `#btnEditarFecha` ≥ 44 × 44 px, con `aria-label` y `title` "Editar fecha" | automated check | invariante propio de `fecha-encabezado-*` | NFR-002, R-04 | Falla ante un botón más chico o con otro nombre |
 | OBS-03 | Diff clave por clave del partido antes y después, y conjunto de claves | automated check | `tests/fecha.test.js` `'fecha/S-01f: …'` + escenario `fecha-cambio` | NFR-003 | Falla ante un campo distinto de `fecha` o una clave nueva |
 | OBS-04 | Escrituras de la clave `partidos` en `window.__escrituras` (`TD-11`) | automated check | escenarios `fecha-cambio`, `fecha-doble-toque`, `fecha-cancelar`, `fecha-sin-cambios`, `fecha-invalida` | NFR-004, R-02 | Falla si un cambio hace distinto de uno, o si cancelar, repetir la fecha o fallar la validación hace alguno |
+| OBS-05 | Renglón y orden de cada pieza del encabezado según el ancho | automated check | `INVARIANTE_ENCABEZADO` en `fecha-encabezado-*` | FR-070 a FR-075, R-07 | Falla ante una pieza fuera de su renglón o de su orden en cualquiera de los diecisiete anchos |
 
 **Dashboards:** ninguno — no aplica a este proyecto.
 
@@ -520,6 +537,12 @@ cambiada.
 | S-06d `[boundary]` | `tests/layout.test.js` `fecha-encabezado-*` | e2e | Branch 2 |
 | S-06e `[boundary]` | `tests/layout.test.js` `fecha-encabezado-finalizado` | e2e | Branch 2 |
 | S-07 | `tests/layout.test.js` `fecha-cambio` | e2e | Branch 2 |
+| S-08 | `tests/layout.test.js` `fecha-encabezado-sin-equipos` + `fecha-encabezado-finalizado` | e2e | Branch 2 |
+| S-08a `[boundary]` | `tests/layout.test.js` `fecha-encabezado-cerrada` | e2e | Branch 2 |
+| S-08b `[boundary]` | `tests/layout.test.js` `fecha-encabezado-cerrada` | e2e | Branch 2 |
+| S-08c `[boundary]` | `tests/layout.test.js` `fecha-encabezado-generados` | e2e | Branch 2 |
+| S-08d `[boundary]` | `tests/layout.test.js` `fecha-encabezado-sin-equipos` | e2e | Branch 2 |
+| S-08e `[boundary]` | `tests/layout.test.js` `fecha-encabezado-jugador` | e2e | Branch 2 |
 | S-20 | `tests/layout.test.js` `fecha-invalida` | e2e | Branch 2 |
 | S-20a `[failure]` | `tests/fecha.test.js` `'fecha/S-20a: …'` + `tests/layout.test.js` `fecha-invalida` | unit + e2e | Branch 2 |
 | S-20b `[boundary]` | `tests/layout.test.js` `fecha-invalida` | e2e | Branch 2 |
@@ -543,6 +566,7 @@ cambiada.
 | IMP-04 | business | El admin corrige fechas sin eliminar y recrear; los jugadores ven la fecha nueva al recargar y la lista queda en orden real | FR-030, FR-042, FR-045 | R-01 | — | `T-2.11` |
 | IMP-05 | code | El encabezado del detalle suma un botón de 44 px junto a la fecha en todos los estados | FR-001, NFR-001 | R-03 | OBS-01 | `T-2.6`, `T-2.12` |
 | IMP-06 | code | `007/research.md` §3 nombra los dos manejadores nuevos | Declaración de reemplazo | — | — | `T-1.2` |
+| IMP-07 | code | Hasta 1099 px el encabezado del detalle se reacomoda en dos renglones, sólo con CSS, para todo partido y todo rol | FR-070, FR-071, FR-072, FR-073, FR-074, FR-075 | R-07 | OBS-01, OBS-05 | `T-2.13`, `T-2.15` |
 
 Alcance `external`: sin filas. La aplicación no tiene consumidores fuera del repositorio
 (sin API pública, sin otra app que lea Firestore), y los documentos conservan su forma
@@ -595,7 +619,7 @@ Ningún NFR de la Spec es de tiempo ni de carga. Las mediciones de los cuatro NF
 | TC-014 | El repositorio no versiona un archivo de reglas desplegable (`git ls-files` sólo trae los tres contratos `docs/*/contracts/firestore-rules.md`); `git diff --stat main -- 'docs/*/contracts/firestore-rules.md'` vacío, y el PR declara que no se publicaron reglas nuevas en la consola de Firebase (`AC-19`) |
 | TC-030 | Revisión de código contra `.panel-icono` y `.panel-icono-editar`: `.panel-icono-fecha` comparte su regla y no agrega valores (`TD-09`, `AC-20`) |
 | TC-031 | `T-2.D8` y `T-2.D9` (`AC-21`) |
-| TC-032 | Salidas rojas de `T-2.6` (falta el lápiz o la ventana) y de `T-2.8b` (desborde forzado que `MEDIR` detecta) pegadas en el PR (`AC-21`) |
+| TC-032 | Salidas rojas de `T-2.6` (falta el lápiz o la ventana), de `T-2.8b` (desborde forzado que `MEDIR` detecta), de `T-2.13` (encabezado sin reacomodar) y de `T-2.14b` (sin el corte de 480 px) pegadas en el PR (`AC-21`) |
 | TC-040 | Escenarios `fecha-jugador` y `fecha-invalida` invocando `window.__abrirEditarFecha` y `window.__guardarFecha` directamente (`AC-22`) |
 | TC-041 | `tests/fecha.test.js` `'fecha/TC-041: …'` y `'fecha/S-20a: …'`, más `fecha-invalida` en los dos modos (`AC-23`) |
 
@@ -617,6 +641,7 @@ Ningún NFR de la Spec es de tiempo ni de carga. Las mediciones de los cuatro NF
 | R-04 | Los dos lápices del finalizado se confunden o se superponen | low | low | `OBS-02` + `fecha-encabezado-finalizado` | `T-2.12` | Ninguno necesario: tocar el equivocado no cambia nada hasta guardar |
 | R-05 | Usar la clase de "Editar resultado" rompería `partido-jugador`, que la busca en todo el documento | med | low | `T-2.D1` (`partido-jugador` corre dentro de `LAYOUT_STRICT=1 node tests/layout.test.js`) | `T-2.8` (clase propia, `TD-09`) | — |
 | R-06 | "Gana el último que guarda": una sesión abierta desde antes pisa la fecha nueva o es pisada por ella (Spec §15) | med | med | manual — reporte del grupo | accepted (rationale: condición preexistente del guardado, `Roadmap.md:70`; la Spec la acepta sin mitigación propia) | Volver a editar la fecha |
+| R-07 | El reacomodo desarma el encabezado de algún detalle, o el botón de inscripción deja de entrar desde 481 px (Spec `A-04`) | low | low | `OBS-01`, `OBS-05`, `T-2.15` | `T-2.13` | Revertir el commit del reacomodo (`T-2.C7`): es sólo CSS |
 
 **Worst-case blast radius:** un partido con una fecha equivocada en la base, o un partido de
 más creado por la ventana. Los dos se corrigen desde la app (editar la fecha de nuevo,
@@ -629,7 +654,7 @@ acción no los toca (`NFR-003`).
 
 | ID | Question | Owner | Resolution by branch | Notes |
 |---|---|---|---|---|
-| OPEN-Q-07 | El lápiz mide 44 × 44 px con un glifo de 16 px, así que deja 14 px de aire a cada lado y es más alto que la línea de la fecha (38,4 px en ≥ 1100 px; 31,2 px debajo, [index.html:378](../../index.html#L378), [:394](../../index.html#L394)). ¿Se acepta que el encabezado crezca unos píxeles y que el glifo quede a unos 24 px del texto, o se acerca con un margen negativo que conserve el área táctil? | Lucas Manoukian | Branch 2 (`T-2.12`) | No se puede decidir sin verlo: se mide en `T-2.12` y se le muestra al owner a 360 y 1200 px. La opción por defecto es no agregar márgenes, igual que "Editar resultado". Si se elige el margen, es un valor nuevo y va como excepción documentada en este Plan (`AGENTS.md`, Design system): como este Plan ya estará mergeado con la rama 1, se agrega en la rama 2 con un commit `docs(editar-fecha)` propio —una decisión `TD-*` nueva en §3.1 y una fila de Change log— que `T-2.D12` cita |
+| OPEN-Q-07 | El lápiz mide 44 × 44 px con un glifo de 16 px, así que deja 14 px de aire a cada lado y es más alto que la línea de la fecha (38,4 px en ≥ 1100 px; 31,2 px debajo, [index.html:378](../../index.html#L378), [:394](../../index.html#L394)). ¿Se acepta que el encabezado crezca unos píxeles y que el glifo quede a unos 24 px del texto, o se acerca con un margen negativo que conserve el área táctil? | Lucas Manoukian | Resuelta en la rama 2 (`T-2.12`) | **Opción A**, decidida por el owner el 2026-11-07 después de ver las capturas de staging y una maqueta del margen negativo a 360 y 1200 px: sin margen, como "Editar resultado", así que no hay excepción al design system ni `TD-*` nueva. El texto que sigue es el planteo original. No se puede decidir sin verlo: se mide en `T-2.12` y se le muestra al owner a 360 y 1200 px. La opción por defecto es no agregar márgenes, igual que "Editar resultado". Si se elige el margen, es un valor nuevo y va como excepción documentada en este Plan (`AGENTS.md`, Design system): como este Plan ya estará mergeado con la rama 1, se agrega en la rama 2 con un commit `docs(editar-fecha)` propio —una decisión `TD-*` nueva en §3.1 y una fila de Change log— que `T-2.D12` cita |
 | OPEN-Q-08 | ¿El owner confirma `trunk-based` como modelo de ramas (§7.0)? | Lucas Manoukian | Resuelta en este Plan | **Sí.** Confirmado por el owner el 2026-11-06: cada entrega sale de `main` y vuelve a `main`, primero la rama de documentos y después la de código. El script lo había inferido (basis: fallback); la respuesta no cambia nada más del Plan |
 
 Las seis `OPEN-Q` del Concept Note quedaron resueltas en la Spec (§16); la Spec no le deja
@@ -679,6 +704,7 @@ ninguna abierta a este Plan (§17).
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la crítica independiente [`EDITAR_FECHA_PARTIDO_PLAN_CRITIQUE_2026-11-06_sonnet-5-5.md`](./EDITAR_FECHA_PARTIDO_PLAN_CRITIQUE_2026-11-06_sonnet-5-5.md) (COMMENT, 0🔴 / 11🟡 / 8🔵), cada hallazgo verificado contra el código o los documentos antes de aplicarlo; se aplicaron los 19. 🟡: `TD-01` deja de citar `D-09`, que no habla de flags; §7.0 deja de decir que el owner confirmó el modelo de ramas (el precedente lo resolvió por evidencia) y se abre `OPEN-Q-08`; `TD-04` pasa a `abrirVentanaPartido(m)`, que asigna también `partidoEditandoFecha`, con la apertura única comprobada por `grep` (`TC-011`); `R-05` se detecta con `T-2.D1` y no con `T-2.D2`, que no corre layout; §7.3.6 define la línea de base (`lineaDeBaseFecha`) y el conteo de pedidos como diferencia; los escenarios con `INVARIANTE_PANEL` son cuatro y no tres (la fila anterior de este Change log decía tres), suma `modal-nuevo-partido` como red de `T-2.5` y la corrida de layout completa `T-2.9b`; `fecha-cancelar` crea un partido válido después de editar; `fecha-ventana` se ve fallar en `T-2.6` y `T-2.8b` fuerza un desborde para ver fallar `MEDIR`; `T-1.D5` excluye al propio Plan; `T-N.D18` tiene comando y deja afuera el Change log; `T-1.D17` comprueba la columna de mitigación; `T-N.D6`/`D7` nombran su evidencia en el PR; `fecha/TC-040` y `fecha/TC-013` se etiquetan y `T-2.D10c` lo comprueba. 🔵: anclas de `tests/layout.test.js` corregidas; `FR-046`/`FR-050` nombrados y alcance `external` declarado; diagrama de §7.1 rotulado y nota bajo el de §3; cuatro rechazos más para `esFechaValida`; `T-2.C4` se parte en dos (manejadores y botón) y `T-2.C1` se acorta a 63 caracteres; §10 dice que el kill-switch es revertir; `OPEN-Q-07` dice cómo se documentaría una excepción; `TC-014` mira los tres contratos de reglas; `TD-12` deja el doble toque táctil para la prueba a mano. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Resuelta `OPEN-Q-08`: el owner confirma `trunk-based` (§7.0). Self-critique: skipped (actualización de estado). |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Enmienda de `T-2.8b`, aprobada por el owner durante la rama 2: el desborde forzado con `white-space: nowrap` no desborda (`fecha-encabezado-sin-equipos` pasó en los diecisiete anchos), porque `.detail-header-fecha` conserva `flex-wrap: wrap`. Con `flex-wrap: nowrap` solo, el lápiz se achica a 32 × 44 px y falla el invariante de tamaño, no `MEDIR`. Pasa a `flex-wrap: nowrap` más `flex-shrink: 0` en los hijos, que `MEDIR` detecta a 360, 390 y 430 px (+91 px de scroll horizontal a 360). Self-critique: skipped (enmienda acotada, medida en el navegador). |
+| 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Enmienda durante la rama 2 por decisiones del owner del 2026-11-07 (Spec §3.3 y §7.8). `OPEN-Q-07` resuelta con la opción A. `TD-13` nueva: reacomodo del encabezado hasta 1099 px sólo con CSS, con el corte de 480 px para el orden de la papelera; fila nueva en el mapa de módulos. Tareas nuevas `T-2.13` a `T-2.16` y `T-2.C7`, con dos corridas rojas (`T-2.13`, `T-2.14b`) que suman a `TC-032` y a `T-2.D12`; `T-2.D13` suma `T-2.16`. §7.3.6 suma `INVARIANTE_ENCABEZADO` y `fecha-encabezado-jugador`; §12.1 suma `S-08` a `S-08e`; `IMP-07`, `OBS-05` y `R-07` nuevos; la cobertura de la rama 2 pasa a `FR-075` y `S-08`. Self-critique: skipped (enmienda acotada). |
 
 ---
 
