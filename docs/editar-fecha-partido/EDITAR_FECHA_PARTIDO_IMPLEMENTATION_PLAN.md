@@ -179,7 +179,7 @@ Custom arc: 2 branches — AGENTS.md § Ramas fija dos ramas por entrega: docs/<
 | # | Git branch | Base branch | Status | PR | Tests | Notes |
 |---|---|---|---|---|---|---|
 | 1 | `docs/editar-fecha-partido` | `main` | In progress | — | — | Concept Note, Spec, sus críticas y las marcas en `001`/`007` ya commiteadas (`004529c`, `6d5d692`, `cbed6ae`); falta este Plan |
-| 2 | `feature/editar-fecha-partido` | `main` | Not started | — | — | Se crea desde `main` una vez mergeada la rama 1 |
+| 2 | `feature/editar-fecha-partido` | `main` | In progress — lista para PR | — | `fecha` 7/7; layout 89 escenarios y 688 mediciones (`LAYOUT_STRICT=1`); el resto de la suite verde, sin `reglas.test.js` (necesita credenciales) | Probada contra staging (`T-2.11`); `OPEN-Q-07` con la opción A; encabezado reacomodado por decisión del owner (`TD-13`, `T-2.13`–`T-2.18`). Falta: revisiones `T-2.D6`/`T-2.D7`, PR (`T-2.D12`, `T-2.D14`) |
 
 ```mermaid
 flowchart LR
@@ -405,72 +405,72 @@ AGENTS.md
 
 Implementation tasks (grouped into atomic commits):
 
-- [ ] T-2.1 Declarar `esFechaValida` y `cambiarFechaDelPartido` después de `formatFecha` (`TD-02`, `TD-03`)
-- [ ] T-2.2 En `#btnMatchSave`, reemplazar `if(!fecha)` por `if(!esFechaValida(fecha))` en el alta (`FR-020`, `S-20c`)
-- [ ] T-2.C1 Commit — `feat(editar-fecha): valida que la fecha exista (FR-020, TC-041)`
+- [x] T-2.1 Declarar `esFechaValida` y `cambiarFechaDelPartido` después de `formatFecha` (`TD-02`, `TD-03`)
+- [x] T-2.2 En `#btnMatchSave`, reemplazar `if(!fecha)` por `if(!esFechaValida(fecha))` en el alta (`FR-020`, `S-20c`)
+- [x] T-2.C1 Commit — `feat(editar-fecha): valida que la fecha exista (FR-020, TC-041)`
 
-- [ ] T-2.3 Crear `tests/fecha.test.js` con los casos de §7.3.6 (`S-01e`, `S-01f`, `S-04`, `S-20a`, `NFR-003`, `TC-041`)
-- [ ] T-2.4 [P] Sumar `node tests/fecha.test.js` a `tests/README.md` y a la lista de `AGENTS.md` § Tests
-- [ ] T-2.C2 Commit — `test(editar-fecha): cubre la validación y qué cambia (S-01f, S-20a)`
+- [x] T-2.3 Crear `tests/fecha.test.js` con los casos de §7.3.6 (`S-01e`, `S-01f`, `S-04`, `S-20a`, `NFR-003`, `TC-041`)
+- [x] T-2.4 [P] Sumar `node tests/fecha.test.js` a `tests/README.md` y a la lista de `AGENTS.md` § Tests
+- [x] T-2.C2 Commit — `test(editar-fecha): cubre la validación y qué cambia (S-01f, S-20a)`
 
-- [ ] T-2.5 Declarar `partidoEditandoFecha`, `abrirVentanaPartido` y `cerrarVentanaPartido`; agregar `id="newMatchTitulo"` e `id="mCanchaField"` al HTML; pasar `#btnNuevoPartido` y `#btnMatchCancel` por ellas (`TD-04`, `TD-05`). Sin cambio visible todavía: `modal-nuevo-partido` sigue verde (`LAYOUT_STRICT=1 node tests/layout.test.js`, mirando ese escenario)
-- [ ] T-2.C3 Commit — `refactor(editar-fecha): arma la ventana de partido desde un lugar`
+- [x] T-2.5 Declarar `partidoEditandoFecha`, `abrirVentanaPartido` y `cerrarVentanaPartido`; agregar `id="newMatchTitulo"` e `id="mCanchaField"` al HTML; pasar `#btnNuevoPartido` y `#btnMatchCancel` por ellas (`TD-04`, `TD-05`). Sin cambio visible todavía: `modal-nuevo-partido` sigue verde (`LAYOUT_STRICT=1 node tests/layout.test.js`, mirando ese escenario)
+- [x] T-2.C3 Commit — `refactor(editar-fecha): arma la ventana de partido desde un lugar`
 
-- [ ] T-2.6 Escribir los cuatro escenarios `fecha-encabezado-*` y `fecha-ventana` en `tests/layout.test.js` y **correrlos antes de `T-2.7` y `T-2.8`**: los cuatro primeros tienen que fallar por "falta el lápiz de la fecha" y `fecha-ventana` porque no hay con qué abrir la ventana en modo edición. Guardar la salida para el PR (`TC-032`). No se commitea todavía
-- [ ] T-2.7 Declarar `window.__abrirEditarFecha` y `window.__guardarFecha` (`TD-07`) y la rama de edición de `#btnMatchSave` (`TD-06`)
-- [ ] T-2.C4 Commit — `feat(editar-fecha): abre y guarda la fecha (FR-010, FR-030)`
+- [x] T-2.6 Escribir los cuatro escenarios `fecha-encabezado-*` y `fecha-ventana` en `tests/layout.test.js` y **correrlos antes de `T-2.7` y `T-2.8`**: los cuatro primeros tienen que fallar por "falta el lápiz de la fecha" y `fecha-ventana` porque no hay con qué abrir la ventana en modo edición. Guardar la salida para el PR (`TC-032`). No se commitea todavía
+- [x] T-2.7 Declarar `window.__abrirEditarFecha` y `window.__guardarFecha` (`TD-07`) y la rama de edición de `#btnMatchSave` (`TD-06`)
+- [x] T-2.C4 Commit — `feat(editar-fecha): abre y guarda la fecha (FR-010, FR-030)`
 
-- [ ] T-2.8 Agregar `#btnEditarFecha` al HTML, la carga de `ICON_LAPIZ`, su listener y la clase `.panel-icono-fecha` (`TD-08`, `TD-09`)
-- [ ] T-2.8b Con el botón puesto, ver que `MEDIR` detecta un desborde causado por el lápiz: agregar a mano `.detail-header-fecha{ flex-wrap: nowrap; }` y `.detail-header-fecha > *{ flex-shrink: 0; }`, correr `fecha-encabezado-sin-equipos`, confirmar que falla a 360 px por scroll horizontal o borde fuera del viewport, y revertir. Guardar esa salida también para el PR (`TC-032`). El cambio temporal no se commitea. Las dos reglas hacen falta: `white-space: nowrap` no desborda, porque el `flex-wrap: wrap` de `.detail-header-fecha` ([index.html:324](../../index.html#L324)) sigue bajando de línea cada pieza; y `flex-wrap: nowrap` solo hace que el lápiz se achique (32 × 44 a 360 px), lo que ataja el invariante de tamaño de `fecha-encabezado-*` y no `MEDIR`
-- [ ] T-2.C5 Commit — `feat(editar-fecha): agrega el lápiz junto a la fecha (FR-001)`, incluye `T-2.6` y `T-2.8`
+- [x] T-2.8 Agregar `#btnEditarFecha` al HTML, la carga de `ICON_LAPIZ`, su listener y la clase `.panel-icono-fecha` (`TD-08`, `TD-09`)
+- [x] T-2.8b Con el botón puesto, ver que `MEDIR` detecta un desborde causado por el lápiz: agregar a mano `.detail-header-fecha{ flex-wrap: nowrap; }` y `.detail-header-fecha > *{ flex-shrink: 0; }`, correr `fecha-encabezado-sin-equipos`, confirmar que falla a 360 px por scroll horizontal o borde fuera del viewport, y revertir. Guardar esa salida también para el PR (`TC-032`). El cambio temporal no se commitea. Las dos reglas hacen falta: `white-space: nowrap` no desborda, porque el `flex-wrap: wrap` de `.detail-header-fecha` ([index.html:324](../../index.html#L324)) sigue bajando de línea cada pieza; y `flex-wrap: nowrap` solo hace que el lápiz se achique (32 × 44 a 360 px), lo que ataja el invariante de tamaño de `fecha-encabezado-*` y no `MEDIR`
+- [x] T-2.C5 Commit — `feat(editar-fecha): agrega el lápiz junto a la fecha (FR-001)`, incluye `T-2.6` y `T-2.8`
 
-- [ ] T-2.9 Escribir `lineaDeBaseFecha` y los escenarios `fecha-cambio`, `fecha-estados`, `fecha-doble-toque`, `fecha-guardado-falla`, `fecha-lista`, `fecha-cancelar`, `fecha-sin-cambios`, `fecha-invalida`, `fecha-jugador` y `fecha-jugador-ve` de §7.3.6
-- [ ] T-2.9b Correr la suite de layout completa (`LAYOUT_STRICT=1 node tests/layout.test.js`) para confirmar que ningún escenario que ya existía se rompió con el botón (§7.3.6, "Escenarios que ya existen")
-- [ ] T-2.C6 Commit — `test(editar-fecha): escenarios de pantalla (S-01..S-07, S-20, S-21)`
+- [x] T-2.9 Escribir `lineaDeBaseFecha` y los escenarios `fecha-cambio`, `fecha-estados`, `fecha-doble-toque`, `fecha-guardado-falla`, `fecha-lista`, `fecha-cancelar`, `fecha-sin-cambios`, `fecha-invalida`, `fecha-jugador` y `fecha-jugador-ve` de §7.3.6
+- [x] T-2.9b Correr la suite de layout completa (`LAYOUT_STRICT=1 node tests/layout.test.js`) para confirmar que ningún escenario que ya existía se rompió con el botón (§7.3.6, "Escenarios que ya existen")
+- [x] T-2.C6 Commit — `test(editar-fecha): escenarios de pantalla (S-01..S-07, S-20, S-21)`
 
-- [ ] T-2.10 Correr el gate de binding (`T-2.D8`) y cerrar cualquier hueco antes de seguir
-- [ ] T-2.11 Abrir `index.html` localmente contra staging como admin: cambiar la fecha de un partido temporal en cada estado, recargar y confirmar que persiste y que la lista lo reubica; entrar como jugador y confirmar la fecha nueva y la ausencia del lápiz; borrar el partido temporal (credenciales de staging fuera del repositorio)
-- [ ] T-2.12 [P] Mirar el encabezado a 360 y 1200 px en los tres estados con la fecha más larga, compararlo contra la variante "sólo lápiz" que eligió el owner (Spec §3.3) y resolver `OPEN-Q-07` con él
+- [x] T-2.10 Correr el gate de binding (`T-2.D8`) y cerrar cualquier hueco antes de seguir
+- [x] T-2.11 Abrir `index.html` localmente contra staging como admin: cambiar la fecha de un partido temporal en cada estado, recargar y confirmar que persiste y que la lista lo reubica; entrar como jugador y confirmar la fecha nueva y la ausencia del lápiz; borrar el partido temporal (credenciales de staging fuera del repositorio)
+- [x] T-2.12 [P] Mirar el encabezado a 360 y 1200 px en los tres estados con la fecha más larga, compararlo contra la variante "sólo lápiz" que eligió el owner (Spec §3.3) y resolver `OPEN-Q-07` con él
 
 Agregadas el 2026-11-07 por el reacomodo del encabezado (Spec §7.8, `TD-13`):
 
-- [ ] T-2.13 Escribir `INVARIANTE_ENCABEZADO`, sumarlo a los cuatro `fecha-encabezado-*` con sus IDs `S-08*` y crear `fecha-encabezado-jugador` (§7.3.6), y **correrlos antes de `T-2.14`**: tienen que fallar en los anchos de 1099 px o menos, porque la fecha comparte renglón con otras piezas, y pasar desde 1100. Guardar la salida para el PR (`TC-032`). No se commitea todavía
-- [ ] T-2.14 Agregar el CSS de `TD-13` y ver pasar los escenarios de `T-2.13`
-- [ ] T-2.14b Ver que el corte de 480 px hace falta: quitar a mano el `@media (max-width: 480px)` de `TD-13`, correr `fecha-encabezado-cerrada` y `fecha-encabezado-generados`, confirmar que fallan entre 360 y 430 px porque la papelera baja con el botón, y revertir. Guardar esa salida también. El cambio temporal no se commitea
-- [ ] T-2.15 Correr la suite de layout completa (`LAYOUT_STRICT=1 node tests/layout.test.js`): el reacomodo toca el encabezado de todo detalle
-- [ ] T-2.C7 Commit — `feat(editar-fecha): reacomoda el encabezado hasta 1099 px (FR-070)`, incluye `T-2.13` y `T-2.14`
-- [ ] T-2.17 Cambiar la rama de 1100 px o más de `INVARIANTE_ENCABEZADO` a `FR-075` enmendado (la cancha a la derecha de la fecha y el lápiz a la derecha de la cancha, en el renglón de la fecha) y **correr `fecha-encabezado` antes de `T-2.18`**: tiene que fallar a 1100 y 1200 px en los cuatro escenarios `admin` y pasar en el resto. Guardar la salida para el PR (`TC-032`). No se commitea todavía
-- [ ] T-2.18 Mover `#btnEditarFecha` al final de `.detail-header-fecha`, después de `#detailMeta` (`TD-08`), quitar las reglas `order` de `#detailMeta` y `#btnEditarFecha` de `TD-13`, ver pasar `T-2.17` y correr la suite de layout completa
-- [ ] T-2.C8 Commit — `feat(editar-fecha): pone el lápiz después de la cancha (FR-075)`, incluye `T-2.17` y `T-2.18`
-- [ ] T-2.16 Capturas del encabezado reacomodado a 360, 768 y 1200 px en los cuatro estados con la fecha más larga, para que el owner lo apruebe
+- [x] T-2.13 Escribir `INVARIANTE_ENCABEZADO`, sumarlo a los cuatro `fecha-encabezado-*` con sus IDs `S-08*` y crear `fecha-encabezado-jugador` (§7.3.6), y **correrlos antes de `T-2.14`**: tienen que fallar en los anchos de 1099 px o menos, porque la fecha comparte renglón con otras piezas, y pasar desde 1100. Guardar la salida para el PR (`TC-032`). No se commitea todavía
+- [x] T-2.14 Agregar el CSS de `TD-13` y ver pasar los escenarios de `T-2.13`
+- [x] T-2.14b Ver que el corte de 480 px hace falta: quitar a mano el `@media (max-width: 480px)` de `TD-13`, correr `fecha-encabezado-cerrada` y `fecha-encabezado-generados`, confirmar que fallan entre 360 y 430 px porque la papelera baja con el botón, y revertir. Guardar esa salida también. El cambio temporal no se commitea
+- [x] T-2.15 Correr la suite de layout completa (`LAYOUT_STRICT=1 node tests/layout.test.js`): el reacomodo toca el encabezado de todo detalle
+- [x] T-2.C7 Commit — `feat(editar-fecha): reacomoda el encabezado hasta 1099 px (FR-070)`, incluye `T-2.13` y `T-2.14`
+- [x] T-2.17 Cambiar la rama de 1100 px o más de `INVARIANTE_ENCABEZADO` a `FR-075` enmendado (la cancha a la derecha de la fecha y el lápiz a la derecha de la cancha, en el renglón de la fecha) y **correr `fecha-encabezado` antes de `T-2.18`**: tiene que fallar a 1100 y 1200 px en los cuatro escenarios `admin` y pasar en el resto. Guardar la salida para el PR (`TC-032`). No se commitea todavía
+- [x] T-2.18 Mover `#btnEditarFecha` al final de `.detail-header-fecha`, después de `#detailMeta` (`TD-08`), quitar las reglas `order` de `#detailMeta` y `#btnEditarFecha` de `TD-13`, ver pasar `T-2.17` y correr la suite de layout completa
+- [x] T-2.C8 Commit — `feat(editar-fecha): pone el lápiz después de la cancha (FR-075)`, incluye `T-2.17` y `T-2.18`
+- [x] T-2.16 Capturas del encabezado reacomodado a 360, 768 y 1200 px en los cuatro estados con la fecha más larga, para que el owner lo apruebe
 
 DoD verification (§6). Todo arreglo hecho durante la verificación va en un commit propio,
 con un número de `T-2.C*` nuevo y tipo `fix(...)`:
 
-- [ ] T-2.D1 Tests nuevos pasan — `node tests/fecha.test.js && LAYOUT_STRICT=1 node tests/layout.test.js`
-- [ ] T-2.D2 Tests existentes pasan — `node tests/motor.test.js && node tests/cancha.test.js && node tests/panel.test.js && node tests/finalizado.test.js && node tests/eventos.test.js && node tests/toque.test.js && node tests/escapado.test.js && node tests/colores.test.js && node tests/puestos.test.js && node tests/orden.test.js && node tests/intercambio.test.js && node tests/sesion.test.js && node tests/rol-script.test.js`
-- [ ] T-2.D3 Linter: no aplica (§5), declarado
-- [ ] T-2.D4 Type-checker: no aplica (§5), declarado
-- [ ] T-2.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- tests/fecha.test.js` vacío, y `git diff main -- index.html tests/layout.test.js | grep -E "^\+.*(TODO|FIXME|HACK)"` vacío
+- [x] T-2.D1 Tests nuevos pasan — `node tests/fecha.test.js && LAYOUT_STRICT=1 node tests/layout.test.js`
+- [x] T-2.D2 Tests existentes pasan — `node tests/motor.test.js && node tests/cancha.test.js && node tests/panel.test.js && node tests/finalizado.test.js && node tests/eventos.test.js && node tests/toque.test.js && node tests/escapado.test.js && node tests/colores.test.js && node tests/puestos.test.js && node tests/orden.test.js && node tests/intercambio.test.js && node tests/sesion.test.js && node tests/rol-script.test.js`
+- [x] T-2.D3 Linter: no aplica (§5), declarado
+- [x] T-2.D4 Type-checker: no aplica (§5), declarado
+- [x] T-2.D5 Sin `TODO`/`FIXME`/`HACK` — `git grep -nE "TODO|FIXME|HACK" -- tests/fecha.test.js` vacío, y `git diff main -- index.html tests/layout.test.js | grep -E "^\+.*(TODO|FIXME|HACK)"` vacío
 - [ ] T-2.D6 Implementación revisada contra §5 — revisión humana; la descripción del PR (`T-2.D12`) lista las filas de §5 que aplican, cada una con su tilde
 - [ ] T-2.D7 Cada FR/NFR/TC de la Spec está implementado — revisión humana; la descripción del PR copia la tabla de §7.3.5 con un tilde por símbolo implementado. Lo mecánico de esta verificación lo cubren `T-2.D8`, `T-2.D9` y `T-2.D10c`
-- [ ] T-2.D8 Binding de escenarios y variantes — `comm -23 <(sed -n '/^## 9\./,/^## 10\./p' docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md | grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "fecha/S-[0-9]+[a-z]*" tests/ | sed 's#fecha/##' | sort -u)` vacío
-- [ ] T-2.D8b Bloques `Variants:` presentes — mismo `awk` que `T-1.D8b`, vacío
-- [ ] T-2.D9 Binding de NFRs — `comm -23 <(sed -n '/^## 8\./,/^## 9\./p' docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md | grep -oE "NFR-[0-9]+" | sort -u) <(grep -rEho "fecha/NFR-[0-9]+" tests/ | sed 's#fecha/##' | sort -u)` vacío
-- [ ] T-2.D10 Mismo comando que `T-1.D10`, vacío
-- [ ] T-2.D10b Mismo comando que `T-1.D10b`, vacío
-- [ ] T-2.D10c Cada TC que §12.9 verifica con un test lleva su etiqueta en `tests/` (`TC-031`) — `comm -23 <(printf 'TC-013\nTC-040\nTC-041\n') <(grep -rEho "fecha/TC-[0-9]+" tests/ | sed 's#fecha/##' | sort -u)` vacío. Los demás TC de §12.9 se verifican por revisión, `diff` o `grep` del código, no por un test
-- [ ] T-2.D11 Historial limpio — `git log --oneline main..HEAD`, cada commit con formato §5 y la línea entera ≤ 72 caracteres: `git log --format=%s main..HEAD | awk 'length > 72'` vacío
+- [x] T-2.D8 Binding de escenarios y variantes — `comm -23 <(sed -n '/^## 9\./,/^## 10\./p' docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md | grep -oE '(^|[^A-Za-z])S-[0-9]+[a-z]*' | sed -E 's/^[^S]+//' | sort -u) <(grep -rEho "fecha/S-[0-9]+[a-z]*" tests/ | sed 's#fecha/##' | sort -u)` vacío
+- [x] T-2.D8b Bloques `Variants:` presentes — mismo `awk` que `T-1.D8b`, vacío
+- [x] T-2.D9 Binding de NFRs — `comm -23 <(sed -n '/^## 8\./,/^## 9\./p' docs/editar-fecha-partido/EDITAR_FECHA_PARTIDO_SPEC.md | grep -oE "NFR-[0-9]+" | sort -u) <(grep -rEho "fecha/NFR-[0-9]+" tests/ | sed 's#fecha/##' | sort -u)` vacío
+- [x] T-2.D10 Mismo comando que `T-1.D10`, vacío
+- [x] T-2.D10b Mismo comando que `T-1.D10b`, vacío
+- [x] T-2.D10c Cada TC que §12.9 verifica con un test lleva su etiqueta en `tests/` (`TC-031`) — `comm -23 <(printf 'TC-013\nTC-040\nTC-041\n') <(grep -rEho "fecha/TC-[0-9]+" tests/ | sed 's#fecha/##' | sort -u)` vacío. Los demás TC de §12.9 se verifican por revisión, `diff` o `grep` del código, no por un test
+- [x] T-2.D11 Historial limpio — `git log --oneline main..HEAD`, cada commit con formato §5 y la línea entera ≤ 72 caracteres: `git log --format=%s main..HEAD | awk 'length > 72'` vacío
 - [ ] T-2.D12 Descripción del PR: resumen, IDs de la Spec, `TD-*` tomadas, salidas rojas de `T-2.6`, `T-2.8b`, `T-2.13`, `T-2.14b` y `T-2.17`, resolución de `OPEN-Q-07`, las revisiones de `T-2.D6` y `T-2.D7`
-- [ ] T-2.D13 Gate propio: `T-2.11`, `T-2.12` y `T-2.16` hechos
+- [x] T-2.D13 Gate propio: `T-2.11`, `T-2.12` y `T-2.16` hechos
 - [ ] T-2.D14 PR abierto contra `main`
-- [ ] T-2.D15 Mismo comando que `T-1.D15`, ≥ 1
-- [ ] T-2.D16 Mismo comando que `T-1.D16`, vacío
-- [ ] T-2.D17 Mismo comando que `T-1.D17`, vacío
-- [ ] T-2.D18 Mismo comando que `T-1.D18`, vacío
-- [ ] T-2.D18b Unicidad de definiciones — mismo comando que `T-1.D18b`, vacío en los tres documentos
-- [ ] T-2.D19 Consistencia cruzada — mismo comando que `T-1.D19`, vacío
-- [ ] T-2.D20 Supply-chain: `none` declarado en §5, pasa de forma vacua
+- [x] T-2.D15 Mismo comando que `T-1.D15`, ≥ 1
+- [x] T-2.D16 Mismo comando que `T-1.D16`, vacío
+- [x] T-2.D17 Mismo comando que `T-1.D17`, vacío
+- [x] T-2.D18 Mismo comando que `T-1.D18`, vacío
+- [x] T-2.D18b Unicidad de definiciones — mismo comando que `T-1.D18b`, vacío en los tres documentos
+- [x] T-2.D19 Consistencia cruzada — mismo comando que `T-1.D19`, vacío
+- [x] T-2.D20 Supply-chain: `none` declarado en §5, pasa de forma vacua
 
 ## 8. Data model & migrations
 
