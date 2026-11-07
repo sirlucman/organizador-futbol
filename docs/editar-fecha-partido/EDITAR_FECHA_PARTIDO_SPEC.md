@@ -54,7 +54,7 @@ Implementation Plan.
 ## 2. Summary
 
 Hoy la fecha de un partido se elige al crearlo y no se puede cambiar. Esta feature agrega,
-sólo para el administrador, un botón con un lápiz pegado a la fecha del encabezado del
+sólo para el administrador, un botón con un lápiz junto a la fecha del encabezado del
 detalle del partido, en cualquier estado. Tocarlo abre la misma ventana de "Nuevo partido",
 con el título "Editar fecha", sólo el campo Fecha —ya cargado con la fecha actual— y los
 botones Cancelar y Guardar. Hasta 1099 px de ancho el encabezado se reacomoda: la fecha
@@ -105,9 +105,9 @@ Restatean los non-goals del Concept Note §4 y §14 como límites verificables.
   ventana con la forma de "Nuevo partido", fecha precargada, Cancelar y Guardar) —
   heredada y precisada: la ventana es *la misma* de "Nuevo partido", reutilizada, y no una
   copia (owner, 2026-11-06; enmienda registrada en el Change log del Concept Note). Precisada
-  además el 2026-11-07: "pegado a la fecha" vale desde 1100 px; hasta 1099 px el lápiz va en
-  el renglón de abajo de la fecha, después de la cancha (`FR-071`; enmienda registrada en el
-  mismo Change log). Ver `FR-001`, `FR-010` a `FR-013`, `FR-070` a `FR-075`, `TC-011`,
+  además el 2026-11-07: en todos los anchos el lápiz va después de la cancha, no pegado a la
+  fecha; hasta 1099 px, en el renglón de abajo de la fecha (`FR-071`, `FR-075`; enmiendas
+  registradas en el mismo Change log). Ver `FR-001`, `FR-010` a `FR-013`, `FR-070` a `FR-075`, `TC-011`,
   `TC-012`, `TC-030`.
 - **D-04** (obligatoria; cualquier fecha válida, pasada o futura, aunque se repita) —
   heredada y precisada: "la misma validación que al crear" pasa a ser una validación más
@@ -136,7 +136,10 @@ maquetas a 360, 768, 1024 y 1200 px: el lápiz conserva el aire de su objetivo t
 margen negativo (`OPEN-Q-07` del Plan, opción A); hasta 1099 px —el corte que ya usa la vista
 de celular del detalle— la fecha va sola en su renglón y debajo van la cancha y el lápiz a la
 izquierda y la pastilla y las acciones a la derecha; desde 1100 px el encabezado queda como
-antes; cuando el botón de inscripción entra en el renglón, la papelera va última.
+antes salvo por el lugar del lápiz; cuando el botón de inscripción entra en el renglón, la
+papelera va última. Ese mismo día, al ver las capturas del encabezado ya implementado: también
+desde 1100 px el lápiz va después de la cancha, "al final, igual que el resto de las
+resoluciones", y no entre la fecha y la cancha.
 
 ## 4. Technical & architectural constraints
 
@@ -251,7 +254,7 @@ CWE Top 25 consultado en vivo el 2026-11-06: edición 2025
 | Term | Definition |
 |---|---|
 | Encabezado del detalle | La franja superior de la pantalla de un partido, con la fecha, la cancha, la pastilla de estado y, para `admin`, las acciones de inscripción y eliminar ([index.html:1323-1339](../../index.html#L1323-L1339)). Es la misma en todos los estados. |
-| Lápiz de la fecha | El botón de ícono de esta Spec, en el encabezado del detalle: pegado a la fecha desde 1100 px y, hasta 1099 px, en el renglón de abajo, después de la cancha (`FR-071`). Distinto del lápiz de "Editar resultado", que vive en la tarjeta del resultado de un partido finalizado. |
+| Lápiz de la fecha | El botón de ícono de esta Spec, en el encabezado del detalle, siempre después de la cancha: en el renglón de la fecha desde 1100 px y en el renglón de abajo hasta 1099 px (`FR-071`, `FR-075`). Distinto del lápiz de "Editar resultado", que vive en la tarjeta del resultado de un partido finalizado. |
 | Ventana de partido | La ventana `#newMatchModal`. En modo alta se titula "Nuevo partido" y tiene Cancha, Fecha y "Crear partido"; en modo edición se titula "Editar fecha" y tiene sólo Fecha y "Guardar". |
 | Fecha válida | Un texto `YYYY-MM-DD` que corresponde a un día real del calendario (`TC-041`). |
 | Estado del partido | Uno de los tres valores de `001` (*Key Entities*): Inscripción abierta, Equipos generados, Finalizado. |
@@ -384,9 +387,9 @@ son las del commit `deebce3`, no las de `004529c`. Para `jugador` el lápiz y la
 - **FR-074** — Mientras el ancho sea de 480 px o menos, el sistema mostrará el botón de
   inscripción después de la papelera; cuando no entre en ese renglón, lo mostrará solo en
   el renglón siguiente, alineado a la izquierda.
-- **FR-075** — Mientras el ancho sea de 1100 px o más, el sistema mostrará el encabezado
-  como antes de esta sección: el lápiz pegado a la fecha, en su mismo renglón, seguido de
-  la cancha y la pastilla, y las acciones a la derecha.
+- **FR-075** — Mientras el ancho sea de 1100 px o más, el sistema mostrará en un solo
+  renglón la fecha, la cancha, el lápiz y la pastilla, en ese orden, y las acciones a la
+  derecha.
 
 ## 8. Non-functional requirements
 
@@ -497,8 +500,8 @@ son las del commit `deebce3`, no las de `004529c`. Para `jugador` el lápiz y la
 
 - **Given** un partido finalizado y una sesión `admin` en 1200 px
 - **When** se abre el detalle del partido
-- **Then** el encabezado muestra el lápiz pegado a la fecha, con nombre accesible y
-  título "Editar fecha"
+- **Then** el encabezado muestra el lápiz en el renglón de la fecha, después de la cancha,
+  con nombre accesible y título "Editar fecha"
 - **And** la tarjeta del resultado conserva su propio lápiz, llamado "Editar resultado"
 
 **Variants:**
@@ -543,8 +546,8 @@ Variants: none — single-path scenario.
   (`FR-073`)
 - `S-08c [boundary]` — con equipos generados, a 479 y 481 px: a 479 el botón de
   inscripción va después de la papelera y a 481 antes (`FR-073`, `FR-074`)
-- `S-08d [boundary]` — a 1099 px, el encabezado de `S-08`; a 1100 px, el lápiz pegado a la
-  fecha en su mismo renglón, seguido de la cancha (`FR-070`, `FR-075`)
+- `S-08d [boundary]` — a 1099 px, el encabezado de `S-08`; a 1100 px, en el renglón de la
+  fecha, la cancha y después el lápiz (`FR-070`, `FR-075`)
 - `S-08e [boundary]` — sesión `jugador` a 360 px, inscripción cerrada: en el segundo
   renglón, la cancha a la izquierda y la pastilla contra el borde derecho; ni lápiz ni
   acciones (`FR-003`, `FR-072`)
@@ -768,6 +771,7 @@ confirmó después de la crítica independiente.
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Autocrítica contra la rúbrica (per-doc y cross-doc contra la Concept Note), mismo modelo que el autor. 🔴 resueltos: `FR-002` y `FR-011` eran compuestos (EARS, una obligación por línea) y se parten en `FR-002`/`FR-002b` y `FR-011`/`FR-011b`; `A-01` y `A-02` llevaban `[UNVERIFIED]` con motivo ilegítimo ("no se contrastó") y quedan verificados contra el HTML Living Standard y MDN; `TC-030` afirmaba sin fuente que `.panel-icono` "ya se resolvió contra el design system" y pasa a citar el handoff y `IconButton.prompt.md`. 🟡 resueltos: verificar `A-01` mostró que el selector acepta años de cinco o más cifras, así que `FR-020` rechaza también un valor no vacío inválido (`S-20b` nueva) y `FR-022` queda para la invocación directa; las AC de §11.3 y §11.4 se renumeran `AC-20`–`AC-24` para cerrar el hueco de `AC-20`. 🔵 resueltos: la fecha de ejemplo de `NFR-001` era un día de semana que no corresponde a 2026; las variantes de `S-21` quedan en orden. 🔵 sin cambio: `D-03` del Concept Note dice "misma forma que Nuevo partido" y esta Spec fija "la misma ventana" por decisión del owner (§3.3); conviene una fila en el Change log del Concept Note. `TC-011`/`TC-012` nombran selectores del DOM, como el precedente de `intercambiar-colores`. Self-critique: passed (4🔴 / 2🟡 / 4🔵). |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la crítica independiente [`EDITAR_FECHA_PARTIDO_SPEC_CRITIQUE_2026-11-06_sonnet-5-5.md`](./EDITAR_FECHA_PARTIDO_SPEC_CRITIQUE_2026-11-06_sonnet-5-5.md) (CHANGES REQUESTED, 1🔴 / 4🟡 / 7🔵), cada hallazgo verificado contra el código antes de aplicarlo. 🔴: las ampliaciones de `007` se marcan en el spec viejo en esta misma rama, no en el Plan. 🟡: `FR-004` se parte en `FR-004`/`FR-004b` y `FR-041` en `FR-041`/`FR-041b`; la aclaración de `FR-045` pasa a `A-03`; `NFR-004` define "pedido de guardado" como una invocación de `saveMatches()`; `OPEN-Q-03` y `OPEN-Q-06` confirmadas por el owner; `D-03` y `D-04` precisadas con fila en el Change log del Concept Note. Decisión nueva del owner: el alta de partido valida la fecha igual que la edición (`FR-020` en los dos modos, `TC-041`, `S-20c`, ampliación de `FR-001` de `001` marcada en ese spec). 🔵: `NFR-002` deja de atribuir el tamaño de 44 px a WCAG 4.1.2; `S-01g` pasa a "exactamente un" pedido; `S-01i` nueva (el admin tampoco ve aviso); `S-05a` pasa a `[concurrency]`; `FR-005` y `S-20d` nuevas (partido inexistente); `S-06e` nueva (los dos lápices a 360 px); §3.3 suma las respuestas del owner; §17 deja de presentar `research.md` como obligación de `AGENTS.md`; `AC-54` fija que sin telemetría cada `OBS-*` es un *automated check*. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
 | 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Decisiones del owner durante la rama 2, después de ver capturas de staging y maquetas a 360, 768, 1024 y 1200 px: §7.8 nueva con `FR-070` a `FR-075` (hasta 1099 px la fecha va sola y debajo van la cancha y el lápiz a la izquierda y la pastilla y las acciones a la derecha; entre 481 y 1099 px la papelera última; hasta 480 px el botón de inscripción después de la papelera, solo en otro renglón si no entra; desde 1100 px sin cambios). `S-08` nuevo con cinco variantes, `A-04` nueva (el botón entra desde 481 px, medido) y un riesgo nuevo. `D-03` precisada: "pegado a la fecha" vale desde 1100 px (fila en el Change log del Concept Note); `FR-001`, el glosario, §2, §3.1, §3.3, `NFR-001`, `AC-01` y §17 lo reflejan. El corte de 480 px lo propuso el autor por medición —es el que existe más cerca del umbral de 435 px— y queda a revisión del owner. Self-critique: skipped (enmienda acotada). |
+| 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Decisión del owner al ver las capturas del encabezado ya implementado: desde 1100 px el lápiz tampoco va pegado a la fecha sino después de la cancha, igual que hasta 1099 px. `FR-075` pasa a "la fecha, la cancha, el lápiz y la pastilla, en ese orden"; `S-06` y `S-08d` dejan de decir "pegado a la fecha"; §2, §3.3, `D-03` y el glosario lo reflejan, con una fila más en el Change log del Concept Note. Self-critique: skipped (enmienda acotada). |
 
 ---
 
