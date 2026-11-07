@@ -54,10 +54,12 @@ Implementation Plan.
 ## 2. Summary
 
 Hoy la fecha de un partido se elige al crearlo y no se puede cambiar. Esta feature agrega,
-sólo para el administrador, un botón con un lápiz pegado a la fecha del encabezado del
+sólo para el administrador, un botón con un lápiz junto a la fecha del encabezado del
 detalle del partido, en cualquier estado. Tocarlo abre la misma ventana de "Nuevo partido",
 con el título "Editar fecha", sólo el campo Fecha —ya cargado con la fecha actual— y los
-botones Cancelar y Guardar. Al guardar cambia la fecha y nada más: convocatoria, equipos y
+botones Cancelar y Guardar. Hasta 1099 px de ancho el encabezado se reacomoda: la fecha
+queda sola en el primer renglón y, debajo, van la cancha y el lápiz a la izquierda, y la
+pastilla de estado y las acciones a la derecha. Al guardar cambia la fecha y nada más: convocatoria, equipos y
 resultado quedan intactos, la pantalla se repinta y la lista de partidos lo ubica según la
 fecha nueva. El rol `jugador` no ve el lápiz y la acción no le cambia nada aunque la invoque
 directamente. El producto sigue siendo el mismo organizador de partidos: el motor no cambia
@@ -75,6 +77,8 @@ y la fecha sigue sin intervenir en ningún cálculo.
   `001`).
 - Orden de la lista de partidos después del cambio, incluido el empate de fechas.
 - Ampliación de la lista de restricciones de `jugador` de `007` (Declaración de reemplazo).
+- Reacomodo del encabezado del detalle hasta 1099 px de ancho (`FR-070` a `FR-075`),
+  decisión del owner del 2026-11-07.
 
 ### 3.2 Out of scope / non-goals
 
@@ -100,8 +104,11 @@ Restatean los non-goals del Concept Note §4 y §14 como límites verificables.
 - **D-03** (botón de ícono con el mismo lápiz que "Editar resultado", pegado a la fecha;
   ventana con la forma de "Nuevo partido", fecha precargada, Cancelar y Guardar) —
   heredada y precisada: la ventana es *la misma* de "Nuevo partido", reutilizada, y no una
-  copia (owner, 2026-11-06; enmienda registrada en el Change log del Concept Note). Ver
-  `FR-001`, `FR-010` a `FR-013`, `TC-011`, `TC-012`, `TC-030`.
+  copia (owner, 2026-11-06; enmienda registrada en el Change log del Concept Note). Precisada
+  además el 2026-11-07: en todos los anchos el lápiz va después de la cancha, no pegado a la
+  fecha; hasta 1099 px, en el renglón de abajo de la fecha (`FR-071`, `FR-075`; enmiendas
+  registradas en el mismo Change log). Ver `FR-001`, `FR-010` a `FR-013`, `FR-070` a `FR-075`, `TC-011`,
+  `TC-012`, `TC-030`.
 - **D-04** (obligatoria; cualquier fecha válida, pasada o futura, aunque se repita) —
   heredada y precisada: "la misma validación que al crear" pasa a ser una validación más
   estricta que la de hoy, aplicada en los dos modos de la ventana (owner, 2026-11-06;
@@ -123,6 +130,16 @@ con el campo Cancha oculto; guardar sin cambiar la fecha no escribe; el guardado
 se trata como hoy; el lápiz no aparece para `jugador` en ningún estado; se amplía la lista
 de restricciones de `007`; con fechas iguales no hay desempate nuevo; el alta valida la
 fecha igual que la edición.
+
+**Respuestas del owner del 2026-11-07**, durante la rama 2, después de ver capturas y
+maquetas a 360, 768, 1024 y 1200 px: el lápiz conserva el aire de su objetivo táctil, sin
+margen negativo (`OPEN-Q-07` del Plan, opción A); hasta 1099 px —el corte que ya usa la vista
+de celular del detalle— la fecha va sola en su renglón y debajo van la cancha y el lápiz a la
+izquierda y la pastilla y las acciones a la derecha; desde 1100 px el encabezado queda como
+antes salvo por el lugar del lápiz; cuando el botón de inscripción entra en el renglón, la
+papelera va última. Ese mismo día, al ver las capturas del encabezado ya implementado: también
+desde 1100 px el lápiz va después de la cancha, "al final, igual que el resto de las
+resoluciones", y no entre la fecha y la cancha.
 
 ## 4. Technical & architectural constraints
 
@@ -237,7 +254,7 @@ CWE Top 25 consultado en vivo el 2026-11-06: edición 2025
 | Term | Definition |
 |---|---|
 | Encabezado del detalle | La franja superior de la pantalla de un partido, con la fecha, la cancha, la pastilla de estado y, para `admin`, las acciones de inscripción y eliminar ([index.html:1323-1339](../../index.html#L1323-L1339)). Es la misma en todos los estados. |
-| Lápiz de la fecha | El botón de ícono de esta Spec, pegado a la fecha del encabezado del detalle. Distinto del lápiz de "Editar resultado", que vive en la tarjeta del resultado de un partido finalizado. |
+| Lápiz de la fecha | El botón de ícono de esta Spec, en el encabezado del detalle, siempre después de la cancha: en el renglón de la fecha desde 1100 px y en el renglón de abajo hasta 1099 px (`FR-071`, `FR-075`). Distinto del lápiz de "Editar resultado", que vive en la tarjeta del resultado de un partido finalizado. |
 | Ventana de partido | La ventana `#newMatchModal`. En modo alta se titula "Nuevo partido" y tiene Cancha, Fecha y "Crear partido"; en modo edición se titula "Editar fecha" y tiene sólo Fecha y "Guardar". |
 | Fecha válida | Un texto `YYYY-MM-DD` que corresponde a un día real del calendario (`TC-041`). |
 | Estado del partido | Uno de los tres valores de `001` (*Key Entities*): Inscripción abierta, Equipos generados, Finalizado. |
@@ -249,7 +266,8 @@ CWE Top 25 consultado en vivo el 2026-11-06: edición 2025
 
 - **FR-001** — Mientras el rol de la sesión sea `admin`, el sistema mostrará junto a la
   fecha del encabezado del detalle un botón de sólo ícono con el lápiz, en cualquiera de
-  los tres estados del partido y también con la inscripción cerrada.
+  los tres estados del partido y también con la inscripción cerrada. En qué lugar exacto
+  del encabezado, según el ancho, lo fijan `FR-070` a `FR-075`.
 - **FR-002** — Mientras el administrador carga el resultado de un partido con la
   inscripción cerrada, o edita el resultado de un partido finalizado, el sistema seguirá
   mostrando el lápiz de la fecha (resuelve `OPEN-Q-02` del Concept Note).
@@ -348,11 +366,36 @@ CWE Top 25 consultado en vivo el 2026-11-06: edición 2025
 - **FR-060** — Cuando el sistema cambie la fecha de un partido con equipos generados, no
   regenerará los equipos ni modificará el resumen de generación (`D-08`).
 
+### 7.8 El encabezado según el ancho
+
+Agregada el 2026-11-07 por decisión del owner (§3.3). El corte de 1099/1100 px es el mismo
+que ya separa la vista de celular del detalle ([index.html:851](../../index.html#L851)) y
+el de 480 px ya existe en la aplicación ([index.html:369](../../index.html#L369)): no se
+agrega ningún ancho nuevo. Las anclas de esta sección y del riesgo que la acompaña en §15
+son las del commit `deebce3`, no las de `004529c`. Para `jugador` el lápiz y las acciones no se muestran
+(`FR-003`), así que en su renglón quedan sólo la cancha y la pastilla.
+
+- **FR-070** — Mientras el ancho de la pantalla sea de 1099 px o menos, el sistema
+  mostrará la fecha sola en el primer renglón del encabezado del detalle.
+- **FR-071** — Mientras el ancho sea de 1099 px o menos, el sistema mostrará en el renglón
+  siguiente, alineados a la izquierda, la cancha y después el lápiz de la fecha.
+- **FR-072** — Mientras el ancho sea de 1099 px o menos, el sistema mostrará en ese mismo
+  renglón, alineados a la derecha, la pastilla de estado y después la papelera.
+- **FR-073** — Mientras el ancho esté entre 481 y 1099 px, el sistema mostrará el botón de
+  inscripción ("Cerrar inscripción" o "Reabrir inscripción") en ese renglón, entre la
+  pastilla y la papelera, que queda última (`A-04`).
+- **FR-074** — Mientras el ancho sea de 480 px o menos, el sistema mostrará el botón de
+  inscripción después de la papelera; cuando no entre en ese renglón, lo mostrará solo en
+  el renglón siguiente, alineado a la izquierda.
+- **FR-075** — Mientras el ancho sea de 1100 px o más, el sistema mostrará en un solo
+  renglón la fecha, la cancha, el lápiz y la pastilla, en ese orden, y las acciones a la
+  derecha.
+
 ## 8. Non-functional requirements
 
 | ID | Category | Requirement |
 |---|---|---|
-| NFR-001 | Responsive | Con el lápiz de la fecha en el encabezado del detalle, con la fecha de texto más largo (día y mes de más letras, p. ej. "miércoles, 30 de septiembre", 2026-09-30) y la pastilla de estado más larga, en los tres estados y con la inscripción cerrada, y con la ventana de partido abierta en modo edición: en 360 px, en cada breakpoint de CSS que afecta al encabezado medido de los dos lados y en la franja de tablet, a la vez (1) `scrollWidth === clientWidth` y (2) ningún elemento con el borde derecho fuera del viewport. |
+| NFR-001 | Responsive | Con el lápiz de la fecha en el encabezado del detalle, con la fecha de texto más largo (día y mes de más letras, p. ej. "miércoles, 30 de septiembre", 2026-09-30) y la pastilla de estado más larga, en los tres estados y con la inscripción cerrada, y con la ventana de partido abierta en modo edición: en 360 px, en cada breakpoint de CSS que afecta al encabezado medido de los dos lados y en la franja de tablet —incluido el corte de 480 px de `FR-073`/`FR-074`—, a la vez (1) `scrollWidth === clientWidth` y (2) ningún elemento con el borde derecho fuera del viewport. |
 | NFR-002 | Accessibility | El lápiz de la fecha tiene el nombre accesible y el título "Editar fecha" —distinto de "Editar resultado"— (WCAG 2.1, criterio 4.1.2 *Name, Role, Value*). Su objetivo táctil mide al menos 44 × 44 px, el tamaño de `.panel-icono` y del lápiz de "Editar resultado" (precedente del proyecto, `TC-030`; no deriva de 4.1.2). |
 | NFR-003 | Compatibilidad de datos | Comparado campo a campo tal como se guarda (su forma JSON), un partido después de un cambio de fecha difiere del anterior sólo en `fecha`, y los demás partidos no cambian. Ningún campo nuevo aparece. Que el guardado reescriba los documentos completos (`TC-001`) no cuenta como campo cambiado. |
 | NFR-004 | Escrituras | Un *pedido de guardado* es una invocación del guardado común (`saveMatches()`, `TC-001`); las escrituras a `window.storage` que esa invocación haga debajo —dos para `admin`, [index.html:2492](../../index.html#L2492) y [index.html:2497](../../index.html#L2497)— no se cuentan por separado. Guardar con la misma fecha (`FR-032`), cancelar (`FR-012`) o fallar la validación (`FR-020`, `FR-022`) hace cero pedidos de guardado; un cambio de fecha hace exactamente uno. |
@@ -457,8 +500,8 @@ CWE Top 25 consultado en vivo el 2026-11-06: edición 2025
 
 - **Given** un partido finalizado y una sesión `admin` en 1200 px
 - **When** se abre el detalle del partido
-- **Then** el encabezado muestra el lápiz pegado a la fecha, con nombre accesible y
-  título "Editar fecha"
+- **Then** el encabezado muestra el lápiz en el renglón de la fecha, después de la cancha,
+  con nombre accesible y título "Editar fecha"
 - **And** la tarjeta del resultado conserva su propio lápiz, llamado "Editar resultado"
 
 **Variants:**
@@ -483,6 +526,31 @@ CWE Top 25 consultado en vivo el 2026-11-06: edición 2025
   ejecutó ninguna generación
 
 Variants: none — single-path scenario.
+
+#### Scenario S-08 — El encabezado hasta 1099 px (covers FR-070, FR-071, FR-072, FR-073, FR-074, FR-075, NFR-001)
+
+- **Given** un partido con la inscripción abierta y sin equipos, con la fecha más larga, y
+  una sesión `admin` en 360 px
+- **When** se abre el detalle del partido
+- **Then** la fecha ocupa sola el primer renglón del encabezado
+- **And** en el renglón siguiente están la cancha y el lápiz a la izquierda, y la pastilla
+  y la papelera a la derecha, la papelera contra el borde derecho
+
+**Variants:**
+
+- `S-08a [boundary]` — inscripción cerrada a 360 px: "Reabrir inscripción" va solo en un
+  tercer renglón, alineado a la izquierda, y la papelera sigue en el segundo, a la derecha
+  de la pastilla (`FR-074`)
+- `S-08b [boundary]` — inscripción cerrada a 768 px: la pastilla, "Reabrir inscripción" y
+  la papelera van en el segundo renglón, con la papelera última contra el borde derecho
+  (`FR-073`)
+- `S-08c [boundary]` — con equipos generados, a 479 y 481 px: a 479 el botón de
+  inscripción va después de la papelera y a 481 antes (`FR-073`, `FR-074`)
+- `S-08d [boundary]` — a 1099 px, el encabezado de `S-08`; a 1100 px, en el renglón de la
+  fecha, la cancha y después el lápiz (`FR-070`, `FR-075`)
+- `S-08e [boundary]` — sesión `jugador` a 360 px, inscripción cerrada: en el segundo
+  renglón, la cancha a la izquierda y la pastilla contra el borde derecho; ni lápiz ni
+  acciones (`FR-003`, `FR-072`)
 
 ### 9.2 Edge cases
 
@@ -552,8 +620,8 @@ Ninguno.
 
 ### 11.1 Functional acceptance
 
-- **AC-01** — Todos los escenarios de §9 (S-01 a S-07, S-20, S-21 y sus variantes) pasan
-  (covers FR-001 a FR-060).
+- **AC-01** — Todos los escenarios de §9 (S-01 a S-08, S-20, S-21 y sus variantes) pasan
+  (covers FR-001 a FR-075).
 - **AC-02** — La propiedad de `S-01f` pasa sobre partidos en cada estado y con la
   inscripción cerrada.
 
@@ -649,6 +717,11 @@ Ninguno.
 - **A-03** — La aplicación no sincroniza en vivo: no escucha cambios de Firestore, así
   que una sesión abierta ve lo que otra guardó recién al recargar (`grep` de `onSnapshot`
   sobre `index.html`: cero coincidencias, verificado el 2026-11-06).
+- **A-04** — Desde 481 px, con la fecha más larga, la pastilla más larga ("Inscripción
+  cerrada") y "Reabrir inscripción", el botón de inscripción y la papelera entran en el
+  renglón de la cancha. Medido el 2026-11-07 en Chromium sobre una maqueta: entran desde
+  435 px. Si dejara de valer, el botón y la papelera bajan juntos a un renglón aparte, y
+  `S-08b` lo detecta en 768 px.
 
 ## 15. Risks
 
@@ -659,7 +732,8 @@ Ninguno.
 | El guardado falla sin aviso y al recargar vuelve la fecha anterior | Med | Low | Aceptado como en toda edición (`FR-044`, `S-01h`) |
 | Dos lápices en el partido finalizado y el administrador toca el que no quería | Low | Med | Nombres accesibles distintos (`NFR-002`), ubicaciones distintas (`TC-012`) y `S-06`. Tocar el equivocado no cambia nada hasta guardar |
 | La ventana reutilizada queda en un modo equivocado: "Nuevo partido" se abre sin Cancha o con el título de edición, o la edición crea un partido nuevo | Med | Med | `FR-013`, `S-03b`, `S-03c` |
-| A 360 px el lápiz junto a una fecha larga y la pastilla desarma el encabezado | Med | Med | `NFR-001`, `S-06a`–`S-06c`, `TC-032` |
+| A 360 px el lápiz junto a una fecha larga y la pastilla desarma el encabezado | Med | Med | `NFR-001`, `S-06a`–`S-06c`, `S-08`, `TC-032` |
+| Hasta 1099 px la papelera queda en el renglón del lápiz y se la toca queriendo tocar otra cosa | Low | Low | Eliminar pide confirmación ([index.html:7646](../../index.html#L7646)); los dos botones miden 44 px y no se superponen (`S-08`) |
 | Una cuenta `jugador` con conocimientos técnicos escribe una fecha nueva directamente en Firestore | Low | Low | Limitación aceptada (`D-06`, Declaración de reemplazo) |
 
 ## 16. Open questions
@@ -673,12 +747,13 @@ confirmó después de la crítica independiente.
 
 ## 17. Handoff to the Implementation Plan
 
-- **Plan must respect (no relitigation):** FR-001 a FR-060 (incluidos los `b`), NFR-001 a NFR-004, TC-001 a
+- **Plan must respect (no relitigation):** FR-001 a FR-075 (incluidos los `b`), NFR-001 a NFR-004, TC-001 a
   TC-041, AC-01 a AC-55, las constraints heredadas en §3.3 y la Declaración de reemplazo.
 - **Plan has freedom over:** cómo la ventana distingue el modo alta del modo edición, los
   nombres de los manejadores, si la validación de `TC-041` es una función pura recortable
-  por `tests/harness.js`, en qué archivo de `tests/` viven los tests unitarios, qué
-  breakpoints concretos afectan al encabezado, y el orden de commits.
+  por `tests/harness.js`, en qué archivo de `tests/` viven los tests unitarios, cómo se
+  logra el reacomodo de §7.8 (los cortes de 1099 y 480 px los fijó el owner), y el orden
+  de commits.
 - **Plan must resolve:** nada abierto; `A-01` y `A-02` quedaron verificados contra fuente
   primaria.
 - **Plan must also:** conviene sumar los manejadores nuevos a la lista de
@@ -695,6 +770,8 @@ confirmó después de la crítica independiente.
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | A pedido del owner, `FR-003` explicita que el lápiz no aparece para `jugador` en ningún estado ni para un lector de pantalla; `S-21` pasa a un estado concreto y suma `S-21c`–`S-21f`, una variante por estado, por la inscripción cerrada y por ancho. Self-critique: skipped (enmienda acotada). |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Autocrítica contra la rúbrica (per-doc y cross-doc contra la Concept Note), mismo modelo que el autor. 🔴 resueltos: `FR-002` y `FR-011` eran compuestos (EARS, una obligación por línea) y se parten en `FR-002`/`FR-002b` y `FR-011`/`FR-011b`; `A-01` y `A-02` llevaban `[UNVERIFIED]` con motivo ilegítimo ("no se contrastó") y quedan verificados contra el HTML Living Standard y MDN; `TC-030` afirmaba sin fuente que `.panel-icono` "ya se resolvió contra el design system" y pasa a citar el handoff y `IconButton.prompt.md`. 🟡 resueltos: verificar `A-01` mostró que el selector acepta años de cinco o más cifras, así que `FR-020` rechaza también un valor no vacío inválido (`S-20b` nueva) y `FR-022` queda para la invocación directa; las AC de §11.3 y §11.4 se renumeran `AC-20`–`AC-24` para cerrar el hueco de `AC-20`. 🔵 resueltos: la fecha de ejemplo de `NFR-001` era un día de semana que no corresponde a 2026; las variantes de `S-21` quedan en orden. 🔵 sin cambio: `D-03` del Concept Note dice "misma forma que Nuevo partido" y esta Spec fija "la misma ventana" por decisión del owner (§3.3); conviene una fila en el Change log del Concept Note. `TC-011`/`TC-012` nombran selectores del DOM, como el precedente de `intercambiar-colores`. Self-critique: passed (4🔴 / 2🟡 / 4🔵). |
 | 2026-11-06 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la crítica independiente [`EDITAR_FECHA_PARTIDO_SPEC_CRITIQUE_2026-11-06_sonnet-5-5.md`](./EDITAR_FECHA_PARTIDO_SPEC_CRITIQUE_2026-11-06_sonnet-5-5.md) (CHANGES REQUESTED, 1🔴 / 4🟡 / 7🔵), cada hallazgo verificado contra el código antes de aplicarlo. 🔴: las ampliaciones de `007` se marcan en el spec viejo en esta misma rama, no en el Plan. 🟡: `FR-004` se parte en `FR-004`/`FR-004b` y `FR-041` en `FR-041`/`FR-041b`; la aclaración de `FR-045` pasa a `A-03`; `NFR-004` define "pedido de guardado" como una invocación de `saveMatches()`; `OPEN-Q-03` y `OPEN-Q-06` confirmadas por el owner; `D-03` y `D-04` precisadas con fila en el Change log del Concept Note. Decisión nueva del owner: el alta de partido valida la fecha igual que la edición (`FR-020` en los dos modos, `TC-041`, `S-20c`, ampliación de `FR-001` de `001` marcada en ese spec). 🔵: `NFR-002` deja de atribuir el tamaño de 44 px a WCAG 4.1.2; `S-01g` pasa a "exactamente un" pedido; `S-01i` nueva (el admin tampoco ve aviso); `S-05a` pasa a `[concurrency]`; `FR-005` y `S-20d` nuevas (partido inexistente); `S-06e` nueva (los dos lápices a 360 px); §3.3 suma las respuestas del owner; §17 deja de presentar `research.md` como obligación de `AGENTS.md`; `AC-54` fija que sin telemetría cada `OBS-*` es un *automated check*. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
+| 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Decisiones del owner durante la rama 2, después de ver capturas de staging y maquetas a 360, 768, 1024 y 1200 px: §7.8 nueva con `FR-070` a `FR-075` (hasta 1099 px la fecha va sola y debajo van la cancha y el lápiz a la izquierda y la pastilla y las acciones a la derecha; entre 481 y 1099 px la papelera última; hasta 480 px el botón de inscripción después de la papelera, solo en otro renglón si no entra; desde 1100 px sin cambios). `S-08` nuevo con cinco variantes, `A-04` nueva (el botón entra desde 481 px, medido) y un riesgo nuevo. `D-03` precisada: "pegado a la fecha" vale desde 1100 px (fila en el Change log del Concept Note); `FR-001`, el glosario, §2, §3.1, §3.3, `NFR-001`, `AC-01` y §17 lo reflejan. El corte de 480 px lo propuso el autor por medición —es el que existe más cerca del umbral de 435 px— y queda a revisión del owner. Self-critique: skipped (enmienda acotada). |
+| 2026-11-07 | Lucas Manoukian (claude-opus-5-5) | Decisión del owner al ver las capturas del encabezado ya implementado: desde 1100 px el lápiz tampoco va pegado a la fecha sino después de la cancha, igual que hasta 1099 px. `FR-075` pasa a "la fecha, la cancha, el lápiz y la pastilla, en ese orden"; `S-06` y `S-08d` dejan de decir "pegado a la fecha"; §2, §3.3, `D-03` y el glosario lo reflejan, con una fila más en el Change log del Concept Note. Self-critique: skipped (enmienda acotada). |
 
 ---
 

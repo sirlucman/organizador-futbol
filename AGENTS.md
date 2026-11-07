@@ -214,6 +214,7 @@ node tests/eventos.test.js                # el modelo de eventos: síntesis, der
 node tests/toque.test.js                  # la carga por toque: validación, borrador, detalle, deshacer
 node tests/escapado.test.js               # el escapado del texto de jugador (AGENTS.md → Estilo)
 node tests/colores.test.js                # intercambiar colores: qué se invierte, dos veces = identidad
+node tests/fecha.test.js                  # editar la fecha: qué fecha es válida, cambia sólo la fecha
 node tests/puestos.test.js                # los ocho puestos: catálogo, motor, ficha, bloqueo, cancha, lo guardado
 node tests/orden.test.js                  # el orden del listado: comparador, preferencia leída, soltado, títulos
 node tests/intercambio.test.js            # el intercambio de puesto: la regla, el toque, la escritura, los avisos

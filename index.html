@@ -392,6 +392,23 @@
   .detail-header-actions{ display:flex; align-items:center; gap: 10px; flex-shrink:0; }
   @media (max-width: 1099px){
     .detail-header h2{ font-size: 24px; line-height: 31.2px; letter-spacing: -0.48px; }
+    /* Hasta 1099 px la fecha va sola en su renglón y debajo van la cancha y el lápiz a la izquierda
+       y la pastilla y las acciones a la derecha (EDITAR_FECHA_PARTIDO_SPEC.md §7.8, decisión del
+       propietario del 2026-11-07). Sólo CSS: con `display: contents` los grupos dejan de ser cajas
+       y sus hijos se acomodan como piezas sueltas de `.detail-header`, así que el HTML (y lo que
+       los tests buscan por selector) no cambia. El orden de lectura sigue siendo el del HTML. */
+    .detail-header-main, .detail-header-titulo, .detail-header-fecha, .detail-header-actions{ display: contents; }
+    .detail-header{ justify-content: flex-start; gap: 4px 10px; }
+    .detail-header h2{ flex-basis: 100%; }
+    #detailEstado{ order: 3; margin-left: auto; }
+    #btnToggleInscripcion{ order: 4; }
+    #btnDeleteMatch{ order: 5; }
+  }
+  /* En un celular el botón de inscripción no entra en el renglón de la pastilla (recién desde unos
+     435 px) y baja solo; la papelera va antes que él para quedarse arriba (FR-074). */
+  @media (max-width: 480px){
+    #btnDeleteMatch{ order: 4; }
+    #btnToggleInscripcion{ order: 5; }
   }
 
   .autocomplete-wrap{ position: relative; margin-bottom: 16px; }
@@ -1000,8 +1017,11 @@
   /* Mismo tono que `.panel-icono-copiar` (var(--muted)): los dos íconos del encabezado del
      partido finalizado tienen que verse con el mismo peso visual, ninguno más marcado que el
      otro con sólo un vistazo. */
-  .panel-icono-editar{ color: var(--muted); }
-  .panel-icono-editar:hover{ color: var(--pitch-deep); }
+  /* El lápiz de la fecha del encabezado del detalle tiene el mismo peso que el de "Editar
+     resultado" (EDITAR_FECHA_PARTIDO TC-030). Clase propia porque `partido-jugador` busca
+     `.panel-icono-editar` en todo el documento (Plan TD-09). */
+  .panel-icono-editar, .panel-icono-fecha{ color: var(--muted); }
+  .panel-icono-editar:hover, .panel-icono-fecha:hover{ color: var(--pitch-deep); }
 
   /* --- Chips de estadística (sobre la camiseta) ---
      Prefijo `stat-` y no `chip-`: `--chip-bg`/`--chip-w`/`--chip-size` ya los usa el dibujo de la
@@ -1326,6 +1346,7 @@
             <div class="detail-header-fecha">
               <h2 id="detailFecha"></h2>
               <div class="match-meta" id="detailMeta"></div>
+              <button type="button" class="panel-icono panel-icono-fecha admin-only" id="btnEditarFecha" aria-label="Editar fecha" title="Editar fecha"></button>
             </div>
             <span class="status-chip" id="detailEstado"></span>
           </div>
@@ -1405,8 +1426,8 @@
 <!-- Modal: nuevo partido -->
 <div class="modal-overlay" id="newMatchModal">
   <div class="modal-card">
-    <h3>Nuevo partido</h3>
-    <div class="field" style="margin-bottom:12px;">
+    <h3 id="newMatchTitulo">Nuevo partido</h3>
+    <div class="field" id="mCanchaField" style="margin-bottom:12px;">
       <label>Cancha</label>
       <select id="mCancha">
         <option value="futbol8">Fútbol 8</option>
@@ -1960,6 +1981,9 @@
   let ordenManualCuenta = [];
 
   let currentMatchId = null;
+  // Id del partido cuya fecha se edita en la ventana de partido, o null = modo alta. Sólo lo
+  // escriben abrirVentanaPartido y cerrarVentanaPartido (EDITAR_FECHA_PARTIDO Plan TD-05).
+  let partidoEditandoFecha = null;
   let matchSearchTerm = '';
   let resultadoDraft = null; // { matchId, eventos: [{jugadorId, tipo}] } — borrador en memoria hasta "Finalizar partido" (rebanada 6, FR-005)
   let editandoResultadoFinalizado = null; // id del partido finalizado cuyo resultado se está editando, o null
@@ -2226,6 +2250,24 @@
     if(!fechaISO) return '';
     const d = new Date(fechaISO + 'T00:00:00');
     return d.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+  }
+  // Una fecha válida es un texto YYYY-MM-DD que es un día real del calendario
+  // (EDITAR_FECHA_PARTIDO_SPEC.md TC-041). El regex cierra el año de cinco cifras que el
+  // selector deja pasar (A-01); la vuelta por el Date rechaza 2026-02-30. setUTCFullYear y no
+  // Date.UTC, que lleva los años 0000–0099 a 1900–1999 (Plan TD-02).
+  function esFechaValida(s){
+    if(typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return false;
+    const [a, me, di] = s.split('-').map(Number);
+    const d = new Date(0);
+    d.setUTCFullYear(a, me - 1, di);
+    return d.getUTCFullYear() === a && d.getUTCMonth() === me - 1 && d.getUTCDate() === di;
+  }
+  // Cambia sólo `fecha` (FR-030, FR-031). Devuelve true sólo si cambió: con una fecha inválida
+  // o con la misma que ya tiene no toca el partido (FR-022, FR-032). Sin I/O ni render.
+  function cambiarFechaDelPartido(m, fecha){
+    if(!esFechaValida(fecha) || fecha === m.fecha) return false;
+    m.fecha = fecha;
+    return true;
   }
 
   /* ================= PERSISTENCIA ================= */
@@ -7628,6 +7670,24 @@
     });
   };
 
+  // Editar la fecha (EDITAR_FECHA_PARTIDO_SPEC.md). Cada manejador valida el rol dentro de sí
+  // mismo, no sólo el botón (TC-040). Se repinta con renderMatchesTab y no con __openMatch, que
+  // borraría editandoResultadoFinalizado (FR-002b).
+  window.__abrirEditarFecha = function(id){
+    if(!isAdmin()) return; // FR-004
+    const m = matches.find(mm => mm.id === id);
+    if(!m) return; // FR-005
+    abrirVentanaPartido(m);
+  };
+  window.__guardarFecha = function(id, fecha){
+    if(!isAdmin()) return; // FR-004b
+    const m = matches.find(mm => mm.id === id);
+    if(!m) return; // FR-005
+    if(!cambiarFechaDelPartido(m, fecha)) return; // FR-022, FR-032
+    saveMatches();
+    renderMatchesTab();
+  };
+
   function renderMatchDetail(){
     const m = matches.find(mm => mm.id === currentMatchId);
     if(!m){ currentMatchId = null; renderMatchList(); return; }
@@ -8118,27 +8178,51 @@
   el('btnDeleteMatch').addEventListener('click', () => {
     if(currentMatchId) window.__deleteMatch(currentMatchId);
   });
+  el('btnEditarFecha').innerHTML = ICON_LAPIZ;
+  el('btnEditarFecha').addEventListener('click', () => {
+    if(currentMatchId) window.__abrirEditarFecha(currentMatchId);
+  });
   el('btnToggleInscripcion').addEventListener('click', () => {
     if(currentMatchId) window.__toggleInscripcion(currentMatchId);
   });
 
-  /* ---- Nuevo partido ---- */
-  el('btnNuevoPartido').addEventListener('click', () => {
-    el('mFecha').value = '';
+  /* ---- Nuevo partido / Editar fecha ---- */
+  // La ventana de partido tiene dos modos, alta (m = null) y edición de la fecha de m. Todo lo
+  // que cambia entre modos sale de este único argumento, y éste es el único lugar que la abre,
+  // así que no puede mostrarse en un modo y guardar en el otro (EDITAR_FECHA_PARTIDO TC-011,
+  // Plan TD-04).
+  function abrirVentanaPartido(m){
+    partidoEditandoFecha = m ? m.id : null;
+    el('newMatchTitulo').textContent = m ? 'Editar fecha' : 'Nuevo partido';
+    el('mCanchaField').style.display = m ? 'none' : '';
+    el('btnMatchSave').textContent = m ? 'Guardar' : 'Crear partido';
+    el('mFecha').value = m ? m.fecha : '';
     el('mCancha').value = 'futbol8';
     el('matchError').textContent = '';
     el('newMatchModal').classList.add('open');
-  });
-  el('btnMatchCancel').addEventListener('click', () => el('newMatchModal').classList.remove('open'));
+  }
+  function cerrarVentanaPartido(){
+    el('newMatchModal').classList.remove('open');
+    partidoEditandoFecha = null;
+  }
+  el('btnNuevoPartido').addEventListener('click', () => abrirVentanaPartido(null));
+  el('btnMatchCancel').addEventListener('click', cerrarVentanaPartido);
   el('btnMatchSave').addEventListener('click', () => {
     if(!isAdmin()) return; // FR-009b
     const fecha = el('mFecha').value;
     const cancha = el('mCancha').value;
-    if(!fecha){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
+    if(!esFechaValida(fecha)){ el('matchError').textContent = 'Elegí una fecha para el partido.'; return; }
+    if(partidoEditandoFecha){
+      // Se cierra antes de guardar para que la ventana ya no esté cuando renderMatchesTab repinte.
+      const id = partidoEditandoFecha;
+      cerrarVentanaPartido();
+      window.__guardarFecha(id, fecha);
+      return;
+    }
     const nuevo = { id: uid('m'), fecha, cancha, estado: 'Inscripción abierta', convocados: [], inscripcionCerrada: false, estrategia: motorConfig.estrategia, bloqueados: [], duplas: [] };
     matches.push(nuevo);
     saveMatches();
-    el('newMatchModal').classList.remove('open');
+    cerrarVentanaPartido();
     currentMatchId = nuevo.id;
     matchSearchTerm = '';
     renderMatchesTab();
