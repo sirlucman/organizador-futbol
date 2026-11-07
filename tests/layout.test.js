@@ -861,9 +861,10 @@ const INVARIANTE_ENCABEZADO = () => {
         if (Math.abs(r(inscripcion).left - izquierda) > 1) problemas.push(`${en}el botón de inscripción no está alineado a la izquierda en su renglón (FR-074)`);
       }
     }
-  } else if (lapiz) {
-    if (!mismo(lapiz, fecha) || r(lapiz).left < r(fecha).right) problemas.push(`${en}el lápiz no está pegado a la fecha, en su renglón (FR-075)`);
-    if (!mismo(cancha, lapiz) || r(cancha).left < r(lapiz).right) problemas.push(`${en}la cancha no va después del lápiz (FR-075)`);
+  } else {
+    if (!mismo(cancha, fecha) || r(cancha).left < r(fecha).right) problemas.push(`${en}la cancha no va después de la fecha, en su renglón (FR-075)`);
+    if (lapiz && (!mismo(lapiz, cancha) || r(lapiz).left < r(cancha).right)) problemas.push(`${en}el lápiz no va después de la cancha, en el renglón de la fecha (FR-075)`);
+    if (!mismo(pastilla, cancha) || r(pastilla).left < r(lapiz || cancha).right) problemas.push(`${en}la pastilla no va después de ${lapiz ? 'el lápiz' : 'la cancha'} (FR-075)`);
   }
   return problemas;
 };
