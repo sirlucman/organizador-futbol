@@ -35,9 +35,9 @@
 >
 > | Spec | Parte acotada |
 > |---|---|
-> | [`CANCHA_SPEC.md`](../equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md) (rebanada 1) | `FR-023b` (el `title` declara que no juega en su principal), `FR-024` (el puntaje sobre la camiseta), `FR-025` (la mención "sin puntaje" en el `title`), `FR-030` (el candado) |
-> | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) (rebanada 3) | `FR-003`, `FR-004`, `FR-005`, `FR-009` (la píldora de diferencia y su descripción emergente), `FR-010` (el combo de estrategia), `FR-020` (el aviso de equipos desactualizados), `FR-030` (la grilla de diferencia por línea), `FR-040` ("Por qué quedaron así"), `FR-054` (el total en el encabezado del panel) |
-> | [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md) | `FR-025` (las pastillas «2º» y «!»), `FR-025b` (la «!» de las pestañas y su cantidad en el nombre accesible), `FR-025c` sólo en su `title` del número (el número se va con `FR-024`; cómo se valúa no cambia), `FR-021b` (el recuadro del candidato con costo y su `title`; vale también para el arrastre), `FR-012b` (la cuenta de candidatos en cada pestaña) |
+> | [`CANCHA_SPEC.md`](../equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md) (rebanada 1) | `FR-023b` (el `title` declara que no juega en su principal), `FR-024` (el puntaje sobre la camiseta), `FR-025` (la mención "sin puntaje" en el `title`), `FR-027` (el puntaje de la dupla), `FR-030` (el candado) |
+> | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) (rebanada 3) | `FR-003`, `FR-004`, `FR-005`, `FR-009` (la píldora de diferencia y su descripción emergente), `FR-010` (el combo de estrategia), `FR-020` (el aviso de equipos desactualizados), `FR-030` (la grilla de diferencia por línea), `FR-040`, `FR-052` y `FR-072b` ("Por qué quedaron así", lo que declara sobre titulares sin puntaje y su división en dos grupos), `FR-054` (el total en el encabezado del panel) |
+> | [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md) | `FR-025` (las pastillas «2º» y «!»), `FR-025b` (la «!» de las pestañas y su cantidad en el nombre accesible), `FR-025c` sólo en su `title` del número (el número se va con `FR-024`; cómo se valúa no cambia), `FR-021b` (el recuadro del candidato con costo y su `title`; vale también para el arrastre), `FR-012b` (la cuenta de candidatos en cada pestaña), `FR-070` sólo en lo que muestra (los totales, la diferencia entre equipos y la diferencia por línea; el recálculo no cambia), `FR-071` ("Por qué quedaron así") |
 > | [`PARTIDO_FINALIZADO_SPEC.md`](../equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) | `FR-041`, `FR-042b` también para `admin` (ver tabla 1) |
 >
 > **No reemplaza** —y lo declara para que no se lea como contradicción— a
@@ -48,8 +48,10 @@
 > hace cumplir (`FR-004`, `FR-013`), no lo cambia. Ni a `FR-008` de `PANEL_ARMADO_SPEC.md`:
 > el texto que copia Copiar no cambia (`FR-060`).
 >
-> Cada parte acotada quedó marcada el 2026-11-20 en su spec con una nota que apunta a esta
-> Spec, y con una fila en el Change log de cada una.
+> Cada parte acotada de `CANCHA_SPEC.md`, `PANEL_ARMADO_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`
+> y `POSICIONES_DEL_JUGADOR_SPEC.md` quedó marcada el 2026-11-20 con una nota que apunta a
+> esta Spec, y con una fila en el Change log de cada una. `CARGA_POR_TOQUE_SPEC.md` no se
+> marca: su `FR-003` no cambia de texto, sólo hereda el acotamiento de `FR-041`.
 > `tests/layout.test.js:1602-1606`, que hoy exige los dos puntajes de la fila de resultado
 > a 1200 px (`S-04` de la rebanada 4), pasa a correr sólo con `admin` en "visible".
 
@@ -72,7 +74,7 @@ la píldora de diferencia, la grilla por línea, "Por qué quedaron así", el co
 estrategia, el aviso de desactualizado, los candados y las marcas de posición— y deja a la
 vista los jugadores, el marcador y los goles y asistencias. Tocarlo otra vez lo devuelve
 todo. No guarda nada: el estado vive en la memoria de la página, vale para todos los
-partidos con equipos y vuelve a "visible" al recargar. Aparte del botón, y siempre, el rol
+partidos con equipos y vuelve a "visible" al recargar o al cambiar de sesión. Aparte del botón, y siempre, el rol
 `jugador` deja de ver el puntaje de cada equipo junto al marcador, que hoy le aparece en
 contra de lo que manda `007-permisos-por-usuario`. El producto sigue siendo el mismo
 organizador de partidos: el motor no cambia y ningún dato del partido se modifica.
@@ -343,7 +345,10 @@ cumple con el elemento ausente del documento (`TC-012`).
 - **FR-038** — If el encabezado de un campo quedaría sin ningún contenido visible, then el
   sistema no lo dibujará. Pasa en una columna, donde el nombre del equipo ya está escondido
   ([index.html:834](../../index.html#L834)) y el encabezado se quedaría sin el "pts"; vale
-  también para `jugador` (`FR-051`).
+  también para `jugador` (`FR-051`). Para `jugador` en una columna, en armado y en carga, el
+  encabezado ya hoy queda sin contenido visible (su total es vacío,
+  [index.html:7239-7247](../../index.html#L7239-L7247)): dejar de dibujarlo cambia sólo el
+  espacio en blanco, no lo que se lee, así que no contradice `D-07`.
 
 ### 7.4 Lo que se sigue viendo en "oculto"
 
@@ -388,7 +393,7 @@ cumple con el elemento ausente del documento (`TC-012`).
 | NFR-003 | Responsive | En "oculto", y para `jugador` en cualquier estado, la tarjeta no deja ningún contenedor vacío con alto mayor que 0 donde estaban los elementos de §7.3: ni la fila de la píldora en una columna, ni el encabezado de un campo (`FR-038`). Se mide a 360 y a 1200 px. |
 | NFR-004 | Accessibility | El ojo tiene un nombre accesible que expone en qué estado está (`FR-007`; WCAG 2.1, criterio 4.1.2 *Name, Role, Value*, nivel A, verificado en el Concept Note §6.5) y un área táctil de 44 × 44 px. |
 | NFR-005 | Persistence | Alternar el ojo 10 veces seguidas produce 0 escrituras y 0 lecturas sobre `window.storage` y sobre el almacenamiento del navegador. |
-| NFR-006 | Maintainability | En "oculto", para las cuatro situaciones, en una y dos columnas, con y sin selección para intercambiar puesto, el HTML de la tarjeta no contiene ninguno de los elementos de §7.3. Se verifica con un único test que recorre esas combinaciones, para que un elemento de puntaje agregado en el futuro sin pasar por el ojo lo haga fallar (riesgo de Concept Note §11). |
+| NFR-006 | Maintainability | En "oculto", para las cuatro situaciones, en una y dos columnas, con y sin selección para intercambiar puesto, el HTML de la tarjeta no contiene ninguno de los elementos de §7.3. Se verifica con un único test que recorre esas combinaciones, para que un elemento de puntaje agregado en el futuro sin pasar por el ojo lo haga fallar (riesgo de Concept Note §11). Queda fuera el arrastre (`FR-034`), que marca las camisetas sobre el documento ya dibujado y no en el HTML de la tarjeta; lo cubre `S-06a`. |
 
 ## 9. System behaviour & scenarios
 
@@ -517,7 +522,7 @@ stateDiagram-v2
 
 - **Given** un partido en armado con puestos, una sesión `admin`, un viewport de 360 px y
   el estado en "oculto"
-- **And** con Lucas seleccionado, dos de sus candidatos son con costo y uno es común
+- **And** Lucas tiene tres candidatos para intercambiar puesto: dos con costo y uno común
 - **When** el administrador toca la camiseta de Lucas
 - **Then** los tres candidatos se dibujan con el mismo estilo, sin ningún recuadro rojo
 - **And** ninguna pestaña muestra la cuenta de candidatos
@@ -781,6 +786,7 @@ Ninguno.
 | Date | Author | Change |
 |---|---|---|
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Resuelve `OPEN-Q-01` a `OPEN-Q-04` del Concept Note con respuestas del owner del mismo día: el nombre del ojo cambia con el estado; los textos emergentes y los nombres accesibles también se limpian; el aviso de bloqueo se ve siempre (enmienda `D-02`/`D-03`); la entrada de la rebanada 7 en `Roadmap.md` se acota a `nameFormat`. Hueco encontrado al redactar y resuelto por el owner: el rojo del candidato con costo también se oculta durante el arrastre (`FR-034`, misma enmienda de `D-02`). Ubica el requisito de la rebanada 6 que cubre la fila de `jugador` en carga (`FR-003` de `CARGA_POR_TOQUE_SPEC.md`, por herencia de `FR-041`). Marca las partes acotadas en `CANCHA_SPEC.md`, `PANEL_ARMADO_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md` (con la corrección de su `AC-05`) y `POSICIONES_DEL_JUGADOR_SPEC.md`. Autocrítica contra la rúbrica, mismo modelo que el autor. 🔴 resuelto: cerrar sesión no recarga la página (`index.html:8740-8782`), así que el estado "oculto" de un `admin` pasaba a la cuenta siguiente de la misma pestaña y, para `jugador`, contradecía `FR-061`; se agrega `FR-018` (vuelve a "visible" al cambiar la sesión), `S-05c` y se reescribe `S-09d`. 🟡 resueltos: `S-01e` describía un armado sin Intercambiar colores, que no existe (`sePuedenIntercambiarColores`, `index.html:6315-6317`); se reemplaza por la carga, y `FR-002` nombra la carga y la edición. `FR-016` no tenía escenario para el equipo visible, el tipo de evento ni el scroll; se agrega `S-04d`. Seis citas de línea corridas, corregidas. 🔵 resuelto: `NFR-001` exigía cuatro situaciones a `jugador`, que ve tres. 🔵 aceptado sin cambio: `FR-042` repite que bloquear no está disponible, ya dicho en `FR-024`; se deja como aclaración. Diagrama de `S-05` renderizado con `mermaid-cli` y revisado a ojo. Self-critique: passed (1🔴 / 2🟡 / 2🔵). |
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Segunda autocrítica contra la rúbrica, mismo modelo que el autor, sobre el commit `2222382`. 🟡 resueltos: la declaración de reemplazo omitía cinco requisitos que también obligan a mostrar puntajes o el receipt —`FR-027` de `CANCHA_SPEC.md`, `FR-052` y `FR-072b` de `PANEL_ARMADO_SPEC.md`, `FR-070` y `FR-071` de `POSICIONES_DEL_JUGADOR_SPEC.md`—; se agregan a la tabla 2 y se marcan en sus specs. El *Given* de `S-06` ya tenía a Lucas seleccionado antes del toque que lo selecciona; se reescribe. `NFR-006` prometía cubrir todo §7.3 con un test sobre el HTML, pero el rojo del arrastre (`FR-034`) se marca sobre el documento ya dibujado; se excluye y se remite a `S-06a`. 🔵 resueltos: la frase final de la declaración decía que se marcaron todas las specs, y `CARGA_POR_TOQUE_SPEC.md` a propósito no; `FR-038` cambia también el espacio en blanco de `jugador` en una columna (hoy ya tiene un encabezado vacío) y ahora lo declara compatible con `D-07`; el Summary no mencionaba el cambio de sesión de `FR-018`. Self-critique: passed (0🔴 / 3🟡 / 3🔵). |
 
 ---
 
