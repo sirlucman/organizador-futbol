@@ -5216,13 +5216,6 @@
     return `${Math.round(sumaPts*10)/10} pts`;
   }
 
-  function updateTeamTotalsDisplay(m){
-    const spanB = el('totalBlancoSpan'), spanN = el('totalNegroSpan');
-    const suma = sumasVigentes(m);
-    if(spanB) spanB.textContent = teamHeaderTotalText(suma.blanco);
-    if(spanN) spanN.textContent = teamHeaderTotalText(suma.negro);
-  }
-
   function posicionAsignadaDe(p, m){
     return (m.equipos.posicionAsignada && m.equipos.posicionAsignada[p.id])
       || (m.equipos.posicionOverride && m.equipos.posicionOverride[p.id])
