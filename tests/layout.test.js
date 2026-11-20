@@ -4557,10 +4557,15 @@ async function main() {
       }
       const r = await page.evaluate(MEDIR);
       /* `invariante` (uno) e `invariantes` (varios) conviven: los escenarios viejos declaran uno
-         solo y la cancha necesita dos, el de geometría y el de accesibilidad. */
+         solo y la cancha necesita dos, el de geometría y el de accesibilidad.
+         Una entrada puede ser también `[función, argumento]` (ocultar-puntajes TD-18):
+         `page.evaluate` serializa sólo el texto de la función, así que lo que el invariante
+         necesita saber —la situación, el estado, una lista armada en Node— tiene que viajar
+         como argumento; una constante de Node leída desde adentro tira la suite entera. */
       const declarados = caso.invariantes || (caso.invariante ? [caso.invariante] : []);
       let problemas = [];
-      for (const inv of declarados) problemas = problemas.concat(await page.evaluate(inv));
+      for (const inv of declarados) problemas = problemas.concat(
+        Array.isArray(inv) ? await page.evaluate(inv[0], inv[1]) : await page.evaluate(inv));
       /* `comprobar` es para lo que no es layout: que la cancha aparezca donde tiene que aparecer,
          que el candado haga lo que dice, que abrir la pantalla no escriba. No depende del ancho,
          así que corre UNA vez por escenario y no trece. */
