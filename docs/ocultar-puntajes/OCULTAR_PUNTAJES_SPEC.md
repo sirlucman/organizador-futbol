@@ -15,9 +15,10 @@
 > rama `docs/ocultar-puntajes` al 2026-11-20 (commit `e77e06d`).
 
 > **Declaración de reemplazo (gobernanza vigente en [`AGENTS.md`](../../AGENTS.md)).**
-> Esta Spec acota requisitos de nueve specs vigentes. Ninguno se deroga: todos siguen
-> valiendo tal cual **mientras el ojo está en "visible"**, y los de la primera tabla
-> además dejan de valer para `jugador` en cualquier estado.
+> Esta Spec acota requisitos de diez specs vigentes. Ninguno se deroga: los de las dos
+> primeras tablas siguen valiendo tal cual **mientras el ojo está en "visible"**, y los de
+> la primera además dejan de valer para `jugador` en cualquier estado. Los de la tercera
+> siguen valiendo con el ojo agregado al encabezado.
 >
 > **1. Lo que `jugador` deja de ver siempre (`D-06`, `D-07`, `FR-050` a `FR-056` de esta Spec).**
 >
@@ -47,6 +48,16 @@
 > | [`008-duplas-rotacion/spec.md`](../008-duplas-rotacion/spec.md) | `FR-015` (deshacer una dupla activa el aviso de equipos desactualizados) |
 > | [`009-ventaja-sin-arquero/spec.md`](../009-ventaja-sin-arquero/spec.md) | `FR-008` (lo que informa "Por qué quedaron así"), `FR-011` (el cambio del parámetro activa el aviso de equipos desactualizados) |
 >
+> **3. Lo que cambia en el encabezado de la tarjeta para `admin`, en los dos estados
+> (`FR-001`, `FR-002`).** Encontrado el 2026-11-20 al derivar el Implementation Plan: tres
+> tests existentes afirman el orden o la cantidad de botones que estos requisitos fijan.
+>
+> | Spec | Parte acotada | Qué cambia |
+> |---|---|---|
+> | [`INTERCAMBIAR_COLORES_SPEC.md`](../intercambiar-colores/INTERCAMBIAR_COLORES_SPEC.md) | `FR-042`, `S-05` | El orden pasa a Intercambiar colores, ojo, Copiar y Regenerar. |
+> | [`PARTIDO_FINALIZADO_SPEC.md`](../equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) | `S-01` | Con `admin`, tres botones de ícono: ojo, copiar y editar resultado. |
+> | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) | `S-01`, `AC-02` | `S-01` suma el ojo entre Intercambiar colores y Copiar. `AC-02` decía "los dos botones" desde antes de `intercambiar-colores`, que no lo corrigió; se corrige al marcarlo. |
+>
 > **No reemplaza** —y lo declara para que no se lea como contradicción— a `FR-042` de
 > [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md): el aviso de bloqueo se sigue viendo en los dos estados (`FR-041` de esta Spec,
 > enmienda de `D-02` del 2026-11-20). De esa spec sólo se acotan `FR-076` y `FR-077`. Tampoco reemplaza a
@@ -55,8 +66,8 @@
 > el texto que copia Copiar no cambia (`FR-060`).
 >
 > Cada parte acotada de `CANCHA_SPEC.md`, `PANEL_ARMADO_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`,
-> `POSICIONES_DEL_JUGADOR_SPEC.md`, `DESGLOSE_POSICIONES_SPEC.md` y los `spec.md` de `003`, `008` y
-> `009` quedó marcada el 2026-11-20 con una nota que apunta a
+> `POSICIONES_DEL_JUGADOR_SPEC.md`, `DESGLOSE_POSICIONES_SPEC.md`, `INTERCAMBIAR_COLORES_SPEC.md`
+> y los `spec.md` de `003`, `008` y `009` quedó marcada el 2026-11-20 con una nota que apunta a
 > esta Spec, y con una fila en el Change log de las que lo tienen (los `spec.md` de speckit
 > no tienen). `CARGA_POR_TOQUE_SPEC.md` no se
 > marca: su `FR-003` no cambia de texto, sólo hereda el acotamiento de `FR-041`.
@@ -885,6 +896,7 @@ Ninguno.
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Segunda autocrítica contra la rúbrica, mismo modelo que el autor, sobre el commit `2222382`. 🟡 resueltos: la declaración de reemplazo omitía cinco requisitos que también obligan a mostrar puntajes o el receipt —`FR-027` de `CANCHA_SPEC.md`, `FR-052` y `FR-072b` de `PANEL_ARMADO_SPEC.md`, `FR-070` y `FR-071` de `POSICIONES_DEL_JUGADOR_SPEC.md`—; se agregan a la tabla 2 y se marcan en sus specs. El *Given* de `S-06` ya tenía a Lucas seleccionado antes del toque que lo selecciona; se reescribe. `NFR-006` prometía cubrir todo §7.3 con un test sobre el HTML, pero el rojo del arrastre (`FR-034`) se marca sobre el documento ya dibujado; se excluye y se remite a `S-06a`. 🔵 resueltos: la frase final de la declaración decía que se marcaron todas las specs, y `CARGA_POR_TOQUE_SPEC.md` a propósito no; `FR-038` cambia también el espacio en blanco de `jugador` en una columna (hoy ya tiene un encabezado vacío) y ahora lo declara compatible con `D-07`; el Summary no mencionaba el cambio de sesión de `FR-018`. Self-critique: passed (0🔴 / 3🟡 / 3🔵). |
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la crítica independiente [`OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_sonnet-5-5.md`](./OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_sonnet-5-5.md) (COMMENT, 0🔴 / 5🟡 / 5🔵), cada hallazgo verificado contra el código antes de aplicarlo; los diez se confirmaron. 🟡 1: `FR-017` y el Glosario describían una sola pantalla sin equipos; el código tiene dos (`index.html:7145-7149`, `7151-7176`); `FR-017` pasa a "se dibuja igual en los dos estados". 🟡 2: la tabla 2 suma `FR-037`, `FR-070`, `FR-070b`, `FR-071` y `FR-074` de `PANEL_ARMADO_SPEC.md`, marcados en ese spec, y declara el criterio de qué se marca; `AC-04` pasa a verificarse por `grep`. 🟡 3: `FR-018` queda registrado en `D-05` del Concept Note y anclado sólo al cierre de sesión, sin atribuirle una suposición a `D-05`. Al responder, el owner pidió además que `jugador` no vea si alguien juega en su posición principal: `D-07` se invierte, se agregan `FR-053` a `FR-056`, `US-07`, `S-09e`, `S-09f`, filas nuevas en la tabla 1 (`FR-025`, `FR-025b` de posiciones, `FR-023b` de la cancha), y `FR-061` queda sin efecto. Con eso la red de seguridad por rol que proponía el crítico deja de hacer falta. 🟡 5: `NFR-003` mide por presencia, no por alto (un `<h4>` vacío mide 0 pero deja 12 px de margen, `index.html:498`). 🟡 6: `FR-016` se parte en cuatro (`FR-016` a `FR-016d`), `FR-043` en dos (`FR-043b`), los motivos de `FR-018` y `FR-038` salen del requisito, y §11.5 pide una aserción por elemento para `FR-036`, `FR-040` y `FR-042`. 🔵 4: el owner eligió que el aviso de intercambio rechazado se vea en los dos estados (`FR-044`, `S-07e`). 🔵 7: `S-06b` y `S-07c` retagueadas `[boundary]`; nueva `S-05d [concurrency]` para cruzar 1099/1100 px en "oculto". 🔵 8 y 10: §17 pide escenarios de `jugador` que afirmen la ausencia del "pts" y de «2º»/«!», arrastre por manejadores y un fixture que dispare `onAuthChange(null)`; se corrige la instrucción sobre `tests/layout.test.js:1602-1606`, que ya corre con `admin`. 🔵 9: `AC-54` declara que no hay telemetría y que cada `OBS-*` nombra su test de CI. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la segunda crítica independiente [`OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_fable-5-2.md`](./OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_fable-5-2.md) (COMMENT, 0🔴 / 4🟡 / 4🔵), cada hallazgo verificado contra el código y las specs antes de aplicarlo; los ocho se confirmaron. 🟡 1: `S-07e` describía un toque y el aviso sale al soltar un arrastre (`index.html:6032-6040`, `6234-6238`); se reescribe, y `FR-044` se parte en `FR-044` a `FR-044c`, uno por cada aviso de `textoAvisoIntercambio`, con `S-07f` y `S-07g` (esta, como `S-01j` de posiciones: otra sesión guarda entre los dos toques). 🟡 2: el owner eligió que `D-07` quite las marcas de la cancha y no el dato; §3.2 declara que la lista de convocados y el listado de jugadores siguen mostrando el puesto principal y los secundarios, y que en "oculto" la sigla de la lista de convocados sigue visible; `US-07`, el Summary, §3.1 y la Concept Note se acotan en ese sentido. 🟡 3: la declaración suma `FR-076` y `FR-077` de `DESGLOSE_POSICIONES_SPEC.md`; además, el barrido de todo `docs/` que ahora pide `AC-04` encontró seis faltantes más —`FR-009` de `003`, `FR-015` de `008`, `FR-008` y `FR-011` de `009`, `FR-003b`, `FR-003c` y `FR-070c` de `PANEL_ARMADO_SPEC.md`—, todos agregados y marcados: nueve specs, 42 requisitos. 🟡 6: `AC-04` busca la nota en el bloque del requisito, no en la línea siguiente, y suma el barrido de completitud sobre todo `docs/`. 🔵 4: `AC-01` llega a `FR-044c`, `US-04` suma `FR-043b` y `FR-044` a `FR-044c`, Summary y diagrama dicen "cierra la sesión" (diagrama renderizado y revisado), nuevo `FR-019` (el estado sólo cambia al tocar el ojo, al cargar la página o al cerrar sesión) que `S-05d` cita, y `FR-055` sale de `TC-040`. 🔵 5: `S-09g` (dupla en secundaria) y `S-09h [property]` para `jugador`; §11.5 y §17 suman `FR-056` y `.equipo-tab-fuera`. 🔵 7: `FR-055` se parte en `FR-055` y `FR-055b`; el motivo de `FR-044` pasa a una nota. 🔵 8: `S-05d` pasa a `[boundary]`; `S-09d` vuelve a su orden. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Hueco encontrado al derivar el Implementation Plan y aprobado por el owner: `FR-001` y `FR-002` cambian el orden y la cantidad de botones del encabezado que fijan `FR-042` y `S-05` de `INTERCAMBIAR_COLORES_SPEC.md`, `S-01` de `PARTIDO_FINALIZADO_SPEC.md` y `S-01` y `AC-02` de `PANEL_ARMADO_SPEC.md`, sin declararlo; tres tests de `tests/layout.test.js` los afirman (`panel-armado`, `colores-encabezado`, `partido-finalizado`). Se agrega la tabla 3 a la declaración de reemplazo, se marcan las cinco partes en sus specs y la declaración pasa de nueve a diez specs. Self-critique: skipped (enmienda puntual a pedido del owner). |
 
 ---
 
