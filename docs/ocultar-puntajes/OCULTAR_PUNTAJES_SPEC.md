@@ -15,7 +15,7 @@
 > rama `docs/ocultar-puntajes` al 2026-11-20 (commit `e77e06d`).
 
 > **Declaración de reemplazo (gobernanza vigente en [`AGENTS.md`](../../AGENTS.md)).**
-> Esta Spec acota requisitos de cinco specs vigentes. Ninguno se deroga: todos siguen
+> Esta Spec acota requisitos de nueve specs vigentes. Ninguno se deroga: todos siguen
 > valiendo tal cual **mientras el ojo está en "visible"**, y los de la primera tabla
 > además dejan de valer para `jugador` en cualquier estado.
 >
@@ -31,6 +31,7 @@
 > | [`CARGA_POR_TOQUE_SPEC.md`](../equipos-en-el-campo/rebanada-6-carga-por-toque/CARGA_POR_TOQUE_SPEC.md) | `FR-003` (por herencia) | No se edita. `FR-003` dice que, con la inscripción cerrada, `jugador` ve "la cancha … en el modo de lectura de la rebanada 4"; ese modo de lectura incluye la fila de resultado de `FR-041`, que es lo que hoy dibuja el "pts" de `jugador` durante la carga ([index.html:7238](../../index.html#L7238)). Al acotarse `FR-041`, la carga queda cubierta. Esto responde la pregunta de §16 del Concept Note. |
 > | [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md) | `FR-025`, `FR-025b` | `jugador` no ve las pastillas «2º» y «!» ni la «!» de las pestañas, y la cantidad fuera de puesto no forma parte del nombre accesible de sus pestañas (`D-07` enmendada). |
 > | [`CANCHA_SPEC.md`](../equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md) | `FR-023b` | El `title` de la camiseta no le declara a `jugador` que alguien no juega en su principal. |
+> | [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md) | `FR-076` (sólo "y, si difiere, el del puesto principal"), `FR-077` | El `title` de la camiseta no le nombra a `jugador` el puesto principal, y `jugador` no ve la marca «2º». `FR-077` ya estaba desalineado: `FR-025` de `POSICIONES_DEL_JUGADOR_SPEC.md` cambió cuándo se muestra la «2º» sin declarar su reemplazo; la nota lo deja dicho. |
 >
 > **2. Lo que deja de dibujarse mientras el ojo está en "oculto" (`D-02`, `FR-020` a
 > `FR-038`).**
@@ -38,25 +39,32 @@
 > | Spec | Parte acotada |
 > |---|---|
 > | [`CANCHA_SPEC.md`](../equipos-en-el-campo/rebanada-1-cancha/CANCHA_SPEC.md) (rebanada 1) | `FR-023b` (el `title` declara que no juega en su principal), `FR-024` (el puntaje sobre la camiseta), `FR-025` (la mención "sin puntaje" en el `title`), `FR-027` (el puntaje de la dupla), `FR-030` (el candado) |
-> | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) (rebanada 3) | `FR-003`, `FR-004`, `FR-005`, `FR-009` (la píldora de diferencia y su descripción emergente), `FR-010` (el combo de estrategia), `FR-020` (el aviso de equipos desactualizados), `FR-030` (la grilla de diferencia por línea), `FR-037` (el aspecto de la píldora excedida), `FR-040`, `FR-052` y `FR-072b` ("Por qué quedaron así", lo que declara sobre titulares sin puntaje y su división en dos grupos), `FR-054` (el total en el encabezado del panel); y `FR-070`, `FR-070b`, `FR-071` y `FR-074` sólo en lo que muestran (la píldora, los totales, la grilla y el receipt; el recálculo no cambia) |
+> | [`PANEL_ARMADO_SPEC.md`](../equipos-en-el-campo/rebanada-3-panel-armado/PANEL_ARMADO_SPEC.md) (rebanada 3) | `FR-003`, `FR-003b`, `FR-003c`, `FR-004`, `FR-005`, `FR-009` (la píldora de diferencia, sus textos y su descripción emergente), `FR-010` (el combo de estrategia), `FR-020` (el aviso de equipos desactualizados), `FR-030` (la grilla de diferencia por línea), `FR-037` (el aspecto de la píldora excedida), `FR-040`, `FR-052` y `FR-072b` ("Por qué quedaron así", lo que declara sobre titulares sin puntaje y su división en dos grupos), `FR-054` (el total en el encabezado del panel); y `FR-070`, `FR-070b`, `FR-070c`, `FR-071` y `FR-074` sólo en lo que muestran (la píldora, los totales, la grilla y el receipt; el recálculo no cambia) |
 > | [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md) | `FR-025` (las pastillas «2º» y «!»), `FR-025b` (la «!» de las pestañas y su cantidad en el nombre accesible), `FR-025c` sólo en su `title` del número (el número se va con `FR-024`; cómo se valúa no cambia), `FR-021b` (el recuadro del candidato con costo y su `title`; vale también para el arrastre), `FR-012b` (la cuenta de candidatos en cada pestaña), `FR-070` sólo en lo que muestra (los totales, la diferencia entre equipos y la diferencia por línea; el recálculo no cambia), `FR-071` ("Por qué quedaron así") |
 > | [`PARTIDO_FINALIZADO_SPEC.md`](../equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) | `FR-041`, `FR-042b` también para `admin` (ver tabla 1) |
+> | [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md) | `FR-076` (sólo "y, si difiere, el del puesto principal"), `FR-077` también para `admin` (ver tabla 1) |
+> | [`003-motor-generacion-equipos/spec.md`](../003-motor-generacion-equipos/spec.md) | `FR-009` (el resumen después de cada generación, hoy "Por qué quedaron así") |
+> | [`008-duplas-rotacion/spec.md`](../008-duplas-rotacion/spec.md) | `FR-015` (deshacer una dupla activa el aviso de equipos desactualizados) |
+> | [`009-ventaja-sin-arquero/spec.md`](../009-ventaja-sin-arquero/spec.md) | `FR-008` (lo que informa "Por qué quedaron así"), `FR-011` (el cambio del parámetro activa el aviso de equipos desactualizados) |
 >
-> **No reemplaza** —y lo declara para que no se lea como contradicción— a
-> [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md)
-> `FR-042`: el aviso de bloqueo se sigue viendo en los dos estados (`FR-041` de esta Spec,
-> enmienda de `D-02` del 2026-11-20). Tampoco reemplaza a
+> **No reemplaza** —y lo declara para que no se lea como contradicción— a `FR-042` de
+> [`DESGLOSE_POSICIONES_SPEC.md`](../desglose-posiciones/DESGLOSE_POSICIONES_SPEC.md): el aviso de bloqueo se sigue viendo en los dos estados (`FR-041` de esta Spec,
+> enmienda de `D-02` del 2026-11-20). De esa spec sólo se acotan `FR-076` y `FR-077`. Tampoco reemplaza a
 > [`007-permisos-por-usuario/spec.md`](../007-permisos-por-usuario/spec.md): la tabla 1 lo
 > hace cumplir (`FR-004`, `FR-013`), no lo cambia. Ni a `FR-008` de `PANEL_ARMADO_SPEC.md`:
 > el texto que copia Copiar no cambia (`FR-060`).
 >
-> Cada parte acotada de `CANCHA_SPEC.md`, `PANEL_ARMADO_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`
-> y `POSICIONES_DEL_JUGADOR_SPEC.md` quedó marcada el 2026-11-20 con una nota que apunta a
-> esta Spec, y con una fila en el Change log de cada una. `CARGA_POR_TOQUE_SPEC.md` no se
+> Cada parte acotada de `CANCHA_SPEC.md`, `PANEL_ARMADO_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`,
+> `POSICIONES_DEL_JUGADOR_SPEC.md`, `DESGLOSE_POSICIONES_SPEC.md` y los `spec.md` de `003`, `008` y
+> `009` quedó marcada el 2026-11-20 con una nota que apunta a
+> esta Spec, y con una fila en el Change log de las que lo tienen (los `spec.md` de speckit
+> no tienen). `CARGA_POR_TOQUE_SPEC.md` no se
 > marca: su `FR-003` no cambia de texto, sólo hereda el acotamiento de `FR-041`.
-> El criterio para elegir qué requisitos se marcan: todo requisito vigente que obligue a
-> mostrar algo que esta Spec deja de dibujar, incluidos los que describen un recálculo de
-> algo que se muestra; en esos, la nota aclara que el cálculo no cambia.
+> El criterio para elegir qué requisitos se marcan: todo requisito vigente, en cualquier
+> spec de `docs/`, que obligue a mostrar algo que esta Spec deja de dibujar, incluidos los
+> que describen un recálculo de algo que se muestra; en esos, la nota aclara que el cálculo
+> no cambia. Se encuentran buscando en todo `docs/` los textos y clases de cada elemento
+> (`AC-04`), no partiendo de las specs ya conocidas.
 > `tests/layout.test.js:1602-1606`, que exige los dos puntajes de la fila de resultado a
 > 1200 px (`S-04` de la rebanada 4), está dentro del escenario `partido-finalizado`, que ya
 > corre con `admin` ([tests/layout.test.js:1539](../../tests/layout.test.js#L1539)): sigue
@@ -81,10 +89,10 @@ la píldora de diferencia, la grilla por línea, "Por qué quedaron así", el co
 estrategia, el aviso de desactualizado, los candados y las marcas de posición— y deja a la
 vista los jugadores, el marcador y los goles y asistencias. Tocarlo otra vez lo devuelve
 todo. No guarda nada: el estado vive en la memoria de la página, vale para todos los
-partidos con equipos y vuelve a "visible" al recargar o al cambiar de sesión. Aparte del botón, y siempre, el rol
+partidos con equipos y vuelve a "visible" al recargar o al cerrar la sesión. Aparte del botón, y siempre, el rol
 `jugador` deja de ver el puntaje de cada equipo junto al marcador, que hoy le aparece en
-contra de lo que manda `007-permisos-por-usuario`, y deja de ver si alguien juega fuera
-de su posición principal. El producto sigue siendo el mismo
+contra de lo que manda `007-permisos-por-usuario`, y la cancha deja de marcarle quién juega
+fuera de su posición principal. El producto sigue siendo el mismo
 organizador de partidos: el motor no cambia y ningún dato del partido se modifica.
 
 ## 3. Scope
@@ -98,7 +106,7 @@ organizador de partidos: el motor no cambia y ningún dato del partido se modifi
   los nombres accesibles que lo mencionan.
 - La lista de lo que se sigue viendo y de los gestos que siguen funcionando.
 - La corrección del "pts" por equipo de `jugador` (`D-06`).
-- Lo que `jugador` deja de ver sobre la posición principal (`D-07`).
+- Las marcas de posición principal que la cancha deja de mostrarle a `jugador` (`D-07`).
 - El comportamiento responsive de los encabezados y de la tarjeta en los dos estados.
 
 ### 3.2 Out of scope / non-goals
@@ -114,6 +122,15 @@ verificables.
 - El sistema no recordará el estado del ojo entre recargas de la página (diferido, Concept
   Note §14; se agrega a `Roadmap.md` con esta Spec).
 - El sistema no cambiará lo que `jugador` recibe de Firestore ni las reglas de Firestore.
+- El sistema no ocultará a `jugador` el puesto principal ni los secundarios de cada jugador
+  en la lista de convocados ni en el listado de jugadores
+  ([index.html:7950](../../index.html#L7950), [index.html:3031](../../index.html#L3031),
+  [index.html:3055](../../index.html#L3055)): son datos de la ficha. `D-07` le quita las
+  marcas de la cancha, no el dato; comparando, se puede deducir (decisión del owner del
+  2026-11-20, a partir de la segunda crítica independiente).
+- El sistema no ocultará en "oculto" la sigla del puesto principal de la lista de
+  convocados, aunque en dos columnas quede al lado de las canchas y salga en una captura
+  (decisión del owner del mismo día).
 
 ### 3.3 Constraints inherited from the Concept Note
 
@@ -216,7 +233,7 @@ CWE Top 25 consultado en vivo el 2026-11-20: edición 2025
 página).
 
 - **TC-040** — Los textos emergentes y los nombres accesibles que esta feature recorta
-  (`FR-036`, `FR-037`, `FR-055`, `FR-056`) seguirán armándose con el nombre del jugador escapado con
+  (`FR-036`, `FR-037`, `FR-056`) seguirán armándose con el nombre del jugador escapado con
   `escaparHtml`, como hoy ([index.html:5428](../../index.html#L5428)); el botón del ojo sólo
   inserta literales fijos, **defends `CWE-79` *Cross-site Scripting***.
 - **`CWE-200` *Exposure of Sensitive Information*** — ruling, no commitment: el ojo es una
@@ -253,10 +270,10 @@ página).
 | US-01 | Como administrador, quiero ocultar con un toque todos los puntajes de la tarjeta de equipos, para sacar una captura y mandarla al grupo. | FR-001 a FR-007, FR-010, FR-020 a FR-038 |
 | US-02 | Como administrador, quiero volver a ver los puntajes con otro toque, para seguir ajustando los equipos. | FR-011, FR-016 |
 | US-03 | Como administrador, quiero que el marcador y los goles y asistencias sigan a la vista en "oculto", porque son lo que interesa compartir. | FR-040 |
-| US-04 | Como administrador, quiero poder seguir moviendo jugadores y cargando goles en "oculto", sin tener que volver a "visible" para cada cosa. | FR-042, FR-043 |
+| US-04 | Como administrador, quiero poder seguir moviendo jugadores y cargando goles en "oculto", sin tener que volver a "visible" para cada cosa. | FR-042, FR-043, FR-043b, FR-044 a FR-044c |
 | US-05 | Como administrador, quiero que recargar la página me devuelva siempre los puntajes, para no quedarme armando a ciegas sin darme cuenta. | FR-012, FR-014, FR-018 |
 | US-06 | Como jugador, no quiero ver el puntaje de ningún equipo junto al resultado. | FR-050 a FR-052 |
-| US-07 | Como jugador, no quiero ver si un compañero juega en su posición principal o no. | FR-053 a FR-056 |
+| US-07 | Como jugador, no quiero que la cancha me marque si un compañero juega en su posición principal o no. | FR-053 a FR-056 |
 
 ## 6. Glossary
 
@@ -316,6 +333,8 @@ página).
 - **FR-017** — While el partido abierto no tenga equipos generados, el sistema dibujará su
   pantalla igual en "visible" y en "oculto".
 - **FR-018** — When se cierra la sesión, el sistema volverá el estado a "visible".
+- **FR-019** — El sistema cambiará el estado de ocultamiento sólo al tocar el ojo, al cargar
+  la página o al cerrar la sesión; cualquier otro repintado lo conserva.
 
 ### 7.3 Lo que no se dibuja en "oculto"
 
@@ -386,10 +405,17 @@ sólo el espacio en blanco, no lo que se lee.
   "oculto", el sistema repintará la tarjeta respetando §7.3.
 - **FR-043b** — When un gesto de edición cambia los equipos o el resultado con el estado en
   "oculto", el sistema conservará el estado en "oculto".
-- **FR-044** — El sistema mostrará los avisos emergentes de un intercambio de puesto
-  rechazado (por ejemplo, "Ana no juega de Defensor") igual en "visible" y en "oculto"
-  ([index.html:6016-6022](../../index.html#L6016-L6022)). Elegido por el owner el
-  2026-11-20: sólo aparecen tras un gesto y explican por qué no pasó nada.
+- **FR-044** — El sistema mostrará igual en "visible" y en "oculto" el aviso "{A} no juega
+  de {puesto de B}" de un arrastre rechazado (`FR-042c` de `POSICIONES_DEL_JUGADOR_SPEC.md`).
+- **FR-044b** — El sistema mostrará igual en "visible" y en "oculto" el aviso "Nadie puede
+  intercambiar puesto con {A}" (`FR-018` de `POSICIONES_DEL_JUGADOR_SPEC.md`).
+- **FR-044c** — El sistema mostrará igual en "visible" y en "oculto" el aviso "Ya no se puede
+  intercambiar: el reparto cambió" (`FR-034b` de `POSICIONES_DEL_JUGADOR_SPEC.md`).
+
+*Nota a `FR-044` a `FR-044c`.* Son los tres textos de `textoAvisoIntercambio`
+([index.html:6016-6022](../../index.html#L6016-L6022)). Los eligió el owner el 2026-11-20:
+sólo aparecen tras un gesto y explican por qué no pasó nada. Viven fuera de la tarjeta, así
+que `FR-040` no los alcanza.
 
 ### 7.5 Lo que `jugador` deja de ver
 
@@ -405,8 +431,9 @@ sólo el espacio en blanco, no lo que se lee.
 - **FR-054** — Donde el rol de la sesión sea `jugador`, el sistema no dibujará la pastilla
   «!» en ninguna camiseta.
 - **FR-055** — Donde el rol de la sesión sea `jugador`, el sistema no dibujará la «!» de las
-  pestañas Blanco/Negro, y el nombre accesible de cada pestaña será sólo "Equipo Blanco" o
-  "Equipo Negro".
+  pestañas Blanco/Negro.
+- **FR-055b** — Donde el rol de la sesión sea `jugador`, el sistema dará a cada pestaña sólo
+  el nombre accesible "Equipo Blanco" o "Equipo Negro".
 - **FR-056** — Donde el rol de la sesión sea `jugador`, el sistema dará a cada camiseta un
   texto emergente sin las menciones "(su puesto es …)", "(posición secundaria)" ni "fuera
   de puesto"; el nombre del puesto asignado se sigue mostrando.
@@ -518,7 +545,7 @@ sólo el espacio en blanco, no lo que se lee.
   página desplazada hasta la cancha: tocar el ojo deja la pestaña Negro, "Asistencia" y la
   posición de scroll como estaban (`FR-016`, `FR-016c`, `FR-016d`)
 
-#### Scenario S-05 — El estado vale para toda la página y no sobrevive a la recarga (covers FR-004, FR-012, FR-013, FR-014, FR-017, FR-018)
+#### Scenario S-05 — El estado vale para toda la página y no sobrevive a la recarga (covers FR-004, FR-012, FR-013, FR-014, FR-017, FR-018, FR-019)
 
 - **Given** una sesión `admin` con el estado en "oculto" en el partido A, que tiene equipos
 - **When** el administrador abre el partido B, que también tiene equipos
@@ -538,7 +565,7 @@ stateDiagram-v2
   Oculto --> Visible : toca el ojo
   Oculto --> Oculto : abre otro partido / edita
   Visible --> Visible : abre otro partido / edita
-  Oculto --> Visible : cambia la sesión
+  Oculto --> Visible : cierra la sesión
   Oculto --> [*] : recarga
   Visible --> [*] : recarga
 ```
@@ -551,10 +578,10 @@ stateDiagram-v2
   a tener equipos y se dibuja en "oculto", con el ojo tachado (`FR-013`, `FR-043`)
 - `S-05c [boundary]` — cerrar sesión con el estado en "oculto" y volver a entrar con la
   misma cuenta `admin`, sin recargar: el partido A se dibuja en "visible" (`FR-018`)
-- `S-05d [concurrency]` — con el estado en "oculto" y la tarjeta en 1100 px, achicar la
+- `S-05d [boundary]` — con el estado en "oculto" y la tarjeta en 1100 px, achicar la
   ventana a 1099 px y volver a 1100: la aplicación repinta en cada cruce
   ([index.html:5766-5768](../../index.html#L5766-L5768)) y la tarjeta sigue en "oculto",
-  sin la fila de la píldora ni encabezados vacíos (`FR-013`, `FR-028`, `FR-038`)
+  sin la fila de la píldora ni encabezados vacíos (`FR-019`, `FR-028`, `FR-038`)
 
 #### Scenario S-06 — Intercambiar puesto en "oculto" (covers FR-033, FR-035, FR-036, FR-042)
 
@@ -578,7 +605,7 @@ stateDiagram-v2
 - `S-06c [boundary]` — en "visible", la misma selección sigue mostrando el rojo y las
   cuentas como hoy
 
-#### Scenario S-07 — Editar los equipos en "oculto" (covers FR-042, FR-043, FR-043b, FR-044, FR-015, FR-024)
+#### Scenario S-07 — Editar los equipos en "oculto" (covers FR-042, FR-043, FR-043b, FR-044 a FR-044c, FR-015, FR-024)
 
 - **Given** un partido en armado, una sesión `admin`, un viewport de 1200 px y el estado en
   "oculto"
@@ -597,8 +624,16 @@ stateDiagram-v2
   `FR-024`)
 - `S-07d [boundary]` — a 360 px, soltar un jugador sobre la pestaña del otro equipo en
   "oculto" lo mueve igual que en "visible"
-- `S-07e [failure]` — en "oculto", tocar a Ana y después a un jugador del que Ana no
-  cubre el puesto: aparece el aviso "Ana no juega de …", igual que en "visible" (`FR-044`)
+- `S-07e [failure]` — en "oculto", arrastrar a Ana y soltarla sobre un jugador cuyo puesto
+  Ana no cubre: el partido no cambia y aparece el aviso "Ana no juega de …", igual que en
+  "visible" (`FR-044`)
+- `S-07f [failure]` — en "oculto", tocar a Lucas cuando nadie puede intercambiar puesto con
+  él: aparece el aviso "Nadie puede intercambiar puesto con Lucas", igual que en "visible"
+  (`FR-044b`)
+- `S-07g [concurrency]` — en "oculto", con Lucas seleccionado, otra sesión guarda un reparto
+  en el que Pedro deja de ser su candidato, y después se toca a Pedro: aparece "Ya no se puede
+  intercambiar: el reparto cambió", igual que en "visible" (`FR-044c`; mismo caso que `S-01j`
+  de `POSICIONES_DEL_JUGADOR_SPEC.md`)
 
 #### Scenario S-08 — Los textos que se leen sin verse (covers FR-036, FR-037, NFR-004)
 
@@ -619,7 +654,7 @@ stateDiagram-v2
 - `S-08d [boundary]` — el ojo se anuncia como botón con el nombre "Ocultar puntajes" en
   "visible" y "Mostrar puntajes" en "oculto" (`NFR-004`)
 
-#### Scenario S-09 — `jugador` no ve el "pts" por equipo ni las marcas de posición (covers FR-050 a FR-056, FR-003)
+#### Scenario S-09 — `jugador` no ve el "pts" por equipo ni las marcas de posición (covers FR-050 a FR-056, FR-055b, FR-003)
 
 - **Given** un partido finalizado 4 a 3 y una sesión `jugador`, en un viewport de 1200 px
 - **When** se muestra la tarjeta
@@ -637,13 +672,20 @@ stateDiagram-v2
   muestra los nombres y el marcador, sin "pts" (`FR-050`)
 - `S-09c [property]` — para `jugador`, en cualquier situación y ancho, el texto de la
   tarjeta no contiene "pts" ni ningún puntaje de equipo (`FR-052`)
-- `S-09e [boundary]` — el texto emergente de la camiseta de Ana dice su nombre y "Defensor",
-  sin "su puesto es Mediocampista"; el de Juan no dice "fuera de puesto" (`FR-056`)
-- `S-09f [boundary]` — a 360 px, la pestaña del equipo de Juan no muestra «!» y su nombre
-  accesible es "Equipo Blanco" o "Equipo Negro", sin "1 fuera de puesto" (`FR-055`)
 - `S-09d [boundary]` — un `admin` deja el estado en "oculto", cierra sesión y entra una
   cuenta `jugador` en la misma pestaña, sin recargar: `jugador` ve su tarjeta igual que
   siempre, sin ojo, sin "pts" y sin «2º» ni «!» (`FR-018`, `TC-013`)
+- `S-09e [boundary]` — el texto emergente de la camiseta de Ana dice su nombre y "Defensor",
+  sin "su puesto es Mediocampista"; el de Juan no dice "fuera de puesto" (`FR-056`)
+- `S-09f [boundary]` — a 360 px, la pestaña del equipo de Juan no muestra «!» y su nombre
+  accesible es "Equipo Blanco" o "Equipo Negro", sin "1 fuera de puesto" (`FR-055`,
+  `FR-055b`)
+- `S-09g [boundary]` — una dupla en un puesto secundario: el texto emergente de su camiseta
+  no dice "(posición secundaria)" (`FR-056`)
+- `S-09h [property]` — para `jugador`, en cualquier situación y ancho, el documento no
+  contiene ninguna pastilla «2º» ni «!», ninguna «!» de pestaña, y ningún texto emergente ni
+  nombre accesible con "su puesto es", "posición secundaria" o "fuera de puesto" (`FR-053`
+  a `FR-056`)
 
 #### Scenario S-10 — El ojo no toca los datos (covers FR-014, FR-015, FR-060, NFR-005)
 
@@ -685,7 +727,7 @@ Sin escenarios propios: los casos de borde viven como variantes de §9.1.
 ### 9.3 Failure / unwanted-behaviour scenarios
 
 Sin escenarios propios: la única acción no disponible en "oculto" (bloquear) es la variante
-`S-07c`, el intercambio rechazado es `S-07e`, y la ausencia del ojo para `jugador` está en
+`S-07c`, los avisos de intercambio son `S-07e` a `S-07g`, y la ausencia del ojo para `jugador` está en
 `S-09`.
 
 ## 10. Data model & external contracts
@@ -709,16 +751,20 @@ Ninguno.
 ### 11.1 Functional acceptance
 
 - **AC-01** — `S-01` a `S-08` y sus variantes pasan con una sesión `admin` (cubre `FR-001`
-  a `FR-043`).
+  a `FR-044c`).
 - **AC-02** — `S-09` y sus variantes pasan con una sesión `jugador` (cubre `FR-003`,
-  `FR-050` a `FR-056`).
+  `FR-050` a `FR-056`, `FR-055b`).
 - **AC-03** — `S-10` pasa: el texto de Copiar es el mismo en los dos estados (cubre
   `FR-060`).
 - **AC-04** — Cada requisito listado en la declaración de reemplazo, salvo `FR-003` de
   `CARGA_POR_TOQUE_SPEC.md`, tiene en su spec una nota "Acotado el 2026-11-20" que apunta a
   esta Spec, y `AC-05` de `PARTIDO_FINALIZADO_SPEC.md` está corregido. Se verifica por
-  `grep`: para cada ID de las tablas, la línea siguiente a su definición en su spec contiene
-  el enlace a `OCULTAR_PUNTAJES_SPEC.md` (cubre la obligación de `AGENTS.md`).
+  script: para cada ID de las tablas, el bloque del requisito en su spec —desde su
+  definición hasta la definición siguiente— contiene el enlace a `OCULTAR_PUNTAJES_SPEC.md`.
+  Y para completitud, un `grep` sobre todo `docs/` de los textos y clases de cada elemento
+  oculto («2º», "fuera de puesto", "posición secundaria", "su puesto es", "pts", "píldora",
+  "candado", "Por qué quedaron así", "diferencia por línea") no encuentra ningún requisito
+  vigente que obligue a mostrarlo sin nota (cubre la obligación de `AGENTS.md`).
 
 ### 11.2 Non-functional acceptance
 
@@ -761,7 +807,7 @@ Ninguno.
 > **Convención de binding.** Todo test que satisfaga un ID de esta Spec lo lleva en forma
 > canónica con guion dentro de un string literal: el nombre del caso, o el campo `spec:` de
 > un escenario de `layout.test.js` (`AGENTS.md` → Tests). Nunca en un comentario. Los
-> requisitos que enumeran varios elementos (`FR-036`, `FR-040`, `FR-042`) se verifican con
+> requisitos que enumeran varios elementos (`FR-036`, `FR-040`, `FR-042`, `FR-056`) se verifican con
 > una aserción por elemento, y cada mensaje de falla nombra el ID y el elemento.
 
 - **AC-50** — Every scenario in §9 — including every enumerated variant (`S-NNa`, `S-NNb`, …) — has at least one runnable test referenced in the Plan's §12.1 *Scenario Traceability Matrix*, with the scenario or variant ID embedded via a **structurally-anchored** binding (a string literal in the test case name or in a `spec:` field — *not* in a comment or docstring; those false-match the `T-N.D8` grep gate). The §16 *AC coverage* matrix should also cite the scenarios or scenario ranges each `AC-*` aggregates — this half is **reviewer-checked, not mechanically gated**. Additionally, every scenario heading in §9 is followed by either a `Variants:` block enumerating its shifts or the explicit `Variants: none — single-path scenario` declaration. Mechanically enforced by Plan `T-N.D8` **and** `T-N.D8b`.
@@ -813,7 +859,7 @@ Ninguno.
 | El administrador queda armando en "oculto" sin darse cuenta | Med | Med | Ícono tachado y nombre "Mostrar puntajes" (`FR-006`, `FR-007`); la recarga vuelve a "visible" (`FR-012`) |
 | A 360 px, cuatro botones de 44 px no entran en una fila junto al título | Med | Low | `NFR-002` y `S-11`; el encabezado ya puede pasar el título arriba (`flex-wrap`, [index.html:888](../../index.html#L888)) |
 | Un encabezado de campo vacío queda con margen | Low | Med | `FR-038`; `NFR-003` lo mide por presencia, no por alto |
-| Marcar las partes acotadas en cinco specs se olvida o queda a medias | Med | Low | `AC-04`, revisado antes de mergear la rama de docs |
+| Marcar las partes acotadas en nueve specs se olvida o queda a medias | Med | Low | `AC-04`, revisado antes de mergear la rama de docs |
 | Algún jugador extraña el "pts" junto al resultado | Low | Low | Es lo que `007` ya prometía, y el número no era el real (Concept Note, Pain 3) |
 
 ## 16. Open questions
@@ -828,7 +874,7 @@ Ninguno.
 - **Plan must respect (no relitigation):** every FR-* (§7), every NFR-* (§8), every TC-* (§4), every AC-* (§11 — including the `AC-50`/`AC-51`/`AC-52` test-obligation gates, the `AC-53`/`AC-54` traceability gates, and the `AC-55` supply-chain gate in §11.5), and every Concept Note constraint inherited in §3.3. En particular: lo oculto se omite del documento, no se esconde con CSS (`TC-012`); la corrección de `jugador` no depende del ojo (`TC-013`); el aviso de bloqueo no se oculta (`FR-041`).
 - **Plan has freedom over:** dónde vive la variable del estado y cómo se llama; si cada función de dibujo consulta el estado o recibe un parámetro; si reutiliza partes de la rama de `jugador` (Concept Note §9.1); el texto exacto de los comentarios; cómo se arma el test de `NFR-006`.
 - **Plan must resolve:** `OPEN-Q-01`, `OPEN-Q-02`.
-- **Plan must also:** agregar escenarios de `jugador` (finalizado y carga) que afirmen que no hay `.resultado-puntaje`, `.team-total`, `.camiseta-sec` ni `.camiseta-fuera`, y el de `admin` en "oculto" para el escenario `partido-finalizado` —el único escenario de `jugador` de partido finalizado (`tests/layout.test.js:2961`) hoy no los mira—; los escenarios de arrastre invocan los manejadores directamente, porque el navegador no deja sintetizar un arrastre nativo desde un test ([index.html:5874-5878](../../index.html#L5874-L5878)); el fixture de pruebas debe poder disparar `onAuthChange(null)` para `S-05c` y `S-09d`, porque hoy `signOut` no hace nada (`tests/fixtures-app.js:501`); agregar un escenario de `tests/layout.test.js` por cada superficie de `AC-10`, visto fallar; respetar que `tests/harness.js` recorta funciones por nombre (`AGENTS.md` → Estilo).
+- **Plan must also:** agregar escenarios de `jugador` (finalizado y carga) que afirmen que no hay `.resultado-puntaje`, `.team-total`, `.camiseta-sec`, `.camiseta-fuera` ni `.equipo-tab-fuera`, ni textos emergentes con las menciones de `FR-056`, y el de `admin` en "oculto" para el escenario `partido-finalizado` —el único escenario de `jugador` de partido finalizado (`tests/layout.test.js:2961`) hoy no los mira—; los escenarios de arrastre invocan los manejadores directamente, porque el navegador no deja sintetizar un arrastre nativo desde un test ([index.html:5874-5878](../../index.html#L5874-L5878)); el fixture de pruebas debe poder disparar `onAuthChange(null)` para `S-05c` y `S-09d`, porque hoy `signOut` no hace nada (`tests/fixtures-app.js:501`); agregar un escenario de `tests/layout.test.js` por cada superficie de `AC-10`, visto fallar; respetar que `tests/harness.js` recorta funciones por nombre (`AGENTS.md` → Estilo).
 - **Deuda de verificación heredada (`MD-26`):** ningún `[UNVERIFIED]` abierto. Un `[INFERRED]` en `A-01`.
 
 ## 18. Change log
@@ -838,6 +884,7 @@ Ninguno.
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Resuelve `OPEN-Q-01` a `OPEN-Q-04` del Concept Note con respuestas del owner del mismo día: el nombre del ojo cambia con el estado; los textos emergentes y los nombres accesibles también se limpian; el aviso de bloqueo se ve siempre (enmienda `D-02`/`D-03`); la entrada de la rebanada 7 en `Roadmap.md` se acota a `nameFormat`. Hueco encontrado al redactar y resuelto por el owner: el rojo del candidato con costo también se oculta durante el arrastre (`FR-034`, misma enmienda de `D-02`). Ubica el requisito de la rebanada 6 que cubre la fila de `jugador` en carga (`FR-003` de `CARGA_POR_TOQUE_SPEC.md`, por herencia de `FR-041`). Marca las partes acotadas en `CANCHA_SPEC.md`, `PANEL_ARMADO_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md` (con la corrección de su `AC-05`) y `POSICIONES_DEL_JUGADOR_SPEC.md`. Autocrítica contra la rúbrica, mismo modelo que el autor. 🔴 resuelto: cerrar sesión no recarga la página (`index.html:8740-8782`), así que el estado "oculto" de un `admin` pasaba a la cuenta siguiente de la misma pestaña y, para `jugador`, contradecía `FR-061`; se agrega `FR-018` (vuelve a "visible" al cambiar la sesión), `S-05c` y se reescribe `S-09d`. 🟡 resueltos: `S-01e` describía un armado sin Intercambiar colores, que no existe (`sePuedenIntercambiarColores`, `index.html:6315-6317`); se reemplaza por la carga, y `FR-002` nombra la carga y la edición. `FR-016` no tenía escenario para el equipo visible, el tipo de evento ni el scroll; se agrega `S-04d`. Seis citas de línea corridas, corregidas. 🔵 resuelto: `NFR-001` exigía cuatro situaciones a `jugador`, que ve tres. 🔵 aceptado sin cambio: `FR-042` repite que bloquear no está disponible, ya dicho en `FR-024`; se deja como aclaración. Diagrama de `S-05` renderizado con `mermaid-cli` y revisado a ojo. Self-critique: passed (1🔴 / 2🟡 / 2🔵). |
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Segunda autocrítica contra la rúbrica, mismo modelo que el autor, sobre el commit `2222382`. 🟡 resueltos: la declaración de reemplazo omitía cinco requisitos que también obligan a mostrar puntajes o el receipt —`FR-027` de `CANCHA_SPEC.md`, `FR-052` y `FR-072b` de `PANEL_ARMADO_SPEC.md`, `FR-070` y `FR-071` de `POSICIONES_DEL_JUGADOR_SPEC.md`—; se agregan a la tabla 2 y se marcan en sus specs. El *Given* de `S-06` ya tenía a Lucas seleccionado antes del toque que lo selecciona; se reescribe. `NFR-006` prometía cubrir todo §7.3 con un test sobre el HTML, pero el rojo del arrastre (`FR-034`) se marca sobre el documento ya dibujado; se excluye y se remite a `S-06a`. 🔵 resueltos: la frase final de la declaración decía que se marcaron todas las specs, y `CARGA_POR_TOQUE_SPEC.md` a propósito no; `FR-038` cambia también el espacio en blanco de `jugador` en una columna (hoy ya tiene un encabezado vacío) y ahora lo declara compatible con `D-07`; el Summary no mencionaba el cambio de sesión de `FR-018`. Self-critique: passed (0🔴 / 3🟡 / 3🔵). |
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la crítica independiente [`OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_sonnet-5-5.md`](./OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_sonnet-5-5.md) (COMMENT, 0🔴 / 5🟡 / 5🔵), cada hallazgo verificado contra el código antes de aplicarlo; los diez se confirmaron. 🟡 1: `FR-017` y el Glosario describían una sola pantalla sin equipos; el código tiene dos (`index.html:7145-7149`, `7151-7176`); `FR-017` pasa a "se dibuja igual en los dos estados". 🟡 2: la tabla 2 suma `FR-037`, `FR-070`, `FR-070b`, `FR-071` y `FR-074` de `PANEL_ARMADO_SPEC.md`, marcados en ese spec, y declara el criterio de qué se marca; `AC-04` pasa a verificarse por `grep`. 🟡 3: `FR-018` queda registrado en `D-05` del Concept Note y anclado sólo al cierre de sesión, sin atribuirle una suposición a `D-05`. Al responder, el owner pidió además que `jugador` no vea si alguien juega en su posición principal: `D-07` se invierte, se agregan `FR-053` a `FR-056`, `US-07`, `S-09e`, `S-09f`, filas nuevas en la tabla 1 (`FR-025`, `FR-025b` de posiciones, `FR-023b` de la cancha), y `FR-061` queda sin efecto. Con eso la red de seguridad por rol que proponía el crítico deja de hacer falta. 🟡 5: `NFR-003` mide por presencia, no por alto (un `<h4>` vacío mide 0 pero deja 12 px de margen, `index.html:498`). 🟡 6: `FR-016` se parte en cuatro (`FR-016` a `FR-016d`), `FR-043` en dos (`FR-043b`), los motivos de `FR-018` y `FR-038` salen del requisito, y §11.5 pide una aserción por elemento para `FR-036`, `FR-040` y `FR-042`. 🔵 4: el owner eligió que el aviso de intercambio rechazado se vea en los dos estados (`FR-044`, `S-07e`). 🔵 7: `S-06b` y `S-07c` retagueadas `[boundary]`; nueva `S-05d [concurrency]` para cruzar 1099/1100 px en "oculto". 🔵 8 y 10: §17 pide escenarios de `jugador` que afirmen la ausencia del "pts" y de «2º»/«!», arrastre por manejadores y un fixture que dispare `onAuthChange(null)`; se corrige la instrucción sobre `tests/layout.test.js:1602-1606`, que ya corre con `admin`. 🔵 9: `AC-54` declara que no hay telemetría y que cada `OBS-*` nombra su test de CI. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la segunda crítica independiente [`OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_fable-5-2.md`](./OCULTAR_PUNTAJES_SPEC_CRITIQUE_2026-11-20_fable-5-2.md) (COMMENT, 0🔴 / 4🟡 / 4🔵), cada hallazgo verificado contra el código y las specs antes de aplicarlo; los ocho se confirmaron. 🟡 1: `S-07e` describía un toque y el aviso sale al soltar un arrastre (`index.html:6032-6040`, `6234-6238`); se reescribe, y `FR-044` se parte en `FR-044` a `FR-044c`, uno por cada aviso de `textoAvisoIntercambio`, con `S-07f` y `S-07g` (esta, como `S-01j` de posiciones: otra sesión guarda entre los dos toques). 🟡 2: el owner eligió que `D-07` quite las marcas de la cancha y no el dato; §3.2 declara que la lista de convocados y el listado de jugadores siguen mostrando el puesto principal y los secundarios, y que en "oculto" la sigla de la lista de convocados sigue visible; `US-07`, el Summary, §3.1 y la Concept Note se acotan en ese sentido. 🟡 3: la declaración suma `FR-076` y `FR-077` de `DESGLOSE_POSICIONES_SPEC.md`; además, el barrido de todo `docs/` que ahora pide `AC-04` encontró seis faltantes más —`FR-009` de `003`, `FR-015` de `008`, `FR-008` y `FR-011` de `009`, `FR-003b`, `FR-003c` y `FR-070c` de `PANEL_ARMADO_SPEC.md`—, todos agregados y marcados: nueve specs, 42 requisitos. 🟡 6: `AC-04` busca la nota en el bloque del requisito, no en la línea siguiente, y suma el barrido de completitud sobre todo `docs/`. 🔵 4: `AC-01` llega a `FR-044c`, `US-04` suma `FR-043b` y `FR-044` a `FR-044c`, Summary y diagrama dicen "cierra la sesión" (diagrama renderizado y revisado), nuevo `FR-019` (el estado sólo cambia al tocar el ojo, al cargar la página o al cerrar sesión) que `S-05d` cita, y `FR-055` sale de `TC-040`. 🔵 5: `S-09g` (dupla en secundaria) y `S-09h [property]` para `jugador`; §11.5 y §17 suman `FR-056` y `.equipo-tab-fuera`. 🔵 7: `FR-055` se parte en `FR-055` y `FR-055b`; el motivo de `FR-044` pasa a una nota. 🔵 8: `S-05d` pasa a `[boundary]`; `S-09d` vuelve a su orden. Self-critique: skipped (enmienda desde una crítica independiente ya hecha). |
 
 ---
 

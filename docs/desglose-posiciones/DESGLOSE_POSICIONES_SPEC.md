@@ -453,9 +453,11 @@ CWE Top 25 consultado en vivo el 2026-09-30: edición 2025
 - **FR-076** — El sistema expondrá en el `title` de la camiseta el nombre del puesto
   asignado y, si difiere, el del puesto principal (`CANCHA_SPEC.md` `FR-023`,
   `FR-023b`).
+  **Acotado el 2026-11-20 por `FR-036` y `FR-056` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: la parte "y, si difiere, el del puesto principal" no vale con el botón de ocultar puntajes en "oculto" ni, nunca, para `jugador`; el puesto asignado se sigue exponiendo.
 - **FR-077** — El sistema mostrará la marca "2º" en la camiseta cuando el puesto asignado
   no sea el principal, como hoy
   ([index.html:4820-4832](../../index.html#L4820-L4832)).
+  **Acotado el 2026-11-20 por `FR-021` y `FR-053` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la marca «2º» no se dibuja, y `jugador` no la ve nunca. Además, este requisito ya estaba desalineado: cuándo se muestra la «2º» lo fija desde el 2026-10-29 `FR-025` de [`POSICIONES_DEL_JUGADOR_SPEC.md`](../posiciones-del-jugador/POSICIONES_DEL_JUGADOR_SPEC.md) (sólo si la unidad cubre ese puesto), que no declaró su reemplazo.
 
 ### 7.10 Partidos guardados
 
@@ -943,6 +945,7 @@ Declaración de reemplazo; `OPEN-Q-08` → `FR-066`.
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Revisión de las correcciones de la autocrítica: `FR-059` pasa a tener escenario propio en la Spec (`S-06e`) en vez de dejarlo al Plan, y se suma a `D-05` en §3.3; las marcas `[UNVERIFIED — …]` de `A-01` y §17 dejan de ir entre comillas invertidas anidadas, que rompían el formato. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Las partes reemplazadas quedan marcadas en sus Specs de origen (`002`, `003` y su `data-model.md`, `011`, `ORDEN_JUGADORES_SPEC.md`, `CANCHA_SPEC.md`, `PARTIDO_FINALIZADO_SPEC.md`); §17 deja de pedírselo al Plan. |
 | 2026-09-30 | Lucas Manoukian (claude-opus-5-5) | Dos enmiendas que surgieron al derivar el Implementation Plan, las dos decididas por el owner: `NFR-005` deja afuera los números que dependen del promedio general del jugador (el total de un partido de "Por puntaje", el aporte de un integrante de dupla sin nota en la posición guardada), porque `FR-028` cambia ese promedio al reclasificar y `FR-029` no deja usar el viejo; `S-06a` y `S-06b` pasan a la regla de color vigente desde `09335a6` (Arco y Ataque se distinguen como excedidas igual que las demás), y la Declaración de reemplazo suma `FR-034` y sus dependientes de `PANEL_ARMADO_SPEC.md`, marcados en su origen. El enlace al Plan se completa. Self-critique: skipped (enmienda puntual; el Plan corre su propia crítica). |
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del acotamiento declarado por [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md): `FR-076` (sólo la mención del puesto principal) y `FR-077` dejan de valer con el botón de ocultar puntajes en "oculto" y, siempre, para `jugador`. La nota de `FR-077` deja dicho que ya estaba desalineado con `FR-025` de `POSICIONES_DEL_JUGADOR_SPEC.md`. |
 
 ---
 
