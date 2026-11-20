@@ -6,7 +6,7 @@
 >
 > **Concept note:** [OCULTAR_PUNTAJES_CONCEPT.md](./OCULTAR_PUNTAJES_CONCEPT.md)
 >
-> **Implementation plan:** *not yet written*
+> **Implementation plan:** [OCULTAR_PUNTAJES_IMPLEMENTATION_PLAN.md](./OCULTAR_PUNTAJES_IMPLEMENTATION_PLAN.md)
 
 > **Grounding evidence (`MD-25`).** Esta Spec se apoya en el ledger §6.5 *Sources &
 > Origins* del Concept Note. Donde un `FR-*`/`NFR-*`/`TC-*` se apoya en una ubicación de

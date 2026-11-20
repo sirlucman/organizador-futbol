@@ -4,7 +4,7 @@
 >
 > **Reviewers:** *pending*
 >
-> **Spec:** [OCULTAR_PUNTAJES_SPEC.md](./OCULTAR_PUNTAJES_SPEC.md) · **Implementation plan:** *not yet written*
+> **Spec:** [OCULTAR_PUNTAJES_SPEC.md](./OCULTAR_PUNTAJES_SPEC.md) · **Implementation plan:** [OCULTAR_PUNTAJES_IMPLEMENTATION_PLAN.md](./OCULTAR_PUNTAJES_IMPLEMENTATION_PLAN.md)
 
 ## 1. TL;DR
 
