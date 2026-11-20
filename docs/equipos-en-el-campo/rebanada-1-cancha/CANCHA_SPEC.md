@@ -346,13 +346,16 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
   declarada, entonces el sistema lo declarará explícitamente en el `title` de su
   camiseta — la información que hoy vive en la fila de la lista
   ([`index.html:3597-3598`](../../../index.html#L3597-L3598)).
+  **Acotado el 2026-11-20 por `FR-036` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el `title` no lo declara.
 - **FR-024** — Donde el rol de la sesión sea `admin`, el sistema mostrará sobre la
   camiseta la píldora con el puntaje de la unidad de armado
   ([`index.html:3535-3538`](../../../index.html#L3535-L3538)). El caso del rol
   `jugador` lo cubre `FR-060`.
+  **Acotado el 2026-11-20 por `FR-020` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el puntaje no se dibuja.
 - **FR-025** — Si la unidad de armado no tiene puntaje calculable, entonces el
   sistema no dibujará la píldora y lo declarará en el `title` de la camiseta. La
   leyenda "sin puntaje" que hoy ocupa la columna de la fila no cabe en la píldora.
+  **Acotado el 2026-11-20 por `FR-036` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el `title` no dice "sin puntaje".
 - **FR-026** — El sistema mostrará la dupla de rotación con la cápsula de dos
   nombres y el ícono de rotación en lugar del nombre simple
   ([`handoff/README.md` § Camiseta → Cápsula de dupla](../handoff/README.md)).
@@ -368,6 +371,7 @@ estables, pero el ranking vigente a la fecha no se verificó.]`
   esté cerrada y el partido no esté finalizado, el sistema mostrará un candado
   sobre cada camiseta, indicando con su estado si esa unidad está fijada
   ([`index.html:3572-3580`](../../../index.html#L3572-L3580)).
+  **Acotado el 2026-11-20 por `FR-024` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el candado no se dibuja.
 - **FR-031** — Cuando el administrador active el candado de una camiseta, el
   sistema alternará el bloqueo de esa unidad y volverá a pintar el panel, con el
   mismo efecto que hoy tiene el botón de la fila.
@@ -820,6 +824,7 @@ modelo de datos sí cambia en la rebanada 5, y el diagrama corresponde a esa Spe
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del acotamiento declarado por [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md): `FR-023b`, `FR-024`, `FR-025` y `FR-030` valen sólo con el botón de ocultar puntajes en "visible". |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo declarado en el encabezado de `POSICIONES_DEL_JUGADOR_SPEC.md` (`AC-02` de esa Spec, todavía en borrador): quedan marcados `TC-012`, la fila "Posición asignada" del glosario y `A-04`. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). Ajustada el mismo día, cuando esa Spec retiró el arco vacío (`D-31` de su Concept Note). |
 | 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marca `FR-042` como reemplazado —y ya sin ningún estado en el que aplique— por `FR-001`/`FR-002` de la rebanada 6, que es la que cierra los dos estados que quedaban (la rebanada 4 había cerrado el tercero). Arrastra a `S-10`, `S-10a`, `S-10b` y `AC-03`. Lo detectó la auditoría de conformidad del 2026-09-23: la declaración existía de un solo lado. No cambia ningún otro requisito ni el comportamiento de la aplicación. |
 | 2026-09-02 | Lucas Manoukian | `FR-012` se invierte: una línea del catálogo sin unidades ahora se dibuja igual, vacía, en vez de omitirse. Reportado desde la rebanada 2 (el arrastre): mover a mano un jugador entre equipos puede dejar a uno sin nadie en una línea (p. ej. sin Ataque), y con el comportamiento original la línea de al lado subía a ocupar ese lugar — un volante terminaba viéndose donde antes estaba el delantero, dando la impresión de que jugaba ahí. Se ajustan `S-01b`, `S-02` y `S-02c`, que describían el comportamiento viejo como el correcto. `S-01a` de `ARRASTRE_SPEC.md` (rebanada 2) queda igual de afectado; se anota ahí también. Self-critique: no corresponde (enmienda posterior a la implementación, a pedido explícito de una corrección puntual). |
