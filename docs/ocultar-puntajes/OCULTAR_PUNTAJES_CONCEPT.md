@@ -12,7 +12,7 @@ Hoy el administrador no tiene forma de mostrar los equipos armados sin que se
 vean los puntajes: el número sobre cada camiseta, el total de cada equipo, la
 píldora de diferencia, la diferencia por línea y "Por qué quedaron así". Se
 propone un **botón con un ojo**, sólo para `admin`, a la izquierda del botón de
-Copiar en la tarjeta de equipos, en cualquiera de sus estados. Tocarlo oculta
+Copiar en la tarjeta de equipos, en cualquiera de sus situaciones (`D-01`). Tocarlo oculta
 todo lo que revela puntajes o cómo se armaron los equipos —incluidas las
 pastillas «2º» y «!» de posición y los candados—, y deja a la vista los
 jugadores, el marcador y los goles y asistencias. El objetivo es que la pantalla
@@ -20,8 +20,9 @@ se pueda mostrar o capturar para compartirla con el grupo sin herir
 susceptibilidades. La decisión que el lector debe conocer antes que ninguna
 otra: **ocultar es sólo visual y momentáneo** (`D-04`, `D-05`) —no guarda nada,
 no cambia los equipos y vuelve a "mostrar todo" al recargar la página—. Y la
-feature corrige además una fuga existente: el rol `jugador` hoy ve el puntaje
-total de cada equipo junto al marcador, contra lo que manda `007` (`D-06`).
+feature corrige además un bug existente: el rol `jugador` hoy ve un "pts" por
+equipo junto al marcador, calculado sin los puntajes que no recibe, contra lo
+que manda `007` (`D-06`).
 
 ## 2. Problem statement
 
@@ -36,30 +37,40 @@ total de cada equipo junto al marcador, contra lo que manda `007` (`D-06`).
   ([index.html:7282-7283](../../index.html#L7282-L7283)). Un jugador que ve que
   vale menos que otro puede sentirse expuesto. Hoy la única salida es recortar
   la imagen a mano o entrar con otra cuenta de rol `jugador`, y ninguna de las
-  dos alcanza (Pain 2).
+  dos alcanza (Pain 2). `[INFERRED — el owner no describió cómo lo resuelve
+  hoy; son los dos caminos que la aplicación deja abiertos]`
 - **Pain 2 — la vista de `jugador` tampoco es limpia.** Aun con una cuenta
   `jugador`, la pantalla muestra las pastillas «2º» y «!» que dicen quién juega
   fuera de su posición principal
-  ([index.html:5524-5526](../../index.html#L5524-L5526), sin guarda de rol) y,
-  con la inscripción cerrada o el partido finalizado, el puntaje total de cada
-  equipo junto al marcador
+  ([index.html:5524-5526](../../index.html#L5524-L5526), sin guarda de rol; la
+  posición asignada viaja en el documento público, `index.html:2514`) y, con la
+  inscripción cerrada o el partido finalizado, un "pts" por equipo junto al
+  marcador
   ([index.html:7460-7468](../../index.html#L7460-L7468),
   [index.html:7206-7208](../../index.html#L7206-L7208)).
-- **Pain 3 — esa segunda parte es además un bug.** `007-permisos-por-usuario`
-  prohíbe que `jugador` vea "el puntaje de ningún jugador ... en ninguna parte"
-  (`FR-004`) y "los puntajes ... de los equipos armados"
+- **Pain 3 — ese "pts" es además un bug.** `007-permisos-por-usuario` prohíbe
+  que `jugador` vea "el puntaje de ningún jugador (propio ni ajeno) en ninguna
+  parte de la plataforma" (`FR-004`) y dice que "no puede ver puntajes propios
+  ni de los equipos armados"
   ([`spec.md:23`](../007-permisos-por-usuario/spec.md)). La rebanada 4 de
   `equipos-en-el-campo` hizo que la fila de resultado muestre el puntaje de
   armado de cada equipo (`FR-041`, `FR-042b`) y que esa rama se comparta entre
   los dos roles (`FR-060` de
   [`PARTIDO_FINALIZADO_SPEC.md`](../equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md)).
-  Los dos specs vigentes se contradicen.
+  Los dos specs vigentes se contradicen. Y el número que ve `jugador` ni
+  siquiera es el real: el total se suma con los puntajes de cada jugador
+  (`sumaVigenteDeEquipo`, [index.html:6440-6443](../../index.html#L6440-L6443)),
+  que viven en `playerScores`, un documento que `jugador` nunca lee
+  ([index.html:2276](../../index.html#L2276)). `[INFERRED — por el código, a
+  `jugador` le aparece "0 pts" en cada equipo; no se comprobó con una cuenta
+  `jugador` en staging]`
 
 ## 3. Goals
 
 - Que el administrador pueda, con un toque, dejar la tarjeta de equipos sin
-  ningún dato de puntaje ni de cómo se armaron los equipos, en cualquier estado
-  en el que la tarjeta muestra equipos, y volver a verlos con otro toque.
+  ningún dato de puntaje ni de cómo se armaron los equipos, en cualquiera de
+  las cuatro situaciones en que la tarjeta muestra equipos (`D-01`), y volver a
+  verlos con otro toque.
 - Que lo que interesa compartir siga a la vista: los jugadores en sus equipos,
   el marcador, los goles, goles en contra y asistencias.
 - Que una cuenta `jugador` no vea nunca el puntaje total de un equipo, en
@@ -71,9 +82,9 @@ total de cada equipo junto al marcador, contra lo que manda `007` (`D-06`).
   sólo deja la pantalla lista para capturarla.
 - **Cambiar lo que copia el botón Copiar.** Ese texto ya es sólo de nombres,
   sin puntajes ([index.html:6944-6946](../../index.html#L6944-L6946)).
-- **Cambiar la vista de `jugador` más allá del total por equipo.** El rol
-  `jugador` no recibe el botón y sigue viendo las pastillas «2º» y «!» como
-  hoy.
+- **Un botón de ocultar para `jugador`.** A `jugador` ya no se le muestran
+  puntajes; no hay nada que ocultarle a pedido. (Que deje de ver «2º» y «!» es
+  otra cosa, diferida en §14.)
 - **Tocar el motor de generación.** Ocultar no regenera nada ni aparece en el
   resumen de generación.
 
@@ -94,7 +105,7 @@ el 5–3 y los chips de goles y asistencias sobre cada camiseta siguen ahí. Esa
 captura también va al grupo.
 
 Un jugador que entra a la aplicación con su cuenta ve los equipos y el marcador
-como siempre, y ya no ve el puntaje de cada equipo al lado del resultado.
+como siempre, y ya no ve un "pts" al lado del nombre de cada equipo.
 
 ### 5.1 System context diagram
 
@@ -107,17 +118,16 @@ No aplica: la feature vive entera dentro de la aplicación existente
   qué se dibuja. No escribe en Firestore ni en el navegador. Disponible sólo
   para `admin`; para `jugador` no se dibuja.
 - **Data sensitivity** — Los puntajes de los jugadores, que `007` trata como
-  información que `jugador` no debe ver. La feature no expone nada nuevo y
-  cierra una exposición existente (`D-06`).
+  información que `jugador` no debe ver. La feature no expone nada nuevo. El
+  bug de `D-06` no filtra puntajes reales: `jugador` nunca recibe
+  `playerScores` ([index.html:2276](../../index.html#L2276)), así que el "pts"
+  que ve es un número calculado sin ellos (Pain 3).
 - **Deployment surface** — Aplicación estática en GitHub Pages, sin cambios.
   Ocultar es una decisión de presentación: los puntajes siguen viajando al
-  navegador del `admin`, como hoy. Condición preexistente, no introducida por
-  esta feature: el total de cada equipo se calcula en el navegador a partir de
-  `data/partidos`, que `jugador` puede leer
-  ([`firestore-rules.md` §3](../rol-en-el-token/contracts/firestore-rules.md));
-  la corrección de `D-06` es de pantalla, igual que el resto de las
-  restricciones de `jugador` sobre partidos
-  ([`research.md` §3](../007-permisos-por-usuario/research.md)).
+  navegador del `admin`, como hoy, y siguen sin llegar al de `jugador`, porque
+  las reglas de Firestore no le dejan leer `playerScores` ni `partidosArmado`
+  ([`firestore-rules.md` §3](../rol-en-el-token/contracts/firestore-rules.md),
+  filas `data/playerScores` y `data/partidosArmado`: "—" para `jugador`).
 
 ## 6. Context & background
 
@@ -144,8 +154,8 @@ No aplica: la feature vive entera dentro de la aplicación existente
   ([`EQUIPOS_EN_EL_CAMPO_CONCEPT.md:571-572`](../equipos-en-el-campo/EQUIPOS_EN_EL_CAMPO_CONCEPT.md)).
 - **Organisational context** — Pedido directo del owner el 2026-11-20. La idea
   no estaba en `Roadmap.md` como tal; se superpone en parte con la rebanada 7
-  que sí está ([`Roadmap.md:47`](../../Roadmap.md)), ver `OPEN-Q-03`. La fuga
-  del total por equipo es un bug nuevo, detectado al investigar esta feature.
+  que sí está ([`Roadmap.md:47`](../../Roadmap.md)), ver `OPEN-Q-03`. El "pts"
+  por equipo de `jugador` es un bug nuevo, detectado al investigar esta feature.
 
 ### 6.5 Sources & Origins (`MD-25`)
 
@@ -190,7 +200,19 @@ No aplica: la feature vive entera dentro de la aplicación existente
 - [index.html:6969-7020](../../index.html#L6969-L7020) — el combo de
   estrategia, el aviso de equipos desactualizados y el aviso de bloqueo, todos
   sólo para `admin` y sólo con la inscripción abierta (`D-02`).
-- [index.html:7905-7990](../../index.html#L7905-L7990) — la lista de
+- [index.html:4836-4843](../../index.html#L4836-L4843) — con titulares de
+  posiciones del catálogo anterior, Generar/Regenerar sólo repinta, sin aviso
+  propio: lo que explica por qué no pasa nada es el aviso de bloqueo (riesgo
+  de §11, `OPEN-Q-04`).
+- [index.html:2276](../../index.html#L2276),
+  [index.html:2512-2516](../../index.html#L2512-L2516) — `playerScores` y
+  `partidosArmado` son sólo de `admin`; la posición asignada de cada jugador
+  queda en el documento público. Por eso `jugador` ve «2º» y «!» pero no tiene
+  los puntajes (Pain 2, Pain 3, `D-06`).
+- [index.html:6440-6443](../../index.html#L6440-L6443) —
+  `sumaVigenteDeEquipo`: el total por equipo se suma con el puntaje de cada
+  jugador; sin `playerScores`, el de `jugador` sale sin ellos (Pain 3).
+- [index.html:7905-7986](../../index.html#L7905-L7986) — la lista de
   convocados, al lado de la tarjeta en dos columnas, no muestra puntajes: no
   hace falta tocarla.
 - [index.html:1545-1562](../../index.html#L1545-L1562) — la única preferencia
@@ -202,9 +224,10 @@ No aplica: la feature vive entera dentro de la aplicación existente
 - *Regulatory:* WCAG 2.1 AA, criterio 4.1.2 *Name, Role, Value*
   (<https://www.w3.org/TR/WCAG21/#name-role-value>) — un botón sólo de ícono
   necesita un nombre accesible, y uno que alterna entre dos estados tiene que
-  exponer en cuál está. `[UNVERIFIED — criterio citado de la Concept Note de
-  editar-fecha-partido, verificado allí el 2026-11-06; no se volvió a abrir]`.
-  El texto concreto queda para la Spec (`OPEN-Q-01`).
+  exponer en cuál está. Verificado el 2026-11-20 contra la página del W3C:
+  nivel A; "the name and role can be programmatically determined; states,
+  properties, and values that can be set by the user can be programmatically
+  set". El texto concreto queda para la Spec (`OPEN-Q-01`).
 - *Architectural:* ninguna restricción más allá de las del proyecto.
 - *Style / project convention:* [`AGENTS.md`](../../AGENTS.md) — Simplicidad
   ante todo, Responsive desde 360 px (con escenario nuevo en
@@ -214,8 +237,11 @@ No aplica: la feature vive entera dentro de la aplicación existente
   [`.claude/skills/football-app-design/`](../../.claude/skills/football-app-design/):
   los íconos son de Lucide
   ([`Icon.prompt.md:1`](../../.claude/skills/football-app-design/components/core/Icon.prompt.md)),
-  que trae `eye` y `eye-off` (`D-01`). `[UNVERIFIED — los dos nombres de
-  ícono son de memoria; el Plan los confirma contra lucide-static@0.544.0]`.
+  versión `lucide-static@0.544.0`
+  ([`Icon.jsx:3`](../../.claude/skills/football-app-design/components/core/Icon.jsx)),
+  que trae `eye` y `eye-off`: verificado el 2026-11-20, las dos URLs
+  `https://unpkg.com/lucide-static@0.544.0/icons/eye.svg` y `…/eye-off.svg`
+  responden 200 (`D-01`).
 
 **Prior-art evidence**
 
@@ -223,7 +249,10 @@ No aplica: la feature vive entera dentro de la aplicación existente
   `FR-004`, `FR-006`, `FR-013`: qué no ve `jugador`. Es la referencia de "qué
   es un dato de puntaje" que este botón oculta (`D-02`, `D-06`).
 - [`PARTIDO_FINALIZADO_SPEC.md`](../equipos-en-el-campo/rebanada-4-partido-finalizado/PARTIDO_FINALIZADO_SPEC.md) —
-  `FR-041`, `FR-042b`, `FR-060`: el origen de la fuga de Pain 3 (`D-06`).
+  `FR-041`, `FR-042b`, `FR-060`: el origen del bug de Pain 3 (`D-06`).
+- [`rol-en-el-token/contracts/firestore-rules.md` §3](../rol-en-el-token/contracts/firestore-rules.md) —
+  filas `data/playerScores` y `data/partidosArmado`: `jugador` no los lee ni
+  los escribe (§5.2).
 - [`handoff/README.md:728-729`](../equipos-en-el-campo/handoff/README.md) —
   `showRatings` y `showLocks`, la misma necesidad pensada como configuración
   (§9.2, `OPEN-Q-03`).
@@ -254,9 +283,8 @@ No hubo PoC. El comportamiento se deduce del código leído en §6.5.
 ### 8.1 Approach
 
 Un botón de ícono nuevo en el encabezado de la tarjeta de equipos, sólo para
-`admin`, pegado a la izquierda de Copiar. Aparece en todos los estados en los
-que hoy aparece Copiar: el armado, la carga del resultado con la inscripción
-cerrada, el partido finalizado y la edición de un finalizado. Muestra un ojo
+`admin`, pegado a la izquierda de Copiar. Aparece en las cuatro situaciones de
+`D-01`, que son todas aquellas en las que hoy aparece Copiar. Muestra un ojo
 mientras todo está visible y un ojo tachado mientras está oculto.
 
 Tocarlo pasa la pantalla a "oculto": se dejan de dibujar los elementos de
@@ -265,7 +293,7 @@ estado vive en la memoria de la página, vale para cualquier partido que se abra
 y vuelve a "visible" al recargar.
 
 Aparte del botón, y siempre, la fila de resultado y el encabezado del campo del
-partido finalizado dejan de mostrar el total por equipo a `jugador`.
+partido finalizado dejan de mostrar el "pts" por equipo a `jugador`.
 
 ### 8.2 Information / data model sketch
 
@@ -316,12 +344,12 @@ valor en memoria, "visible" u "oculto", que arranca en "visible" (`D-05`).
 
 | ID | Decision | Rationale | Reversibility |
 |---|---|---|---|
-| D-01 | Un botón de ícono con un ojo (Lucide `eye` visible, `eye-off` oculto), sólo para `admin`, inmediatamente a la izquierda de Copiar en el encabezado de la tarjeta de equipos. Está en todos los estados en que la tarjeta muestra equipos y Copiar: armado, carga del resultado (inscripción cerrada), partido finalizado y edición de un finalizado. Mismo tamaño y peso que Copiar | Pedido del owner el 2026-11-20 ("a la izquierda del ícono que copia la formación", "algo con un ojo"); `admin` elegido por el owner, porque `jugador` ya no ve casi nada de esto | Easy |
+| D-01 | Un botón de ícono con un ojo (Lucide `eye` visible, `eye-off` oculto), sólo para `admin`, inmediatamente a la izquierda de Copiar en el encabezado de la tarjeta de equipos. Está en las cuatro **situaciones** en que la tarjeta muestra equipos y Copiar: armado, carga del resultado (inscripción cerrada), partido finalizado y edición de un finalizado. ("Situación" y no "estado": de las cuatro, sólo dos coinciden con los tres estados de `001-organizacion-partidos`; la inscripción cerrada es una condición y la edición, un modo.) Mismo tamaño y peso que Copiar | Pedido del owner el 2026-11-20 ("a la izquierda del ícono que copia la formación", "algo con un ojo"); `admin` elegido por el owner, porque `jugador` ya no ve casi nada de esto | Easy |
 | D-02 | En "oculto" no se dibuja: el puntaje sobre cada camiseta; las pastillas «2º» y «!»; la «!» con contador de las pestañas Blanco/Negro; los candados (que sólo existen con la inscripción abierta); el total de cada equipo, en todos sus lugares; la píldora de diferencia, en sus dos ubicaciones; la grilla de diferencia por línea; "Por qué quedaron así"; el combo de estrategia; el aviso de equipos desactualizados y el aviso de bloqueo | Pedido del owner el 2026-11-20; el combo y los avisos agregados por el owner al preguntarle, para que la captura no tenga ningún indicio de puntajes | Easy |
 | D-03 | En "oculto" se sigue viendo: las canchas, los jugadores y las duplas; el marcador; los chips de goles, goles en contra y asistencias; las filas de detalle; la barra y las acciones de carga; los demás botones del encabezado y de la botonera | Pedido del owner: los goles y asistencias se deben poder ver | Easy |
 | D-04 | Ocultar es sólo visual. No cambia equipos, bloqueos ni resultado, no guarda nada y no interviene en el motor ni en el resumen de generación. Los gestos de edición (arrastrar, tocar para intercambiar, cargar por toque) siguen funcionando en "oculto"; bloquear no, porque el candado no se ve | Simplicidad ante todo; el motor no cambia (Explicabilidad) | Easy |
 | D-05 | Un único estado para toda la página, que vale para cualquier partido. Arranca en "visible" y vuelve a "visible" al recargar. No se guarda en Firestore ni en el navegador | Simplicidad ante todo, y evita armar equipos a ciegas sin saberlo (§9.3) | Easy |
-| D-06 | Se corrige una fuga existente: `jugador` no ve el total de ningún equipo, en ningún estado, con o sin el botón. Reemplaza, para `jugador`, la parte de `FR-041` y `FR-042b` de `PARTIDO_FINALIZADO_SPEC.md` que muestra el puntaje de armado; `FR-060` de ese spec queda acotado en consecuencia | Elegido por el owner el 2026-11-20; alinea con `FR-004` de `007` (Pain 3) | Easy |
+| D-06 | Se corrige un bug existente: `jugador` no ve ningún "pts" por equipo, en ninguna situación, con o sin el botón. Reemplaza, para `jugador`, la parte de `FR-041` y `FR-042b` de `PARTIDO_FINALIZADO_SPEC.md` que muestra el puntaje de armado; `FR-060` de ese spec queda acotado en consecuencia | Elegido por el owner el 2026-11-20; alinea con `FR-004` de `007`, y además el número que hoy ve no es el real (Pain 3) | Easy |
 | D-07 | El rol `jugador` no cambia en nada más: sin botón, y con las pastillas «2º» y «!» como hoy | El pedido apunta al administrador que comparte; `007` no prohíbe a `jugador` ver posiciones | Easy |
 
 ## 11. Risks
@@ -333,7 +361,8 @@ valor en memoria, "visible" u "oculto", que arranca en "visible" (`D-05`).
 | El total por equipo se vuelve a escribir fuera del repintado ([index.html:5207-5215](../../index.html#L5207-L5215)) y reaparece en "oculto" después de un arrastre | Med | Med | La Spec incluye un escenario de arrastre en "oculto"; nota para el Plan en §16 |
 | A 360 px, un botón más de 44 px en el encabezado (con Intercambiar, Copiar y Regenerar) desarma el renglón | Med | Med | La Spec declara el comportamiento desde 360 px y el Plan agrega un escenario a `tests/layout.test.js` que se vea fallar |
 | Los textos que aparecen al pasar el mouse sobre una camiseta ("sin puntaje", "su puesto es …") siguen diciendo cosas que la pantalla oculta | Low | Low | No salen en una captura; se decide en `OPEN-Q-02` |
-| Algún jugador extraña ver el total de su equipo junto al resultado (`D-06`) | Low | Low | Es lo que `007` ya prometía; se comunica en el grupo si alguien pregunta |
+| En "oculto", con titulares de posiciones del catálogo anterior, el aviso de bloqueo no se ve y tocar Regenerar no hace nada visible ([index.html:4843](../../index.html#L4843)): el administrador no sabe por qué | Low | Low — sólo pasa mientras queden jugadores sin reclasificar | Se decide en `OPEN-Q-04` |
+| Algún jugador extraña el "pts" junto al resultado (`D-06`) | Low | Low | Es lo que `007` ya prometía, y el número no era el real (Pain 3) |
 
 ## 12. Success signals
 
@@ -362,7 +391,7 @@ juzgan por lo que el owner observa en el grupo.
 - **Owning team:** Lucas Manoukian (owner del producto).
 - **Reviewing teams:** *pending*.
 - **Customers / partners:** los jugadores del grupo, que reciben las capturas y
-  dejan de ver el total por equipo en su cuenta.
+  dejan de ver el "pts" por equipo en su cuenta.
 
 ## 14. Out of scope / deferred
 
@@ -381,19 +410,24 @@ juzgan por lo que el owner observa en el grupo.
 | OPEN-Q-01 | Qué nombre accesible y qué texto al pasar el mouse lleva el botón en cada estado (p. ej. "Ocultar puntajes" / "Mostrar puntajes"), y cómo expone en qué estado está | Lucas Manoukian | Spec | WCAG 4.1.2 (§6.5) |
 | OPEN-Q-02 | En "oculto", ¿los textos de la camiseta al pasar el mouse y el nombre accesible de las pestañas ("2 fuera de puesto") también dejan de mencionar puntaje y posición? | Lucas Manoukian | Spec | No salen en una captura; los lee un lector de pantalla |
 | OPEN-Q-03 | ¿Esta feature cubre `showRatings` y `showLocks` de la rebanada 7, y su entrada de `Roadmap.md:47` se acota o se retira? | Lucas Manoukian | Spec | `AGENTS.md` pide retirar una idea del Roadmap cuando se convierte en documento |
+| OPEN-Q-04 | En "oculto" y con el aviso de bloqueo escondido, ¿qué pasa al tocar Regenerar? (dejar el aviso visible igual, avisar al tocar, o aceptar que no pase nada visible) | Lucas Manoukian | Spec | Riesgo de §11; el aviso no habla de puntajes sino de posiciones viejas |
 
 ## 16. Handoff to the Spec
 
 - **Settled (do not relitigate):** D-01, D-02, D-03, D-04, D-05, D-06, D-07.
-- **Decide in Spec:** OPEN-Q-01, OPEN-Q-02, OPEN-Q-03.
+- **Decide in Spec:** OPEN-Q-01, OPEN-Q-02, OPEN-Q-03, OPEN-Q-04.
 - **Declaración de reemplazo obligatoria (`AGENTS.md`):** `D-06` reemplaza,
   para `jugador`, la parte de `FR-041`, `FR-042b` y `FR-060` de
   `PARTIDO_FINALIZADO_SPEC.md` que muestra el puntaje de armado; marcarla ahí
   como reemplazada.
-- **Must remain non-goals:** la captura; el texto de Copiar; la vista de
-  `jugador` más allá del total; el motor.
+- **Deuda de verificación heredada (`MD-26`):** ningún `[UNVERIFIED]` queda
+  abierto. Un `[INFERRED]`: que `jugador` hoy ve "0 pts" (Pain 3). La Spec no
+  depende del número exacto —`D-06` saca el "pts" igual—, pero el escenario
+  del bug conviene verlo una vez con la cuenta `jugador` de staging.
+- **Must remain non-goals:** la captura; el texto de Copiar; un botón de
+  ocultar para `jugador`; el motor.
 - **Responsive:** la Spec declara el comportamiento desde 360 px del
-  encabezado con el ojo, en los cuatro estados de `D-01`, con Intercambiar
+  encabezado con el ojo, en las cuatro situaciones de `D-01`, con Intercambiar
   colores presente, y de la tarjeta en "oculto" (sin huecos donde estaban la
   píldora y la grilla).
 - **Para el Plan:** el total por equipo se reescribe por `id` fuera del
@@ -409,7 +443,7 @@ juzgan por lo que el owner observa en el grupo.
   línea y "Por qué quedaron así", dejando visibles goles y asistencias, para
   compartir la pantalla con usuarios no admin.
 - Respuestas del owner (2026-11-20): los íconos de posición son la «2º», la «!»
-  y la «!» de las pestañas; el botón es sólo de `admin`; la fuga del total para
+  y la «!» de las pestañas; el botón es sólo de `admin`; el "pts" por equipo que ve
   `jugador` se corrige en esta feature; el combo de estrategia y los avisos
   también se ocultan.
 
@@ -418,6 +452,7 @@ juzgan por lo que el owner observa en el grupo.
 | Date | Author | Change |
 |---|---|---|
 | 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Self-critique: skipped (first-run baseline). |
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Autocrítica contra la rúbrica, mismo modelo que el autor. 🔴 resueltos: §5.2 decía que el total por equipo de `jugador` sale de `data/partidos`; es falso —los puntajes viven en `playerScores`, que `jugador` no lee (`index.html:2276`, `firestore-rules.md` §3)—, así que el bug de `D-06` no filtra puntajes reales sino que muestra un "pts" calculado sin ellos (Pain 3, `[INFERRED]` "0 pts"); TL;DR, Pain 2, Pain 3, §5, §8.1, `D-06`, §11 y §13.2 reescritos en consecuencia. Dos `[UNVERIFIED]` con motivo no válido ("no se volvió a abrir", "de memoria") reemplazados por verificación en vivo: WCAG 4.1.2 contra w3.org y los íconos `eye`/`eye-off` contra unpkg. 🟡 resueltos: la deuda de verificación se declara en §16; el non-goal sobre `jugador` duplicaba un diferido de §14 y se reescribió; "estado" se usaba para cuatro situaciones que no son los tres estados de `001` (definido en `D-01`); riesgo nuevo de Regenerar sin efecto visible en "oculto" con `OPEN-Q-04`. 🔵 resueltos: `[INFERRED]` en la frase de cómo se resuelve hoy (Pain 1); cita textual de `007` sin elipsis. 🔵 aceptado sin cambio: `D-01` junta ícono, rol, lugar y situaciones en una sola fila; es una sola decisión del owner. Self-critique: passed (3🔴 / 4🟡 / 3🔵). |
 
 ---
 
