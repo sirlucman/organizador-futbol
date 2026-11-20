@@ -945,6 +945,126 @@ async function tocarLapizFecha(page) {
    un escenario que no corre y no avisa es cobertura perdida en silencio.
    `rol` elige con qué cuenta se entra: 'admin' pinta los controles de
    administración (que son los que más ancho piden), 'jugador' no. */
+/* ------------------------------------------------------------ ocultar-puntajes */
+
+/* Dos jugadores sueltos en su puesto secundario (ocultar-puntajes TD-17). Los partidos con puestos
+   traen duplas en secundario y jugadores fuera de puesto, pero ningún suelto en su secundario:
+   Juan (DC; LD) pasa a LD y Pedro (LD; DC) a DC, los dos con «2º» y "(su puesto es …)", y Pedro
+   además sin puntaje en DC —el caso de Ana en S-08—. No toca `agregarDatosDeIntercambio`, que
+   usan los escenarios `intercambio-*`. */
+function conPuestosCruzados(datos) {
+  agregarDatosDeIntercambio(datos);
+  const partidos = JSON.parse(datos.partidos);
+  for (const m of partidos) {
+    if (!['m-int-8', 'm-int-9', 'm-int-cerrado', 'm-int-finalizado'].includes(m.id)) continue;
+    m.equipos.posicionAsignada['int-juan'] = 'LD';
+    m.equipos.posicionAsignada['int-pedro'] = 'DC';
+  }
+  datos.partidos = JSON.stringify(partidos);
+  const jugadores = JSON.parse(datos.players);
+  const pedro = jugadores.find(j => j.id === 'int-pedro');
+  delete pedro.scores.DC;
+  datos.players = JSON.stringify(jugadores);
+  return datos;
+}
+
+/* El nombre de cada puesto del catálogo, para afirmar que el `title` de la camiseta lo sigue
+   diciendo cuando se va la mención del principal (FR-056). Es copia de `PUESTOS` de index.html:
+   si el catálogo cambia, este test lo dice. */
+const NOMBRE_PUESTO = { Arquero: 'Arquero', LI: 'Lateral Izquierdo', DC: 'Defensor Central', LD: 'Lateral Derecho',
+  MI: 'Mediocampista Izquierdo', MC: 'Mediocampista Central', MD: 'Mediocampista Derecho', DEL: 'Delantero Central' };
+const PARTIDOS_CRUZADOS = () => JSON.parse(conPuestosCruzados(docsDesde()).partidos);
+// { idDeJugador: nombre del puesto asignado } de un partido: lo que el invariante recibe como argumento.
+function puestosDelPartido(matchId) {
+  const m = PARTIDOS_CRUZADOS().find(x => x.id === matchId);
+  const pa = (m && m.equipos && m.equipos.posicionAsignada) || {};
+  return Object.fromEntries(Object.entries(pa).filter(([, v]) => NOMBRE_PUESTO[v]).map(([k, v]) => [k, NOMBRE_PUESTO[v]]));
+}
+
+/* Lo que `jugador` no ve nunca, en ninguna situación ni ancho (ocultar-puntajes FR-050 a FR-056,
+   FR-055b, FR-003). Se busca por PRESENCIA en el documento, no por tamaño: lo oculto se omite, no
+   se esconde con CSS (TC-012). `arg.puestos` es { id: nombre del puesto asignado } del partido
+   abierto, para afirmar que el `title` sigue diciendo el puesto (FR-056). */
+const INVARIANTE_JUGADOR = (arg) => {
+  const seccion = document.getElementById('teamsSection');
+  if (!seccion || !seccion.querySelector('.cancha')) return ['no se dibujó la cancha: el invariante de jugador no tiene qué mirar'];
+  const problemas = [];
+  if (seccion.querySelector('.panel-icono-ojo')) problemas.push('jugador ve el ojo (FR-003)');
+  if (!seccion.querySelector('.panel-icono-copiar')) problemas.push('jugador no ve Copiar en el encabezado (FR-003)');
+  const prohibidos = [
+    ['.resultado-puntaje', 'el puntaje de un equipo en la fila de resultado (FR-050)'],
+    ['.resultado-pts', 'el "pts" de la fila de resultado (FR-050)'],
+    ['.team-total', 'el total de un equipo arriba del campo (FR-051, FR-052)'],
+    ['.camiseta-sec', 'la pastilla «2º» (FR-053)'],
+    ['.camiseta-fuera', 'la pastilla «!» de una camiseta (FR-054)'],
+    ['.equipo-tab-fuera', 'la «!» de una pestaña (FR-055)'],
+  ];
+  for (const [sel, que] of prohibidos) {
+    const n = seccion.querySelectorAll(sel).length;
+    if (n) problemas.push(`jugador ve ${que}: ${n} en el documento`);
+  }
+  const menciones = ['su puesto es', 'posición secundaria', 'fuera de puesto'];
+  for (const e of seccion.querySelectorAll('[title], [aria-label]')) {
+    for (const attr of ['title', 'aria-label']) {
+      const v = e.getAttribute(attr) || '';
+      const m = menciones.find(x => v.includes(x));
+      if (m) problemas.push(`un ${attr} dice "${m}" para jugador (FR-056, S-09h): "${v}"`);
+    }
+  }
+  for (const c of seccion.querySelectorAll('.camiseta[data-id]')) {
+    const esperado = (arg && arg.puestos || {})[c.dataset.id];
+    if (esperado && !(c.getAttribute('title') || '').includes(esperado)) {
+      problemas.push(`el title de la camiseta ${c.dataset.id} no dice su puesto, ${esperado} (FR-056): "${c.getAttribute('title')}"`);
+    }
+  }
+  for (const t of seccion.querySelectorAll('.equipo-tab')) {
+    const nombre = t.getAttribute('aria-label');
+    if (nombre !== 'Equipo Blanco' && nombre !== 'Equipo Negro') problemas.push(`una pestaña se llama "${nombre}" para jugador (FR-055b)`);
+  }
+  if (/\bpts\b/.test(seccion.textContent)) problemas.push('el texto de la tarjeta dice "pts" para jugador (FR-052, S-09c)');
+  return [...new Set(problemas)].slice(0, 8);
+};
+
+/* Sin encabezados vacíos ni la fila de la píldora (ocultar-puntajes NFR-003). Por presencia y no
+   por alto: un `<h4>` vacío mide 0 de alto pero deja su margen de 12 px, así que medir el alto
+   pasaría también antes del arreglo. */
+const INVARIANTE_SIN_VACIOS = () => {
+  const problemas = [];
+  for (const h of document.querySelectorAll('#teamsSection .team-panel h4')) {
+    const conContenido = [...h.querySelectorAll('*')].some(d => d.getBoundingClientRect().width > 0 && d.textContent.trim());
+    if (!conContenido) problemas.push(`quedó un encabezado arriba del campo sin contenido visible (NFR-003, FR-038): "${h.textContent.trim()}"`);
+  }
+  if (document.querySelector('#teamsSection .panel-pildora-fila')) problemas.push('quedó la fila de la píldora (NFR-003, FR-028)');
+  return [...new Set(problemas)];
+};
+
+// Los tres escenarios de layout de `jugador`, uno por situación (ocultar-puntajes §7.3.6).
+const escenarioJugador = (situacion, matchId, fechaIso, specPropio, comprobar) => ({
+  clave: `ocultar-jugador-${situacion}`, rol: 'jugador',
+  nombre: `ocultar puntajes · jugador, ${situacion}: sin "pts" ni marcas de posición`,
+  spec: ['ocultar/S-11d', 'ocultar/NFR-001', 'ocultar/NFR-003', ...specPropio],
+  transformarDatos: conPuestosCruzados,
+  invariantes: [[INVARIANTE_JUGADOR, { puestos: puestosDelPartido(matchId) }], INVARIANTE_SIN_VACIOS],
+  async preparar(page) { await abrirPartido(page, fechaIso); await mostrarEquiposMobile(page); },
+  comprobar,
+});
+
+// Lo que la fila de resultado sigue mostrando a 1200 px: los dos nombres y el marcador (FR-050).
+async function filaConNombresA1200(page, marcador, etiqueta) {
+  await page.setViewportSize({ width: 1200, height: 900 });
+  await page.waitForTimeout(250);
+  return page.evaluate(([marcador, etiqueta]) => {
+    const problemas = [];
+    const fila = document.querySelector('#teamsSection .fila-resultado');
+    if (!fila) return [`a 1200 px no está la fila de resultado (${etiqueta})`];
+    const nombres = [...fila.querySelectorAll('.resultado-nombre')].map(n => n.textContent.trim());
+    if (nombres.join('|') !== 'Equipo Blanco|Equipo Negro') problemas.push(`a 1200 px la fila no muestra los dos nombres (${etiqueta}): ${JSON.stringify(nombres)}`);
+    const goles = (fila.querySelector('.resultado-marcador') || {}).textContent || '';
+    if (goles.replace(/\s/g, '') !== marcador) problemas.push(`a 1200 px el marcador dice "${goles}" y tenía que decir ${marcador} (${etiqueta})`);
+    return problemas;
+  }, [marcador, etiqueta]);
+}
+
 const ESCENARIOS = [
   { clave: 'login', rol: 'admin', nombre: 'pantalla de login',
     async preparar(page) { await page.evaluate(() => {
@@ -4391,6 +4511,58 @@ const ESCENARIOS = [
       if (!enVieja.includes('jueves, 3 de septiembre') || enVieja.includes('jueves, 8 de octubre')) problemas.push('la sesión de jugador abierta desde antes ya ve la fecha nueva sin recargar (A-03, S-05a)');
       await vieja.close(); await nueva.close();
       return problemas;
+    } },
+  /* ---------------------------------------------------- ocultar-puntajes: jugador */
+  escenarioJugador('armado', 'm-int-9', '2026-10-14', ['ocultar/S-09e', 'ocultar/S-09f', 'ocultar/S-09g'], async page => {
+    // Que haya algo que ocultar: sin esto el invariante se cumpliría en vacío.
+    return page.evaluate(() => {
+      const problemas = [];
+      const t = id => (document.querySelector(`.camiseta[data-id="${id}"]`) || { getAttribute: () => null }).getAttribute('title');
+      const juan = t('int-juan');
+      if (!juan || !juan.includes('Juan') || !juan.includes('Lateral Derecho')) problemas.push(`el title de Juan no dice su nombre y su puesto (S-09e): "${juan}"`);
+      return problemas;
+    });
+  }),
+  escenarioJugador('carga', 'm-int-cerrado', '2026-10-18', ['ocultar/S-09b'],
+    async page => filaConNombresA1200(page, '0–0', 'S-09b')),
+  escenarioJugador('finalizado', 'm-int-finalizado', '2026-10-19', ['ocultar/S-09', 'ocultar/S-09a'], async page => {
+    // A 360 px (el primer ancho): la fila sólo con el marcador, y ningún encabezado arriba del campo (S-09a).
+    const problemas = await page.evaluate(() => {
+      const p = [];
+      const fila = document.querySelector('#teamsSection .fila-resultado');
+      if (!fila || !fila.querySelector('.resultado-marcador')) p.push('a 360 px no está el marcador (S-09a)');
+      if (document.querySelector('#teamsSection .team-panel h4')) p.push('a 360 px quedó un encabezado arriba del campo (S-09a, FR-051, FR-038)');
+      return p;
+    });
+    return problemas.concat(await filaConNombresA1200(page, '0–0', 'S-09'));
+  }),
+
+  { clave: 'ocultar-jugador-propiedad', rol: 'jugador', nombre: 'ocultar puntajes · jugador, todos los partidos con equipos en cinco anchos',
+    anchos: [360], spec: ['ocultar/S-09c', 'ocultar/S-09h'],
+    transformarDatos: conPuestosCruzados,
+    async preparar(page) { await abrirPartido(page, '2026-10-14'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      const conEquipos = PARTIDOS_CRUZADOS().filter(m => m.equipos).map(m => m.id);
+      if (conEquipos.length < 12) problemas.push(`la propiedad recorre ${conEquipos.length} partidos con equipos y tenían que ser al menos 12`);
+      for (const ancho of [360, 768, 1099, 1100, 1200]) {
+        await page.setViewportSize({ width: ancho, height: 900 });
+        for (const id of conEquipos) {
+          await cambiarDePartido(page, id);
+          const r = await page.evaluate(INVARIANTE_JUGADOR, { puestos: puestosDelPartido(id) });
+          problemas.push(...r.map(x => `${id} a ${ancho} px: ${x}`));
+          /* La guarda de rol de `__alternarPuntajes` (TD-05): para jugador, invocarla no cambia nada.
+             Antes de que el ojo exista no hay función que invocar, y no hay nada que comprobar. */
+          const cambio = await page.evaluate(() => {
+            if (typeof window.__alternarPuntajes !== 'function') return false;
+            const antes = document.getElementById('teamsSection').innerHTML;
+            window.__alternarPuntajes();
+            return document.getElementById('teamsSection').innerHTML !== antes;
+          });
+          if (cambio) problemas.push(`${id} a ${ancho} px: invocar __alternarPuntajes como jugador cambió la tarjeta (TD-05)`);
+        }
+      }
+      return [...new Set(problemas)].slice(0, 30);
     } },
 ];
 
