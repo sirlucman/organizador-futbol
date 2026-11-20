@@ -388,6 +388,7 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   mostrará en cada pestaña del selector de equipo cuántos candidatos tiene ese equipo,
   también cuando son cero, y esa cuenta formará parte del nombre accesible de la pestaña.
   Sin selección, no mostrará ninguna cuenta (`D-33`).
+  **Acotado el 2026-11-20 por `FR-035` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la cuenta de candidatos de cada pestaña no se dibuja.
 - **FR-013** — When el administrador toca un candidato, el sistema aplicará el
   intercambio entre la seleccionada y ese candidato.
 - **FR-014** — When el administrador toca una camiseta que no es candidata ni la
@@ -421,6 +422,7 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   diseño 20b, y como candidato sin costo al resto. Los dos tienen la misma fuerza: sólo cambia
   el color del recuadro, y el `title` del candidato con costo dice que quedaría fuera de
   puesto. Aplicar el intercambio con costo no pide confirmación ni muestra aviso (`D-35`).
+  **Acotado el 2026-11-20 por `FR-033` y `FR-034` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el candidato con costo se dibuja igual que uno común, durante la selección y durante el arrastre, y su `title` no dice que quedaría fuera de puesto (`FR-036`).
 - **FR-025** — El sistema mostrará en cada camiseta, en cualquier estado del partido con
   puestos, su estado de puesto, calculado en cada repintado a partir del puesto asignado de su
   lugar y de los puestos declarados de la unidad (la principal primero): **natural** si es su
@@ -428,10 +430,13 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   pastilla «2º»; **fuera de puesto** si la unidad no lo cubre (el mismo criterio que "lugares
   sin cubrir", `TC-010`), con la pastilla «!» del diseño 19a. Las dos pastillas son
   excluyentes y ocupan el mismo lugar (`D-35`).
+  **Acotado el 2026-11-20 por `FR-021` y `FR-022` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", las pastillas «2º» y «!» no se dibujan. Y por `FR-053` y `FR-054` de esa Spec, `jugador` no las ve nunca.
 - **FR-025b** — While la tarjeta esté en una columna, el sistema mostrará en la pestaña de
   cada equipo con al menos una unidad fuera de puesto la pastilla «!», con o sin selección,
   calculada para los dos equipos, y la cantidad formará parte del nombre accesible de la
   pestaña (`D-35`).
+  **Acotado el 2026-11-20 por `FR-023` y `FR-037` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la «!» de las pestañas no se dibuja y la cantidad no forma parte del nombre accesible.
+  **Acotado el 2026-11-20 por `FR-055` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: `jugador` no ve nunca la «!» de las pestañas, y la cantidad fuera de puesto no forma parte del nombre accesible de sus pestañas.
 - **FR-025c** — When una unidad está fuera de puesto (`FR-025`), el sistema la valuará con su
   nota en la principal —la de su unidad, si es una dupla— en vez de su nota en el puesto que
   ocupa: en el número de su camiseta, con el color de todos los puntajes y un `title` que dice de
@@ -439,6 +444,7 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
   diferencia por línea y al generar. Una unidad que juega el puesto de secundaria y no tiene nota
   ahí se sigue valuando como hoy. Cómo el motor elige a quién poner en cada lugar no cambia
   (`D-36`).
+  **Acotado el 2026-11-20 por `FR-020` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el número de la camiseta y su `title` no se dibujan; cómo se valúa la unidad no cambia.
 - **FR-022** — *Retirado el 2026-10-29* (`D-30`, `D-31`): trataba del intercambio con un
   arquero puesto a mano.
 - **FR-023** — El sistema no tratará como candidata a una unidad del mismo equipo y con el
@@ -527,8 +533,10 @@ señala `CWE-79`, `CWE-862` y `CWE-863`.
 - **FR-070** — When el sistema aplica cualquier cambio de esta feature, los totales, la
   diferencia entre equipos, la diferencia por línea y los lugares sin cubrir mostrarán el
   reparto nuevo, con el recálculo vigente (`TC-011`).
+  **Acotado el 2026-11-20 por `FR-025` a `FR-029` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", los totales, la diferencia entre equipos y la diferencia por línea no se dibujan; el recálculo sigue igual.
 - **FR-071** — El sistema mostrará el resumen "Por qué quedaron así" con las reglas
   vigentes de `FR-072b` a `FR-072d` de `PANEL_ARMADO_SPEC.md`, sin texto nuevo (`D-12`).
+  **Acotado el 2026-11-20 por `FR-030` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el resumen no se dibuja.
 - **FR-072** — El sistema no guardará un registro de los intercambios hechos.
 
 ## 8. Non-functional requirements
@@ -932,6 +940,7 @@ La aplicación no tiene telemetría de uso; la fuente es el uso del propietario.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del acotamiento declarado por [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md): `FR-012b`, `FR-021b`, `FR-025`, `FR-025b` y el `title` del número de `FR-025c` valen sólo con el botón de ocultar puntajes en "visible". Completada el mismo día con `FR-070` (en lo que muestra) y `FR-071`, que la autorrevisión de esa Spec encontró faltantes. Enmendada después de la crítica independiente de esa Spec: `FR-025` y `FR-025b` dejan de valer para `jugador` en cualquier estado (enmienda de `D-07` de su Concept Note). |
 | 2026-10-30 | Lucas Manoukian (claude-sonnet-5-5) | Correcciones documentales surgidas de la auditoría [`POSICIONES_DEL_JUGADOR_CONFORMANCE_2026-10-30_claude-sonnet-5-5.md`](./POSICIONES_DEL_JUGADOR_CONFORMANCE_2026-10-30_claude-sonnet-5-5.md), sin cambiar ningún requisito: `S-01n` aclara que Juan también declara LI (el fixture ya lo tiene); `S-22b` pasa de «700 y 701» a «699 y 701», los anchos que mide `NFR-001`; `OPEN-Q-05` y `OPEN-Q-09` figuran resueltas, como ya dice el Plan (`TD-13`, `TD-14`). **No se tocó** lo que la auditoría dejó para decisión del propietario (`FR-042`, alcance de `FR-025` en «Solo por puntaje», `NFR-004` con 16 o 18 titulares, `FR-050`, `NFR-005`, `FR-019b`, `FR-057`). Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario: `D-36`, fuera de puesto una unidad suma su nota en la principal, en la pantalla y en el motor. Nueva `FR-025c`; `TC-011`, `TC-012`, `AC-34` y `AC-35` declaran la excepción; `D-30` queda reemplazada en ese caso. Nuevas `S-01p` y `S-07b`. La declaración de reemplazo suma `012` (contexto y escenario 6), `014` (`FR-003`, `FR-007`) y `011` (l. 180), en los tres casos sólo para un puesto que el jugador no juega. Verificado contra la copia de producción en staging: ninguno de los 12 partidos finalizados tiene a alguien fuera de puesto (192 camisetas), así que ningún total histórico cambia hoy. Self-critique: skipped (cambio acotado a pedido explícito) |
 | 2026-10-30 | Lucas Manoukian (claude-opus-5-5) | A pedido del propietario, tras probar la rama de código: `D-34` (el candidato depende sólo de los puestos de la seleccionada; reemplaza `D-04`) y `D-35` (estado de puesto por camiseta y candidato con costo, diseños 19a y 20b en `diseño/intercambio de jugadores sin puesto/`). `FR-021` se reescribe; nuevas `FR-021b`, `FR-025` y `FR-025b`; se retiran `FR-042b` y `FR-042d`, y `FR-042` remite sólo a `FR-042c`. `TC-020` declara la excepción del candidato con costo, que se distingue sólo por color: decisión del propietario sobre 20b, registrada como riesgo de accesibilidad. Variantes reescritas: `S-01l`, `S-03a`, `S-04a`; nuevas: `S-01n`, `S-01o`, `S-02i`, `S-22c`. §3.3 suma `D-33` a `D-35`. Self-critique: skipped (cambio acotado a pedido explícito) |

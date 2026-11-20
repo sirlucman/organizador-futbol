@@ -455,6 +455,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   fila mostrará sólo el marcador. *(Vuelto a invertir 2026-09-04, ver §18: es
   lo que dibuja `12c`, y el encabezado de cada panel deja de mostrarlos en ese
   ancho — `FR-042b`.)*
+  **Acotado el 2026-11-20 por `FR-026` y `FR-050` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: el puntaje de armado a los costados del marcador se muestra sólo a `admin` y sólo con el botón de ocultar puntajes en "visible". El nombre de cada equipo se sigue mostrando a los dos roles.
 - **FR-042** — *(Sin efecto desde 2026-09-02, ver §18: decía que en una sola
   columna la fila mostraba sólo el nombre, sin el puntaje; `FR-041`, enmendado
   el mismo día, ya no muestra ninguno de los dos en ningún ancho, así que la
@@ -468,6 +469,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   con `FR-041` mostrando otra vez el nombre y el puntaje en la fila de
   resultado, repetirlos arriba del campo los decía dos veces; `12c` no dibuja
   nada ahí.)*
+  **Acotado el 2026-11-20 por `FR-027`, `FR-051` y `FR-038` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: el puntaje en el encabezado del campo se muestra sólo a `admin` y sólo en "visible"; sin él, el encabezado no se dibuja.
 - **FR-043** — El sistema no mostrará ninguna otra comparación de puntaje
   (píldora de diferencia, diferencia por línea) en este estado (declaración de
   reemplazo, arriba).
@@ -505,6 +507,7 @@ acá con el mismo significado y no se redefinen. Los propios de esta rebanada:
   `FR-004` a `FR-007`) es taxativa y no incluye goles ni asistencias; su
   `FR-013` además lo declara en positivo: "jugador" MUST poder ver, para
   cualquier jugador, sus estadísticas de goles y asistencias.
+  **Acotado el 2026-11-20 por `FR-050` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: `jugador` ve la fila de resultado sin el puntaje de armado.
 - **FR-061** — Donde el rol de la sesión sea `jugador`, el sistema no
   mostrará el botón de editar resultado.
 - **FR-062** — Si el rol de la sesión no es `admin`, entonces el sistema no
@@ -572,6 +575,7 @@ dibuja ninguna de las dos cosas.)*
   el encabezado de la pantalla, arriba de las dos columnas
 - **And** el encabezado contiene dos botones de ícono, copiar y editar
   resultado, en ese orden, cada uno con un nombre accesible no vacío
+  **Acotado el 2026-11-20 por `FR-001` y `FR-002` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con `admin` el encabezado contiene tres botones de ícono —ocultar puntajes, copiar y editar resultado, en ese orden—, cada uno con un nombre accesible no vacío. Con `jugador`, sólo copiar.
 - **And** el encabezado no contiene el botón de regenerar
 
 **Variants:**
@@ -636,6 +640,8 @@ dibuja ninguna de las dos cosas.)*
 
 #### Scenario S-04 — La fila de resultado, con el nombre y el puntaje a los costados (covers FR-040, FR-041, FR-042b)
 
+**Acotado el 2026-11-20 por `FR-026` y `FR-050` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: describe a `admin` con el botón de ocultar puntajes en "visible"; `jugador` ve la fila sin los dos puntajes (`S-09` de esa Spec).
+
 *(Reescrito 2026-09-04, ver §18: vuelve al reparto que dibuja `12c` — nombre y
 puntaje a los costados del marcador en dos columnas, y nada arriba del campo.)*
 
@@ -656,6 +662,7 @@ puntaje a los costados del marcador en dos columnas, y nada arriba del campo.)*
   equipo; el encabezado del campo visible (el de la pestaña activa) muestra el
   puntaje de armado, sin el nombre, que no se repite porque la pestaña ya lo
   dice (`FR-041`, `FR-042b`)
+  **Acotado el 2026-11-20 por `FR-027` y `FR-051` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: describe a `admin` con el botón de ocultar puntajes en "visible".
 
 #### Scenario S-05 — Las filas de detalle cuentan quién metió qué (covers FR-050 a FR-057)
 
@@ -748,15 +755,20 @@ nueva).
   de goles muestra "2" (sin desglosar penal) y el chip de asistencias muestra
   "1"; la fila de detalle sí desglosa "(1 de penal)" (cubre `FR-030`,
   `FR-031`, `FR-033`, `FR-052`).
-- **AC-05** — Con un resultado 4-3, la fila de resultado muestra "4" y "3"
-  centrados bajo la mitad de cada equipo, sin ningún nombre ni puntaje de
-  armado en esa fila, en cualquier ancho; en 1200 px el encabezado de cada
-  panel de equipo muestra su nombre y su puntaje de armado; en 360 px el
-  encabezado del panel visible muestra sólo el puntaje, en el lugar del
-  nombre (cubre `FR-040`, `FR-041`, `FR-042b`).
+- **AC-05** — Con un resultado 4-3, en 1200 px la fila de resultado muestra "Equipo Blanco"
+  y su puntaje de armado a la izquierda, "4 – 3" al centro y "Equipo Negro" y su puntaje a la
+  derecha, y no hay ningún encabezado arriba de los campos; en 360 px la fila muestra sólo el
+  marcador, cada número centrado bajo la mitad de su equipo, y el encabezado del campo visible
+  muestra sólo el puntaje de armado (cubre `FR-040`, `FR-041`, `FR-042b`).
+  **Corregido el 2026-11-20 al escribir [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: decía "sin ningún nombre ni
+  puntaje de armado en esa fila, en cualquier ancho; en 1200 px el encabezado de cada panel de
+  equipo muestra su nombre y su puntaje de armado", el texto de la enmienda del 2026-09-02, y no
+  se había actualizado con la del 2026-09-04, que devolvió nombre y puntaje a la fila en dos
+  columnas (`S-04`, §18). **Acotado el 2026-11-20 por `FR-026`, `FR-027`, `FR-050` y `FR-051` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: describe a `admin` con el botón de ocultar puntajes en "visible".
 - **AC-06** — Con una sesión de rol `jugador`, la tarjeta contiene la cancha
   con chips, la fila de resultado y las filas de detalle, y no contiene el
   botón de editar resultado (cubre `FR-060`, `FR-061`).
+  **Acotado el 2026-11-20 por `FR-050` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: la fila de resultado que ve `jugador` no lleva el puntaje de armado.
 - **AC-07** — Con un partido finalizado de fútbol 9, la línea de estrategia
   dice "Formación 3-4-1 · Estrategia: {nombre}" en dos columnas y "Fútbol 9 ·
   Formación 3-4-1 · Estrategia: {nombre}" en una sola columna (cubre
@@ -936,6 +948,7 @@ nueva).
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del acotamiento declarado por [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md): `FR-041`, `FR-042b`, `S-04` y `S-04b` pasan a valer sólo para `admin` con el botón de ocultar puntajes en "visible"; `FR-060` y `AC-06` pasan a decir que `jugador` ve la fila de resultado sin el puntaje de armado. `AC-05` se corrige: había quedado con el texto de la enmienda del 2026-09-02 y contradecía a `S-04` y al código desde la del 2026-09-04. Completada el mismo día, al derivar el Implementation Plan de esa feature, con `S-01`: el encabezado de `admin` pasa de dos a tres botones de ícono. |
 | 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marcan `FR-063` y `FR-064` como reemplazados por `FR-002` y `FR-001` de la rebanada 6. Los dos diferían explícitamente estados que esa rebanada toma, y en los dos la tarjeta muestra hoy la cancha en modo de carga por toque en vez de la lista de filas. Lo detectó la auditoría de conformidad del 2026-09-23. |
 | 2026-09-04 | Lucas Manoukian | Enmienda para implementar el turno 12 del documento de diseño (`12c`, "Partido finalizado — el mismo layout, de lectura"), pedido explícito del propietario. **(1)** El encabezado de la tarjeta pasa a titularse "Resultado": `FR-001` se enmienda y `FR-002`, `FR-004` quedan sin efecto (la fecha y el tamaño de cancha ya viven en el encabezado de la pantalla, arriba de las dos columnas). **(2)** La línea con la estrategia aplicada se retira: `FR-003`, `FR-005`, `FR-005b` y `FR-005c` quedan sin efecto. Cierra la inconsistencia que `DELTA.md` §B ya declaraba desde el 2026-09-02 ("la estrategia aplicada ya no se nombra en ninguna parte") y que esta pantalla contradecía. Se retira `lineaEstrategiaPartidoFinalizado` y su entrada en `DECLARACIONES` de `finalizado.test.js`. **(3)** El nombre y el puntaje de armado vuelven a la fila de resultado en dos columnas (`FR-041`) y desaparecen del encabezado de cada campo en ese ancho (`FR-042b`, ahora acotado a una columna): es el reparto que dibuja `12c`. Se reescribe `S-04` y se agrega su variante de una columna. Self-critique: no corresponde (enmienda para alinear con un diseño ya aprobado, verificada con la suite de tests). |
 | 2026-09-03 | Lucas Manoukian | Enmienda pedida por el propietario: se deroga `FR-055` — un equipo sin goleadores ya no muestra el texto "Sin goleadores" debajo de su campo, no muestra nada en su lugar. Mismo criterio que se aplicó el mismo día a `FR-043` de `CARGA_POR_TOQUE_SPEC.md` (rebanada 6) para el estado análogo "sin eventos cargados". Se ajusta la variante `S-05a`. Ningún otro requisito cambia. Self-critique: no corresponde (derogación acotada, sin requisitos nuevos que auditar). |

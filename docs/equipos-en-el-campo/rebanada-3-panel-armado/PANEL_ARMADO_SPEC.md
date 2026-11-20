@@ -439,15 +439,20 @@ significado y no se redefinen. Los propios de esta rebanada:
   principal del encabezado.
 - **FR-003** — El sistema mostrará en la tarjeta una píldora con la diferencia de
   puntaje entre los dos equipos.
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja.
 - **FR-003b** — Mientras la diferencia de puntaje sea 0, el sistema dará a la
   píldora el texto "Equipos parejos".
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja.
 - **FR-003c** — Mientras la diferencia de puntaje no sea 0, el sistema dará a la
   píldora el texto "Diferencia N pts".
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja.
 - **FR-004** — Mientras la tarjeta esté en dos columnas, el sistema ubicará la
   píldora de diferencia en el encabezado, a la izquierda de los botones de ícono.
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja.
 - **FR-005** — Mientras la tarjeta esté en una sola columna, el sistema ubicará la
   píldora de diferencia en la fila del encabezado del equipo visible, junto a su
   puntaje total.
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja.
 - **FR-006** — Cuando el administrador active el botón de copiar y la copia se
   complete, el sistema reemplazará el ícono del botón por un tilde durante
   1800 ms y después lo restituirá, sin mostrar ningún aviso flotante.
@@ -463,12 +468,14 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **FR-009** — Cuando la diferencia buscada de este armado no sea cero, el sistema
   la declarará en la descripción emergente de la píldora, nombrando a qué equipo
   favorece.
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora y su descripción emergente no se dibujan.
 
 ### 7.2 El combo de estrategia
 
 - **FR-010** — Donde el rol de la sesión sea `admin`, el sistema mostrará el combo
   de estrategia arriba de las canchas, con la etiqueta "ESTRATEGIA" a su
   izquierda.
+  **Acotado el 2026-11-20 por `FR-031` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el combo no se dibuja.
 - **FR-011** — El sistema no mostrará ningún resumen ni explicación de la
   estrategia debajo del combo: sólo el nombre de la estrategia elegida, en el
   propio `<select>`. *(Invertido 2026-09-02, ver §18: mostrar el resumen
@@ -494,6 +501,7 @@ significado y no se redefinen. Los propios de esta rebanada:
   convocatoria, la estrategia elegida, la configuración del motor o las duplas, el
   sistema mostrará el aviso de equipos desactualizados entre el combo y las
   canchas.
+  **Acotado el 2026-11-20 por `FR-032` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el aviso no se dibuja.
 - **FR-021** — El sistema conservará el texto actual del aviso, que cubre los
   cuatro disparadores, y no adoptará el del handoff, que sólo cubre el de
   estrategia (`D-05`).
@@ -508,6 +516,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 
 - **FR-030** — Mientras el armado en pantalla lleve datos de balance por línea, el
   sistema mostrará debajo de las canchas un bloque con una celda por línea.
+  **Acotado el 2026-11-20 por `FR-029` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la grilla no se dibuja.
 - **FR-031** — El sistema mostrará en cada celda el nombre de la línea, el puntaje
   del Blanco, el del Negro y la diferencia entre los dos, expresada como "+N
   Blanco", "+N Negro" o "Parejo".
@@ -531,12 +540,14 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **FR-037** — Mientras haya un desvío aceptable configurado y el desvío del
   armado lo supere, el sistema distinguirá visualmente la píldora de diferencia
   del encabezado.
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja, y con ella su aspecto de excedida.
 
 ### 7.5 Por qué quedaron así
 
 - **FR-040** — Mientras el motor haya emitido al menos una explicación del armado,
   el sistema mostrará el bloque "Por qué quedaron así" debajo de la diferencia por
   línea.
+  **Acotado el 2026-11-20 por `FR-030` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el bloque no se dibuja.
 - **FR-041** — El sistema mostrará las explicaciones como una lista de viñetas, en
   el orden en que el motor las emite.
 - **FR-042** — El sistema mostrará el bloque sin caja, sin borde y sin fondo
@@ -561,10 +572,12 @@ significado y no se redefinen. Los propios de esta rebanada:
   decían lo enumera el receipt.
 - **FR-052** — Mientras haya al menos un titular sin puntaje, el sistema declarará
   en el receipt cuántos son en total y cuántos quedaron en cada equipo.
+  **Acotado el 2026-11-20 por `FR-030` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el receipt no se dibuja, y con él esta declaración.
 - **FR-053** — El sistema dejará de mostrar la cajita de diferencia de puntaje,
   cuyo contenido pasa a la píldora del encabezado (`FR-003`, `FR-009`, `FR-037`).
 - **FR-054** — El sistema conservará el puntaje total de cada equipo en el
   encabezado de su panel, sin cambios.
+  **Acotado el 2026-11-20 por `FR-025` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el total no se dibuja.
 
 ### 7.7 La botonera al pie
 
@@ -583,18 +596,22 @@ significado y no se redefinen. Los propios de esta rebanada:
 
 - **FR-070** — Cuando el sistema aplique un movimiento manual, recalculará la
   diferencia de puntaje mostrada en la píldora sobre el reparto resultante.
+  **Acotado el 2026-11-20 por `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la píldora no se dibuja; el recálculo sigue igual.
 - **FR-070b** — El sistema calculará el total de puntaje de cada equipo —el número
   del encabezado de cada campo y el que la fila de resultado muestra a cada
   costado— sobre el reparto que está en pantalla, sumando el puntaje de cada
   unidad de armado una sola vez (una dupla de rotación entra por el puntaje de la
   unidad, no por la suma de sus dos integrantes). El total guardado con el armado
   queda como registro de la generación y no se lee para mostrar (`TC-011`).
+  **Acotado el 2026-11-20 por `FR-025` a `FR-027` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", los totales no se dibujan; el cálculo sigue igual. Para `jugador`, por `FR-050` y `FR-051`, no se dibujan nunca.
 - **FR-070c** — El sistema calculará el total y la diferencia con los puntajes
   **vigentes** de los jugadores: si un puntaje cambia después de generar, los dos
   números lo reflejan, aunque el armado no quede marcado como desactualizado
   (`equiposStale` no observa los puntajes).
+  **Acotado el 2026-11-20 por `FR-025` a `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el total y la diferencia no se dibujan; el cálculo sigue igual.
 - **FR-071** — Cuando el sistema aplique un movimiento manual, recalculará la
   diferencia por línea de cada celda sobre el reparto resultante.
+  **Acotado el 2026-11-20 por `FR-029` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", la grilla no se dibuja; el recálculo sigue igual.
 - **FR-072** — ~~El sistema no modificará el texto del receipt como consecuencia
   de un movimiento manual: el receipt sigue describiendo la última generación
   (`D-25`).~~ **Invertido parcialmente el 2026-09-10 por `FR-072b` a `FR-072d`**
@@ -609,6 +626,7 @@ significado y no se redefinen. Los propios de esta rebanada:
   sola lista sin rótulos de grupo, en el orden de emisión de siempre: todo lo que
   se ve lo hizo el motor, y rotular dos grupos inventaría una distinción que en
   ese momento no existe.
+  **Acotado el 2026-11-20 por `FR-030` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el bloque no se dibuja.
 - **FR-072b2** — El sistema decidirá si el reparto se apartó comparando medida
   contra medida —el total de cada equipo, el balance por línea y el cumplimiento
   de la formación, cada uno recalculado contra el valor que la generación
@@ -633,6 +651,7 @@ significado y no se redefinen. Los propios de esta rebanada:
   disparará un guardado por causa del recálculo.
 - **FR-074** — Cuando el sistema aplique un movimiento manual, recalculará la
   cuenta de titulares sin puntaje por equipo que muestra el receipt (`FR-052`).
+  **Acotado el 2026-11-20 por `FR-030` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: con el botón de ocultar puntajes en "oculto", el receipt no se dibuja; el recálculo sigue igual.
 
 ### 7.9 Estados y roles
 
@@ -716,6 +735,7 @@ significado y no se redefinen. Los propios de esta rebanada:
 - **And** una sesión con rol `admin` en un viewport de 1200 px
 - **When** se abre el detalle del partido
 - **Then** ~~el encabezado de la tarjeta contiene la píldora de diferencia, un botón de copiar y un botón de regenerar, en ese orden~~ **Reemplazado el 2026-09-29 por `S-05` de [`INTERCAMBIAR_COLORES_SPEC.md`](../../intercambiar-colores/INTERCAMBIAR_COLORES_SPEC.md)**: el encabezado contiene la píldora de diferencia, un botón de intercambiar colores, un botón de copiar y un botón de regenerar, en ese orden
+  **Acotado el 2026-11-20 por `FR-002` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: entre el botón de intercambiar colores y el de copiar va el de ocultar puntajes; con el botón en "oculto", la píldora no se dibuja (`FR-028` de esa Spec).
 - **And** cada botón expone un nombre accesible no vacío que describe su acción
 - **And** la píldora dice "Equipos parejos" si la diferencia es 0, y "Diferencia N pts" en cualquier otro caso
 
@@ -968,6 +988,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 - **AC-02** — En un viewport de 1200 px, el encabezado de la tarjeta contiene la
   píldora de diferencia y los dos botones de ícono, en ese orden, y ninguno de
   los dos aparece al pie (cubre `FR-004`, `FR-063`).
+  **Acotado el 2026-11-20 por `FR-001`, `FR-002` y `FR-028` de [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: "los dos botones" ya no describía el encabezado desde `FR-042` de [`INTERCAMBIAR_COLORES_SPEC.md`](../../intercambiar-colores/INTERCAMBIAR_COLORES_SPEC.md), que lo llevó a tres y no corrigió este AC. Pasa a decir: en un viewport de 1200 px, con el botón de ocultar puntajes en "visible", el encabezado contiene la píldora de diferencia y los botones de ícono en el orden de `S-01`, y ninguno aparece al pie.
 - **AC-03** — En un viewport de 360 px, la píldora de diferencia aparece en la
   fila del encabezado del equipo visible y no en el encabezado de la tarjeta
   (cubre `FR-005`).
@@ -1209,6 +1230,7 @@ ninguna. El modelo de datos cambia en la rebanada 5.
 
 | Date | Author | Change |
 |---|---|---|
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del acotamiento declarado por [`OCULTAR_PUNTAJES_SPEC.md`](../../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md): `FR-003`, `FR-004`, `FR-005`, `FR-009`, `FR-010`, `FR-020`, `FR-030`, `FR-040` y `FR-054` valen sólo con el botón de ocultar puntajes en "visible". `FR-008` (el texto que copia Copiar) no cambia. Completada el mismo día con `FR-052` y `FR-072b`, que la autorrevisión de esa Spec encontró faltantes. Completada después de la crítica independiente de esa Spec con `FR-037`, `FR-070`, `FR-070b`, `FR-071` y `FR-074`, acotados sólo en lo que muestran. Completada otra vez después de la segunda crítica independiente con `FR-003b`, `FR-003c` y `FR-070c`. Completada al derivar el Implementation Plan de esa feature con `S-01` y `AC-02` (el orden y la cantidad de botones del encabezado); `AC-02` además decía "los dos botones" desde antes de `intercambiar-colores`, y se corrige al marcarlo. |
 | 2026-10-29 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del reemplazo declarado en el encabezado de `POSICIONES_DEL_JUGADOR_SPEC.md` (`AC-02` de esa Spec, todavía en borrador): quedan marcados en parte la línea de `D-19`/`D-20` de §3.3 y `A-03`. El resumen dividido (`FR-072b` a `FR-072d`) no cambia. Self-critique: no corresponde (anotación de un reemplazo ya declarado del otro lado). |
 | 2026-09-23 | Lucas Manoukian (claude-opus-5) | Anotación recíproca: se marca `FR-083` como reemplazado por `FR-001`/`FR-002` de la rebanada 6 (el tercero de sus estados ya lo había reemplazado la rebanada 4), y arrastra a `S-11`/`S-11a`/`S-11b`. `FR-083b` se marca como **vacío, no contradicho**: su guarda ya no puede darse, pero los cuatro bloques que enumera se siguen mostrando, así que no se tacha. Lo detectó la auditoría de conformidad del 2026-09-23. |
 | 2026-09-10 | Lucas Manoukian (claude-opus-5) | A pedido del propietario, el bloque "Por qué quedaron así" pasa a ajustarse a los cambios hechos después de generar. Es una **inversión parcial de `FR-072`** y una **enmienda de `D-25`** (registrada como `D-26` en el Concept Note, que es donde vive la decisión): el bloque se parte en dos grupos rotulados —`FR-072b`— y el que describe el reparto en pantalla se recalcula —`FR-072c`—. La división aparece **sólo si el reparto se apartó de lo que generó el motor** (`FR-072b2`): recién generado, todo lo que se ve lo hizo el motor y el bloque va en una sola lista sin rótulos. Esa condición se agregó el mismo día, después de que el propietario la encontrara faltando en el partido del sábado 12 —sólo había generado y aparecían las dos secciones—, y con ella salió a la luz un defecto del recuento de formación: contaba los dos integrantes de una dupla de rotación por separado, inflaba un equipo, el ajuste de "equipo corto" le regalaba un lugar de campo al otro y ese otro se reportaba con un puesto faltante que no le faltaba ("No se pudo completar la formación 3-3-1 en el Equipo Negro" sobre un armado que la cumplía). Se corrige colapsando las duplas antes de contar, igual que hace el balance por línea, y `S-05f` pasa a cubrir el caso con dupla, mientras las explicaciones que narran una decisión del motor durante esa corrida siguen describiendo la generación, porque no se derivan del reparto final. Se agrega `FR-072d`: el bloque es un desplegable cerrado por omisión, que recuerda su estado entre repintados. `NFR-007` ("el receipt dice exactamente lo mismo que decía") queda **reemplazado por `NFR-007b`**: exigir que el texto no cambie contradice lo que se acaba de pedir; lo que se guarda ahora es que ninguna explicación se pierda al partir la lista, medido contra la versión anterior de `index.html`. En consecuencia se retira la variante `S-05d` y se agregan `S-05f` a `S-05i` y `S-06k`. Una sola cadena cambia de texto: la del bloqueado, que decía "permaneció en el Equipo X porque estaba bloqueado" leyendo el equipo ACTUAL — era falsa en cuanto se arrastraba a un jugador bloqueado, porque nombraba el equipo nuevo afirmando que no se había movido. Self-critique: no corresponde (cambio acotado a pedido explícito; la coincidencia entre el recuento de formación en vivo y el del motor se verificó midiendo las dos estrategias de formación fija, y la ausencia de pérdida de explicaciones se verificó contra el `index.html` anterior). |

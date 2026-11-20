@@ -319,6 +319,7 @@ CWE Top 25 consultado en vivo el 2026-09-29: edición 2025
 - **FR-042** — El sistema ordenará los botones de ícono del encabezado así: Intercambiar
   colores, Copiar y Regenerar. Reemplaza `FR-002b` de `PANEL_ARMADO_SPEC.md` (ver
   Declaración de reemplazo).
+  **Acotado el 2026-11-20 por `FR-001` y `FR-002` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: para `admin`, el botón de ocultar puntajes va entre Intercambiar colores y Copiar, así que el orden pasa a ser Intercambiar colores, ocultar puntajes, Copiar y Regenerar. El orden relativo de los tres de esta Spec no cambia.
 - **FR-043** — El sistema dará al botón de intercambiar el mismo peso visual que a Copiar;
   Regenerar sigue siendo la acción principal y el único ícono verde del encabezado
   (`FR-002c` de `PANEL_ARMADO_SPEC.md`).
@@ -429,6 +430,7 @@ Variants: none — single-path scenario.
 - **When** se abre el detalle del partido
 - **Then** el encabezado contiene la píldora de diferencia, el botón de intercambiar
   colores, el de copiar y el de regenerar, en ese orden
+  **Acotado el 2026-11-20 por `FR-002` de [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md)**: entre el de intercambiar colores y el de copiar va el botón de ocultar puntajes (`S-01` de esa Spec); el escenario sigue valiendo para los tres botones de esta Spec, en ese orden relativo.
 - **And** el botón de intercambiar muestra la camiseta con la mitad derecha rellena, se llama
   "Intercambiar colores" y tiene el mismo color que Copiar
 
@@ -645,6 +647,7 @@ colores") y `OPEN-Q-04` (Declaración de reemplazo al inicio).
 | 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Initial draft. Self-critique: pending. |
 | 2026-09-29 | Lucas Manoukian (claude-sonnet-5) | Corregidos los 4 hallazgos de `INTERCAMBIAR_COLORES_SPEC_CRITIQUE_2026-09-29_claude-sonnet-5.md`: `AC-20` renumerado a `AC-23` (coincidía en rango con `AC-19`/`AC-21` de otra sección); `NFR-005` eliminado por duplicar `TC-031` sin agregar una obligación propia (y su referencia en el §17 Handoff ajustada de `NFR-001 a NFR-005` a `NFR-001 a NFR-004`); la cita de `TC-030` que justificaba el orden del ícono reemplazada de `renderFilaResultado` (pantalla del partido finalizado, donde el botón no existe) a `renderTeamsSectionImpl` y el orden de pestañas (pantallas donde el botón sí vive); `FR-011` partido en `FR-011` (orden de las listas) y `FR-011b` (composición de cada grupo), con sus citas en §3.3, §5.2, `S-01`, `S-01a` y `S-01e` actualizadas. |
 | 2026-09-29 | Lucas Manoukian (claude-opus-5-5) | Enmiendas desde la auditoría `INTERCAMBIAR_COLORES_CONFORMANCE_2026-09-29_claude-opus-5-5.md`, sin cambios de código ni de IDs. Decisiones del owner: `FR-013` nombra el cambio de signo de `diferencia` (el código ya lo hacía, Plan `TD-03`); `FR-035` y `S-04b` sancionan el cambio del equipo visible a cualquier ancho (Plan `TD-06`); `FR-036` se acota a "al cargar la aplicación"; dos riesgos nuevos en §15 (guardado a medias entre los dos documentos, y sesión de jugador vieja que deshace el intercambio), con su arreglo de fondo en `Roadmap.md`. Aclaraciones de redacción: "idéntico" en `FR-018` es igualdad tal como se guarda; `FR-017` dice que sólo cambian los valores de `FR-010`–`FR-015`; `NFR-004` pasa de "exactamente" a "a lo sumo" y excluye la reescritura completa del guardado; `TC-031` acota el binding a `S-*`/`NFR-*`/`TC-*` declarados, como `AGENTS.md`; `S-02` deja de suponer que la píldora nombra al equipo que va ganando; `S-06a` pasa a "mismo camino" en vez de "mismo resultado"; `S-01c` deja de suponer que el grupo más grande es el Blanco; `S-07c` dice dónde queda registrado el error; `AC-10` repite los 18 titulares; `S-01` usa el nombre vigente "Formación fija"; el Glosario corrige "Inscripción abierta" y amplía "Campo indexado por color" con `diferencia`; el ruling `CWE-79` nombra el id del partido en el `onclick`; anclas de línea de `index.html` actualizadas a `d9296f8`. Self-critique: skipped (enmienda acotada desde una auditoría ya hecha). |
+| 2026-11-20 | Lucas Manoukian (claude-opus-5-5) | Anotación recíproca del acotamiento declarado por [`OCULTAR_PUNTAJES_SPEC.md`](../ocultar-puntajes/OCULTAR_PUNTAJES_SPEC.md): `FR-042` y `S-05` siguen fijando el orden de los tres botones de esta Spec, con el botón de ocultar puntajes entre Intercambiar colores y Copiar. Encontrado al derivar el Implementation Plan de esa feature. |
 
 ---
 
