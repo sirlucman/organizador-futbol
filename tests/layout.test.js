@@ -4944,11 +4944,18 @@ const ESCENARIOS = [
       await page.waitForTimeout(300);
       if (!await hay(page, `.team-panel.negro .camiseta[data-id="${movido}"]`)) problemas.push(`en "oculto" arrastrar a ${movido} al Negro no lo pasó (S-07)`);
       if (await hay(page, '.team-total') || await hay(page, '.panel-pildora')) problemas.push('después del pase en "oculto" aparecieron un total o la píldora (S-07, FR-042)');
+      const escrituras = () => page.evaluate(() => window.__escrituras.length);
+      let e0 = await escrituras();
       await page.click('#teamsSection .panel-icono-regenerar');
       await page.waitForTimeout(800);
+      if (await escrituras() === e0) problemas.push('en "oculto" Regenerar no regeneró: no hubo escritura (S-07a, FR-042)');
       if (await hay(page, '.panel-receipt')) problemas.push('después de regenerar en "oculto" apareció "Por qué quedaron así" (S-07a)');
+      e0 = await escrituras();
+      const blancoAntes = await page.evaluate(() => [...document.querySelectorAll('.team-panel.blanco .camiseta')].map(c => c.dataset.id).sort().join());
       await page.click('#teamsSection .panel-icono-intercambiar');
       await page.waitForTimeout(300);
+      const negroDespues = await page.evaluate(() => [...document.querySelectorAll('.team-panel.negro .camiseta')].map(c => c.dataset.id).sort().join());
+      if (await escrituras() === e0 || negroDespues !== blancoAntes) problemas.push('en "oculto" Intercambiar colores no intercambió (S-07b, FR-042)');
       problemas.push(...(await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO)).map(x => `después de intercambiar colores: ${x} (S-07b)`));
       await cambiarDePartido(page, 'm-int-8');
       if (await hay(page, '.camiseta-candado')) problemas.push('en "oculto" se ven los candados (S-07c, FR-024)');
@@ -5064,7 +5071,9 @@ const ESCENARIOS = [
           const etiqueta = `${c.id}${c.editar ? ' (edición)' : ''}${c.seleccion ? ' con selección' : ''} a ${ancho} px`;
           await cambiarDePartido(page, c.id);
           if (c.editar) { await page.evaluate(id => window.__editarResultadoFinalizado(id), c.id); await page.waitForTimeout(300); }
-          if (c.seleccion) await tocarCamiseta(page, 'int-lucas');
+          if (c.seleccion && (!await tocarCamiseta(page, 'int-lucas') || !await hay(page, '.camiseta.seleccionada'))) {
+            problemas.push(`${etiqueta}: no se pudo seleccionar a Lucas, la combinación no mide lo que dice`); continue;
+          }
           if (await nombreDelOjo(page) !== 'Ocultar puntajes') { problemas.push(`${etiqueta}: el ojo no arranca en "visible"`); continue; }
           (await page.evaluate(PRESENTES_DE_LISTA, LISTA_OCULTO)).forEach(x => encontrados.add(x));
           const html = await htmlDeLaTarjeta(page);
@@ -5132,9 +5141,18 @@ const ESCENARIOS = [
             window.__alternarPuntajes();
             return document.getElementById('teamsSection').innerHTML !== antes;
           });
-          if (cambio) problemas.push(`${id} a ${ancho} px: invocar __alternarPuntajes como jugador cambió la tarjeta (TD-05)`);
+          if (cambio) problemas.push(`${id} a ${ancho} px: invocar __alternarPuntajes como jugador cambió la tarjeta`);
         }
       }
+      /* La guarda de rol de `__alternarPuntajes` (TD-05). Para jugador la tarjeta no depende del ojo,
+         así que comparar su HTML no la ve: se ve si la misma sesión pasa a admin sin cerrarse (un
+         claim refrescado). Si la guarda faltara, admin entraría en "oculto". */
+      await page.evaluate(() => { for (let i = 0; i < 3; i++) window.__alternarPuntajes(); });
+      await page.evaluate(() => window.__entrarComo('admin'));
+      await page.waitForTimeout(900);
+      await cambiarDePartido(page, 'm-abierto');
+      const ojoAdmin = await nombreDelOjo(page);
+      if (ojoAdmin !== 'Ocultar puntajes') problemas.push(`después de que jugador invocara __alternarPuntajes, admin ve el ojo en "${ojoAdmin}" (TD-05)`);
       return [...new Set(problemas)].slice(0, 30);
     } },
 ];
