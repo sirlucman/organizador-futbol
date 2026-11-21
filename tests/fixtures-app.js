@@ -492,30 +492,45 @@ function fakeFirebase({ datos, rol, jugadorId, claimAusente, refrescoTrae, refre
                      sobre los mismos datos son dos cuentas (orden-por-columnas S-03c)
 
      `currentUser` queda con la cuenta desde que `onAuthStateChanged` la entrega, como en el SDK:
-     es de donde la preferencia de orden saca el `uid` (orden-por-columnas TD-02). */
+     es de donde la preferencia de orden saca el `uid` (orden-por-columnas TD-02).
+
+     Cerrar y abrir sesión (ocultar-puntajes TD-16): `onAuthStateChanged` guarda su callback,
+     `signOut` lo llama con null —que es lo que hace el SDK, y lo único que lleva a la aplicación
+     por `onAuthChange(null)`— y `window.__entrarComo(rol)` entrega una cuenta nueva con ese claim,
+     como si otra persona se logueara en la misma pestaña. Hasta el primer `signOut` nada cambia:
+     ningún escenario anterior cierra sesión. */
   let usuarioActual = null;
+  let alCambiar = null;
+  let rolActual = rol;
+  let sinClaim = claimAusente;
+  const cuenta = () => ({
+    uid,
+    getIdTokenResult: async (forzado) => {
+      if (forzado) {
+        window.__refrescos++;
+        if (refrescoDemora) await new Promise(r => setTimeout(r, refrescoDemora));
+        if (refrescoFalla) throw new Error('no se pudo refrescar el token');
+        return { claims: refrescoTrae ? { rol: refrescoTrae, jugadorId: jugadorId || null } : {} };
+      }
+      /* `claimAusente` gana sobre `rol` en el primer token a propósito: un escenario del corte
+         declara las dos cosas —qué rol tiene la cuenta del lado servidor y que su token viejo
+         todavía no lo trae. */
+      if (sinClaim) return { claims: {} };
+      return { claims: { rol: rolActual, jugadorId: jugadorId || null } };
+    },
+  });
   const auth = () => ({
     get currentUser() { return usuarioActual; },
     setPersistence: async () => {},
     signInWithEmailAndPassword: async () => {},
-    signOut: async () => {},
-    onAuthStateChanged: (cb) => sinSesion ? cb(null) : cb(usuarioActual = {
-      uid,
-      getIdTokenResult: async (forzado) => {
-        if (forzado) {
-          window.__refrescos++;
-          if (refrescoDemora) await new Promise(r => setTimeout(r, refrescoDemora));
-          if (refrescoFalla) throw new Error('no se pudo refrescar el token');
-          return { claims: refrescoTrae ? { rol: refrescoTrae, jugadorId: jugadorId || null } : {} };
-        }
-        /* `claimAusente` gana sobre `rol` en el primer token a propósito: un escenario del corte
-           declara las dos cosas —qué rol tiene la cuenta del lado servidor y que su token viejo
-           todavía no lo trae. */
-        if (claimAusente) return { claims: {} };
-        return { claims: { rol, jugadorId: jugadorId || null } };
-      },
-    }),
+    signOut: async () => { usuarioActual = null; if (alCambiar) alCambiar(null); },
+    onAuthStateChanged: (cb) => { alCambiar = cb; sinSesion ? cb(null) : cb(usuarioActual = cuenta()); },
   });
+  window.__entrarComo = (nuevoRol) => {
+    rolActual = nuevoRol;
+    sinClaim = false;
+    if (alCambiar) alCambiar(usuarioActual = cuenta());
+  };
   auth.Auth = { Persistence: { LOCAL: 'local' } };
   window.firebase = {
     initializeApp: () => {},
