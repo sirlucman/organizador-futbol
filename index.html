@@ -6185,7 +6185,8 @@
       const cid = c.dataset.id;
       const esCandidata = !mismaUnidad(m, id, cid) && candidatos.some(x => mismaUnidad(m, x, cid));
       c.classList.add(mismaUnidad(m, id, cid) ? 'seleccionada' : (esCandidata ? 'candidata' : 'atenuada'));
-      if(esCandidata && conCosto.some(x => mismaUnidad(m, x, cid))) c.classList.add('con-costo'); // FR-021b
+      // FR-021b; sin `puntajesVisibles()` el candidato con costo se ve como cualquier otro (ocultar-puntajes TD-08, FR-034)
+      if(esCandidata && puntajesVisibles() && conCosto.some(x => mismaUnidad(m, x, cid))) c.classList.add('con-costo');
     });
   }
 
@@ -6991,11 +6992,13 @@
           + ' onclick="window.__generarEquipos(\'' + m.id + '\')">' + ICON_REGENERAR + '</button>');
       }
     }
-    const pildora = (admin && resumen && !enUnaColumna()) ? renderPildoraDiferencia(resumen) : '';
+    // La píldora y el combo siguen al ojo (ocultar-puntajes TD-09, FR-028, FR-031).
+    const ver = puntajesVisibles();
+    const pildora = (ver && resumen && !enUnaColumna()) ? renderPildoraDiferencia(resumen) : '';
     const derecha = (pildora || botones.length)
       ? '<div class="panel-header-acciones">' + pildora + botones.join('') + '</div>' : '';
     return '<div class="panel-header"><h3>' + tituloTarjetaEquipos(m) + '</h3>' + derecha + '</div>'
-      + renderComboEstrategia(m);
+      + (ver ? renderComboEstrategia(m) : '');
   }
 
   /* El combo, sin ningún texto de explicación debajo (FR-011 de PANEL_ARMADO_SPEC.md quedó
@@ -7304,24 +7307,30 @@
        Mientras no se haya tocado nada, todo lo que se ve lo hizo el motor y va en una sola lista
        sin rótulos, como antes de este cambio (`FR-072b`). */
     const receiptDividido = repartoDivergeDeLaGeneracion(m, porId);
+    /* Lo que el ojo esconde se omite acá, donde se compone la tarjeta con equipos, y no adentro de
+       cada función: el combo también se dibuja en las pantallas sin equipos, que no cambian con el
+       ojo (ocultar-puntajes TD-09, FR-017). El aviso de bloqueo no se esconde (FR-041). Los `id`
+       de los totales se conservan: los leen tres escenarios de layout. */
+    const ver = puntajesVisibles();
+    const totalHtml = (id, equipo) => ver ? `<span class="team-total" id="${id}">${teamHeaderTotalText(sumaVigenteDeEquipo(m, equipo))}</span>` : '';
 
     section.innerHTML = `
       ${renderEncabezadoTarjeta(m, resumenDif)}
-      ${enModoCarga(m) ? renderFilaResultado(m) : ''}
-      ${renderAvisoBloqueo(m) || renderAvisoDesactualizado(m)}
-      ${enUnaColumna() ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
+      ${enModoCarga(m) ? renderFilaResultado(m, !ver) : ''}
+      ${renderAvisoBloqueo(m) || (ver ? renderAvisoDesactualizado(m) : '')}
+      ${(ver && enUnaColumna()) ? `<div class="panel-pildora-fila">${renderPildoraDiferencia(resumenDif)}</div>` : ''}
       ${renderToolbarCarga(m)}
       ${renderZonaEquipos(m, {
         blanco: {
-          header: encabezadoCampoEquipos(m, 'Equipo Blanco', `<span class="team-total" id="totalBlancoSpan">${teamHeaderTotalText(sumaVigenteDeEquipo(m, eq.blanco))}</span>`),
+          header: encabezadoCampoEquipos(m, 'Equipo Blanco', totalHtml('totalBlancoSpan', eq.blanco)),
           contenido: renderCanchaEquipo(m, blancoPlayers, 'blanco') + detalleCargaHtml(eq.blanco) },
         negro: {
-          header: encabezadoCampoEquipos(m, 'Equipo Negro', `<span class="team-total" id="totalNegroSpan">${teamHeaderTotalText(sumaVigenteDeEquipo(m, eq.negro))}</span>`),
+          header: encabezadoCampoEquipos(m, 'Equipo Negro', totalHtml('totalNegroSpan', eq.negro)),
           contenido: renderCanchaEquipo(m, negroPlayers, 'negro') + detalleCargaHtml(eq.negro) }
       })}
       ${renderAccionesDeCarga(m)}
-      ${renderDiferenciaPorLinea(celdasLineas, diffObjetivo)}
-      ${renderPorQueQuedaronAsi(explicaciones, m.id, receiptDividido)}
+      ${ver ? renderDiferenciaPorLinea(celdasLineas, diffObjetivo) : ''}
+      ${ver ? renderPorQueQuedaronAsi(explicaciones, m.id, receiptDividido) : ''}
       ${renderBotoneraTarjeta(m)}
       ${(m.estado === 'Finalizado' && editandoResultadoFinalizado !== m.id) ? `<div class="explain-box" style="margin-top:14px;">Partido finalizado. El resultado y las estadísticas de goles y asistencias quedaron guardados — cuando construyamos el Historial, se van a usar desde ahí.</div>` : ''}
       ${(m.estado === 'Finalizado' && editandoResultadoFinalizado === m.id) ? `<div class="explain-box" style="margin-top:14px;">Editando el resultado de un partido finalizado. Al guardar, se van a recalcular los partidos jugados, ganados, empatados, perdidos, goles y asistencias de todos los jugadores convocados.</div>` : ''}

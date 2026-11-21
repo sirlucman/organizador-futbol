@@ -579,7 +579,9 @@ function revisarEscrituraDeIntercambio(antes, despues, matchId, idsUnidades, eti
    sobre el destino, `dragend` sobre la camiseta. Devuelve una foto tomada justo después del
    `dragstart` —qué quedó marcado y si el nodo arrastrado sigue siendo el mismo— y lo que quedó
    después de `dragend`. `destino` es { camiseta: id } | { panel: 'blanco'|'negro' } (la cancha
-   de ese equipo, fuera de toda camiseta) | { arcoVacio: 'blanco'|'negro' } (la línea del Arco). */
+   de ese equipo, fuera de toda camiseta) | { arcoVacio: 'blanco'|'negro' } (la línea del Arco) |
+   { pestana: 'blanco'|'negro' } (la pestaña de ese equipo, en una columna; ocultar-puntajes S-07d).
+   La foto trae también los `data-id` con costo (`conCosto`), que el `dragend` ya borró al volver. */
 async function arrastrarSobre(page, idOrigen, destino, { soltar = true } = {}) {
   return page.evaluate(({ idOrigen, destino, soltar }) => {
     const cam = document.querySelector(`.camiseta[data-id="${idOrigen}"]`);
@@ -591,8 +593,10 @@ async function arrastrarSobre(page, idOrigen, destino, { soltar = true } = {}) {
       seleccionadas: [...document.querySelectorAll('.camiseta.seleccionada')].map(c => c.dataset.id),
       candidatas: [...document.querySelectorAll('.camiseta.candidata')].map(c => c.dataset.id).sort(),
       conSeleccion: document.querySelectorAll('.cancha.con-seleccion').length,
+      conCosto: [...document.querySelectorAll('.camiseta.con-costo')].map(c => c.dataset.id).sort(),
     };
     const zona = destino.camiseta ? document.querySelector(`.camiseta[data-id="${destino.camiseta}"]`)
+      : destino.pestana ? document.querySelector(`.equipo-tab[onclick*="'${destino.pestana}'"]`)
       : destino.panel ? document.querySelector(`.team-panel.${destino.panel} .cancha`)
       : destino.arcoVacio ? document.querySelector(`.team-panel.${destino.arcoVacio} .cancha .cancha-linea:last-child .cancha-subfila`)
       : null;
@@ -1038,6 +1042,76 @@ const INVARIANTE_SIN_VACIOS = () => {
   return [...new Set(problemas)];
 };
 
+/* Todo lo que el ojo esconde, uno por requisito de §7.3 de la Spec de ocultar-puntajes. Viaja como
+   argumento de INVARIANTE_OCULTO (TD-18), y `ocultar-barrido` lo usa del lado de Node para exigir
+   que cada entrada aparezca en "visible" en alguna combinación (AC-13). */
+const LISTA_OCULTO = {
+  selectores: [
+    ['.camiseta-puntaje', 'FR-020'], ['.camiseta-sec', 'FR-021'], ['.camiseta-fuera', 'FR-022'],
+    ['.equipo-tab-fuera', 'FR-023'], ['.camiseta-candado', 'FR-024'], ['.team-total', 'FR-025, FR-027'],
+    ['.resultado-puntaje', 'FR-026'], ['.resultado-pts', 'FR-026'], ['.panel-pildora', 'FR-028'],
+    ['.panel-pildora-fila', 'FR-028'], ['.panel-lineas', 'FR-029'], ['.panel-receipt', 'FR-030'],
+    ['.chip-estrategia', 'FR-031'], ['.panel-aviso:not(.panel-aviso-bloqueo)', 'FR-032'],
+    ['.con-costo', 'FR-033'], ['.equipo-tab-cuenta', 'FR-035'],
+  ],
+  // Lo que el `title` de una camiseta deja de decir (FR-036).
+  menciones: ['sin puntaje', 'su puesto es', 'posición secundaria', 'fuera de puesto', 'queda fuera de puesto'],
+};
+/* En "oculto", nada de LISTA_OCULTO dentro de la tarjeta (ocultar-puntajes FR-020 a FR-037). Por
+   presencia, nunca por tamaño: lo oculto se omite del documento (TC-012). */
+const INVARIANTE_OCULTO = (lista) => {
+  const seccion = document.getElementById('teamsSection');
+  if (!seccion) return ['no está la tarjeta de equipos'];
+  const problemas = [];
+  for (const [sel, id] of lista.selectores) {
+    const n = seccion.querySelectorAll(sel).length;
+    if (n) problemas.push(`en "oculto" quedó ${sel} (${id}): ${n} en el documento`);
+  }
+  for (const c of seccion.querySelectorAll('.camiseta')) {
+    const t = c.getAttribute('title') || '';
+    for (const m of lista.menciones) if (t.includes(m)) problemas.push(`en "oculto" el title de una camiseta dice "${m}" (FR-036): "${t}"`);
+  }
+  for (const t of seccion.querySelectorAll('.equipo-tab')) {
+    const n = t.getAttribute('aria-label');
+    if (n !== 'Equipo Blanco' && n !== 'Equipo Negro') problemas.push(`en "oculto" una pestaña se llama "${n}" (FR-037)`);
+  }
+  return [...new Set(problemas)].slice(0, 10);
+};
+// Lo que LISTA_OCULTO encuentra a la vista en la tarjeta: para el barrido de "visible" (AC-13).
+const PRESENTES_DE_LISTA = (lista) => {
+  const seccion = document.getElementById('teamsSection');
+  const presentes = lista.selectores.filter(([sel]) => seccion.querySelector(sel)).map(([sel]) => sel);
+  const titulos = [...seccion.querySelectorAll('.camiseta')].map(c => c.getAttribute('title') || '');
+  return presentes.concat(lista.menciones.filter(m => titulos.some(t => t.includes(m))));
+};
+/* Contador del almacenamiento del navegador (ocultar-puntajes NFR-005): envuelve el Storage, la
+   apertura de IndexedDB y `document.cookie`, y cuenta cada uso en `window.__almacenamiento`. */
+const INSTALAR_CONTADOR_ALMACENAMIENTO = () => {
+  window.__almacenamiento = 0;
+  const contar = () => { window.__almacenamiento++; };
+  for (const k of ['getItem', 'setItem', 'removeItem', 'clear']) {
+    const original = Storage.prototype[k];
+    Storage.prototype[k] = function (...a) { contar(); return original.apply(this, a); };
+  }
+  if (window.indexedDB) { const abrir = indexedDB.open.bind(indexedDB); indexedDB.open = (...a) => { contar(); return abrir(...a); }; }
+  const d = Object.getOwnPropertyDescriptor(Document.prototype, 'cookie');
+  Object.defineProperty(document, 'cookie', { configurable: true,
+    get() { contar(); return d.get.call(document); }, set(v) { contar(); d.set.call(document, v); } });
+};
+// Copiado de tests/intercambio.test.js: un generador con semilla, para que la propiedad sea repetible.
+function mulberry32(a) { return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// El nombre del ojo a la vista, o null.
+const nombreDelOjo = page => page.evaluate(() => { const o = document.querySelector('#teamsSection .panel-icono-ojo'); return o ? o.getAttribute('aria-label') : null; });
+const htmlDeLaTarjeta = page => page.evaluate(() => document.getElementById('teamsSection').innerHTML);
+const hay = (page, sel) => page.evaluate(x => document.querySelectorAll('#teamsSection ' + x).length, sel);
+const tituloDe = (page, id) => page.evaluate(sel => { const c = document.querySelector(sel); return c ? c.getAttribute('title') : null; }, CAMISETA(id));
+const marcadorDe = page => page.evaluate(() => ((document.querySelector('#teamsSection .resultado-marcador') || {}).textContent || '').replace(/\s/g, ''));
+// Los elementos que el ojo no toca (FR-040): cuentan lo mismo en los dos estados.
+const QUEDAN_IGUAL = ['.cancha', '.camiseta', '.camiseta-nombre', '.camiseta-dupla', '.resultado-marcador', '.resultado-nombre',
+  '.stat-goles', '.stat-asistencias', '.detalle-fila', '.carga-toolbar', '.carga-acciones', '.panel-icono-intercambiar',
+  '.panel-icono-copiar', '.panel-icono-regenerar', '.panel-icono-editar', '.panel-botonera', '.explain-box'];
+const contarQuedanIgual = page => page.evaluate(sels => Object.fromEntries(sels.map(x => [x, document.querySelectorAll('#teamsSection ' + x).length])), QUEDAN_IGUAL);
+
 /* El ojo del encabezado (ocultar-puntajes FR-001, FR-002, FR-005 a FR-007, NFR-002). `arg` es
    { situacion: 'armado'|'carga'|'finalizado'|'edicion', estado: 'visible'|'oculto' }. El tamaño de
    44 × 44 y el nombre no vacío ya los mide INVARIANTE_PANEL sobre todo `.panel-icono`. El orden
@@ -1071,6 +1145,8 @@ const INVARIANTE_OJO = (arg) => {
 // Toca el ojo como una persona: por el `onclick` real, con su `stopPropagation` (TD-05).
 async function alternarOjo(page) {
   await page.click('#teamsSection .panel-icono-ojo');
+  // El puntero se va: encima del ojo, su `:hover` lo pinta de otro color y INVARIANTE_OJO mediría eso.
+  await page.mouse.move(0, 0);
   await page.waitForTimeout(200);
 }
 
@@ -4581,6 +4657,433 @@ const ESCENARIOS = [
     } },
   /* ---------------------------------------------------- ocultar-puntajes: el ojo */
   ...['armado', 'carga', 'finalizado', 'edicion'].map(sit => escenarioOjo(sit, 'visible')),
+
+  ...['armado', 'carga', 'finalizado', 'edicion'].map(sit => escenarioOjo(sit, 'oculto')),
+
+  { clave: 'ocultar-alternar', rol: 'admin', nombre: 'ocultar puntajes · tocar el ojo esconde y vuelve a mostrar',
+    anchos: [1200], spec: ['ocultar/S-01', 'ocultar/S-02', 'ocultar/S-08d'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      const antes = await htmlDeLaTarjeta(page);
+      // Precondición: sin esto el resto se cumpliría en vacío.
+      for (const [sel, n, que] of [['.panel-pildora', 1, 'la píldora'], ['.team-total', 2, 'los dos totales'], ['.panel-lineas', 1, 'la grilla por línea'],
+        ['.panel-receipt', 1, '"Por qué quedaron así"'], ['.camiseta-candado', 1, 'los candados'], ['.chip-estrategia', 1, 'el combo de estrategia']]) {
+        if (await hay(page, sel) < n) problemas.push(`precondición: en "visible" falta ${que} (S-01)`);
+      }
+      if (await nombreDelOjo(page) !== 'Ocultar puntajes') problemas.push('precondición: en "visible" el ojo no dice "Ocultar puntajes" (FR-007)');
+      await alternarOjo(page);
+      problemas.push(...await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO));
+      // Lo que no se esconde, una aserción por elemento (FR-040).
+      const quedan = await page.evaluate(() => {
+        const s = document.getElementById('teamsSection');
+        const canchas = [...s.querySelectorAll('.cancha')];
+        return { canchas: canchas.length, conNombres: canchas.filter(c => c.querySelector('.camiseta .camiseta-nombre')).length,
+          intercambiar: !!s.querySelector('.panel-icono-intercambiar'), copiar: !!s.querySelector('.panel-icono-copiar'),
+          regenerar: !!s.querySelector('.panel-icono-regenerar') };
+      });
+      if (quedan.canchas !== 2) problemas.push(`en "oculto" hay ${quedan.canchas} canchas y tienen que seguir las dos (FR-040)`);
+      if (quedan.conNombres !== quedan.canchas) problemas.push('en "oculto" una cancha quedó sin los nombres de sus camisetas (FR-040)');
+      for (const k of ['intercambiar', 'copiar', 'regenerar']) if (!quedan[k]) problemas.push(`en "oculto" desapareció ${k} (FR-040)`);
+      if (await nombreDelOjo(page) !== 'Mostrar puntajes') problemas.push('en "oculto" el ojo no dice "Mostrar puntajes" (FR-007)');
+      if (await page.getByRole('button', { name: 'Mostrar puntajes', exact: true }).count() !== 1) problemas.push('un lector de pantalla no encuentra el botón "Mostrar puntajes" (S-08d)');
+      await alternarOjo(page);
+      if (await htmlDeLaTarjeta(page) !== antes) problemas.push('después de tocar el ojo dos veces la tarjeta no quedó idéntica a la de antes (S-02)');
+      return problemas;
+    } },
+
+  { clave: 'ocultar-armado-casos', rol: 'admin', nombre: 'ocultar puntajes · armado: aviso, marcas de puesto y encabezado de carga',
+    anchos: [360], spec: ['ocultar/S-01b', 'ocultar/S-01d', 'ocultar/S-01e'],
+    transformarDatos: conPuestosCruzados,
+    async preparar(page) { await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      const AVISO = '.panel-aviso:not(.panel-aviso-bloqueo)';
+      if (!await hay(page, AVISO)) problemas.push('precondición: m-int-8 no muestra el aviso de desactualizado en "visible" (S-01b)');
+      await alternarOjo(page);
+      if (await hay(page, AVISO)) problemas.push('en "oculto" sigue el aviso de equipos desactualizados (S-01b, FR-032)');
+      await alternarOjo(page);
+      await cambiarDePartido(page, 'm-int-9');
+      const marcas = () => page.evaluate(() => {
+        const leer = () => ({ puntajeDupla: !!document.querySelector('.camiseta[data-id="int-ramiro"] .camiseta-puntaje'),
+          sec: document.querySelectorAll('.camiseta-sec').length, fuera: document.querySelectorAll('.camiseta-fuera').length });
+        const blanco = leer();
+        window.__verEquipo('m-int-9', 'negro');
+        const negro = leer();
+        window.__verEquipo('m-int-9', 'blanco');
+        return { puntajeDupla: blanco.puntajeDupla, sec: blanco.sec + negro.sec, fuera: blanco.fuera + negro.fuera };
+      });
+      const visible = await marcas();
+      if (!visible.puntajeDupla || !visible.sec || !visible.fuera) problemas.push(`precondición: en "visible" faltan el puntaje de la dupla, la «2º» o la «!»: ${JSON.stringify(visible)} (S-01d)`);
+      await alternarOjo(page);
+      const oculto = await marcas();
+      if (oculto.puntajeDupla || oculto.sec || oculto.fuera) problemas.push(`en "oculto" quedan marcas: ${JSON.stringify(oculto)} (S-01d, FR-020 a FR-022)`);
+      await cambiarDePartido(page, 'm-int-cerrado');
+      const orden = await page.evaluate(() => [...document.querySelectorAll('#teamsSection .panel-header-acciones .panel-icono')]
+        .map(b => ['intercambiar', 'ojo', 'copiar', 'regenerar'].find(t => b.classList.contains('panel-icono-' + t)) || 'otro').join(','));
+      if (orden !== 'ojo,copiar') problemas.push(`con la inscripción cerrada el encabezado es ${orden} y tiene que ser ojo, copiar (S-01e)`);
+      return problemas;
+    } },
+
+  { clave: 'ocultar-bloqueo', rol: 'admin', nombre: 'ocultar puntajes · el aviso de bloqueo no se esconde',
+    anchos: [1200], spec: ['ocultar/S-01c'], fixture: { aRevisar: ['anibal', 'gonzalo'] },
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const texto = () => page.evaluate(() => { const a = document.querySelector('#teamsSection .panel-aviso-bloqueo'); return a ? a.textContent.trim() : null; });
+      const visible = await texto();
+      if (!visible) return ['precondición: no está el aviso de bloqueo en "visible" (S-01c)'];
+      await alternarOjo(page);
+      const oculto = await texto();
+      return oculto === visible ? [] : [`en "oculto" el aviso de bloqueo ${oculto ? 'cambió' : 'desapareció'} (S-01c, FR-041)`];
+    } },
+
+  { clave: 'ocultar-finalizado', rol: 'admin', nombre: 'ocultar puntajes · partido finalizado',
+    anchos: [360], spec: ['ocultar/S-03', 'ocultar/S-03a', 'ocultar/S-03b'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-08-20'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      // A 360 px (S-03a): la fila sólo con el marcador y ningún encabezado arriba del campo.
+      await alternarOjo(page);
+      const a360 = await page.evaluate(() => ({ marcador: !!document.querySelector('#teamsSection .resultado-marcador'),
+        nombres: document.querySelectorAll('#teamsSection .resultado-nombre').length, h4: document.querySelectorAll('#teamsSection .team-panel h4').length }));
+      if (!a360.marcador || a360.nombres) problemas.push(`a 360 px en "oculto" la fila no queda sólo con el marcador: ${JSON.stringify(a360)} (S-03a)`);
+      if (a360.h4) problemas.push('a 360 px en "oculto" quedó un encabezado arriba del campo (S-03a, FR-027, FR-038)');
+      await alternarOjo(page);
+      await page.setViewportSize({ width: 1200, height: 900 });
+      await page.waitForTimeout(250);
+      const leer = () => page.evaluate(() => ({ nombres: document.querySelectorAll('#teamsSection .resultado-nombre').length,
+        puntajes: document.querySelectorAll('#teamsSection .resultado-puntaje, #teamsSection .resultado-pts').length,
+        marcador: ((document.querySelector('#teamsSection .resultado-marcador') || {}).textContent || '').replace(/\s/g, ''),
+        detalle: [...document.querySelectorAll('#teamsSection .stat-chips, #teamsSection .stat-goles, #teamsSection .stat-asistencias, #teamsSection .detalle-fila')].map(e => e.outerHTML) }));
+      const visible = await leer();
+      if (visible.nombres !== 2 || visible.puntajes !== 4) problemas.push(`precondición: en "visible" la fila no tiene los dos nombres y los dos puntajes: ${JSON.stringify(visible.nombres)}, ${visible.puntajes} (S-03)`);
+      await alternarOjo(page);
+      const oculto = await leer();
+      if (oculto.nombres !== 2 || !oculto.marcador) problemas.push('en "oculto" la fila perdió los nombres o el marcador (S-03, FR-026)');
+      if (oculto.puntajes) problemas.push('en "oculto" la fila sigue con el puntaje o el "pts" (S-03, FR-026)');
+      if (!visible.detalle.length) problemas.push('precondición: m-finalizado no tiene chips ni filas de detalle (S-03)');
+      if (JSON.stringify(oculto.detalle) !== JSON.stringify(visible.detalle)) problemas.push('los chips o las filas de detalle cambiaron con el ojo (S-03, FR-040)');
+      await cambiarDePartido(page, 'm-int-finalizado');
+      const sinEventos = await leer();
+      if (sinEventos.marcador !== '0–0' || sinEventos.nombres !== 2 || sinEventos.puntajes) problemas.push(`m-int-finalizado en "oculto": ${JSON.stringify(sinEventos)} y tiene que ser "0 – 0", los nombres, sin "pts" (S-03b)`);
+      return problemas;
+    } },
+
+  { clave: 'ocultar-carga', rol: 'admin', nombre: 'ocultar puntajes · cargar el resultado con los puntajes ocultos',
+    anchos: [360], spec: ['ocultar/S-04', 'ocultar/S-04a', 'ocultar/S-04b', 'ocultar/S-04c', 'ocultar/S-04d'],
+    async preparar(page) { await abrirPartido(page, '2026-08-27'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      const tipo = t => page.evaluate(x => window.__cambiarTipoEventoActivo(x), t);
+      // Nilo, suelto: sobre una dupla el toque es del nombre de cada integrante, no de la camiseta (FR-030b).
+      const golDeNilo = () => page.evaluate(() => !!document.querySelector('.camiseta[data-id="nilo"] .stat-goles'));
+      // A 360 px, sin encabezado arriba del campo (S-04b).
+      await alternarOjo(page);
+      if (await hay(page, '.team-panel h4')) problemas.push('a 360 px en "oculto" quedó un encabezado arriba del campo en la carga (S-04b, FR-038)');
+      // La pestaña, el tipo y el scroll sobreviven al ojo (S-04d, FR-016, FR-016c, FR-016d).
+      await page.evaluate(() => window.__verEquipo('m-cerrado', 'negro'));
+      await tipo('asistencia');
+      await page.waitForTimeout(150);
+      await page.evaluate(() => { const o = document.querySelector('#teamsSection .panel-icono-ojo'); window.scrollTo(0, Math.max(0, o.getBoundingClientRect().top + window.scrollY - 120)); });
+      const antes = await page.evaluate(() => ({ y: window.scrollY,
+        negro: (document.querySelector('.equipo-tab[onclick*="\'negro\'"]') || {}).getAttribute?.('aria-pressed'),
+        tipo: (document.querySelector('.evento-tab[aria-pressed="true"]') || {}).textContent }));
+      if (!(antes.y > 0)) problemas.push('precondición: la página no quedó desplazada antes de tocar el ojo (S-04d)');
+      await alternarOjo(page);
+      const despues = await page.evaluate(() => ({ y: window.scrollY,
+        negro: (document.querySelector('.equipo-tab[onclick*="\'negro\'"]') || {}).getAttribute?.('aria-pressed'),
+        tipo: (document.querySelector('.evento-tab[aria-pressed="true"]') || {}).textContent }));
+      if (despues.negro !== 'true' || antes.negro !== 'true') problemas.push('el ojo cambió la pestaña visible (S-04d, FR-016)');
+      if (despues.tipo !== antes.tipo) problemas.push(`el ojo cambió el tipo de evento: ${antes.tipo} → ${despues.tipo} (S-04d, FR-016c)`);
+      if (despues.y !== antes.y) problemas.push(`el ojo movió la página: ${antes.y} → ${despues.y} (S-04d, FR-016d)`);
+      await alternarOjo(page); // de vuelta a "oculto"
+      // A 1200 px: un gol en "oculto" (S-04).
+      await page.setViewportSize({ width: 1200, height: 900 });
+      await page.waitForTimeout(250);
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await tipo('gol');
+      if (await marcadorDe(page) !== '0–0') problemas.push(`precondición: el marcador arranca en ${await marcadorDe(page)} (S-04)`);
+      await tocarCamiseta(page, 'nilo');
+      if (await marcadorDe(page) !== '1–0') problemas.push(`un gol del Blanco en "oculto" dejó el marcador en ${await marcadorDe(page)} (S-04, FR-043)`);
+      if (!await golDeNilo()) problemas.push('en "oculto" no apareció el chip del gol (S-04, FR-043b)');
+      problemas.push(...await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO));
+      if (await nombreDelOjo(page) !== 'Mostrar puntajes') problemas.push('después de cargar un gol el ojo no sigue en "Mostrar puntajes" (S-04)');
+      await alternarOjo(page); await alternarOjo(page);
+      if (await marcadorDe(page) !== '1–0' || !await golDeNilo()) problemas.push('tocar el ojo dos veces perdió el gol cargado (FR-015)');
+      // Con tiempo corto: si no hay nada que deshacer el botón está inactivo, y que falle la afirmación, no un timeout.
+      try { await page.click('#teamsSection .carga-acciones .panel-icono', { timeout: 3000 }); } catch (e) { problemas.push('no se pudo tocar Deshacer (S-04c)'); }
+      await page.waitForTimeout(250);
+      if (await marcadorDe(page) !== '0–0') problemas.push(`deshacer en "oculto" dejó el marcador en ${await marcadorDe(page)} (S-04c)`);
+      // La misma carga al editar el resultado de un finalizado (S-04a).
+      await cambiarDePartido(page, 'm-finalizado');
+      await page.evaluate(() => window.__editarResultadoFinalizado('m-finalizado'));
+      await page.waitForTimeout(300);
+      await tipo('gol');
+      const previo = await marcadorDe(page);
+      await tocarCamiseta(page, 'nilo');
+      const [b, n] = previo.split('–').map(Number);
+      if (await marcadorDe(page) !== `${b + 1}–${n}`) problemas.push(`al editar el finalizado en "oculto", un gol dejó ${await marcadorDe(page)} desde ${previo} (S-04a)`);
+      problemas.push(...(await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO)).map(x => `edición: ${x}`));
+      return problemas;
+    } },
+
+  { clave: 'ocultar-pagina', rol: 'admin', nombre: 'ocultar puntajes · el estado sigue al abrir otros partidos y se va al recargar',
+    anchos: [1200], spec: ['ocultar/S-05', 'ocultar/S-05a', 'ocultar/S-05b', 'ocultar/S-05d'],
+    transformarDatos: datos => {
+      const partidos = JSON.parse(datos.partidos);
+      const base = partidos.find(m => m.id === 'm-sin-equipos');
+      partidos.push({ ...JSON.parse(JSON.stringify(base)), id: 'm-sin-titulares', fecha: '2026-10-05', convocados: [] });
+      datos.partidos = JSON.stringify(partidos);
+      return datos;
+    },
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      await alternarOjo(page);
+      await cambiarDePartido(page, 'm-nueve');
+      if (await nombreDelOjo(page) !== 'Mostrar puntajes') problemas.push('al abrir otro partido el ojo volvió a "visible" (S-05, FR-013)');
+      problemas.push(...(await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO)).map(x => `m-nueve: ${x}`));
+      await cambiarDePartido(page, 'm-sin-equipos');
+      const sinEquipos = await page.evaluate(() => ({ ojo: !!document.querySelector('.panel-icono-ojo'),
+        generar: [...document.querySelectorAll('#teamsSection button')].some(b => b.textContent.trim() === 'Generar equipos'),
+        combo: !!document.querySelector('#teamsSection .chip-estrategia') }));
+      if (sinEquipos.ojo) problemas.push('sin equipos generados aparece el ojo (FR-004)');
+      if (!sinEquipos.generar || !sinEquipos.combo) problemas.push('sin equipos, en "oculto" faltan "Generar equipos" o el combo (FR-017)');
+      await cambiarDePartido(page, 'm-sin-titulares');
+      const sinTitulares = await page.evaluate(() => ({ ojo: !!document.querySelector('.panel-icono-ojo'),
+        combo: !!document.querySelector('#teamsSection .chip-estrategia'), texto: document.getElementById('teamsSection').textContent.includes('Sin titulares') }));
+      if (sinTitulares.ojo || !sinTitulares.combo || !sinTitulares.texto) problemas.push(`sin titulares: ${JSON.stringify(sinTitulares)} y va el combo, "Sin titulares" y ningún ojo (S-05a)`);
+      await cambiarDePartido(page, 'm-abierto');
+      if (await nombreDelOjo(page) !== 'Mostrar puntajes') problemas.push('de vuelta en el primer partido el ojo no sigue en "oculto" (S-05)');
+      await page.evaluate(() => window.__generarEquipos('m-sin-equipos'));
+      await page.waitForTimeout(800);
+      await cambiarDePartido(page, 'm-sin-equipos');
+      if (await nombreDelOjo(page) !== 'Mostrar puntajes' || await hay(page, '.panel-pildora')) problemas.push('el partido recién generado no se dibuja en "oculto" (S-05b, FR-014)');
+      await cambiarDePartido(page, 'm-abierto');
+      for (const ancho of [1100, 1099, 1100]) {
+        await page.setViewportSize({ width: ancho, height: 900 });
+        await page.waitForTimeout(250);
+        await mostrarEquiposMobile(page);
+        const r = [...await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO), ...await page.evaluate(INVARIANTE_SIN_VACIOS)];
+        problemas.push(...r.map(x => `después de cruzar a ${ancho} px: ${x} (S-05d)`));
+      }
+      await recargarEn(page, 1200, '2026-09-03');
+      if (await nombreDelOjo(page) !== 'Ocultar puntajes' || !await hay(page, '.panel-pildora')) problemas.push('después de recargar la página el ojo no volvió a "visible" (FR-012)');
+      return problemas;
+    } },
+
+  { clave: 'ocultar-sesion', rol: 'admin', nombre: 'ocultar puntajes · cerrar sesión vuelve a "visible"; jugador no depende del ojo',
+    anchos: [1200], spec: ['ocultar/S-05c', 'ocultar/S-09d', 'ocultar/TC-013'],
+    transformarDatos: conPuestosCruzados,
+    // Con los partidos de octubre, `abrirPartido` por el día 3 encuentra el 13: se pasa a m-abierto por id.
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); await cambiarDePartido(page, 'm-abierto'); },
+    async comprobar(page) {
+      const problemas = [];
+      const reentrar = async rol => {
+        await page.evaluate(() => window.auth.logout());
+        await page.waitForTimeout(300);
+        await page.evaluate(r => window.__entrarComo(r), rol);
+        await page.waitForTimeout(900);
+      };
+      await alternarOjo(page);
+      await reentrar('admin');
+      await cambiarDePartido(page, 'm-abierto');
+      if (await nombreDelOjo(page) !== 'Ocultar puntajes' || !await hay(page, '.panel-pildora')) problemas.push('al volver a entrar como admin el ojo no está en "visible" (S-05c, FR-018)');
+      await alternarOjo(page);
+      await reentrar('jugador');
+      await cambiarDePartido(page, 'm-int-finalizado');
+      problemas.push(...(await page.evaluate(INVARIANTE_JUGADOR, { puestos: puestosDelPartido('m-int-finalizado') })).map(x => `jugador después de un admin en "oculto": ${x} (S-09d, TC-013)`));
+      return problemas;
+    } },
+
+  { clave: 'ocultar-intercambio', rol: 'admin', nombre: 'ocultar puntajes · intercambiar puesto con los puntajes ocultos',
+    anchos: [360], spec: ['ocultar/S-06', 'ocultar/S-06a', 'ocultar/S-06b', 'ocultar/S-06c'],
+    transformarDatos: agregarDatosDeIntercambio,
+    async preparar(page) { await abrirPartido(page, '2026-10-14'); await mostrarEquiposMobile(page); },
+    async comprobar(page) {
+      const problemas = [];
+      const fotoVisible = await arrastrarSobre(page, 'int-lucas', { panel: 'blanco' }, { soltar: false });
+      if (!(fotoVisible.conCosto || []).length) problemas.push('precondición: en "visible" el arrastre de Lucas no marca ningún candidato con costo (S-06a)');
+      await tocarCamiseta(page, 'int-lucas');
+      const conCosto = await page.evaluate(() => [...document.querySelectorAll('.candidata.con-costo')].map(c => c.dataset.id));
+      if (!conCosto.length || !await hay(page, '.equipo-tab-cuenta')) problemas.push('precondición: en "visible" la selección de Lucas no tiene candidatos con costo o la cuenta de la pestaña (S-06c)');
+      const conCostoId = conCosto[0];
+      const tituloVisible = conCostoId ? await tituloDe(page, conCostoId) : '';
+      if (!tituloVisible.includes('queda fuera de puesto')) problemas.push(`precondición: el title del candidato con costo no lo dice: "${tituloVisible}"`);
+      const antes = await leerSeleccion(page);
+      await alternarOjo(page);
+      const despues = await leerSeleccion(page);
+      if (JSON.stringify(despues) !== JSON.stringify(antes)) problemas.push(`tocar el ojo cambió la selección viva: ${JSON.stringify(antes)} → ${JSON.stringify(despues)} (S-06b, FR-016b)`);
+      if (await hay(page, '.con-costo') || await hay(page, '.equipo-tab-cuenta')) problemas.push('en "oculto" quedan el costo o la cuenta de la pestaña (S-06b, FR-033, FR-035)');
+      const tituloOculto = conCostoId ? await tituloDe(page, conCostoId) : '';
+      if (tituloOculto.includes('queda fuera de puesto')) problemas.push(`en "oculto" el title del candidato dice "queda fuera de puesto" (S-06, FR-036)`);
+      const n0 = (await docsGuardados(page)).n;
+      if (conCostoId) await tocarCamiseta(page, conCostoId);
+      const guardado = await docsGuardados(page);
+      if (guardado.n !== n0 + 1) problemas.push('en "oculto" tocar el candidato no intercambió (S-06)');
+      if (haySeleccion(await leerSeleccion(page))) problemas.push('después del intercambio en "oculto" quedó una selección (S-06)');
+      if (await hay(page, '.camiseta-fuera')) problemas.push('después del intercambio en "oculto" apareció una «!» (S-06, FR-022)');
+      const fotoOculto = await arrastrarSobre(page, 'int-lucas', { panel: 'blanco' }, { soltar: false });
+      if ((fotoOculto.conCosto || []).length) problemas.push(`en "oculto" el arrastre marca candidatos con costo: ${fotoOculto.conCosto} (S-06a, FR-034)`);
+      return problemas;
+    } },
+
+  { clave: 'ocultar-gestos', rol: 'admin', nombre: 'ocultar puntajes · los gestos de armado siguen funcionando en "oculto"',
+    anchos: [360], spec: ['ocultar/S-07', 'ocultar/S-07a', 'ocultar/S-07b', 'ocultar/S-07c', 'ocultar/S-07d', 'ocultar/S-07e', 'ocultar/S-07f'],
+    transformarDatos: agregarDatosDeIntercambio,
+    // Con los partidos de octubre, `abrirPartido` por el día 3 encuentra el 13: se pasa a m-abierto por id.
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); await cambiarDePartido(page, 'm-abierto'); },
+    async comprobar(page) {
+      const problemas = [];
+      await page.setViewportSize({ width: 1200, height: 900 });
+      await page.waitForTimeout(250);
+      await alternarOjo(page);
+      const movido = 'nilo'; // suelto y sin candado: en m-abierto Claudio y Juan son dupla, y Juan está bloqueado
+      await arrastrarSobre(page, movido, { panel: 'negro' });
+      await page.waitForTimeout(300);
+      if (!await hay(page, `.team-panel.negro .camiseta[data-id="${movido}"]`)) problemas.push(`en "oculto" arrastrar a ${movido} al Negro no lo pasó (S-07)`);
+      if (await hay(page, '.team-total') || await hay(page, '.panel-pildora')) problemas.push('después del pase en "oculto" aparecieron un total o la píldora (S-07, FR-042)');
+      await page.click('#teamsSection .panel-icono-regenerar');
+      await page.waitForTimeout(800);
+      if (await hay(page, '.panel-receipt')) problemas.push('después de regenerar en "oculto" apareció "Por qué quedaron así" (S-07a)');
+      await page.click('#teamsSection .panel-icono-intercambiar');
+      await page.waitForTimeout(300);
+      problemas.push(...(await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO)).map(x => `después de intercambiar colores: ${x} (S-07b)`));
+      await cambiarDePartido(page, 'm-int-8');
+      if (await hay(page, '.camiseta-candado')) problemas.push('en "oculto" se ven los candados (S-07c, FR-024)');
+      await alternarOjo(page);
+      if (!await hay(page, '.camiseta[data-id="int-pedro"] .camiseta-candado.fijado')) problemas.push('de vuelta en "visible" Pedro perdió su candado (S-07c, FR-015)');
+      await alternarOjo(page);
+      await page.setViewportSize({ width: 360, height: 900 });
+      await page.waitForTimeout(250);
+      await cambiarDePartido(page, 'm-int-8');
+      await arrastrarSobre(page, 'int-mateo', { pestana: 'negro' });
+      await page.waitForTimeout(300);
+      const tras = partidoDe((await docsGuardados(page)).partidos, 'm-int-8');
+      if (!tras || !tras.equipos.negro.includes('int-mateo')) problemas.push('a 360 px en "oculto" soltar a Mateo sobre la pestaña Negro no lo pasó (S-07d)');
+      await page.setViewportSize({ width: 1200, height: 900 });
+      await page.waitForTimeout(250);
+      await cambiarDePartido(page, 'm-int-8');
+      await despejarAviso(page);
+      await arrastrarSobre(page, 'int-img', { camiseta: 'int-diego' });
+      await page.waitForTimeout(200);
+      const aviso = await textoDelAviso(page);
+      if (!aviso || !/no juega de defensor central/i.test(aviso)) problemas.push(`en "oculto" el aviso de soltar sobre Diego es "${aviso}" (S-07e, FR-044)`);
+      await despejarAviso(page);
+      await tocarCamiseta(page, 'int-img');
+      const avisoToque = await textoDelAviso(page);
+      if (!avisoToque || !avisoToque.includes('Nadie puede intercambiar puesto con')) problemas.push(`en "oculto" el aviso de tocar al DEL es "${avisoToque}" (S-07f, FR-044b)`);
+      return problemas;
+    } },
+
+  { clave: 'ocultar-textos', rol: 'admin', nombre: 'ocultar puntajes · los textos emergentes y los nombres accesibles',
+    anchos: [360], spec: ['ocultar/S-08', 'ocultar/S-08a', 'ocultar/S-08b', 'ocultar/S-08c', 'ocultar/TC-040'],
+    transformarDatos: conPuestosCruzados,
+    async preparar(page) {
+      page.__errores = [];
+      page.on('pageerror', e => page.__errores.push(e.message));
+      await abrirPartido(page, '2026-10-13'); await mostrarEquiposMobile(page);
+    },
+    async comprobar(page) {
+      const problemas = [];
+      const visible = await tituloDe(page, 'int-pedro') || '';
+      if (!visible.includes('su puesto es') || !visible.includes('sin puntaje')) problemas.push(`precondición: en "visible" el title de Pedro no dice "su puesto es" y "sin puntaje": "${visible}"`);
+      await alternarOjo(page);
+      const oculto = await tituloDe(page, 'int-pedro') || '';
+      for (const m of ['Pedro', 'Defensor Central', 'tocala para intercambiar puesto']) if (!oculto.includes(m)) problemas.push(`en "oculto" el title de Pedro no dice "${m}": "${oculto}" (S-08)`);
+      for (const m of ['su puesto es', 'sin puntaje']) if (oculto.includes(m)) problemas.push(`en "oculto" el title de Pedro dice "${m}": "${oculto}" (S-08)`);
+      await cambiarDePartido(page, 'm-int-9');
+      const dupla = await tituloDe(page, 'int-ramiro') || '';
+      if (!dupla || dupla.includes('(posición secundaria)')) problemas.push(`en "oculto" el title de la dupla es "${dupla}" (S-08a)`);
+      const img = await tituloDe(page, 'int-img') || '';
+      if (!img.includes('<img src=x onerror=alert(1)>')) problemas.push(`el title del jugador <img> no tiene su nombre literal: "${img}" (TC-040)`);
+      await page.evaluate(() => window.__verEquipo('m-int-9', 'negro'));
+      await page.waitForTimeout(200);
+      const hernan = await tituloDe(page, 'int-hernan') || '';
+      if (!hernan || hernan.includes('fuera de puesto')) problemas.push(`en "oculto" el title de Hernán es "${hernan}" (S-08b)`);
+      const negro = await page.evaluate(() => (document.querySelector('.equipo-tab[onclick*="\'negro\'"]') || {}).getAttribute?.('aria-label'));
+      if (negro !== 'Equipo Negro') problemas.push(`en "oculto" la pestaña Negro se llama "${negro}" (S-08c, FR-037)`);
+      if (await page.evaluate(() => document.querySelectorAll('.cancha img').length)) problemas.push('hay un <img> dentro de la cancha: el nombre del jugador no se escapó (TC-040, AC-23)');
+      if (page.__errores.length) problemas.push(`errores de página: ${page.__errores.join(' | ')} (TC-040)`);
+      return problemas;
+    } },
+
+  { clave: 'ocultar-datos', rol: 'admin', nombre: 'ocultar puntajes · el ojo no lee ni escribe nada',
+    anchos: [1200], spec: ['ocultar/S-10', 'ocultar/S-10a', 'ocultar/NFR-005', 'ocultar/TC-002'],
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); },
+    async comprobar(page) {
+      const problemas = [];
+      await page.context().grantPermissions(['clipboard-read', 'clipboard-write']);
+      const copiar = () => page.evaluate(async () => { document.querySelector('#teamsSection .panel-icono-copiar').click(); await new Promise(r => setTimeout(r, 300)); return navigator.clipboard.readText(); });
+      const contadores = () => page.evaluate(() => JSON.stringify({ e: window.__escrituras.length, l: window.__lecturas }));
+      const textoVisible = await copiar();
+      await page.evaluate(INSTALAR_CONTADOR_ALMACENAMIENTO);
+      const antes = await contadores();
+      for (let i = 0; i < 10; i++) await alternarOjo(page);
+      const textoTrasToques = await copiar();
+      if (textoTrasToques !== textoVisible) problemas.push('el texto copiado cambió después de tocar el ojo (S-10, FR-060)');
+      if (await contadores() !== antes) problemas.push(`tocar el ojo leyó o escribió datos: ${antes} → ${await contadores()} (S-10, TC-002)`);
+      const almacen = await page.evaluate(() => window.__almacenamiento);
+      if (almacen) problemas.push(`tocar el ojo usó el almacenamiento del navegador ${almacen} veces (NFR-005)`);
+      // Propiedad (S-10a): toques del ojo intercalados con abrir otros partidos.
+      const azar = mulberry32(20261120);
+      const partidos = ['m-abierto', 'm-cerrado', 'm-finalizado', 'm-nueve'];
+      const escriturasAntes = await page.evaluate(() => window.__escrituras.length);
+      let toques = 0;
+      for (let sec = 0; sec < 30; sec++) {
+        const pasos = 1 + Math.floor(azar() * 12);
+        for (let i = 0; i < pasos; i++) {
+          if (azar() < 0.5) { await alternarOjo(page); toques++; }
+          else await cambiarDePartido(page, partidos[Math.floor(azar() * partidos.length)]);
+        }
+        const esperado = toques % 2 ? 'Mostrar puntajes' : 'Ocultar puntajes';
+        const nombre = await nombreDelOjo(page);
+        if (nombre !== esperado) { problemas.push(`secuencia ${sec}: tras ${toques} toques el ojo dice "${nombre}" y tiene que decir "${esperado}" (S-10a)`); break; }
+      }
+      if (await page.evaluate(() => window.__escrituras.length) !== escriturasAntes) problemas.push('tocar el ojo y abrir partidos produjo escrituras (S-10a, FR-015)');
+      return problemas;
+    } },
+
+  { clave: 'ocultar-barrido', rol: 'admin', nombre: 'ocultar puntajes · barrido de situaciones, anchos y selección',
+    anchos: [1200], spec: ['ocultar/NFR-006', 'ocultar/S-02a', 'ocultar/TC-012'],
+    transformarDatos: conPuestosCruzados,
+    // Con los partidos de octubre, `abrirPartido` por el día 3 encuentra el 13: se pasa a m-abierto por id.
+    async preparar(page) { await abrirPartido(page, '2026-09-03'); await cambiarDePartido(page, 'm-abierto'); },
+    async comprobar(page) {
+      const problemas = [];
+      const encontrados = new Set();
+      const combinaciones = [
+        { id: 'm-abierto' }, { id: 'm-int-8' }, { id: 'm-int-8', seleccion: true }, { id: 'm-int-9' }, { id: 'm-int-9', seleccion: true },
+        { id: 'm-cerrado' }, { id: 'm-int-cerrado' }, { id: 'm-finalizado' }, { id: 'm-int-finalizado' }, { id: 'm-int-finalizado', editar: true },
+      ];
+      for (const ancho of [360, 1200]) {
+        // Recargar entre anchos deja la página sin edición en curso ni selección (y el ojo en "visible").
+        await recargarEn(page, ancho, '2026-09-03');
+        for (const c of combinaciones) {
+          const etiqueta = `${c.id}${c.editar ? ' (edición)' : ''}${c.seleccion ? ' con selección' : ''} a ${ancho} px`;
+          await cambiarDePartido(page, c.id);
+          if (c.editar) { await page.evaluate(id => window.__editarResultadoFinalizado(id), c.id); await page.waitForTimeout(300); }
+          if (c.seleccion) await tocarCamiseta(page, 'int-lucas');
+          if (await nombreDelOjo(page) !== 'Ocultar puntajes') { problemas.push(`${etiqueta}: el ojo no arranca en "visible"`); continue; }
+          (await page.evaluate(PRESENTES_DE_LISTA, LISTA_OCULTO)).forEach(x => encontrados.add(x));
+          const html = await htmlDeLaTarjeta(page);
+          const cuentas = await contarQuedanIgual(page);
+          await alternarOjo(page);
+          problemas.push(...(await page.evaluate(INVARIANTE_OCULTO, LISTA_OCULTO)).map(x => `${etiqueta}: ${x} (NFR-006)`));
+          const cuentasOculto = await contarQuedanIgual(page);
+          for (const sel of QUEDAN_IGUAL) {
+            if (cuentas[sel] !== cuentasOculto[sel]) problemas.push(`${etiqueta}: ${sel} pasó de ${cuentas[sel]} a ${cuentasOculto[sel]} con el ojo (FR-040)`);
+          }
+          await alternarOjo(page);
+          if (await htmlDeLaTarjeta(page) !== html) problemas.push(`${etiqueta}: tocar el ojo dos veces no dejó la tarjeta idéntica (S-02a)`);
+        }
+      }
+      const todas = LISTA_OCULTO.selectores.map(([sel]) => sel).concat(LISTA_OCULTO.menciones);
+      const nunca = todas.filter(x => !encontrados.has(x));
+      if (nunca.length) problemas.push(`el barrido nunca vio en "visible": ${nunca.join(', ')} — el barrido pasaría en vacío para esas entradas (AC-13)`);
+      return [...new Set(problemas)].slice(0, 30);
+    } },
 
   /* ---------------------------------------------------- ocultar-puntajes: jugador */
   escenarioJugador('armado', 'm-int-9', '2026-10-14', ['ocultar/S-09e', 'ocultar/S-09f', 'ocultar/S-09g'], async page => {
