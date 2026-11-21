@@ -1038,6 +1038,68 @@ const INVARIANTE_SIN_VACIOS = () => {
   return [...new Set(problemas)];
 };
 
+/* El ojo del encabezado (ocultar-puntajes FR-001, FR-002, FR-005 a FR-007, NFR-002). `arg` es
+   { situacion: 'armado'|'carga'|'finalizado'|'edicion', estado: 'visible'|'oculto' }. El tamaño de
+   44 × 44 y el nombre no vacío ya los mide INVARIANTE_PANEL sobre todo `.panel-icono`. El orden
+   esperado vive adentro porque `page.evaluate` serializa sólo el texto de la función (TD-18). */
+const INVARIANTE_OJO = (arg) => {
+  const acciones = document.querySelector('#teamsSection .panel-header-acciones');
+  if (!acciones) return ['no está la zona de acciones del encabezado de la tarjeta'];
+  const problemas = [];
+  const ojo = acciones.querySelector('.panel-icono-ojo');
+  if (!ojo) return [`falta el ojo en el encabezado (${arg.situacion}, FR-001)`];
+  const tipo = b => ['intercambiar', 'ojo', 'copiar', 'regenerar', 'editar'].find(t => b.classList.contains('panel-icono-' + t)) || 'otro';
+  const botones = [...acciones.querySelectorAll('.panel-icono')];
+  const orden = botones.map(tipo).join(',');
+  const esperado = { armado: 'intercambiar,ojo,copiar,regenerar', carga: 'ojo,copiar', edicion: 'ojo,copiar', finalizado: 'ojo,copiar,editar' }[arg.situacion];
+  if (orden !== esperado) problemas.push(`los íconos del encabezado quedaron ${orden} y van ${esperado} (${arg.situacion}, FR-002)`);
+  const nombre = arg.estado === 'oculto' ? 'Mostrar puntajes' : 'Ocultar puntajes';
+  if (ojo.getAttribute('aria-label') !== nombre) problemas.push(`el ojo se llama "${ojo.getAttribute('aria-label')}" y en "${arg.estado}" se llama "${nombre}" (FR-007)`);
+  if (ojo.getAttribute('title') !== nombre) problemas.push(`el texto emergente del ojo es "${ojo.getAttribute('title')}" y en "${arg.estado}" es "${nombre}" (FR-007)`);
+  // `eye` lleva la pupila (un <circle>); `eye-off` no (FR-006).
+  const tachado = !ojo.querySelector('svg circle');
+  if (tachado !== (arg.estado === 'oculto')) problemas.push(`el ojo ${tachado ? 'está tachado' : 'no está tachado'} en "${arg.estado}" (FR-006)`);
+  const copiar = acciones.querySelector('.panel-icono-copiar');
+  if (copiar && getComputedStyle(ojo).color !== getComputedStyle(copiar).color) {
+    problemas.push(`el ojo no tiene el color de Copiar: ${getComputedStyle(ojo).color} contra ${getComputedStyle(copiar).color} (FR-005)`);
+  }
+  const centros = botones.map(b => { const r = b.getBoundingClientRect(); return r.top + r.height / 2; });
+  if (centros.length && Math.max(...centros) - Math.min(...centros) >= 12) problemas.push(`los botones del encabezado no quedan en una misma fila (${arg.situacion}, NFR-002, S-11)`);
+  return problemas;
+};
+
+// Toca el ojo como una persona: por el `onclick` real, con su `stopPropagation` (TD-05).
+async function alternarOjo(page) {
+  await page.click('#teamsSection .panel-icono-ojo');
+  await page.waitForTimeout(200);
+}
+
+// Los ocho encabezados: cuatro situaciones por dos estados (ocultar-puntajes §7.3.6).
+const SITUACIONES_OJO = {
+  armado: { fecha: '2026-09-03', spec: { oculto: ['ocultar/S-01a'] } },
+  carga: { fecha: '2026-08-27', spec: { oculto: ['ocultar/S-04b'] } },
+  finalizado: { fecha: '2026-08-20', spec: { visible: ['ocultar/S-11c'], oculto: ['ocultar/S-11c', 'ocultar/S-03a'] } },
+  edicion: { fecha: '2026-08-20', editar: true, spec: {} },
+};
+const escenarioOjo = (situacion, estado) => {
+  const s = SITUACIONES_OJO[situacion];
+  const oculto = estado === 'oculto';
+  return {
+    clave: `ocultar-encabezado-${situacion}-${estado}`, rol: 'admin',
+    nombre: `ocultar puntajes · el encabezado con el ojo, ${situacion}, "${estado}"`,
+    spec: ['ocultar/S-11', 'ocultar/S-11a', 'ocultar/S-11b', 'ocultar/NFR-001', 'ocultar/NFR-002', 'ocultar/NFR-004',
+      ...(oculto ? ['ocultar/NFR-003'] : []), ...(s.spec[estado] || [])],
+    invariantes: [INVARIANTE_PANEL, [INVARIANTE_OJO, { situacion, estado }],
+      ...(oculto ? [[INVARIANTE_OCULTO, LISTA_OCULTO], INVARIANTE_SIN_VACIOS] : [])],
+    async preparar(page) {
+      await abrirPartido(page, s.fecha);
+      if (s.editar) { await page.evaluate(() => window.__editarResultadoFinalizado('m-finalizado')); await page.waitForTimeout(300); }
+      await mostrarEquiposMobile(page);
+      if (oculto) await alternarOjo(page);
+    },
+  };
+};
+
 // Los tres escenarios de layout de `jugador`, uno por situación (ocultar-puntajes §7.3.6).
 const escenarioJugador = (situacion, matchId, fechaIso, specPropio, comprobar) => ({
   clave: `ocultar-jugador-${situacion}`, rol: 'jugador',
@@ -1698,7 +1760,8 @@ const ESCENARIOS = [
         const puntajes = [...document.querySelectorAll('.resultado-puntaje')];
         if (puntajes.some(p => p.getBoundingClientRect().width > 0)) problemas.push('a 360px se ve el puntaje de armado en la fila de resultado, vive arriba del campo (finalizado/S-04b)');
         const iconos = document.querySelectorAll('.panel-header-acciones .panel-icono');
-        if (iconos.length !== 2) problemas.push(`el encabezado nuevo tiene ${iconos.length} ícono(s) de acción en vez de 2 (finalizado/S-01)`);
+        // Ojo, Copiar y Editar resultado (ocultar-puntajes FR-002, que acota finalizado/S-01).
+        if (iconos.length !== 3) problemas.push(`el encabezado nuevo tiene ${iconos.length} ícono(s) de acción en vez de 3 (finalizado/S-01, ocultar/FR-002)`);
         // TC-006 de NAVEGACION_PARTIDOS_SPEC.md (D-06 del Concept Note): la estrategia aplicada
         // no se nombra en ninguna parte de la pantalla — FR-084/D-25 de PANEL_ARMADO_SPEC.md se
         // mantienen vigentes, y desde 2026-09-04 el encabezado del finalizado tampoco la nombra
@@ -1974,6 +2037,7 @@ const ESCENARIOS = [
           /* Tres ramas y no un ternario: con dos, cualquier clase no reconocida caía en 'regenerar',
              y el botón de intercambiar colores se contaba como un segundo Regenerar. */
           ordenIconos: [...sec.querySelectorAll('.panel-icono')].map(b => b.classList.contains('panel-icono-intercambiar') ? 'intercambiar'
+            : b.classList.contains('panel-icono-ojo') ? 'ojo'
             : b.classList.contains('panel-icono-copiar') ? 'copiar' : b.classList.contains('panel-icono-regenerar') ? 'regenerar' : 'otro'),
           combo: !!sec.querySelector('#selectEstrategia'),
           interrogacion: !!sec.querySelector('.info-icon'),
@@ -1993,7 +2057,8 @@ const ESCENARIOS = [
       if (estructura.titulo !== 'Alineaciones') problemas.push(`el encabezado dice "${estructura.titulo}" y debería decir "Alineaciones" (FR-001)`);
       if (!estructura.copiar || !estructura.regenerar) problemas.push('faltan los botones de ícono del encabezado (FR-001, FR-002)');
       /* FR-002b fijaba Copiar, Regenerar; lo reemplaza FR-042 de intercambiar-colores. */
-      if (estructura.ordenIconos.join(',') !== 'intercambiar,copiar,regenerar') problemas.push(`los íconos van Intercambiar, Copiar, Regenerar y quedaron ${estructura.ordenIconos.join(',')} (intercambiar-colores FR-042)`);
+      // El ojo va entre Intercambiar y Copiar (ocultar-puntajes FR-002, que acota intercambiar-colores FR-042).
+      if (estructura.ordenIconos.join(',') !== 'intercambiar,ojo,copiar,regenerar') problemas.push(`los íconos van Intercambiar, Ocultar puntajes, Copiar, Regenerar y quedaron ${estructura.ordenIconos.join(',')} (intercambiar-colores FR-042, ocultar/FR-002)`);
       if (estructura.copiarEnPie) problemas.push('Copiar sigue al pie: subió al encabezado (FR-063)');
       if (estructura.cajitas) problemas.push(`quedaron ${estructura.cajitas} .conv-summary en la tarjeta: los tres resúmenes se retiraron (D-23, AC-07)`);
       if (!estructura.combo) problemas.push('no se dibujó el combo de estrategia (FR-010)');
@@ -3568,9 +3633,11 @@ const ESCENARIOS = [
       if (!btn) return ['falta el botón de intercambiar colores en el encabezado (FR-001)'];
       const orden = [...header.querySelectorAll('.panel-icono')].map(b =>
         b.classList.contains('panel-icono-intercambiar') ? 'intercambiar'
+          : b.classList.contains('panel-icono-ojo') ? 'ojo'
           : b.classList.contains('panel-icono-copiar') ? 'copiar'
             : b.classList.contains('panel-icono-regenerar') ? 'regenerar' : 'otro');
-      if (orden.join(',') !== 'intercambiar,copiar,regenerar') problemas.push(`los íconos quedaron ${orden.join(',')} y van intercambiar, copiar, regenerar (FR-042)`);
+      // El ojo va entre Intercambiar y Copiar (ocultar-puntajes FR-002, que acota FR-042).
+      if (orden.join(',') !== 'intercambiar,ojo,copiar,regenerar') problemas.push(`los íconos quedaron ${orden.join(',')} y van intercambiar, ojo, copiar, regenerar (FR-042, ocultar/FR-002)`);
       if (btn.getAttribute('aria-label') !== 'Intercambiar colores') problemas.push(`el botón se llama "${btn.getAttribute('aria-label')}" y tiene que llamarse "Intercambiar colores" (FR-041)`);
       if (btn.getAttribute('title') !== 'Intercambiar colores') problemas.push('el botón no tiene el título "Intercambiar colores" (FR-041)');
       const copiar = header.querySelector('.panel-icono-copiar');
@@ -4512,6 +4579,9 @@ const ESCENARIOS = [
       await vieja.close(); await nueva.close();
       return problemas;
     } },
+  /* ---------------------------------------------------- ocultar-puntajes: el ojo */
+  ...['armado', 'carga', 'finalizado', 'edicion'].map(sit => escenarioOjo(sit, 'visible')),
+
   /* ---------------------------------------------------- ocultar-puntajes: jugador */
   escenarioJugador('armado', 'm-int-9', '2026-10-14', ['ocultar/S-09e', 'ocultar/S-09f', 'ocultar/S-09g'], async page => {
     // Que haya algo que ocultar: sin esto el invariante se cumpliría en vacío.
