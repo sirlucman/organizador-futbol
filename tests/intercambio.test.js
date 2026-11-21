@@ -248,6 +248,32 @@ prueba('"intercambio/S-01j" si el reparto cambió entre los dos toques, el segun
   eq(I.textoAvisoIntercambio('reparto-cambio'), 'Ya no se puede intercambiar: el reparto cambió', 'el texto de FR-034b');
 });
 
+/* El cuerpo de un manejador `window.__<nombre> = (async) function(…){ … };`, hasta su llave de cierre
+   (mismo recorte que `cuerpoDeManejador` de tests/orden.test.js). */
+function cuerpoDeManejador(nombre) {
+  const desde = src.indexOf(`window.${nombre} = `);
+  ok(desde > 0, `se encuentra window.${nombre}`);
+  return src.slice(desde, src.indexOf('\n  };', desde));
+}
+
+prueba('"ocultar/S-07g" el aviso del reparto cambiado sale igual con los puntajes ocultos', () => {
+  /* Como `S-01j`, el caso sólo se produce acá: la aplicación no escucha cambios de otra sesión
+     (ocultar-puntajes TD-15). El aviso no depende del ojo por construcción (FR-044c): ninguna de
+     las funciones que deciden el segundo toque, ni el manejador que muestra el aviso, consulta
+     el estado del ojo. */
+  const textos = ['resolverToqueCamiseta', 'evaluarIntercambio', 'textoAvisoIntercambio']
+    .map(n => [n, extraer(src, n)]).concat([['window.__tocarCamiseta', cuerpoDeManejador('__tocarCamiseta')]]);
+  for (const [nombre, texto] of textos) {
+    ok(!/puntajesVisibles|puntajesOcultos/.test(texto), `${nombre} consulta el estado del ojo (FR-044c)`);
+  }
+  // Y el aviso sale igual: el mismo armado que `intercambio/S-01j`.
+  const m = partido('m-int-8');
+  const sel = seleccion(m, 'int-juan');
+  m.equipos.posicionAsignada['int-pedro'] = 'MI';
+  eq(I.resolverToqueCamiseta(m, sel, 'int-pedro', porId), { accion: 'reparto-cambio' }, 'el reparto cambió entre los dos toques (FR-044c)');
+  eq(I.textoAvisoIntercambio('reparto-cambio'), 'Ya no se puede intercambiar: el reparto cambió', 'el mismo texto que en "visible" (FR-044c)');
+});
+
 console.log('\n\x1b[1mLA ESCRITURA\x1b[0m — intercambiarUnidades\n');
 
 prueba('"intercambio/S-01" Juan y Pedro intercambian puesto en el Blanco y el total baja 4', () => {
